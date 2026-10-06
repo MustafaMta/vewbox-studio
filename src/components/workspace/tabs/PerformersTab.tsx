@@ -13,6 +13,7 @@ import { TrackButton } from '@/components/players/PlayerProvider';
 import { IconAuto } from '@/components/ui/icons';
 import { GenButton, type StudioGate } from '../gate';
 import { vocab } from '../model';
+import { WorldBiblePanel } from '../WorldBible';
 
 /** PERFORMERS (a music video) — who sings, what they sing, and how they sound: each performer's canonical figure,
  *  the sections they sing and their voice, previewed through the studio's one player. The voice is chosen on the
@@ -49,6 +50,7 @@ export function CastTab({ p }: { p: Production }) {
       <section className="ws-sec" aria-label="Locations">
         <CanonPicker only="locations" castIds={p.castIds} locationIds={p.locationIds} inheritedCast={show?.castIds} inheritedLocations={show?.locationIds} style={p.style} onChange={save} />
       </section>
+      <WorldBiblePanel p={p} />
     </div>
   );
 }

@@ -28,6 +28,8 @@ import { syncRegistry } from '@/server/registry';
 import { agentForJob, classifyFailure, finishAttempt, finishRun, RETRYABLE_CLASSES, recordRunPhase, reliabilityEvent, resolveReliability, resumeRun, startAttempt, startRun, studioEvent } from '@/server/org/runs';
 import { makeDelegator, makeToolRunner } from '@/server/org/tools';
 import { JOB_LABELS } from '@/domain/jobs';
+import { assertTermsFor } from '@/server/terms';
+import { readState } from '@/server/studio/engine';
 
 /** THE WORKER — claims jobs from Postgres and runs them. Lanes: hosted (MiniMax, many at once), LLM (a few), CPU
  *  (ffmpeg, a few), GPU (one at a time against the RTX 5090's VRAM budget) and orchestration (chains that wait on
@@ -134,6 +136,9 @@ async function run(job: Job, lane: Lane) {
   try {
     const handler = HANDLERS[job.type];
     if (!handler) throw Object.assign(new Error(`No handler for ${job.type}`), { retryable: false });
+    // THE TERMS OF USE, checked again at claim (src/server/terms.ts): a job queued before the terms changed fails here
+    // as INVALID_INPUT, never retried — nothing generates under unaccepted terms
+    assertTermsFor((await readState()).state.settings, job.type);
     // the handler runs in the job scope (signal + lease, src/server/jobs/context.ts); a handler that ignores an abort
     // is let go of after ABORT_GRACE_MS so its lane slot is freed — its late writes are fenced on the lease
     const result = await raceAbort(runInJobScope({ jobId: job.id, signal: jobCtrl.signal, lease }, () => handler(ctx)), jobCtrl.signal, ABORT_GRACE_MS);
@@ -151,7 +156,13 @@ async function run(job: Job, lane: Lane) {
       return;
     }
     const outcome = result?.awaitingReview ? 'AWAITING_REVIEW' : 'COMPLETED';
-    await record('complete', async () => { if (!(await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease))) leaseLost = true; });
+    // the heartbeat stops BEFORE the result is written: a beat landing just after the job became COMPLETED found it no
+    // longer running and flagged the lease lost, so a completed attempt was recorded LEASE_LOST (found by the full
+    // worker suite under load). The outcome is the fenced write's own answer.
+    stopHeartbeat();
+    let written = false;
+    await record('complete', async () => { written = await complete(job.id, { ...result, ms, agentId: agent.id, runId }, outcome, lease); });
+    leaseLost = !written;
     await attemptEnded(leaseLost ? 'LEASE_LOST' : outcome);
     if (leaseLost) {
       if (runId) await record('finish run', () => finishRun(runId, { outcome: 'FAILED', failureClass: 'INFRASTRUCTURE', errorMessage: 'lease lost before completion: another worker reclaimed the job; this attempt’s result was discarded', ms }));

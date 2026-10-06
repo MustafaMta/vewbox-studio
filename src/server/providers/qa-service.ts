@@ -2,6 +2,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE ALIGNMENT AND PICTURE-QA CLIENT — the `asr` service's /align, /qa/mouth and /qa/identity (docker/asr/align.py,
@@ -62,7 +63,7 @@ export interface IdentityResult {
 
 // ------------------------------------------------------------------------------------------------ transport
 
-const base = () => env().ASR_URL.replace(/\/$/, '');
+const base = () => guardedEngineUrl(env().ASR_URL.replace(/\/$/, ''), 'the QA service'); // one card, one lease (gpu/lease-db.ts)
 
 const camelKey = (k: string) => k.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 /** snake_case keys → camelCase, deep; the keys of a `characters` map are ids and stay as sent. */

@@ -97,6 +97,33 @@ export const JOIN_SPEECH = { leadIn: 0.4, gap: 0.35, tail: 0.3 } as const;
 /** the take's own sound is muted this much beyond each recorded line that replaces its speech (MiniMax H3 mirrors the
  *  anchored recording to within about a frame: its edges must not leak around the authoritative line) */
 export const REPLACED_SPEECH_PAD_SAMPLES = 2 * (48000 / 24);
+/** Room tone under replaced speech: the cross-fade at each edge (the take ramps out as the room tone ramps in), the
+ *  shortest usable stretch without speech, the longest kept, the margin kept from any speech, and the duck used when
+ *  the take has no such stretch (−20 dB). */
+export const ROOM_TONE = { rampSamples: 0.04 * 48000, minSeconds: 0.25, maxSeconds: 2, marginSeconds: 0.12, duckGain: 0.1 } as const;
+/** The place's room bed under a film's run of shots at one place: −10 dB (the takes' own room dominates; the bed fills
+ *  their silences), 0.25 s fades at the run's edges. */
+export const ROOM_BED = { gain: 0.32, fadeSamples: 0.25 * 48000 } as const;
+
+/** The longest stretch of a take (seconds on its clock) after its guide head with no speech in it (each speech window
+ *  widened by the margin), at least ROOM_TONE.minSeconds, at most maxSeconds (its middle); undefined when none. */
+export function roomToneStretch(o: { head: number; takeSeconds: number; speech: Array<{ from: number; to: number }> }): { from: number; to: number } | undefined {
+  const m = ROOM_TONE.marginSeconds;
+  const busy = o.speech.map((w) => ({ from: w.from - m, to: w.to + m })).sort((x, y) => x.from - y.from);
+  const end = o.takeSeconds - 0.05;
+  let best: { from: number; to: number } | undefined;
+  let at = o.head + 0.05;
+  for (const w of [...busy, { from: end, to: end }]) {
+    const gap = { from: at, to: Math.min(w.from, end) };
+    if (gap.to - gap.from > (best ? best.to - best.from : 0)) best = gap;
+    at = Math.max(at, w.to);
+  }
+  if (!best || best.to - best.from < ROOM_TONE.minSeconds) return undefined;
+  const len = best.to - best.from;
+  if (len <= ROOM_TONE.maxSeconds) return { from: Number(best.from.toFixed(4)), to: Number(best.to.toFixed(4)) };
+  const mid = (best.from + best.to) / 2;
+  return { from: Number((mid - ROOM_TONE.maxSeconds / 2).toFixed(4)), to: Number((mid + ROOM_TONE.maxSeconds / 2).toFixed(4)) };
+}
 
 /** WHERE EACH RECORDED LINE WAS ANCHORED in a take (seconds on the take's own clock), when the take was generated to
  *  the shot's CURRENT recordings: the joined soundtrack it was conditioned on names its line recordings in order, and
@@ -166,6 +193,8 @@ export interface AudioCue {
   automation?: { rampSamples: number; spans: GainSpan[] };
   /** the source repeats to fill the cue (an ambience bed) */
   loop?: boolean;
+  /** only this many samples of the source, from sourceOffsetSamples, repeat to fill the cue (room tone) */
+  loopSamples?: number;
   /** it carries a voice (speech or singing) */
   voice: boolean;
   shotId?: string;
@@ -340,6 +369,8 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
   const edge = (c: Omit<AudioCue, 'fadeInSamples' | 'fadeOutSamples'> & Partial<Pick<AudioCue, 'fadeInSamples' | 'fadeOutSamples'>>): AudioCue => ({ fadeInSamples: Math.min(EDGE_FADE_SAMPLES, Math.floor(c.durationSamples / 2)), fadeOutSamples: Math.min(EDGE_FADE_SAMPLES, Math.floor(c.durationSamples / 2)), ...c });
   // 2) TAKES AND LINES
   const takeCue = new Map<string, AudioCue>();
+  /** each shot's stretch of its take without speech (its room tone), for the cue under replaced speech and the bed */
+  const roomOf = new Map<string, { assetId: string; takeId: string; from: number; to: number }>();
   for (const s of shots) {
     const sh = ordered.find((x) => x.id === s.shotId)!;
     const t = takeOf(sh)!;
@@ -386,9 +417,30 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
     }
     if (hasAudio) {
       const durationSamples = S(Math.min(s.frames, s.availableFrames));
-      const c = edge({ id: `take-${t.id}`, kind: 'GENERATED_VIDEO_AUDIO', sourceAssetId: s.assetId, lineage: musicVideo && sungAlong ? `song:${songOk!.id}` : `take:${t.id}`, startSample: shotStart, durationSamples, sourceOffsetSamples: S(s.sourceStartFrame), gain: musicVideo ? 0 : 1, muted: musicVideo || undefined, voice: sh.dialogue.length > 0 || sungAlong, shotId: sh.id, policy: musicVideo ? 'music video: the song master is the soundtrack; the take sang along to it' : mode === 'REPLACE' ? 'the take\'s room and movement; muted under the recorded lines that replace its speech' : t.soundtrack?.kind === 'DIALOGUE' ? 'the take speaks its lines (MiniMax H3, speech checked)' : 'native MiniMax sound' });
-      if (mode === 'REPLACE' && lineCues.length) c.automation = { rampSamples: secS(0.02), spans: mergeSpans(lineCues.map((l) => ({ from: Math.max(0, l.startSample - shotStart - REPLACED_SPEECH_PAD_SAMPLES), to: Math.min(durationSamples, l.startSample + l.durationSamples - shotStart + REPLACED_SPEECH_PAD_SAMPLES), gain: 0 })), 0) };
+      const c = edge({ id: `take-${t.id}`, kind: 'GENERATED_VIDEO_AUDIO', sourceAssetId: s.assetId, lineage: musicVideo && sungAlong ? `song:${songOk!.id}` : `take:${t.id}`, startSample: shotStart, durationSamples, sourceOffsetSamples: S(s.sourceStartFrame), gain: musicVideo ? 0 : 1, muted: musicVideo || undefined, voice: sh.dialogue.length > 0 || sungAlong, shotId: sh.id, policy: musicVideo ? 'music video: the song master is the soundtrack; the take sang along to it' : mode === 'REPLACE' ? 'the take\'s room and movement; under the recorded lines that replace its speech, its own room tone instead' : t.soundtrack?.kind === 'DIALOGUE' ? 'the take speaks its lines (MiniMax H3, speech checked)' : 'native MiniMax sound' });
+      if (mode === 'REPLACE' && lineCues.length) c.automation = { rampSamples: ROOM_TONE.rampSamples, spans: mergeSpans(lineCues.map((l) => ({ from: Math.max(0, l.startSample - shotStart - REPLACED_SPEECH_PAD_SAMPLES), to: Math.min(durationSamples, l.startSample + l.durationSamples - shotStart + REPLACED_SPEECH_PAD_SAMPLES), gain: 0 })), 0) };
       cues.push(c); takeCue.set(s.shotId, c);
+      // ROOM TONE UNDER THE REPLACED SPEECH (QA 2026-10-06, Tea at Mutanabbi: muting the take left digital silence in
+      // the line's pauses, −74 dB, and a 24 dB step back to the room): the take's own room, cut from a stretch where
+      // nobody speaks, loops under each muted span and cross-fades with the take at its edges. Without such a stretch
+      // the take is ducked instead of muted, never silenced.
+      const placedSpeech = t.soundtrack?.kind === 'DIALOGUE' ? t.soundtrack.lines : [];
+      const room = musicVideo ? undefined : roomToneStretch({ head, takeSeconds: a?.durationSeconds ?? s.availableFrames / CLOCK_FPS, speech: [...placedSpeech.map((w) => ({ from: w.from, to: w.to })), ...lineCues.map((l) => ({ from: head + (l.startSample - shotStart) / CLOCK_RATE, to: head + (l.startSample + l.durationSamples - shotStart) / CLOCK_RATE }))] });
+      if (room) roomOf.set(s.shotId, { assetId: s.assetId, takeId: t.id, ...room });
+      if (c.automation) {
+        if (!room) {
+          c.automation = { ...c.automation, spans: c.automation.spans.map((x) => ({ ...x, gain: ROOM_TONE.duckGain })) };
+          notes.push(`shot ${sh.id}: no stretch of the take without speech for room tone; its sound is ducked ${Math.round(20 * Math.log10(ROOM_TONE.duckGain))} dB under the recorded lines instead of muted`);
+        } else {
+          const r = ROOM_TONE.rampSamples;
+          for (const [i, span] of c.automation.spans.entries()) {
+            const from = Math.max(shotStart, shotStart + span.from - r); const to = Math.min(shotEnd, shotStart + span.to + r);
+            if (to - from <= 2 * r) continue;
+            cues.push({ id: `room-${t.id}-${i}`, kind: 'AMBIENCE', sourceAssetId: s.assetId, lineage: `roomtone:take:${t.id}`, startSample: from, durationSamples: to - from, sourceOffsetSamples: secS(room.from), loopSamples: secS(room.to - room.from), gain: 1, voice: false, fadeInSamples: r, fadeOutSamples: r, shotId: sh.id, policy: `the take's room tone (${room.from.toFixed(2)}–${room.to.toFixed(2)} s of the take, no speech) under the recorded line, looped` });
+          }
+          notes.push(`shot ${sh.id}: room tone from ${room.from.toFixed(2)}–${room.to.toFixed(2)} s of the take under ${c.automation.spans.length} recorded line span(s)`);
+        }
+      }
     }
     cues.push(...lineCues);
   }
@@ -431,6 +483,32 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
       if (ok) { if (run) run.to = S(s.startFrame + s.frames); else run = { asset: ok, from: S(s.startFrame), to: S(s.startFrame + s.frames), locationId: loc! }; }
     }
     flush();
+  }
+  // THE PLACE'S ROOM BED (QA 2026-10-06: Tea 1.3 opens with 0.45 s of digital silence right after the Cut, a room
+  // step a film never has): a film's run of shots at one place with no ambience bed of its own gets one continuous bed
+  // of the place's room tone — the first take of the run with a stretch without speech, looped — under its takes,
+  // ROOM_BED.gain below them: it fills the silences the takes leave and is lost under their own room elsewhere
+  if (!musicVideo) {
+    const bedded = new Set(cues.filter((c) => c.kind === 'AMBIENCE' && c.lineage.startsWith('ambience:')).flatMap((c) => shots.filter((s) => S(s.startFrame) >= c.startSample && S(s.startFrame) < c.startSample + c.durationSamples).map((s) => s.shotId)));
+    let run: { loc: string; first: number; last: number } | undefined;
+    const flushRoom = () => {
+      if (!run) return;
+      const members = shots.slice(run.first, run.last + 1);
+      const src = members.map((s) => roomOf.get(s.shotId)).find(Boolean);
+      if (src && !members.some((s) => bedded.has(s.shotId))) {
+        const from = S(members[0].startFrame); const to = S(members.at(-1)!.startFrame + members.at(-1)!.frames);
+        const fade = Math.min(ROOM_BED.fadeSamples, Math.floor((to - from) / 2));
+        cues.push({ id: `roombed-${run.loc}-${from}`, kind: 'AMBIENCE', sourceAssetId: src.assetId, lineage: `roomtone:bed:${src.takeId}`, startSample: from, durationSamples: to - from, sourceOffsetSamples: secS(src.from), loopSamples: secS(src.to - src.from), gain: ROOM_BED.gain, voice: false, fadeInSamples: fade, fadeOutSamples: fade, policy: `the place's room tone (take ${src.takeId}, ${src.from.toFixed(2)}–${src.to.toFixed(2)} s, looped) under the ${members.length} shot(s) there, ${Math.round(20 * Math.log10(ROOM_BED.gain))} dB: no digital silence between or inside the takes` });
+        notes.push(`room bed under ${members.length} shot(s) at ${run.loc} from take ${src.takeId}`);
+      }
+      run = undefined;
+    };
+    shots.forEach((s, i) => {
+      const loc = p.scenes.find((sc) => sc.id === s.sceneId)?.locationId ?? `scene:${s.sceneId}`;
+      if (run && run.loc !== loc) flushRoom();
+      if (run) run.last = i; else run = { loc, first: i, last: i };
+    });
+    flushRoom();
   }
   const timeline: AudioTimeline = { version: 1, fps: CLOCK_FPS, rate: CLOCK_RATE, clock: musicVideo ? 'SONG' : 'DIALOGUE', totalFrames, totalSamples, songOffsetFrames, policy, shots, cues, notes, problems: [] };
   timeline.problems = [...staleProblems, ...auditTimeline(timeline)];
@@ -477,7 +555,8 @@ export function auditTimeline(t: Pick<AudioTimeline, 'cues'>): AudioProblem[] {
     const a = cues[i]; const b = cues[j];
     const timeOverlap = Math.min(a.startSample + a.durationSamples, b.startSample + b.durationSamples) - Math.max(a.startSample, b.startSample);
     if (timeOverlap <= 0) continue;
-    if (a.sourceAssetId === b.sourceAssetId && !a.loop && !b.loop) {
+    // room tone (loopSamples) is a stretch the take plays elsewhere, under its own muted span: not a second copy
+    if (a.sourceAssetId === b.sourceAssetId && !a.loop && !b.loop && !a.loopSamples && !b.loopSamples) {
       const srcOverlap = Math.min(a.sourceOffsetSamples + a.durationSamples, b.sourceOffsetSamples + b.durationSamples) - Math.max(a.sourceOffsetSamples, b.sourceOffsetSamples);
       if (srcOverlap > 0) problems.push({ kind: 'ROUTED_TWICE', detail: `${a.kind} ${a.sourceAssetId} is routed twice`, cueIds: [a.id, b.id] });
     }

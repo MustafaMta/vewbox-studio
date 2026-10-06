@@ -9,7 +9,8 @@ const up = async () => { try { const r = await fetch(`${process.env.ASR_URL ?? '
 
 describe('transcription client', () => {
   it('transcribes real English speech with word timings and a low word error rate', async () => {
-    if (!(await up())) return;
+    // the real ASR, only when this run may use the card (the live lease) - never from a run on its own lease
+    if ((await import('@/server/gpu/lease-db')).engineGuardProblem(process.env.ASR_URL ?? 'http://127.0.0.1:8030') || !(await up())) return;
     const t = await transcribe('tests/fixtures/speech-en.wav', { language: 'en' });
     expect(t.language).toBe('en');
     expect(t.segments.length).toBeGreaterThan(0);

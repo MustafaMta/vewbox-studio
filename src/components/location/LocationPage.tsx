@@ -17,6 +17,7 @@ import { IconCheck, IconDelete, IconEdit, IconGenerate, IconPlus, IconUpload } f
 import { BackLink, CardHead, CastSection, nameLang, usable } from '@/components/character/parts';
 import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
 import { locationIdentity } from '@/domain/location';
+import { LocationBible } from './LocationBible';
 
 const ROLE_WORD: Record<LocationRefRole, string> = { MASTER: 'Master plate', VIEW: 'View', STATE: 'Lighting state' };
 
@@ -100,6 +101,7 @@ export function LocationPage({ l }: { l: Location }) {
         {l.description ? <p className="t-prose char-prose" dir="auto">{l.description}</p> : <p className="t-body pc-empty-line">No description yet.</p>}
         <Identity l={l} />
       </CastSection>
+      <LocationBible l={l} />
       <Plates l={l} />
       <section className="pc-section loc-cols" aria-label="Landmarks and props">
         <div className="card char-card">

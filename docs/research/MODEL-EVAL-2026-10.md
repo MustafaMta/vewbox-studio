@@ -384,3 +384,127 @@ before and after (as for the one clean take alone): a listening item, not measur
 `VIDEO_H3_VRAM_MB` 31900 (was 28000; H3 V4 peak), with H3's host RAM recorded beside them (40.8 of 46.8 GiB, ≈ 6 GiB
 headroom until `.wslconfig`). `tests/unit/gpu-estimates.test.ts` reads GPU-STAGING §6 and fails if an estimate is below a
 recorded peak. `GPU_VRAM_BUDGET_MB` stays 30000: its warning now fires on every Qwen and H3 job (a decision left open).
+
+## 7. Image model upgrade (2026-10-06, model-upgrade directive §§2, 9; final local directive §6)
+
+Image-model engineer, 2026-10-06. Rule: commercial-safe weights only (producer, 2026-10-06); candidate → benchmark →
+real-UI test → comparison → promote; the incumbent stays until the replacement proves better.
+
+### 7.1 What exists (research 2026-10-06, primary sources)
+
+Sources: Hugging Face model cards and API trees (`/api/models/<repo>`, `/tree/main`), the Artificial Analysis arenas
+(open-weights T2I board and the open-weights image-editing board, fetched 2026-10-06), the running ComfyUI 0.38.1
+`/object_info` and its bundled templates (comfyui_workflow_templates 0.11.73).
+
+| Model | Params | Licence (verified) | Arena (AA, open weights) | ComfyUI 0.38.1 | Decision |
+|---|---|---|---|---|---|
+| Qwen-Image-2512 (incumbent T2I) | 20B DiT + Qwen2.5-VL-7B | apache-2.0 (card) | T2I 999 | core | keep; **bf16 candidate** (§7.3) |
+| Qwen-Image-Edit-2511 (incumbent editor) | 20B + 7B | apache-2.0 (card) | Edit 1021 (best commercial) | core | keep; bf16 only if JoyAI loses |
+| FLUX.2 [klein] 4B (incumbent reference) | 4B + Qwen3-4B | **Apache-2.0** (BFL repo LICENSE.md) | T2I 863, Edit 948 | core | challenged (§7.3) |
+| **JoyAI-Image-Edit(-Plus)** (JD, paper arXiv 2605.04128) | **16B MMDiT** + Qwen3-VL-8B | apache-2.0 (jdopensource cards, Comfy repack) | not on the board | core `TextEncodeJoyImageEdit`, ≤ 6 refs | **candidate** |
+| Qwen-Image-2.1 | 7B + Qwen3-VL-8B | Qwen Research Licence (NC) | T2I 1036, Edit 1073 | core | research reference only (§2.7) |
+| FLUX.2 [dev] | 32B + Mistral-24B | FLUX Non-Commercial, gated | T2I 1000, Edit 1000 | core | **excluded** (producer: commercial-safe only) |
+| FLUX.2 [klein] 9B | 9B | FLUX Non-Commercial | T2I 941, Edit 1013 | core | **excluded** |
+| HunyuanImage 3.0 Instruct | 80B MoE | community, territory exclusions | Edit 1066 | API node only | does not fit, licence |
+| HiDream-O1-Image | 8B pixel-space | MIT | T2I (dev) 875, Edit 951 | core, ≤ 100 refs | not taken: ≈ klein 4B on the arena, 4-MP native (slow) |
+| Ming-Image 0.1 Design | 6B + Ling-mini-2.0 | MIT | T2I 998 | core | not taken: a graphic-design model (UI, posters, text), ≈ 2512 |
+| FireRed-Image-Edit 1.0 | 20B (Qwen-Edit lineage) | apache-2.0 | — (GEdit 7.94 vs 2511 7.88) | core | not taken: +0.07 GEdit is not material |
+| Krea-2, Boogu-Image, Mage-Flow | — | Krea community / Apache / MIT | not ranked | core | not taken |
+
+Reading: among commercially usable weights the shipping Qwen pair is still the top of both arenas; nothing commercial
+and larger ranks above them. The upgrade room is therefore (a) **precision** — the canonical engine ships as a plain
+`fp8_e4m3fn` cast of a 20B model, its bf16 original (40.86 GB) needs partial loading on 32 GB — and (b) **the roles where
+the incumbents are weak** — Image Reference runs on the 4B klein, placement in a plate was 8/12, location views 0/6 —
+where JoyAI-Image-Edit (16B, Apache, spatial/camera editing, 6 references) is the one new commercial contender.
+
+### 7.2 Licences of the incumbents (verified 2026-10-06)
+
+- **FLUX.2 [klein] 4B**: Apache License 2.0 — `black-forest-labs/FLUX.2-klein-4B` LICENSE.md (rev e7b7dc2), the
+  Comfy-Org repack tagged apache-2.0. Commercial use allowed. (The NC FLUX weights are klein 9B, FLUX.2 [dev], FLUX.1.)
+- **Qwen-Image-2512, Qwen-Image-Edit-2511** and the lightx2v Lightning LoRAs: apache-2.0 (model-card licence; the Qwen
+  repos carry no separate LICENSE file). Commercial use allowed.
+- **JoyAI-Image-Edit**: apache-2.0 on `jdopensource/JoyAI-Image-Edit`, `jdopensource/JoyAI-Image-Edit-Plus-ComfyUI`
+  and `Comfy-Org/JoyAI-Image-Edit` (not gated). The repack's VAE is `wan_2.1_vae` — used only as JoyAI's image latent
+  codec; no Wan video model is installed or used.
+- **MiniMax H3 (local)**: §8.1 — commercial use allowed with conditions, including a territory restriction on the
+  Outputs.
+
+### 7.3 Candidates, downloads, benchmark
+
+Candidates (≤ 3 new): (1) **JoyAI-Image-Edit int8_convrot** (DiT 16.43 GB + TE 10.06 GB + VAE 0.25 GB; manifest group
+`eval-joyai-image-edit`, pinned rev 8010e7b) for Image Reference, placement, identity-preserving edits, multi-character
+frames and views; (2) **Qwen-Image-2512 bf16** (40.86 GB, group `eval-qwen-image-2512-bf16`, rev 1f12b17) for
+characters, plates, posters; (3) Qwen-Image-Edit-2511 bf16 only if JoyAI does not win the edit roles.
+
+Harness: `scripts/model-eval-images.ts --tag upgrade` (results `docs/evidence/model-eval-2026-10/images-upgrade/`,
+originals `var/model-eval/images-upgrade/`), the same briefs, uploads and seeds (970007/970008) as §2, plus two new
+phases — **idedit** (the canonical image redrawn sitting, three-quarter, laughing) and **multi** (C3 and a second
+realistic person C4 placed together in the realistic plate) — SFace cosine per picture (asr `POST /qa/identity`,
+START threshold 0.363) and the comfyui container's RAM (docker stats) beside the card's VRAM. Every GPU batch ran
+under `scripts/gpu-hold.ts IMAGE 30400`, ≤ 18 min per hold. The incumbents were re-run on this machine (the first run's
+originals are not on this workstation), so every arm is measured on the same day, install and inputs.
+
+## 8. MiniMax H3 local: configuration and licence audit (2026-10-06, research only, no GPU)
+
+### 8.1 Licence
+
+"MiniMax H3 Community License Agreement" (MiniMaxAI/MiniMax-H3 `LICENSE`, 2026-08-02; the Comfy-Org repack points to
+it). Commercial use is allowed, with conditions:
+
+- **Territory**: granted only in the "Applicable Territory" — worldwide **excluding the EU, the UK, South Korea and the
+  USA** — and §V.4 forbids using, distributing or **displaying the Works "or any of their Outputs"** outside it. Read
+  literally, a film made with local H3 may not be shown to audiences in those four territories without a separate
+  licence from MiniMax (application: platform.minimax.io/h3-license; MiniMax's `docs/QA-about-License.md` calls the
+  restriction temporary and offers a formal licence for those regions). This is the material risk for a commercial Vewbox release.
+- Over US$20M yearly revenue: prior written authorisation (§IV.1).
+- A commercial product must **prominently display "MiniMax H3" in its UI** (§IV.2).
+- Users of a product that generates with H3 must be bound to the use restrictions and the AUP (§V.2), which include
+  disclosing machine-generated content when posting publicly (AUP 12) and no military use (AUP 19).
+- Turbo LoRAs `lightx2v/Minimax-h3-Turbo`: apache-2.0. Text encoder: the shipped `qwen3vl_32b_minimax_h3_nvfp4_awq`
+  is converted from `cybermotaz/Qwen3-VL-32B-Instruct-NVFP4`, whose card labels the weights "Qwen License"; the base
+  `Qwen/Qwen3-VL-32B-Instruct` is apache-2.0 and the H3 LICENSE names the encoder Apache-2.0, so this reads as a
+  mislabel — the Comfy-made `int8_convrot` encoder (from the official weights) removes the ambiguity.
+
+This is a reading of the licence text, not legal advice; the territory question is the producer's.
+
+### 8.2 What exists and what is installed
+
+`Comfy-Org/MiniMax-H3` (rev e5eb578) lists, per task (FL2VA and Ref2VA — the two released checkpoints, both
+CFG-distilled; 33B total of which ≈ 13B AdaLN branches that "can be precomputed/cached for inference-only", ≈ 20B
+effective, MiniMaxAI card):
+
+| Part | Installed | Other precisions published |
+|---|---|---|
+| DiT | `*_pruned_int8_convrot` (20.97 GB each) | pruned bf16 40.23 GB, pruned fp8_scaled 20.96, pruned w6a8 15.98, unpruned int8 34.04, unpruned bf16 66.28 |
+| Text encoder (Qwen3-VL-32B) | `nvfp4_awq` 15.69 GB (third-party AWQ) | **int8_convrot 27.14 GB**, bf16 51.51 GB |
+| Video VAE | `int8_convrot` 2.81 GB | **fp16 5.21 GB** |
+| Audio VAE | fp32 0.61 GB (full) | — |
+| Turbo LoRAs | ref2v 4-step **v0.1**, fl2v 8-step v1.0 | fl2v 4-step v1.0 768p |
+| Other | — | Fun ControlNet Union 2.0, 10 prompt embeddings |
+
+- "Pruned" = the AdaLN branches precomputed (the card's inference-only form), so pruned int8 is not a reduced model;
+  the repack says to prefer `int8_convrot` over `fp8_scaled` on cu130 (this install). The unpruned files add bytes,
+  not quality. **The DiT choice is already the highest supported precision that fits the card**; pruned bf16 (40 GB)
+  would need weight streaming and is the only higher step.
+- Open weights are 768p only; the H3-Regenerate-2K module is not open-sourced (MiniMaxAI card).
+
+### 8.3 Configuration in use vs the highest-quality supported configuration
+
+`src/server/providers/video.ts` → `minimaxH3Video` always runs **turbo**: Ref2VA with the 4-step **v0.1** LoRA, FL2VA with
+the 8-step LoRA, scheduler `simple`, `ref_image_size: 'match'`, BasicGuider (correct: the checkpoints are CFG-distilled).
+The official templates (comfyui_workflow_templates 0.11.73) differ:
+
+- `video_minimax_h3_r2v` and `video_minimax_h3_i2v` ship with the **turbo LoRA switched OFF** ("Enable Lightning LoRA"
+  = false) and **20 steps** (`res_multistep`); turbo is the opt-in fast path (i2v turbo: 6 steps).
+- The r2v note: "`beta` or `normal` scheduler tends to outperform `simple` for reference-heavy prompts", and
+  `ref_image_size: max` (up to a 2048-px short edge) gives "stronger identity fidelity, at the cost of speed".
+- So the take handler's comment (`take.ts` "the official template: turbo LoRA, 4 or 8 steps — the standard, not a
+  draft") is **not accurate**: the studio runs H3's speed configuration. It is not the highest-quality supported local
+  configuration.
+
+**Quality-first candidates for a scheduled VIDEO benchmark** (same shot, seeds and conditioning as §5; each changes one
+thing): (V-a) Ref2VA base, no LoRA, 20 steps (expected ≈ 5× sampling time); (V-b) scheduler `beta`; (V-c)
+`ref_image_size: max` (identity); (V-d) text encoder int8_convrot (27.1 GB download; also clears the licence label);
+(V-e) video VAE fp16 decode (5.2 GB download); (V-f) pruned bf16 DiT (40.2 GB download, weight streaming; RAM headroom now
+≈ 78.5 GiB). V-a…V-c need no download. Measures: identity (SFace per frame), lip-sync/script heard back, motion and
+in-take cuts by eye, card/RAM peak, latency. This needs the coordinator's VIDEO slot (31.9 GB card, ≈ 41 GiB RAM).

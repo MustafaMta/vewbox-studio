@@ -1,8 +1,11 @@
 # Models
 
 Every model the studio uses, where it runs, why it was chosen, and what it costs on the RTX 5090 (32 GB). Weights are
-pinned by repository, file name and SHA-256 in `docker/models/manifest.json` and fetched into the `models` volume by
-the `models` service; the voice services fetch their own weights on first boot into the same volume.
+pinned by repository, file name and SHA-256 in `docker/models/manifest.json` and fetched into the model store by
+the `models` service; the voice services fetch their own weights on first boot into the same store. **Where the weights
+live:** one ext4 VHDX on D: (`D:\models\vewbox-models.vhdx`, mounted in every container at `/models`), described in
+[MODELS-STORAGE.md](MODELS-STORAGE.md). Paths below are logical (`diffusion_models/…`, as the manifest names them);
+inside the store ComfyUI's typed folders sit under `comfyui/` and the caches under `cache/` (`docker/models/layout.json`).
 
 **Video is MiniMax only.** The only video generator in this system is MiniMax H3, either the hosted API or the open
 weights running in ComfyUI. No LTX, Wan, Hunyuan, CogVideo, Mochi, Kling or Seedance model, weight or workflow exists
@@ -77,7 +80,7 @@ then listed the MediaPipe file and `/object_info/LoadMediaPipeFaceLandmarker` of
 
 Fetched on 2026-10-03 for an identity-similarity check across views; with one canonical image there is nothing to
 compare, so they are **not used**, no Node dependency (onnxruntime-node) was added, and their manifest group was
-removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /models/identity` if the space is needed.
+removed. (The YuNet and SFace files are used again since 2026-10-05: see below. Do not delete the folder.)
 
 | File (volume path) | Bytes | sha256 | Licence |
 |---|---|---|---|
@@ -86,8 +89,8 @@ removed. Delete with `docker run --rm -v vewbox_models:/models alpine rm -rf /mo
 | `identity/dinov2-small/model.onnx` (Xenova/dinov2-small) | 88 459 888 | `83141175ec78b4ff9a2bb58a4c7c264ba0054d1c2e122e5a8114b79a8d4179ea` | Apache-2.0 |
 | `identity/ccip/model_feat.onnx`, `model_metrics.onnx`, `metrics.json` (deepghs/ccip_onnx, caformer-24-randaug-pruned) | 150 248 245 + 1 649 + 147 | `4ea118d1…ac5f`, `7e4646fd…25c1`, `b5535577…52d4` | **OpenRAIL** — use restrictions travel with the model (no unlawful, discriminatory, defamatory or privacy-violating use, among others); any future use must pass them on |
 | `loras/Qwen-Image-Edit-2511-Lightning-8steps-V1.0-bf16.safetensors` (lightx2v, rev `d74eba14`) | 849 608 296 | `a9e81a58a78f260f67b337a6f615e8fa4cd3bc79847c77b7d61a581b789b1ba8` | Apache-2.0 (a "balanced" mode for the old sheet; unused) |
-| `diffusion_models/flux-2-klein-base-4b.safetensors` (Comfy-Org/flux2-klein-4B) | 7 751 105 712 | `9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92` | Apache-2.0 (klein Base, evaluated and not chosen: 20× slower, worse likeness; out of the manifest since the klein group became `images-flux2-klein`; `rm /models/diffusion_models/flux-2-klein-base-4b.safetensors` frees 7.75 GB) |
-| `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
+| `diffusion_models/flux-2-klein-base-4b.safetensors` (Comfy-Org/flux2-klein-4B) | 7 751 105 712 | `9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92` | Apache-2.0 (klein Base, evaluated and not chosen: 20× slower, worse likeness; out of the manifest since the klein group became `images-flux2-klein`; `rm /models/comfyui/diffusion_models/flux-2-klein-base-4b.safetensors` in the store frees 7.75 GB) |
+| `loras/qwen-image-edit-2511-multiple-angles-lora.safetensors` (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA) | 295 140 688 | `42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765` | Apache-2.0 (camera LoRA of the removed derived views; out of the manifest since 2026-10-03; `rm /models/comfyui/loras/qwen-image-edit-2511-multiple-angles-lora.safetensors`) |
 
 Since 2026-10-05 the YuNet and SFace files above are used again, by the face-identity QA of the `asr` service
 (manifest group `qa-identity`, same folder and sha256; see "Alignment and picture QA" below). Do not delete them.
@@ -107,14 +110,12 @@ Since 2026-10-05 the YuNet and SFace files above are used again, by the face-ide
 #### Fetching the voice-design weights (group `voice-design`)
 
 The group is in the compose `MODEL_GROUPS` default, so a fresh `docker compose --profile models run --rm models` fetches
-it. On a machine whose fetcher image predates the group, run the fetcher image with the repository's manifest mounted
-(no rebuild; resumable; every file is sha256-verified and recorded in `/models/.manifest-state.json`):
+it. The `models` service mounts the repository's fetch.py, manifest.json and layout.json, so no image rebuild is needed
+after a manifest change (resumable; every file is sha256-verified and recorded in `/models/.manifest-state.json`; the
+fetcher refuses a root without the store's `.vewbox-models` marker):
 
 ```powershell
-docker run -d --name vewbox-models-fetch-voice --dns 1.1.1.1 -e HF_HUB_DISABLE_XET=1 -v vewbox_models:/models `
-  --mount "type=bind,source=$PWD\docker\models\manifest.json,target=/app/manifest.json,readonly" `
-  --mount "type=bind,source=$PWD\docker\models\fetch.py,target=/app/fetch.py,readonly" `
-  vewbox/models:dev --manifest manifest.json --root /models --groups voice-design
+docker compose -p vewbox --profile models run -d --name vewbox-models-fetch-voice models --manifest manifest.json --root /models --groups voice-design
 docker logs -f vewbox-models-fetch-voice
 ```
 
@@ -166,6 +167,47 @@ capability, whether it can run and why not; a missing module or weight never sto
 
 VRAM/CPU cost: **not measured** (no GPU in the session that built this). The QA endpoints are CPU-only by design so they
 can run beside H3; `/align` uses the card when one is visible (`ALIGN_DEVICE=cpu` forces CPU) and is dropped by `/unload`.
+
+## Lip-sync corrector (`lipsync` service, opt-in)
+
+Directive 2026-10-06 §16; research `docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md` §C.3. Native MiniMax H3
+performance is the default; the corrector runs only for ONE take the producer confirmed after a failed lip-sync review
+(job `CORRECT_LIPSYNC`, `src/worker/handlers/lipsync.ts`; rules and thresholds as data in
+`src/domain/lipsync-correction.ts`). It redraws the mouth region of the existing take to the authoritative audio and
+records the result as a NEW take (`derivedFrom`) beside the original, accepted or rejected with before/after numbers.
+It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (port 8040, no VRAM while idle,
+weights dropped after every request unless `LIPSYNC_KEEP_LOADED=1`). GPU family `LIPSYNC`: ComfyUI (H3) and every other
+engine unload before it loads.
+
+| Part | What | Licence (read at the primary source, 2026-10-06) | Where |
+|---|---|---|---|
+| LatentSync code | github `bytedance/LatentSync` @ `a229c39` (1.6, 2025-06-20), fetched by the image build | Apache-2.0 ✔ (LICENSE) | `/opt/latentsync` in the image |
+| LatentSync 1.6 U-Net | `ByteDance/LatentSync-1.6` rev `c42c7e6c…`, `latentsync_unet.pt` 5 072 222 488 B | **CreativeML Open RAIL++-M** ✔ (model card `license: openrail++`; the research note's "Apache-2.0 ◐" was wrong). Commercial use allowed, royalty-free; the Attachment A use restrictions (no unlawful use, defamation or harassment, false information to harm, PII for harm, discrimination, exploitation of minors, medical advice, law-enforcement profiling…) bind the studio and **must be passed downstream in any Vewbox terms of use**, with a copy of the licence; the licensor claims no rights in outputs. Re-lipping the studio's own fictional characters is within it | group `lipsync-latentsync-1.6` → `/models/lipsync/latentsync-1.6/` |
+| Whisper tiny (audio features) | `whisper/tiny.pt` from the same repo, 75 572 083 B, sha256 `65147644…22b9` — byte-identical to OpenAI's release (its download URL carries this hash) | MIT ✔ (openai/whisper LICENSE, © 2022 OpenAI) | same group → `.../whisper/` |
+| VAE | `stabilityai/sd-vae-ft-mse` rev `31f26fde…`, safetensors 334 643 276 B | MIT ✔ (card) | same group → `/models/lipsync/sd-vae-ft-mse/` |
+| Face detection / choice | YuNet 2023mar + SFace 2021dec | MIT ✔ / Apache-2.0 ✔ | group `qa-identity` (shared with asr) |
+| Face landmarks (alignment) | MediaPipe Face Landmarker `face_landmarker.task` | Apache-2.0 | `/models/qa/` (fetched by the asr service) |
+| Evaluation only | `stable_syncnet.pt` (1.6 GB) | OpenRAIL++-M | group `lipsync-eval-syncnet`; not used by the pipeline |
+
+**Not used:** InsightFace (`buffalo_l`, used by upstream 1.6 for detection + 106 landmarks — non-commercial packs; the
+package is not installed and `latentsync/utils/face_detector.py` is replaced by a stub), the repo's `auxiliary/` files
+(`sfd_face.pth`, `syncnet_v2.model`, VGG16, I3D, KonIQ, ViT-g: unstated or third-party licences), `face-alignment`,
+`decord` (no Python 3.12 wheel; a stub), DeepCache, gradio. MuseTalk 1.5 stays parked (its BiSeNet / DWPose weights have
+no stated licence).
+
+**How the Vewbox build differs from upstream inference** (`docker/lipsync/corrector.py`, `face_track.py`):
+- faces: YuNet boxes → the speaker chosen by SFace against the speaker's canonical image AND against the other cast
+  members (a face is the speaker only if it resembles the speaker more than every other character — measured on the
+  acceptance two-shot, where the listener scored 0.3+ against the speaker's picture while the speaker was in profile);
+  MediaPipe's 478-point mesh on a crop → LatentSync 1.5's own 478→68 table → the three alignment points (eyebrow centres,
+  nose), smoothed with 1.5's `laplacianSmooth`; the 1.6 Procrustes transform ported to numpy;
+- native frame rate (H3: 24 fps; upstream re-encodes to 25), same frame count, the take's own audio copied;
+- only the regenerated region (mask.png's lower face, eroded and feathered) is blended into the ORIGINAL frame:
+  eyes, brows, hair, the other characters and the background are bit-identical before encoding;
+- profile frames (frontalness < 0.12; a 3/4 view measures 0.15–0.38 and aligns well) are not edited; the edit fades in/out over 4 frames.
+
+Evaluation, VRAM, runtime and the go/no-go: see the section below once measured (`var/evidence/lipsync-v1/`, media
+outside Git).
 
 ## Music
 

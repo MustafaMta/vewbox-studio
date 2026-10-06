@@ -4,6 +4,7 @@ import { workflowVersion as structuralWorkflowVersion, type Graph } from '../wor
 import { StudioError, type StudioErrorCode } from '@/domain/errors';
 import type { FailureClass } from '@/server/org/model';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobScope, jobSignal, stopReasonOf } from '../jobs/context';
 
@@ -26,7 +27,8 @@ export interface ComfyOutputFile { filename: string; subfolder: string; type: 'o
 export interface ComfyRunResult { promptId: string; outputs: Record<string, { images?: ComfyOutputFile[]; audio?: ComfyOutputFile[]; video?: ComfyOutputFile[]; gifs?: ComfyOutputFile[]; text?: string[] }>; ms: number; /** ComfyUI's own execution time (queue wait excluded), when it reported it */ engineMs?: number; workflowVersion: string; /** true when an earlier attempt's prompt was adopted instead of submitting again */ resumed?: boolean }
 export interface ComfyProgress { node?: string; value?: number; max?: number; queue?: number }
 
-const baseUrl = () => env().COMFYUI_URL.replace(/\/$/, '');
+// one card, one lease: a process outside the live lease may not use the real engine (src/server/gpu/lease-db.ts)
+const baseUrl = () => guardedEngineUrl(env().COMFYUI_URL.replace(/\/$/, ''), 'ComfyUI');
 
 /** A stopped job (cancel, deadline, lost lease) aborts its ComfyUI calls with the job's reason; that reason is what
  *  surfaces, not "not reachable". */
@@ -93,6 +95,25 @@ export async function listModels(folder: string): Promise<string[]> {
 /** Drop every loaded model and free VRAM (used when the GPU switches family, and after an out-of-memory error). */
 export async function free(): Promise<void> {
   await postJson('/free', { unload_models: true, free_memory: true }, { detached: true });
+}
+
+/** WAIT UNTIL COMFYUI IS IDLE (nothing running or pending), up to `maxMs`. The GPU lease calls it before the card
+ *  leaves ComfyUI's families: a prompt still queued there — submitted outside the lease, or left behind by a client
+ *  that gave up and released its hold — would otherwise run beside the next family's model (2026-10-06 12:41–12:48Z:
+ *  Qwen-Image prompts ran under LLM and ASR holds). Returns what was waited for; an unreachable ComfyUI is idle. */
+export async function waitIdle(maxMs = 20 * 60_000, pollMs = 2_000): Promise<{ idle: boolean; waitedMs: number; promptIds: string[] }> {
+  const t0 = Date.now();
+  const seen = new Set<string>();
+  for (;;) {
+    let q: { queue_running: unknown[][]; queue_pending: unknown[][] } | undefined;
+    try { q = await http<{ queue_running: unknown[][]; queue_pending: unknown[][] }>('/queue', { timeoutMs: 10_000, detached: true }); } catch { return { idle: true, waitedMs: Date.now() - t0, promptIds: [...seen] }; }
+    const ids = [...q.queue_running, ...q.queue_pending].map((x) => String(x[1]));
+    if (!ids.length) return { idle: true, waitedMs: Date.now() - t0, promptIds: [...seen] };
+    if (!seen.size) log.warn({ promptIds: ids }, 'ComfyUI still has prompts while the card leaves it; waiting for them to finish before the next family loads');
+    ids.forEach((i) => seen.add(i));
+    if (Date.now() - t0 >= maxMs) { log.error({ promptIds: ids, waitedMs: Date.now() - t0 }, 'ComfyUI is still busy after the wait; the card is handed over anyway'); return { idle: false, waitedMs: Date.now() - t0, promptIds: [...seen] }; }
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
 }
 
 /** Cancel one prompt, pending or running, and nothing else. True when ComfyUI had something to cancel. */
