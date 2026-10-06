@@ -149,7 +149,7 @@ export function localModelRequest(_model: string, reasoning = false, runtime: Lo
 export function vllmRequest(reasoning: boolean, temperature?: number): Record<string, unknown> {
   return reasoning
     ? { chat_template_kwargs: { enable_thinking: true }, temperature: 1.0, top_p: 0.95, top_k: 20, presence_penalty: 0 }
-    : { chat_template_kwargs: { enable_thinking: false }, temperature: temperature ?? 0.7, top_p: 0.8, top_k: 20, presence_penalty: Number(process.env.LLM_PRESENCE_PENALTY ?? 1.5) };
+    : { chat_template_kwargs: { enable_thinking: false }, temperature: temperature ?? 0.7, top_p: 0.8, top_k: 20, presence_penalty: Number(process.env.LLM_PRESENCE_PENALTY || 1.5) };
 }
 
 /** Whether a local call reasons: the call's own choice, else LLM_LOCAL_REASONING=on (an evaluation switch; default off). */
@@ -236,7 +236,7 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
   if (cfg.provider === 'openai-compatible' && isLocalLlm(cfg.baseUrl)) {
     const { gpuLease } = await import('../gpu/lease');
     return gpuLease('LLM', llmLeaseMb(cfg.model), async () => {
-      if (llmRuntime(cfg.baseUrl) === 'vllm') await (await import('./vllm')).wakeVllm(guardedEngineUrl(cfg.baseUrl, 'the local story model'));
+      if (llmRuntime(cfg.baseUrl) === 'vllm') await (await import('./vllm')).wakeVllm(guardedEngineUrl(cfg.baseUrl, 'the local story model').replace(/\/v1\/?$/, ''));
       return chatWith(cfg, messages, opts);
     }, { jobId: opts.jobId });
   }
