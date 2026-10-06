@@ -116,6 +116,15 @@ export function planCorrection(p: Pick<Production, 'kind' | 'style'>, sh: Pick<S
   };
 }
 
+/** THE PRODUCER'S ACTION "Repair lip-sync" on a take (for the pages; pure): whether to offer it and, when not, why.
+ *  `flagged` says whether the take's own lip-sync check asked for it (FAIL / REVIEW) — the producer may also ask after
+ *  watching a take whose check passed. Queue it as `CORRECT_LIPSYNC { productionId, shotId, takeId, confirm: true,
+ *  reason }` (POST /api/jobs); the result is a new derived take of the shot, never a change of this one. */
+export function lipsyncRepairOffer(p: Pick<Production, 'kind' | 'style'>, sh: Pick<Shot, 'dialogue' | 'characterIds'>, take: Take, cap: LipsyncCapability = LIPSYNC_LATENTSYNC_16, fps = 24): { available: boolean; flagged: boolean; reasons: string[] } {
+  const plan = planCorrection(p, sh, take, { confirm: true, reason: 'offer' }, cap, fps);
+  return { available: plan.eligible, flagged: plan.flags.some((f) => f !== 'VISUAL_REVIEW'), reasons: plan.reasons };
+}
+
 export interface CorrectionMeasures {
   frames: { original: number; corrected: number };
   /** Tier-1 mouth check (MAR vs speech envelope, best lag) of the speaker before and after */

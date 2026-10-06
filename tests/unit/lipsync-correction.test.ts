@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIPSYNC_LATENTSYNC_16, judgeCorrection, planCorrection, type CorrectionMeasures, type LipsyncCapability } from '@/domain/lipsync-correction';
+import { LIPSYNC_LATENTSYNC_16, judgeCorrection, lipsyncRepairOffer, planCorrection, type CorrectionMeasures, type LipsyncCapability } from '@/domain/lipsync-correction';
 import type { Take } from '@/domain/types';
 
 /** THE LIP-SYNC CORRECTION RULES (src/domain/lipsync-correction.ts): only a flagged, confirmed take of an enabled style
@@ -48,6 +48,16 @@ describe('planCorrection', () => {
     const song = take({ soundtrack: { kind: 'SONG', assetId: 'gen-s', lines: [] } });
     expect(planCorrection(prod('REALISTIC', 'MUSIC_VIDEO'), shot, song, ok, realistic).reasons.join(' ')).toMatch(/singing is not corrected/);
     expect(planCorrection(prod('REALISTIC', 'MUSIC_VIDEO'), shot, song, ok, { ...realistic, singing: true }).reasons.join(' ')).not.toMatch(/singing/);
+  });
+});
+
+describe('lipsyncRepairOffer (the "Repair lip-sync" action)', () => {
+  it('offered on an eligible realistic take, flagged when its own check failed; refused with the reason otherwise', () => {
+    expect(lipsyncRepairOffer(prod(), shot, take(), realistic)).toEqual({ available: true, flagged: true, reasons: [] });
+    expect(lipsyncRepairOffer(prod(), shot, take({ params: { lipSync: { verdict: 'PASS' } } }), realistic)).toMatchObject({ available: true, flagged: false });
+    const cartoon = lipsyncRepairOffer(prod('CARTOON'), shot, take(), realistic);
+    expect(cartoon.available).toBe(false);
+    expect(cartoon.reasons.join(' ')).toMatch(/cartoon/);
   });
 });
 
