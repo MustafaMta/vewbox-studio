@@ -19,6 +19,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { execFile, spawn, type ChildProcess } from 'node:child_process';
 import { promisify } from 'node:util';
+import { installHoldGuard, track, settled, cancelOurs, assertIdle } from './lib/comfy-hold-guard';
 
 const live = process.env.DATABASE_URL ?? '';
 if (!/\/vewbox(\?|$)/.test(live)) { console.error('DATABASE_URL does not name the vewbox database'); process.exit(2); }
@@ -158,7 +159,9 @@ async function main() {
   // ---------------------------------------------------------------------------------------------- generate
   const wanted = argv.slice(1).filter((a) => /^(SPK|SIL)-[A-Z]$/.test(a));
   const dry = argv.includes('--dry');
+  installHoldGuard();
   const h = await comfy.health(); if (!h.ok) throw new Error('ComfyUI is not reachable');
+  if (!dry) await assertIdle();
   const vram = new VramMeter(); const ram = new RamMeter(); vram.start(); ram.start();
   const deadline = Date.now() + Number(opt('limit-min', '0')) * 60_000;
   for (const id of wanted) {
@@ -181,7 +184,7 @@ async function main() {
       const firstFrame = pack.opening.kind === 'FRAME' ? await comfy.uploadInput(fileOf(pack.opening.assetId)) : undefined;
       const graph = minimaxH3Video({ prompt, width: info.width, height: info.height, seconds, seed: SEED, referenceImages: refs, firstFrame, filenamePrefix: `vewbox/eval/h3cfg-${id}`, ...a.cfg });
       submitted = true;
-      const r = await comfy.run(graph, { timeoutMs: 90 * 60_000 });
+      const r = await comfy.run(graph, { timeoutMs: 90 * 60_000, onSubmitted: track }); settled(r.promptId);
       const out = comfy.firstOutput(r.outputs, 'video') ?? comfy.firstOutput(r.outputs, 'gifs') ?? comfy.firstOutput(r.outputs, 'images');
       if (!out) throw new Error('no output');
       const file = path.join(OUT, `${id}.mp4`);
@@ -201,4 +204,4 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch(async (e) => { console.error(e); await cancelOurs('error'); process.exit(1); });
