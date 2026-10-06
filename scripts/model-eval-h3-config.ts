@@ -5,7 +5,7 @@
  *   SPK = the speaking shot of §5 (V1: Elias, one English line, the drawn opening frame anchored at 0);
  *   SIL = the first silent shot with a person of the same production.
  * Arms: T (shipping: turbo 4 steps, simple, match) · A (no LoRA, 20 steps — the template default) · B (scheduler beta) ·
- * C (ref_image_size max) · X (`--best k=v,…`: the winners combined, e.g. turbo=false,scheduler=beta,ref=max).
+ * C (ref_image_size max) · D (A + ref max) · E (A + beta) · X (`--best k=v,…`: the winners combined, e.g. turbo=false,scheduler=beta,ref=max).
  *
  *   generate (VIDEO lease):  scripts/gpu-hold.ts VIDEO 31900 -- pnpm exec tsx … scripts/model-eval-h3-config.ts gen SPK-T SPK-A …
  *   qa (CPU, any time):      … scripts/model-eval-h3-config.ts qa      (SFace per character, mouth activity on SPK)
@@ -43,6 +43,10 @@ const ARMS: Record<string, { what: string; cfg: ArmConfig }> = {
   A: { what: 'no LoRA, 20 steps (the official template default)', cfg: { turbo: false } },
   B: { what: 'turbo, scheduler beta (r2v template note)', cfg: { turbo: true, scheduler: 'beta' } },
   C: { what: 'turbo, ref_image_size max (2048-px short edge references)', cfg: { turbo: true, refImageSize: 'max' } },
+  // the final tier (A) with each refinement: beta under the turbo LoRA broke the picture (SPK-B smear and blow-out), which
+  // says nothing about the base model the template note is about; ref max was neutral-to-positive under turbo
+  D: { what: 'final (no LoRA, 20 steps) + ref_image_size max', cfg: { turbo: false, steps: 20, refImageSize: 'max' } },
+  E: { what: 'final (no LoRA, 20 steps) + scheduler beta', cfg: { turbo: false, steps: 20, scheduler: 'beta' } },
 };
 /** --best turbo=false,scheduler=beta,ref=max,steps=20 */
 function bestConfig(spec: string): ArmConfig {
