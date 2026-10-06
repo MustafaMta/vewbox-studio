@@ -29,7 +29,14 @@ describe('storyboard frames read the World Bible', () => {
     const { state, p } = fixture();
     const r = frameReferences(state, p, shotOf(p, 's13'));
     expect(r.plate).toMatchObject({ assetId: 'plate-dusk', why: expect.stringMatching(/no World Bible read/) });
-    expect(r.refs[0].id).toBe('plate-dusk');
+    // a MEDIUM shot is composed from its person: the plate is the last picture, cut to the shot's distance
+    expect(r.composition).toBe('PEOPLE');
+    expect(r.refs.at(-1)!.id).toBe('plate-dusk');
+    // a WIDE shot keeps the whole plate as image 1
+    const wide = frameReferences(state, p, { ...shotOf(p, 's13'), framing: 'WIDE' });
+    expect(wide.composition).toBe('PLATE');
+    expect(wide.refs[0].id).toBe('plate-dusk');
+    expect(wide.crops.every((c) => c === undefined)).toBe(true);
   });
   it('from the bible: the drawn plate for the time of day; an established frame at that time comes first; one of another time does not beat the drawn plate', () => {
     const { state, p } = fixture();
@@ -41,7 +48,7 @@ describe('storyboard frames read the World Bible', () => {
     w = read(withDusk, established(bible, 'est-dusk', 'DUSK'), 's13');
     const r = frameReferences(w.state, p, shotOf(p, 's13'), w.read);
     expect(r.plate).toMatchObject({ assetId: 'est-dusk', why: expect.stringMatching(/established frame/) });
-    expect(r.refs[0].id).toBe('est-dusk');
+    expect(r.refs.at(-1)!.id).toBe('est-dusk');
     // established only in the morning: the drawn dusk plate still wins for a dusk scene
     w = read(withDusk, established(bible, 'est-morning', 'MORNING'), 's13');
     expect(frameReferences(w.state, p, shotOf(p, 's13'), w.read).plate?.assetId).toBe('plate-dusk');
@@ -53,9 +60,11 @@ describe('storyboard frames read the World Bible', () => {
     const forward = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!, b!] });
     const reversed = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [b!, a!] });
     expect(reversed.refs.map((x) => x.id)).toEqual(forward.refs.map((x) => x.id)); // the same way round in every shot
-    expect(forward.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 2 on the left and the person of image 3 on the right, and nobody else');
+    expect(forward.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 1 on the left and the person of image 2 on the right, and nobody else');
     const alone = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!] });
-    expect(alone.notes.join(' ')).toContain('exactly one person is in the picture, the person of image 2, and nobody else');
+    expect(alone.notes.join(' ')).toContain('exactly one person is in the picture, the person of image 1, and nobody else');
+    const wideTwo = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!, b!], framing: 'WIDE' });
+    expect(wideTwo.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 2 on the left and the person of image 3 on the right, and nobody else');
   });
   it('D30: a frame is counted against the shot’s people unless its action brings in others', () => {
     expect(peopleExpected({ action: 'Najm steps into frame and gestures toward the photo.' }, ['a', 'b'])).toBe(2);
@@ -70,9 +79,25 @@ describe('storyboard frames read the World Bible', () => {
     const redrawn: StudioState = { ...state, assets: [...state.assets, { ...img('canon-a3'), tier: 'CANONICAL' }], characters: state.characters.map((c) => (c.id === a ? { ...c, canonicalImage: { ...c.canonicalImage!, assetId: 'canon-a3', version: 3, status: 'DRAFT' as const } } : c)) };
     const w = read(redrawn, bible, 's13');
     const r = frameReferences(w.state, p, shotOf(p, 's13'), w.read);
-    expect(r.refs.map((x) => x.id)).toEqual(['plate-dusk', 'canon-a']);
+    expect(r.refs.map((x) => x.id)).toEqual(['canon-a', 'plate-dusk']);
     expect(w.read.conflicts.join(' ')).toMatch(/pinned to v2/);
     // without the bible the current (unpinned) image would have been used
-    expect(frameReferences(redrawn, p, shotOf(p, 's13')).refs.map((x) => x.id)).toEqual(['plate-dusk', 'canon-a3']);
+    expect(frameReferences(redrawn, p, shotOf(p, 's13')).refs.map((x) => x.id)).toEqual(['canon-a3', 'plate-dusk']);
+  });
+it('Tea 1.3: a close shot is composed from its person — the canonical image first, cut to the framing, the plate last, cut to the shot’s distance', () => {
+    const { state, p } = fixture();
+    const a = p.castIds[0]!;
+    const sized: StudioState = { ...state, assets: state.assets.map((x) => (x.id === 'plate-dusk' ? { ...x, width: 1344, height: 768 } : x.id === 'canon-a' ? { ...x, width: 928, height: 1664 } : x)) };
+    const r = frameReferences(sized, p, { ...shotOf(p, 's13'), characterIds: [a], framing: 'MEDIUM_CLOSE_UP' });
+    expect(r.composition).toBe('PEOPLE');
+    expect(r.refs.map((x) => x.id)).toEqual(['canon-a', 'plate-dusk']);
+    expect(r.crops[0]).toEqual({ x: 0, y: 0, width: 928, height: Math.round(1664 * 0.45) });
+    expect(r.crops[1]).toMatchObject({ width: Math.round(1344 * 0.5), height: Math.round(768 * 0.5) });
+    expect(r.notes[0]).toMatch(/^image 1 is the person .*framed as this shot frames them/);
+    expect(r.notes[1]).toMatch(/^image 2 is the place right behind them .*not its framing/);
+    expect(r.notes.at(-1)).toBe('exactly one person is in the picture, the person of image 1, and nobody else');
+    // a close shot without a pictured person keeps the plate first (nothing to compose from)
+    const empty = frameReferences(sized, p, { ...shotOf(p, 's13'), characterIds: [], framing: 'CLOSE_UP' });
+    expect(empty.composition).toBe('PLATE');
   });
 });

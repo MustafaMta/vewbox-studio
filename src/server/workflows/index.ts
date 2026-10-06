@@ -63,7 +63,7 @@ export const seed32 = (seed?: number) => (seed === undefined || !Number.isFinite
 export const snap = (n: number, m: number) => Math.max(m, Math.round(n / m) * m);
 
 export { qwenTextToImage, qwenEdit, qwenSecondary, faceCheck, isSecondaryMaterialKind, FACE_CHECK_OUTPUTS, SECONDARY_MATERIAL, SECONDARY_SPEC } from './qwen-image';
-export type { SecondaryMaterialKind } from './qwen-image';
+export type { SecondaryMaterialKind, CropPx } from './qwen-image';
 export { identitySeedFor, seedFromId } from './identity';
 // the canonical character image and its identity line (docs/CONTRACTS-IDENTITY-PACK.md v2; the handler is
 // src/worker/handlers/images.ts)

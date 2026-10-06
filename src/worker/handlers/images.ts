@@ -23,8 +23,9 @@ import {
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
   kleinReferenceCanonical, kleinReferencePrompt, negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
+  type CropPx,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, locationPrompt } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, locationPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -108,14 +109,15 @@ async function adoptOutput(ctx: HandlerContext, out: comfy.ComfyOutputFile, run:
 
 /** Run one image workflow (text to image, or an edit from up to three references) and bring the result into the
  *  library as an asset. */
-async function draw(ctx: HandlerContext, opts: { key: string; prompt: string; negative?: string; references?: Asset[]; width: number; height: number; label: string; tags: string[]; seed?: number; quality?: boolean; provenance?: Record<string, unknown> }): Promise<Drawn> {
+async function draw(ctx: HandlerContext, opts: { key: string; prompt: string; negative?: string; references?: Asset[]; /** a cut per reference (same order) */ crops?: Array<CropPx | undefined>; width: number; height: number; label: string; tags: string[]; seed?: number; quality?: boolean; provenance?: Record<string, unknown> }): Promise<Drawn> {
   const reused = await reuseDrawn(ctx, opts.key);
   if (reused) return reused;
-  const refs = (opts.references ?? []).filter(usableImage).slice(0, 3);
+  const kept = (opts.references ?? []).map((a, k) => ({ a, crop: opts.crops?.[k] })).filter((x) => usableImage(x.a)).slice(0, 3);
+  const refs = kept.map((x) => x.a);
   // the seed is the job's for this step: every attempt builds the same graph, so its prompt key finds the prompt
   const seed = opts.seed ?? stableSeed(ctx.job.id, `image:${opts.key}`);
   const graph = refs.length
-    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed, quality: opts.quality })
+    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed, quality: opts.quality, crops: kept.some((x) => x.crop) ? kept.map((x) => x.crop) : undefined })
     : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed });
   const t0 = Date.now();
   const run = await runGraph(ctx, graph, { key: opts.key, label: opts.label, tool: refs.length ? 'image.edit_with_references' : 'image.generate' });
@@ -519,36 +521,52 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  time of day, else the drawn plate for that time, an established frame of another time, the master), else (no bible
  *  read) the location's own plate for the time of day or its master; then up to two characters by their primary image
  *  (the pinned canonical image in the overlay, else a legacy portrait); a lone character's legacy face crop as the
- *  third picture. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string } } {
+ *  third picture.
+ *
+ *  A CLOSE SHOT (closer than MEDIUM_WIDE) WITH ITS PEOPLE PICTURED is composed from the people, not the place
+ *  (acceptance 2026-10-06, Tea 1.3: with the plate as image 1 Qwen-Image-Edit-2511 kept the plate's wide composition for a
+ *  medium close-up 2/2 and the people check refused the frame): the canonical image(s) come first, cut to the part of
+ *  the figure the framing shows (`personCropFor`), and the plate is the last picture, cut to the shot's distance around
+ *  the middle (`plateCropFor`) — the place behind them, never the camera. `crops` lines up with `refs`. Pure. */
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const byId = (id?: string) => (id ? state.assets.find((a) => a.id === id) : undefined);
   const own = loc ? (loc.refs.find((r) => r.role === 'STATE' && r.timeOfDay === scene?.timeOfDay) ?? loc.refs.find((r) => r.role === 'MASTER')) : undefined;
   const plate = read?.location?.assetId && read.location.locationId === loc?.id ? { assetId: read.location.assetId, why: read.location.why } : (own?.assetId ?? loc?.masterAssetId) ? { assetId: (own?.assetId ?? loc?.masterAssetId)!, why: own?.role === 'STATE' ? 'the location’s plate for this time of day (no World Bible read)' : 'the location’s master plate (no World Bible read)' } : undefined;
-  const refs: Asset[] = [];
-  const notes: string[] = [];
   const plateAsset = byId(plate?.assetId);
-  if (usableImage(plateAsset)) { refs.push(plateAsset); notes.push(PLATE_WIDE_FRAMINGS.includes(sh.framing) ? `image ${refs.length} is the exact place (keep its architecture, layout and props)` : `image ${refs.length} is the place (keep its architecture, materials, colours and light) seen from much further away than this shot: do not copy its framing`); }
   // the production's cast order is the screen order: the same pair stands the same way round in every shot (D29 —
   // Najm left of Elias in one two-shot, right of him in the next, crossed the line between cuts)
   const order = (id: string) => { const i = p.castIds.indexOf(id); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
   const people = (sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[]).sort((a, b) => order(a.id) - order(b.id));
+  const pictured = people.slice(0, 2).map((c) => ({ c, a: byId(primaryImageOf(c)) })).filter((x) => usableImage(x.a)) as Array<{ c: Character; a: Asset }>;
+  const close = !PLATE_WIDE_FRAMINGS.includes(sh.framing) && pictured.length > 0;
+  const refs: Asset[] = []; const crops: Array<CropPx | undefined> = []; const notes: string[] = [];
   const shown: number[] = [];
   const imageOf = new Map<string, number>();
-  for (const c of people.slice(0, 2)) {
-    const a = byId(primaryImageOf(c));
-    if (usableImage(a)) { refs.push(a); shown.push(refs.length); imageOf.set(c.id, refs.length); notes.push(`image ${refs.length} is the person ${drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action'} — keep the face, hair, skin and wardrobe exactly`); }
+  const who = (c: Character) => drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action';
+  const addPlate = () => {
+    if (!usableImage(plateAsset)) return;
+    refs.push(plateAsset);
+    if (close) { crops.push(plateAsset.width && plateAsset.height ? plateCropFor(sh.framing, { width: plateAsset.width, height: plateAsset.height }) : undefined); notes.push(`image ${refs.length} is the place right behind them (keep its architecture, materials, colours and light, soft in the background; not its framing)`); }
+    else { crops.push(undefined); notes.push(PLATE_WIDE_FRAMINGS.includes(sh.framing) ? `image ${refs.length} is the exact place (keep its architecture, layout and props)` : `image ${refs.length} is the place (keep its architecture, materials, colours and light) seen from much further away than this shot: do not copy its framing`); }
+  };
+  if (!close) addPlate();
+  for (const { c, a } of pictured) {
+    refs.push(a); shown.push(refs.length); imageOf.set(c.id, refs.length);
+    crops.push(close && a.width && a.height ? personCropFor(sh.framing, { width: a.width, height: a.height }) : undefined);
+    notes.push(close ? `image ${refs.length} is the person ${who(c)}, framed as this shot frames them — keep the face, hair, skin and wardrobe exactly` : `image ${refs.length} is the person ${who(c)} — keep the face, hair, skin and wardrobe exactly`);
   }
-  if (people.length === 1 && refs.length < 3) {
+  if (close) addPlate();
+  if (!close && people.length === 1 && refs.length < 3) {
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
-    if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); notes.push(`image ${refs.length} is the same person's face, close up`); }
+    if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); crops.push(undefined); notes.push(`image ${refs.length} is the same person's face, close up`); }
   }
   // how many people the picture holds: shot 2.3 of "The Static Sky" came back with two strangers beside the pair (D30)
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
-  return { refs, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined };
+  return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE' };
 }
 
 /** The production's World Bible revision (pinned, else the latest) laid over the studio for this shot — the plate
@@ -571,7 +589,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
-  const { refs, notes, people, imageOf, plate } = frameReferences(state, p, sh, world.read);
+  const { refs, crops, notes, people, imageOf, plate, composition } = frameReferences(state, p, sh, world.read);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
@@ -588,7 +606,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const expected = peopleExpected(sh, people);
   let kept: Drawn | undefined; let counted: number | undefined;
   for (let attempt = 0; attempt < 2 && !kept; attempt++) {
-    const r = await draw(ctx, { key: `frame:${sh.id}:${which}:${attempt}`, prompt, negative: NEG, references: refs, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+    const r = await draw(ctx, { key: `frame:${sh.id}:${which}:${attempt}`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
     if (expected === undefined) { kept = r; break; }
     counted = await countPeople(ctx, r.id, label);
     if (counted === undefined || counted === expected || attempt === 1) kept = r;

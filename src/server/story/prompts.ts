@@ -463,13 +463,60 @@ export const FRAMING_WORDS: Record<Framing, string> = {
 /** Framings at which the drawn frame shows about as much of the place as its wide plate. */
 export const PLATE_WIDE_FRAMINGS: readonly Framing[] = ['EXTREME_WIDE', 'WIDE', 'MEDIUM_WIDE'];
 
+/** How much of the wide plate's width a closer framing sees (an edit model keeps image 1's composition: Tea 1.3 kept
+ *  the plate's wide view for a medium close-up 2/2 although the prompt said "much closer"). */
+export const PLATE_CROP_SHARE: Partial<Record<Framing, number>> = { MEDIUM: 0.62, MEDIUM_CLOSE_UP: 0.5, CLOSE_UP: 0.4, EXTREME_CLOSE_UP: 0.32, INSERT: 0.4, TWO_SHOT: 0.7, OVER_THE_SHOULDER: 0.66 };
+/** The part of the plate a closer framing shows, at the plate's own aspect: `PLATE_CROP_SHARE` of its width around
+ *  `center` (fractions; default the middle, a little below the centre line where standing people's heads are). None for
+ *  a framing that shows the whole plate. Pure. */
+export function plateCropFor(framing: Framing, plate: { width: number; height: number }, center: { x: number; y: number } = { x: 0.5, y: 0.55 }): { x: number; y: number; width: number; height: number } | undefined {
+  const share = PLATE_CROP_SHARE[framing];
+  if (!share || !plate.width || !plate.height) return undefined;
+  const width = Math.round(plate.width * share); const height = Math.round(plate.height * share);
+  const x = Math.round(Math.min(plate.width - width, Math.max(0, center.x * plate.width - width / 2)));
+  const y = Math.round(Math.min(plate.height - height, Math.max(0, center.y * plate.height - height / 2)));
+  return { x, y, width, height };
+}
+/** How much of a canonical full-body figure (head at the top) a framing shows, from the top. */
+export const PERSON_CROP_SHARE: Partial<Record<Framing, number>> = { MEDIUM: 0.55, MEDIUM_CLOSE_UP: 0.45, CLOSE_UP: 0.3, EXTREME_CLOSE_UP: 0.2, TWO_SHOT: 0.55, OVER_THE_SHOULDER: 0.5 };
+/** The top part of a canonical full-body image a framing shows (the full width). Pure. */
+export function personCropFor(framing: Framing, canonical: { width: number; height: number }): { x: number; y: number; width: number; height: number } | undefined {
+  const share = PERSON_CROP_SHARE[framing];
+  if (!share || !canonical.width || !canonical.height) return undefined;
+  return { x: 0, y: 0, width: canonical.width, height: Math.round(canonical.height * share) };
+}
+
+const OFFSCREEN = /\b(off[- ]?screen|off[- ]?camera|out of (?:the )?(?:frame|shot|picture)|unseen)\b/i;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** The action as a still frame may draw it (acceptance 2026-10-06, Tea 1.3: "speaks to Abu Haidar, who stands
+ *  off-screen across the counter" drew a vendor into a one-person frame): a phrase that addresses a person who is NOT in
+ *  the shot ("to/with/at/towards … <name>") is cut, a clause still naming such a person or saying off-screen / out of
+ *  frame is dropped, and what remains is the action of the people in the shot. Pure. */
+export function stillFrameAction(action: string, absentNames: string[]): string {
+  const names = [...new Set(absentNames.flatMap((n) => { const full = n.trim(); const first = full.split(/\s+/)[0]; return [full, ...(first && first !== full && first.length >= 3 ? [first] : [])]; }).filter((n) => n.length >= 2))].sort((a, b) => b.length - a.length);
+  const nameRe = names.length ? new RegExp(`(^|[^\\p{L}])(${names.map(escapeRe).join('|')})(?=$|[^\\p{L}])`, 'iu') : null;
+  const addressRe = names.length ? new RegExp(`\\s*\\b(?:to|with|at|towards|toward|for|from|beside|near|facing|and)\\s+(?:${names.map(escapeRe).join('|')})(?=$|[^\\p{L}])`, 'giu') : null;
+  const sentences = clean(action).split(/(?<=[.;!?])\s+/);
+  const kept = sentences.map((s) => {
+    const clauses = (addressRe ? s.replace(addressRe, '') : s).split(/,\s*/);
+    const ok = clauses.filter((c) => !OFFSCREEN.test(c) && !(nameRe?.test(c)));
+    let out = ok.join(', ').trim();
+    if (out && !/[.;!?]$/.test(out)) out += /[;]$/.test(s.trim()) ? ';' : '.';
+    return out;
+  }).filter((s) => s.replace(/[.;!?\s]/g, '').length > 0);
+  return kept.join(' ').replace(/[;,]\s*$/, '.').replace(/\.\.+$/, '.');
+}
+
 export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
   const camera = `Camera: ${FRAMING_WORDS[sh.framing] ?? sh.framing.toLowerCase().replace(/_/g, ' ')}.${PLATE_WIDE_FRAMINGS.includes(sh.framing) ? '' : ' The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing.'}`;
   // a person shown by a reference picture is described by that picture's note alone: a second description in words
   // read as a second person (D30)
   const people = cast.filter((c) => sh.characterIds.includes(c.id) && !opts.pictured?.has(c.id));
-  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), `Moment: ${clean(sh.action)}.`, sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
+  // a person who is not in the shot is never drawn: the moment loses the phrases that place them (stillFrameAction)
+  const absent = cast.filter((c) => !sh.characterIds.includes(c.id)).map((c) => c.name);
+  const moment = stillFrameAction(sh.action, absent).replace(/[.;]\s*$/, '');
+  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), moment ? `Moment: ${moment}.` : '', sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
   return `${d.visual}. ${camera} ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
