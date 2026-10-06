@@ -1,0 +1,333 @@
+[
+ {
+  "shot": 1,
+  "framing": "MEDIUM_CLOSE_UP",
+  "arm": "A",
+  "mode": "OFF",
+  "seed": 424242,
+  "jobId": "job-0b7b3ac633",
+  "takeId": "take-4bc0398484f91e4ad6d4",
+  "status": "READY",
+  "verdict": "REVIEW",
+  "tier": "final",
+  "file": "video/2026/10/gen-4bc0398484f9b2f6bcae.a2.mp4",
+  "faceRef": [],
+  "identity": {
+   "verdict": "PASS",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.5917,
+     "detail": [],
+     "median": 0.675,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 1,
+   "detail": "11 moments counted, never more than 1"
+  },
+  "lipSync": {
+   "flags": [],
+   "lagMs": -166.7,
+   "against": "RECORDED",
+   "verdict": "REVIEW",
+   "lagFrames": -4,
+   "thresholds": "START",
+   "offsetRepair": true,
+   "speakerTrack": 1
+  },
+  "flags": [
+   "lip-sync: review against the recorded lines: offset -4 frames (-166.7 ms): shift the audio by -4 frames and re-score — the cut moves the line onto the mouths",
+   "no-duplicate-frames: 13 repeated frame(s) of 123 (10.6 %), longest run 1 at 0.13 s (review)"
+  ],
+  "attempt": {
+   "jobAttempt": 2,
+   "firstAttempt": false,
+   "firstForShot": true,
+   "shotGeneration": 1
+  },
+  "generationMs": 594708
+ },
+ {
+  "shot": 1,
+  "framing": "MEDIUM_CLOSE_UP",
+  "arm": "B",
+  "mode": "AUTO",
+  "seed": 424242,
+  "jobId": "job-b04bb9f713",
+  "takeId": "take-390e0ca7bcc67f815d0a",
+  "status": "READY",
+  "verdict": "REVIEW",
+  "tier": "final",
+  "file": "video/2026/10/gen-390e0ca7bcc64a023f3e.a1.mp4",
+  "faceRef": [
+   {
+    "assetId": "gen-390e0ca7bcc6b4473933",
+    "binding": "<Picture 3>",
+    "note": "derived face reference (a crop of the canonical image; the canonical image keeps only 173 px of face after the engine's scaling (< 192): its face crop is sent beside it)"
+   }
+  ],
+  "identity": {
+   "verdict": "PASS",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.6307,
+     "detail": [],
+     "median": 0.6821,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 1,
+   "detail": "11 moments counted, never more than 1"
+  },
+  "lipSync": {
+   "flags": [],
+   "lagMs": -125,
+   "against": "RECORDED",
+   "verdict": "REVIEW",
+   "lagFrames": -3,
+   "thresholds": "START",
+   "offsetRepair": true,
+   "speakerTrack": 0
+  },
+  "flags": [
+   "lip-sync: review against the recorded lines: offset -3 frames (-125 ms): shift the audio by -3 frames and re-score; speaker track 0 is visible in 45 % of the speech frames — the cut moves the line ont",
+   "no-duplicate-frames: 8 repeated frame(s) of 123 (6.5 %), longest run 1 at 0.13 s (review)"
+  ],
+  "attempt": {
+   "jobAttempt": 1,
+   "firstAttempt": false,
+   "firstForShot": false,
+   "shotGeneration": 2
+  },
+  "generationMs": 516197
+ },
+ {
+  "shot": 2,
+  "framing": "CLOSE_UP",
+  "arm": "A",
+  "mode": "OFF",
+  "seed": 424242,
+  "jobId": "job-88d193431a",
+  "takeId": "take-b01ef5ab32b01de15db6",
+  "status": "READY",
+  "verdict": "ACCEPT",
+  "tier": "final",
+  "file": "video/2026/10/gen-b01ef5ab32b00cc6da5a.a1.mp4",
+  "faceRef": [],
+  "identity": {
+   "verdict": "PASS",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.6674,
+     "detail": [],
+     "median": 0.7308,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 1,
+   "detail": "11 moments counted, never more than 1"
+  },
+  "flags": [],
+  "attempt": {
+   "jobAttempt": 1,
+   "firstAttempt": true,
+   "firstForShot": true,
+   "shotGeneration": 1
+  },
+  "generationMs": 415292
+ },
+ {
+  "shot": 2,
+  "framing": "CLOSE_UP",
+  "arm": "B",
+  "mode": "AUTO",
+  "seed": 424242,
+  "jobId": "job-291f3c6b33",
+  "takeId": "take-730673b5f87b87deee38",
+  "status": "READY",
+  "verdict": "REVIEW",
+  "tier": "final",
+  "file": "video/2026/10/gen-730673b5f87b8319d6ba.a1.mp4",
+  "faceRef": [
+   {
+    "assetId": "gen-390e0ca7bcc6b4473933",
+    "binding": "<Picture 3>",
+    "note": "derived face reference (a crop of the canonical image; the canonical image keeps only 173 px of face after the engine's scaling (< 192): its face crop is sent beside it)"
+   }
+  ],
+  "identity": {
+   "verdict": "REVIEW",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.5059,
+     "detail": [
+      "char-0556d14a04: identity drifts 0.29 from the first frame (> 0.15)"
+     ],
+     "median": 0.7111,
+     "verdict": "REVIEW",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 1,
+   "detail": "11 moments counted, never more than 1"
+  },
+  "flags": [
+   "identity-similarity: char-0556d14a04: identity drifts 0.29 from the first frame (> 0.15)"
+  ],
+  "attempt": {
+   "jobAttempt": 1,
+   "firstAttempt": false,
+   "firstForShot": false,
+   "shotGeneration": 2
+  },
+  "generationMs": 819291
+ },
+ {
+  "shot": 3,
+  "framing": "TWO_SHOT",
+  "arm": "A",
+  "mode": "OFF",
+  "seed": 424242,
+  "jobId": "job-21b81897dc",
+  "takeId": "take-1ea4284469f692a71a57",
+  "status": "READY",
+  "verdict": "REVIEW",
+  "tier": "final",
+  "file": "video/2026/10/gen-1ea4284469f6988ebbe6.a3.mp4",
+  "faceRef": [],
+  "identity": {
+   "verdict": "PASS",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.6533,
+     "detail": [],
+     "median": 0.6859,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    },
+    "char-3a54ed1937": {
+     "min": 0.6322,
+     "detail": [],
+     "median": 0.7206,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 2,
+   "detail": "11 moments counted, never more than 2"
+  },
+  "lipSync": {
+   "flags": [],
+   "lagMs": -83.3,
+   "against": "RECORDED",
+   "verdict": "REVIEW",
+   "lagFrames": -2,
+   "thresholds": "START",
+   "offsetRepair": true,
+   "speakerTrack": 0
+  },
+  "flags": [
+   "lip-sync: review against the recorded lines: offset -2 frames (-83.3 ms): shift the audio by -2 frames and re-score — the cut moves the line onto the mouths",
+   "no-duplicate-frames: 42 repeated frame(s) of 123 (34.1 %), longest run 16 at 3.08 s (review)"
+  ],
+  "attempt": {
+   "jobAttempt": 3,
+   "firstAttempt": false,
+   "firstForShot": true,
+   "shotGeneration": 1
+  },
+  "generationMs": 1028900
+ },
+ {
+  "shot": 3,
+  "framing": "TWO_SHOT",
+  "arm": "B",
+  "mode": "AUTO",
+  "seed": 424242,
+  "jobId": "job-ca471014f5",
+  "takeId": "take-a49fe76142ade346fd11",
+  "status": "READY",
+  "verdict": "REVIEW",
+  "tier": "final",
+  "file": "video/2026/10/gen-a49fe76142ad31a9933a.a1.mp4",
+  "faceRef": [
+   {
+    "assetId": "gen-390e0ca7bcc6b4473933",
+    "binding": "<Picture 4>",
+    "note": "derived face reference (a crop of the canonical image; the canonical image keeps only 173 px of face after the engine's scaling (< 192): its face crop is sent beside it)"
+   }
+  ],
+  "identity": {
+   "verdict": "REVIEW",
+   "characters": {
+    "char-0556d14a04": {
+     "min": 0.5061,
+     "detail": [
+      "char-0556d14a04: identity drifts 0.27 from the first frame (> 0.15)"
+     ],
+     "median": 0.6119,
+     "verdict": "REVIEW",
+     "framesWithFace": 10
+    },
+    "char-3a54ed1937": {
+     "min": 0.6891,
+     "detail": [],
+     "median": 0.7737,
+     "verdict": "PASS",
+     "framesWithFace": 10
+    }
+   },
+   "thresholds": "START"
+  },
+  "people": {
+   "ok": true,
+   "value": 2,
+   "detail": "11 moments counted, never more than 2"
+  },
+  "lipSync": {
+   "flags": [],
+   "lagMs": -41.7,
+   "against": "RECORDED",
+   "verdict": "REVIEW",
+   "lagFrames": -1,
+   "thresholds": "START",
+   "offsetRepair": false,
+   "speakerTrack": 1
+  },
+  "flags": [
+   "lip-sync: review against the recorded lines: speaker track 1 is visible in 42 % of the speech frames",
+   "identity-similarity: char-0556d14a04: identity drifts 0.27 from the first frame (> 0.15)",
+   "no-duplicate-frames: 27 repeated frame(s) of 123 (22.0 %), longest run 17 at 4.46 s (review)"
+  ],
+  "attempt": {
+   "jobAttempt": 1,
+   "firstAttempt": false,
+   "firstForShot": false,
+   "shotGeneration": 2
+  },
+  "generationMs": 1503202
+ }
+]

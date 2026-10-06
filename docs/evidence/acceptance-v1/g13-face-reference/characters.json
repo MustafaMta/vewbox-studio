@@ -1,0 +1,97 @@
+[
+ {
+  "id": "char-3a54ed1937",
+  "name": "Abu Haidar",
+  "style": "CARTOON",
+  "language": "AR",
+  "dialect": "IRAQI_BAGHDADI",
+  "sex": "MALE",
+  "ageYears": 58,
+  "look": {
+   "build": "Slightly plump with a soft belly and rounded shoulders",
+   "face": "Round and friendly with prominent apple-cheeks and deep laughter lines around the eyes",
+   "hair": "Salt-and-pepper hair, thinning at the top and cropped short on the sides",
+   "skin": "Golden-brown, sun-kissed skin",
+   "eyes": "Small, twinkling dark brown eyes",
+   "wardrobe": "an ankle-length white cotton dishdasha, a red-and-white checked keffiyeh draped loosely over his own right shoulder, and brown leather sandals",
+   "distinguishing": [
+    "a pair of small gold-rimmed reading glasses hanging from a black cord around his neck"
+   ]
+  },
+  "canonicalImage": {
+   "seed": 1547498800,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "jobId": "job-ace4285f0f",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "APPROVED",
+   "version": 1,
+   "approvedAt": "2026-10-05T16:38:40.381Z",
+   "generatedAt": "2026-10-05T16:26:11.644Z",
+   "identityLine": "Identity: stylized 3D animated character, a man of about 58; build: Slightly plump with a soft belly and rounded shoulders; face: Round and friendly with prominent apple-cheeks and deep laughter lines around the eyes; Salt-and-pepper hair, thinning at the top and cropped short on the sides; Small, twinkling dark brown eyes; Golden-brown, sun-kissed skin; wearing an ankle-length white cotton dishdasha, a red-and-white checked keffiyeh draped loosely over his own right shoulder, and brown leather sandals; a pair of small gold-rimmed reading glasses hanging from a black cord around his neck.",
+   "assetId": "gen-70bd991ea7a1f918e0df",
+   "file": {
+    "assetId": "gen-70bd991ea7a1f918e0df",
+    "path": "image/2026/10/gen-70bd991ea7a1f918e0df.a1.png",
+    "sha256": "3ae7b3a0bb8ad23ceef5e7ee7f32e2d193faf432119b085a39439500b168a9d1",
+    "bytes": 1580722,
+    "model": "Qwen-Image-2512",
+    "workflowVersion": "5ab9b1fdab562470",
+    "promptId": "eec41ff6-1411-58cf-9e02-99ba96440476",
+    "seed": 1547498800
+   },
+   "proxy": "images/character-char-3a54ed1937.jpg"
+  }
+ },
+ {
+  "id": "char-0556d14a04",
+  "name": "Clara Hughes",
+  "style": "CARTOON",
+  "language": "EN",
+  "sex": "FEMALE",
+  "ageYears": 32,
+  "look": {
+   "build": "Slim",
+   "face": "Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks",
+   "hair": "Shoulder-length auburn hair tied back in a low ponytail",
+   "skin": "Fair",
+   "eyes": "Green",
+   "wardrobe": "a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots",
+   "distinguishing": [
+    "a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest"
+   ]
+  },
+  "canonicalImage": {
+   "seed": 695193644,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "jobId": "job-d12320434e",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "APPROVED",
+   "version": 1,
+   "approvedAt": "2026-10-05T16:41:48.091Z",
+   "generatedAt": "2026-10-05T16:41:09.792Z",
+   "identityLine": "Identity: stylized 3D animated character, a woman of about 32; Slim build; face: Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks; clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth; Shoulder-length auburn hair tied back in a low ponytail; Green eyes; Fair skin; wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots; a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.",
+   "assetId": "gen-45ec75f1d454ec2f36d9",
+   "file": {
+    "assetId": "gen-45ec75f1d454ec2f36d9",
+    "path": "image/2026/10/gen-45ec75f1d454ec2f36d9.a1.png",
+    "sha256": "4d4707e2f2bc4ebda2d96905c0fac7b890791c1a0944c2d8b36e79290f379aa3",
+    "bytes": 1506778,
+    "model": "Qwen-Image-2512",
+    "workflowVersion": "5ab9b1fdab562470",
+    "promptId": "4f878bb2-cfe6-5d02-a342-d2af471dc81d",
+    "seed": 695193644
+   },
+   "proxy": "images/character-char-0556d14a04.jpg"
+  }
+ }
+]

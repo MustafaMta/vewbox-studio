@@ -1,0 +1,136 @@
+[
+ {
+  "characterId": "char-3a54ed1937",
+  "name": "Abu Haidar",
+  "identity": {
+   "mode": "AUTOMATIC",
+   "jobId": "job-d21ce20a09",
+   "model": "habibi",
+   "proof": {
+    "cer": 0,
+    "wer": 0,
+    "text": "هلا بيك. اني اسمي أبو حيدر، وهذا صوتي.",
+    "heard": "هلا بيك. اني اسمي أبو حيدر وهذا صوتي.",
+    "assetId": "gen-3c2d25886a",
+    "coverage": 1,
+    "sampleId": "voice-3074ccdb34"
+   },
+   "origin": "DESIGNED",
+   "params": {
+    "seed": 178769622,
+    "speed": 0.9,
+    "emotionAlpha": 1
+   },
+   "status": "REVIEW",
+   "dialect": "IRAQI_BAGHDADI",
+   "designId": "vd-2faf0bde89",
+   "language": "AR",
+   "provider": "LOCAL_TTS",
+   "revision": 1,
+   "createdAt": "2026-10-05T16:54:05.562Z",
+   "evaluation": {
+    "cer": 0,
+    "lufs": -19.97,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:54:05.395Z",
+    "truePeakDbtp": -0.99,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.8224
+   },
+   "seedSha256": "bbf73599a4bbb1c0d8b79e35c69b074e020b0666346f27310469e505ddb26563",
+   "dialectStatus": "UNVERIFIED",
+   "engineVersion": "Habibi-TTS IRQ (F5-TTS v1)",
+   "fallbackModel": "indextts",
+   "referenceText": "أضاءت أنوار الميناء واحدًا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+   "referenceAssetId": "gen-4ff84d698b"
+  },
+  "referenceFile": {
+   "assetId": "gen-4ff84d698b",
+   "path": "audio/2026/10/gen-4ff84d698b.wav",
+   "sha256": "bbf73599a4bbb1c0d8b79e35c69b074e020b0666346f27310469e505ddb26563",
+   "bytes": 468734,
+   "model": "openbmb/VoxCPM2",
+   "seed": 2089452142
+  },
+  "proofFile": {
+   "assetId": "gen-3c2d25886a",
+   "path": "audio/2026/10/gen-3c2d25886a.wav",
+   "sha256": "32b2b95bbfd9ccf4796bdd5a9e72d762d0699476e1975698b2d0e40eb10ddb83",
+   "bytes": 231094,
+   "model": "Habibi-TTS IRQ (F5-TTS v1)"
+  },
+  "settings": {
+   "pitch": "LOW",
+   "pace": "SLOW",
+   "timbre": "raspy and warm",
+   "notes": "features a melodic Baghdadi lilt with frequent soft chuckles"
+  }
+ },
+ {
+  "characterId": "char-0556d14a04",
+  "name": "Clara Hughes",
+  "identity": {
+   "mode": "AUTOMATIC",
+   "jobId": "job-27d713507c",
+   "model": "indextts",
+   "proof": {
+    "cer": 0,
+    "wer": 0,
+    "text": "Hello. My name is Clara Hughes, and this is my voice.",
+    "heard": "Hello, my name is Clara Hughes, and this is my voice.",
+    "assetId": "gen-8f095c0eab",
+    "coverage": 1,
+    "sampleId": "voice-ed7bd26e8f"
+   },
+   "origin": "DESIGNED",
+   "params": {
+    "seed": 2101694182,
+    "speed": 1,
+    "emotionAlpha": 1
+   },
+   "status": "ACTIVE",
+   "designId": "vd-33df22a68c",
+   "language": "EN",
+   "provider": "LOCAL_TTS",
+   "revision": 1,
+   "createdAt": "2026-10-05T16:49:30.180Z",
+   "evaluation": {
+    "cer": 0,
+    "lufs": -20.35,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:49:30.012Z",
+    "truePeakDbtp": -5.25,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.7824
+   },
+   "seedSha256": "72ee6112f8fdb0416eaeef6cd7814bb64507f34b364de6dc761e6e1cba6e3076",
+   "dialectStatus": "NOT_APPLICABLE",
+   "engineVersion": "IndexTTS-2.5",
+   "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+   "referenceAssetId": "gen-b23150ec5e"
+  },
+  "referenceFile": {
+   "assetId": "gen-b23150ec5e",
+   "path": "audio/2026/10/gen-b23150ec5e.wav",
+   "sha256": "72ee6112f8fdb0416eaeef6cd7814bb64507f34b364de6dc761e6e1cba6e3076",
+   "bytes": 422654,
+   "model": "openbmb/VoxCPM2",
+   "seed": 1462281477
+  },
+  "proofFile": {
+   "assetId": "gen-8f095c0eab",
+   "path": "audio/2026/10/gen-8f095c0eab.wav",
+   "sha256": "3f5d340d015443b45c7c79e5bfebb6a9df30ed9d1654d2eb9ef8beee8e2ff3b4",
+   "bytes": 172730,
+   "model": "IndexTTS-2.5"
+  },
+  "settings": {
+   "pitch": "MID",
+   "pace": "MEASURED",
+   "timbre": "Clear and warm",
+   "notes": "Sounds genuinely enthusiastic and humble"
+  }
+ }
+]
