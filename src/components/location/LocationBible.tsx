@@ -84,7 +84,7 @@ export function LocationBible({ l }: { l: Location }) {
               <option value="">Add a time of day…</option>
               {TIMES_OF_DAY.filter((t) => !times.includes(t)).map((t) => <option key={t} value={t}>{timeWord(t)}</option>)}
             </select>
-            <Button variant="secondary" disabled={!addTime} onClick={() => { if (addTime) { set({ byTime: { ...d.byTime, [addTime]: d.byTime[addTime] ?? '' } }); setAddTime(''); } }}>Add</Button>
+            <Button variant="secondary" disabled={!addTime} onClick={() => { if (addTime) { set({ byTime: { ...d.byTime, [addTime]: d.byTime[addTime] ?? '' } }); setAddTime(''); } }}>Add the time</Button>
           </div>
         </div>
         <div className="loc-bible-foot">

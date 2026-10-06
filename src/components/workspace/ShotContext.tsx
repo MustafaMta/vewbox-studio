@@ -98,8 +98,8 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
           {ctx.anchoring.chainLength > 1 && <div><dt className="t-label">Continuous chain</dt><dd>{ctx.anchoring.chainLength} shots in a row{ctx.anchoring.reanchor ? ' · re-anchors on the characters’ own images (shortest guide)' : ''}</dd></div>}
         </dl>
         {ctx.gaps.length > 0 && (
-          <ul className="ws-files" role="list" aria-label="Missing before filming">
-            {ctx.gaps.map((g) => <li key={g}><span className="ws-file-words"><span className="t-meta" dir="auto">{g}</span></span><StateWord tone="waiting">Missing</StateWord></li>)}
+          <ul className="ws-files" role="list" aria-label="Not stated yet">
+            {ctx.gaps.map((g) => <li key={g}><span className="ws-file-words"><span className="t-meta" dir="auto">{g}</span></span><StateWord tone="idle">Not stated</StateWord></li>)}
           </ul>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { getJob, retry } from '@/server/jobs/queue';
 import { json, route } from '@/server/http';
+import { assertTermsAccepted } from '@/server/terms';
 import { StudioError } from '@/domain/errors';
 import { agentForJob, recordChangeMade, retryNeedsChange, studioEvent } from '@/server/org/runs';
 
@@ -15,6 +16,10 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   try { const body = (await req.json()) as { changeMade?: string } | null; changeMade = body?.changeMade?.trim().slice(0, 500) || undefined; } catch { /* no body */ }
   const before = await getJob(id);
   if (!before) throw new StudioError('NOT_FOUND', `Job ${id} not found`);
+  // a retry runs the job again: it waits for the terms of use like a new one (src/server/terms.ts)
+  await assertTermsAccepted(before.type);
+  // a retry runs the job again: it waits for the terms of use like a new one (src/server/terms.ts)
+  await assertTermsAccepted(before.type);
   const need = retryNeedsChange(before);
   if (need.needed && !changeMade) throw new StudioError('INVALID', `This job failed with ${need.failureClass ?? 'an unclassified failure'}, which an unchanged retry would repeat. Correct the cause first and say what changed (changeMade).`, { failureClass: need.failureClass, needs: 'changeMade' });
   const job = await retry(id);

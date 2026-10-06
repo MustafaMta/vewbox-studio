@@ -523,6 +523,11 @@
   /* coarse pointers (Design QA M7 residue): 44 px targets for the workspace's text links, the line keeps its height
      (the padding is given back as margin); the flow's links and the cut line's shots grow to 44 */
   @media (pointer: coarse) {
+    /* the scene's story facts (QA polish c): 44 px fields and a 44 px box around the 16 px checkbox */
+    .ws-fact :is(.input, .select) { min-block-size: 44px; }
+    .ws-fact .check-row { align-items: center; min-block-size: 44px; }
+    .ws-fact .check-row > .check { margin: 14px; }
+    .ws-fact .check-row { margin-inline-start: -14px; gap: 0; }
     .ws-studioline-link { display: inline-flex; align-items: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -13px; }
     .ws-textlink { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -12px; }
     .ws-flow a, .ws-skeleton .ws-flow > span { min-block-size: 44px; }
