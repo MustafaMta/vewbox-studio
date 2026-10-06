@@ -9,7 +9,8 @@ import { assetFile, assetFromStored, fileFor } from '@/server/media';
 import { committedOutput, jobOutputs, stableSeed } from '@/server/jobs/outputs';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { separateStems, transcribe } from '@/server/providers/speech';
-import { alignLyrics } from '@/server/media/lyrics';
+import { alignLyrics, linesFromForcedAlignment } from '@/server/media/lyrics';
+import { alignScript, isQaUnavailable, scriptWords } from '@/server/providers/qa-service';
 import * as comfy from '@/server/providers/comfy';
 import * as minimax from '@/server/providers/minimax';
 import { aceStepSong, minimaxMusic3Song } from '@/server/workflows';
@@ -159,21 +160,44 @@ export async function alignSongLyrics(ctx: Parameters<Handler>[0], productionId:
   try {
     const file = fileFor({ storage: 'LIBRARY', path: String(vocals.provenance?.path ?? '') });
     const asr = { file, language: p.language === 'AR' ? ('ar' as const) : ('en' as const) };
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'vocal stem', input: asr }), { jobId: ctx.job.id });
-    const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
-    const out = await ctx.tool('lyrics.align', async () => alignLyrics(p.song!.sections, words, p.language), { input: { sections: p.song.sections, words, language: p.language } });
+    // 1) Whisper large-v3 on the vocal stem + the fuzzy monotone match: where each section is sung (robust to
+    //    mis-heard words); 2) WhisperX-style forced alignment of the KNOWN lyrics (asr /align, wav2vec2 CTC) inside each
+    //    section's window: word-accurate line times. A line the forced aligner cannot place keeps the transcript time.
+    const { t, forced } = await ctx.gpu('ASR', 4000, async () => {
+      const t = await ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'vocal stem', input: asr });
+      const words = t.segments.flatMap((s) => s.words ?? []).map((w) => ({ start: w.start, end: w.end, word: w.word }));
+      const out = await ctx.tool('lyrics.align', async () => alignLyrics(p.song!.sections, words, p.language), { input: { sections: p.song!.sections, words, language: p.language } });
+      const forced = new Map<string, Array<{ from: number; to: number; aligned: number; total: number } | undefined>>();
+      for (const sec of p.song!.sections) {
+        const text = (asr.language === 'ar' ? sec.textAr || sec.text : sec.text) || '';
+        const lines = text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+        if (!lines.length) continue;
+        const mine = out.filter((l) => l.sectionId === sec.id);
+        const lo = Math.max(0, Math.min(sec.from, ...mine.filter((l) => l.method === 'ALIGNED').map((l) => l.from)) - 1.5);
+        const hi = Math.max(sec.to, ...mine.filter((l) => l.method === 'ALIGNED').map((l) => l.to)) + 1.5;
+        if (hi - lo > 175) continue; // one /align call covers at most 180 s
+        const r = await alignScript(file, lines.join('\n'), asr.language, { start: lo, end: hi });
+        if (isQaUnavailable(r)) { await ctx.event('warn', `forced alignment of section ${sec.id} not available: ${r.reason}`); continue; }
+        forced.set(sec.id, linesFromForcedAlignment(lines, r.words, scriptWords));
+      }
+      return { t: { ...t, out }, forced };
+    }, { jobId: ctx.job.id });
+    const out = t.out;
     const sections = p.song.sections.map((sec) => {
       const mine = out.filter((l) => l.sectionId === sec.id).sort((x, y) => x.index - y.index);
       if (!mine.length) return sec;
-      const alignedOnes = mine.filter((l) => l.method === 'ALIGNED');
-      const extent = alignedOnes.length * 2 >= mine.length ? { from: Math.min(sec.from, Math.floor(alignedOnes[0].from)), to: Math.max(sec.to, Math.ceil(alignedOnes[alignedOnes.length - 1].to)) } : {};
-      return { ...sec, ...extent, lineTimes: mine.map((l) => ({ index: l.index, from: l.from, to: l.to, method: l.method, confidence: Number(l.confidence.toFixed(2)) })) };
+      const ctc = forced.get(sec.id) ?? [];
+      const timed = mine.map((l) => { const c = ctc[l.index]; return c ? { ...l, from: c.from, to: c.to, method: 'ALIGNED' as const, confidence: c.aligned / c.total, source: 'CTC' as const } : { ...l, source: l.method === 'ALIGNED' ? ('TRANSCRIPT' as const) : undefined }; });
+      const alignedOnes = timed.filter((l) => l.method === 'ALIGNED');
+      const extent = alignedOnes.length * 2 >= timed.length ? { from: Math.min(sec.from, Math.floor(alignedOnes[0].from)), to: Math.max(sec.to, Math.ceil(alignedOnes[alignedOnes.length - 1].to)) } : {};
+      return { ...sec, ...extent, lineTimes: timed.map((l) => ({ index: l.index, from: Number(l.from.toFixed(3)), to: Number(l.to.toFixed(3)), method: l.method, confidence: Number(l.confidence.toFixed(2)), ...(l.source ? { source: l.source } : {}) })) };
     });
     // sections must stay in order without overlap after taking their sung extents
     for (let i = 1; i < sections.length; i++) if (sections[i].from < sections[i - 1].to) sections[i] = { ...sections[i], from: sections[i - 1].to, to: Math.max(sections[i].to, sections[i - 1].to + 1) };
     await command('updateSong', [productionId, { sections }], 'worker');
     const aligned = out.filter((l) => l.method === 'ALIGNED').length;
-    await ctx.event('info', 'lyrics aligned to the vocal track', { lines: out.length, aligned, heard: t.text.slice(0, 300) });
+    const byCtc = [...forced.values()].flat().filter(Boolean).length;
+    await ctx.event('info', 'lyrics aligned to the vocal track', { lines: out.length, aligned, forcedAligned: byCtc, heard: t.text.slice(0, 300) });
     await recordMetric('lyrics.aligned_ratio', out.length ? aligned / out.length : 0, 'ratio', {}, ctx.job.id);
     return { lines: out.length, aligned };
   } catch (e) { await ctx.event('warn', `lyrics not aligned: ${(e as Error).message}`); return undefined; }

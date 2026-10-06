@@ -38,6 +38,25 @@ function runScore(line: string[], words: string[], i: number, len: number): numb
   return total / Math.max(1, line.length);
 }
 
+/** FORCED ALIGNMENT OF A SECTION'S KNOWN LYRICS (the asr service's /align: wav2vec2 CTC with WhisperX's trellis, on
+ *  the vocal stem): the words come back in script order, one per whitespace token holding a letter or a digit
+ *  (`scriptWords`), so each written line owns the next `n` of them. A line is timed from its first to its last ALIGNED
+ *  word; a line with fewer than half of its words aligned keeps no CTC time (undefined: the transcript match or the
+ *  spread stays). Pure, tested. */
+export function linesFromForcedAlignment(lines: string[], words: Array<{ start: number | null; end: number | null; aligned: boolean }>, wordsOf: (line: string) => string[]): Array<{ from: number; to: number; aligned: number; total: number } | undefined> {
+  const out: Array<{ from: number; to: number; aligned: number; total: number } | undefined> = [];
+  let k = 0;
+  for (const line of lines) {
+    const n = wordsOf(line).length;
+    const mine = words.slice(k, k + n);
+    k += n;
+    const ok = mine.filter((w) => w.aligned && w.start !== null && w.end !== null);
+    if (!n || ok.length * 2 < n) { out.push(undefined); continue; }
+    out.push({ from: Math.min(...ok.map((w) => w.start!)), to: Math.max(...ok.map((w) => w.end!)), aligned: ok.length, total: n });
+  }
+  return out;
+}
+
 export function alignLyrics(sections: LyricSection[], words: Word[], lang: 'EN' | 'AR'): AlignedLine[] {
   const out: AlignedLine[] = [];
   const wtok = words.map((w) => norm(w.word, lang));
