@@ -15,6 +15,8 @@ export interface StubComfy {
   submitted: string[];
   views: number;
   frees: number;
+  /** /queue reports one running foreign prompt for this many more polls */
+  queueBusy: number;
   close: () => Promise<void>;
   restart: (downMs: number) => Promise<void>;
 }
@@ -27,7 +29,7 @@ const json = (res: http.ServerResponse, code: number, v: unknown) => { res.write
 export async function stubComfy(opts: { nodes: string[]; models: Record<string, string[]>; goodClip: Buffer; runMs?: number }): Promise<StubComfy> {
   const prompts = new Map<string, { mode: PromptMode; at: number }>();
   const runMs = opts.runMs ?? 400;
-  const state: StubComfy = { url: '', modes: [], submitted: [], views: 0, frees: 0, close: async () => {}, restart: async () => {} };
+  const state: StubComfy = { url: '', modes: [], submitted: [], views: 0, frees: 0, queueBusy: 0, close: async () => {}, restart: async () => {} };
   const status = (id: string): 'pending' | 'in_progress' | 'completed' | 'failed' | 'gone' => {
     const p = prompts.get(id);
     if (!p) return 'gone';
@@ -64,7 +66,7 @@ export async function stubComfy(opts: { nodes: string[]; models: Record<string, 
       if (s === 'failed') return json(res, 200, { [id]: { outputs: {}, status: { status_str: 'error', messages: [['execution_start', { timestamp: 1 }], ['execution_error', { node_id: '12', node_type: 'MiniMaxH3Sampler', exception_type: 'torch.OutOfMemoryError', exception_message: 'CUDA out of memory. Tried to allocate 2.00 GiB' }]] } } });
       return json(res, 200, { [id]: { outputs: { 16: { video: [{ filename: `h3_${id.slice(0, 8)}_${m!.mode}.mp4`, subfolder: 'vewbox', type: 'output' }] } }, status: { status_str: 'success', messages: [['execution_start', { timestamp: 1000 }], ['execution_success', { timestamp: 3000 }]] } } });
     }
-    if (p === '/queue') return json(res, 200, { queue_running: [], queue_pending: [] });
+    if (p === '/queue') { if (state.queueBusy > 0) { state.queueBusy--; return json(res, 200, { queue_running: [[1, 'foreign-prompt-1', {}, {}, []]], queue_pending: [] }); } return json(res, 200, { queue_running: [], queue_pending: [] }); }
     if (p === '/view') {
       state.views++;
       const f = u.searchParams.get('filename') ?? '';
