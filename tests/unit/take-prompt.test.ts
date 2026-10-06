@@ -46,6 +46,23 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
   };
   const cutBinding: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: '', picture: 1 }], location: { picture: 2 }, opening: { kind: 'FRAME', picture: 3 } };
 
+  it('always says the camera, also over the planner’s own prompt; a static shot is a locked-off frame that never changes (Tea 1.2 pushed in)', () => {
+    const { p, cast, loc } = setup();
+    const base = shotOf(p, 's12');
+    const [a, b] = base.characterIds;
+    const binding: H3Binding = { ...cutBinding, subjects: [{ characterId: a, picture: 1 }, { characterId: b, picture: 2 }], location: { picture: 3 }, opening: { kind: 'FRAME', picture: 4 } };
+    const planned = { ...base, framing: 'TWO_SHOT' as const, cameraMove: 'STATIC' as const, prompt: 'A medium two-shot of the pharmacist and the customer at the counter.' };
+    const prompt = h3ReferencePrompt(p, planned, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
+    const detailed = prompt.slice(prompt.indexOf('detailed_description:'));
+    expect(detailed).toContain('Camera: two shot, locked off on a tripod: no zoom, no push-in');
+    expect(prompt.slice(prompt.indexOf('summary:'), prompt.indexOf('retention_analysis:'))).toContain('The camera is locked off: the framing never changes.');
+    expect(prompt).not.toMatch(/camera lingers/);
+    const moving = h3ReferencePrompt(p, { ...planned, cameraMove: 'PUSH_IN' as const }, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
+    expect(moving).toContain('Camera: two shot, push in: one smooth, steady move');
+    expect(moving).not.toContain('locked off');
+    expect(takePrompt(p, planned, cast, loc, { timeOfDay: 'DUSK' })).toContain('locked off on a tripod');
+  });
+
   it('binds each canonical picture to its subject, the plate to the place, the opening frame as a frame — in the six sections, in order', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');
