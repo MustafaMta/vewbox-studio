@@ -4,8 +4,9 @@ import { linesCutAt, performanceSegments, shotPerformers } from '@/domain/music-
 import { shotWindows } from '@/domain/timeline';
 import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
-import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
+import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, needsOpeningFrame, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget } from '@/server/production/guide';
+import { PLATE_WIDE_FRAMINGS } from '@/server/story/prompts';
 import { identityConditioning } from '@/server/production/identity-rule';
 import { locationPlateVerdict } from '@/server/production/location-rule';
 import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/domain/rules';
@@ -132,6 +133,12 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // the production context's gaps (src/domain/production-context.ts): named, never invented
   for (const gap of pack.context.gaps) warnings.push({ name: 'context-gap', detail: gap });
   if (pack.context.anchoring.reanchor) warnings.push({ name: 're-anchor', detail: pack.context.anchoring.why ?? 're-anchoring' });
+  // A CLOSE SHOT WITHOUT ITS OPENING FRAME (acceptance 2026-10-06, G13: every close shot without a drawn frame opened on
+  // the plate's wide composition and pushed in for 2–3 s to reach its framing): draw the frames first
+  if (opts.backend === 'local' && pack.location && pack.opening.kind === 'NONE' && !PLATE_WIDE_FRAMINGS.includes(sh.framing)) {
+    const auto = needsOpeningFrame(pack, sh, state.settings, { customPrompt: opts.customPrompt });
+    warnings.push({ name: 'opening-frame-missing', detail: auto ? `a ${sh.framing.toLowerCase().replace(/_/g, ' ')} with no opening frame: the take draws it first (a close shot without one opens on the place's wide plate and pushes in)` : `a ${sh.framing.toLowerCase().replace(/_/g, ' ')} with no opening frame starts from the place's wide plate and tends to push in to reach its framing: draw the shot's frames first` });
+  }
   // THE 180° LINE, SCREEN DIRECTION, DIRECTION OF TRAVEL (src/domain/blocking.ts): staging that contradicts an earlier
   // shot of the scene is named before the generation — a warning, since a director may cross the line on purpose
   // (and then marks the shot `crossesLine`)
