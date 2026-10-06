@@ -1,5 +1,5 @@
 /* PLANNING-LLM BENCHMARK (docs/directives/MODEL-UPGRADE-DIRECTIVE-2026-10-06.md §3, §9; results in
- * docs/research/MODEL-EVAL-2026-10.md §7): the studio's OWN planning calls, run through the story engine
+ * docs/research/MODEL-EVAL-2026-10.md §9): the studio's OWN planning calls, run through the story engine
  * (src/server/story/engine.ts → src/server/providers/llm.ts, the app's request: num_ctx, keep_alive, think off, its
  * max_tokens, its repair rounds, its truncation handling and scene splitting) against the local Ollama, with the SAME
  * inputs for every candidate model.
@@ -31,7 +31,7 @@
  * Every POST to /chat/completions is one attempt (repairs and re-asks are further attempts); attempt #1 is recorded on
  * its own (`firstAttemptValid`: valid on the first POST). Per call: latency, prompt/answer tokens, stop reasons, answer
  * tokens per second, the card's peak (nvidia-smi 250 ms), the llm container's RAM and the Docker VM's used RAM
- * (sampled every ≈ 3 s), Ollama's own report of the loaded model. Quality is read and scored by hand (rubric in §7);
+ * (sampled every ≈ 3 s), Ollama's own report of the loaded model. Quality is read and scored by hand (rubric in §9);
  * this script computes the mechanical checks only. The engine's local path takes the GPU lease, which writes
  * resource_leases: DATABASE_URL is pointed at the copy `vewbox_llm`, never the live database. */
 import fs from 'node:fs/promises';

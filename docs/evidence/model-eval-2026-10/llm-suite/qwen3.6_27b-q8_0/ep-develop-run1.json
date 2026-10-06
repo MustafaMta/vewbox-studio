@@ -1,0 +1,394 @@
+{
+  "task": "ep-develop",
+  "run": 1,
+  "model": "qwen3.6:27b-q8_0",
+  "ms": 138267,
+  "attempts": 1,
+  "firstAttemptValid": true,
+  "firstCalls": 1,
+  "repairs": 0,
+  "reasks": 0,
+  "everyFirstCallValid": true,
+  "truncatedAttempts": 0,
+  "answerTokens": 3402,
+  "tokPerS": 24.7,
+  "attemptsDetail": [
+    {
+      "kind": "first",
+      "requestKey": "11995:Develop this episode from the producer's brief.\nTitle: The Harbour Office\nBrief: \"\"\"Episode 2. The morning after the signal, Elias and Najm go to the Kerran Point harbour office to see the Mariner's s",
+      "ms": 137839,
+      "status": 200,
+      "maxTokens": 8000,
+      "head": "{\n  \"logline\": \"Elias and Najm confront the harbour master’s refusal to release a sealed logbook from the 1987 storm, only to discover a critical discrepancy in",
+      "tail": "t the workbench.\",\n      \"exitState\": \"Najm unrolls a nautical chart and places a marker on the bearing point. Fade out.\",\n      \"targetSeconds\": 20\n    }\n  ]\n}",
+      "requestChars": 12211,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "reasoningChars": 0,
+      "promptTokens": 2749,
+      "completionTokens": 3402,
+      "tokPerS": 24.7
+    }
+  ],
+  "vramBeforeMiB": 2028,
+  "vramPeakMiB": 30717,
+  "ram": {
+    "containerGiB": 13.76,
+    "vmUsedGiB": 17.28
+  },
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "qwen3.6:27b-q8_0",
+        "model": "qwen3.6:27b-q8_0",
+        "size": 28389450710,
+        "digest": "cd0210c667bffa98ad702668d05fda1f340bcbb0a2c769bd389670d19ad1441b",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "qwen35",
+          "families": [
+            "qwen35"
+          ],
+          "parameter_size": "27.8B",
+          "quantization_level": "Q8_0"
+        },
+        "expires_at": "2026-10-06T13:59:59.407213648Z",
+        "size_vram": 28389450710,
+        "context_length": 16384
+      }
+    ]
+  },
+  "at": "2026-10-06T13:57:59.772Z",
+  "checks": {
+    "scenes": 11,
+    "expectedScenes": 11,
+    "totalSeconds": 400,
+    "targetSeconds": 480,
+    "withinTenPercent": false,
+    "newCharacters": [
+      "Ingrid Dahl"
+    ],
+    "newLocations": [
+      "Kerran Point Harbour Office",
+      "Kerran Point Street"
+    ],
+    "unresolvedNames": [],
+    "regularsPresent": [
+      "Elias Moore",
+      "Najm"
+    ],
+    "synopsisWords": 183
+  },
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\n\nLanguage: English. Write natural spoken English in \"text\"; leave \"textAr\" empty.\n\nTIMELINES: each existing character's age is their age now and \"bornAbout\" is the year they were born. Every year in a character's own life — a marriage, a loss, work, a journey — falls after they were about 16 and not after this year. A year before a character was born appears only as history they read or heard about, never as something they or their spouse lived."
+    },
+    {
+      "role": "user",
+      "content": "Develop this episode from the producer's brief.\nTitle: The Harbour Office\nBrief: \"\"\"Episode 2. The morning after the signal, Elias and Najm go to the Kerran Point harbour office to see the Mariner's sealed 1987 logbook. The harbour master, Ingrid Dahl (a brisk woman in her fifties who lost no one in the storm and wants the past left alone), refuses at first; Najm talks her round with a librarian's patience. In the logbook they find Ruth's last radio entry, which does not match the official inquiry: the Mariner turned back toward the point. That night the meteors return; back in the workshop the radio speaks again and gives a bearing. The episode ends with Elias, who will not go on the water, looking out of the workshop window at the sea where the bearing points, and Najm unrolling a chart.\"\"\"\n\nTarget running time: 480 seconds → plan about 11 scene(s), each with targetSeconds that add up to roughly the total.\nPart of the show \"The Static Sky\" (Two old men in a cliff-top fishing town follow a radio signal from a ship lost in the storm of 1987.). Show synopsis: Elias Moore, a retired lighthouse keeper and radio repairman, and Najm, a retired librarian and amateur astronomer, hear the lost trawler Mariner calling on an old valve radio whenever meteors fall. Season 1 follows the signal toward what really happened in 1987.. World Bible (respect every fact; reuse its places as they are): {\"rules\":[\"Kerran Point is a small cold fishing town on a northern cliff coast; the story stays grounded — no ghosts are ever shown, only what a radio, a logbook or a person can carry.\",\"The old valve radio only receives the Mariner's frequency while meteors are falling; on a clear night without meteors it hears nothing but static.\",\"Elias has not set foot on a boat since the storm of 1987 and will not go out on the water.\"],\"relationships\":[\"Elias Moore and Najm: strangers until episode 1; now bound by the same storm — wary friends.\",\"Elias was married to Ruth Moore, the Mariner's radio officer, lost with the ship in the storm of 1987.\",\"Najm's younger brother Tariq was the Mariner's deckhand and was never found.\"],\"timeline\":[\"The Static Sky — scene 1 “The Broken Signal” at Elias’s Workshop (night): Najm enters Elias’s workshop on the night of a meteor shower, clutching a cracked valve radio with a faded '1987' label. Elias examines it, muttering about obsolete parts, and they begin the repair together while meteors streak past the window.\",\"The Static Sky — scene 2 “Static Echoes” at Elias’s Workshop (night): Past midnight. The radio is silent again; Elias, his left palm bandaged, stares at Ruth's photograph; Najm sits beside him, the meteors thinning over the sea.\",\"S1E1: Elias cut the palm of his LEFT hand on the radio's chassis; it is bandaged.\",\"S1E1: The repaired radio received the Mariner's call: \\\"This is the Mariner… four miles south of the point…\\\".\",\"S1E1: Najm learned that Elias's wife Ruth was aboard the Mariner.\",\"S1E1: Najm brought a cracked valve radio labelled \\\"1987\\\" to Elias's workshop on the night of a meteor shower.\"],\"openStorylines\":[\"Who — or what — is still transmitting on the Mariner's frequency, thirty-nine years later?\",\"The harbour office keeps the Mariner's last logbook, sealed since the 1987 inquiry.\"],\"places\":[{\"name\":\"Elias’s Workshop\",\"fixedFeatures\":[\"A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp\",\"A large multi-pane window on the back wall, facing the sea\",\"Shelves of old radios stacked floor to ceiling on the left wall\",\"One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart\",\"The wooden door on the right, at the front\"],\"established\":false}],\"styleNotes\":\"Warm hand-drawn cartoon; night scenes lit by lamps and the meteors; the sea always audible.\"}.\nThis is an EPISODE of that show: its regulars (Elias Moore, Najm) carry every episode; the leads named in the brief or synopsis must appear. Characters from outside the show are guests: at most two, only when this episode's story needs them, never replacing a regular.\nCast already attached (use them; refer to them by exact name): [{\"id\":\"char-56c47abc59\",\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"sex\":\"MALE\",\"ageYears\":72,\"bornAbout\":1954,\"species\":\"Human\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\",\"wardrobe\":\"Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)\",\"distinguishing\":[\"A faded navy wool cap with a single red button on his own left side\",\"A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves\"],\"personality\":\"Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm and resonant, with a faint wheeze from old age\",\"hasAppearance\":true},{\"id\":\"char-e71e80cde4\",\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"sex\":\"MALE\",\"ageYears\":65,\"bornAbout\":1961,\"look\":\"\",\"wardrobe\":\"\",\"distinguishing\":[],\"personality\":\"Wise but absent-minded, with a quiet enthusiasm for forgotten knowledge. Speaks in measured, deliberate phrases, often pausing to adjust his glasses or scratch his beard when lost in thought. Kind but socially awkward, preferring books to people.\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":true}]\nPlaces already attached (use them; refer to them by exact name): [{\"id\":\"loc-cde19129ca\",\"name\":\"Elias’s Workshop\",\"kind\":\"INTERIOR\",\"description\":\"A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.\",\"landmarks\":[\"A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp\",\"A large multi-pane window on the back wall, facing the sea\",\"Shelves of old radios stacked floor to ceiling on the left wall\",\"One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart\",\"The wooden door on the right, at the front\"],\"props\":[\"The cracked valve radio with a faded 1987 label\",\"A glass jar of screws on the workbench\",\"A screwdriver and a small wrench\",\"A soldering iron on its stand\"],\"lighting\":[\"NIGHT\"]}]\n\nOther studio places you MAY use by exact name: [{\"id\":\"loc-75cdbdb376\",\"name\":\"Tea stall, Mutanabbi Street\",\"kind\":\"EXTERIOR\",\"description\":\"A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight.\",\"landmarks\":[\"The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall\"],\"props\":[],\"lighting\":[\"MORNING\",\"NIGHT\"]}]\nIf the story needs people or places that do not exist yet, create them in newCharacters / newLocations with full designs (then use their names in scenes). Keep new characters to the minimum the story needs.\n\nReturn JSON: { logline, synopsis (3–6 paragraphs, present tense), genre, mood, titleAr?, newCharacters: [{name, role, sex, design:{build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, ageYears, nameAr?, canon:{heightCm?, accessories[]?, visualRestrictions[]?, agePresentation?, speech?}}}], newLocations: [{name, design:{description, kind, landmarks[], props[], lighting[], nameAr?, layout:{geography?, architecture?, materials[]?, cameraZones[]?, entrances[]?, spatial?, light:{key (where the main light comes from and its quality), practicals[] (lamps, signs, windows that light the set), palette[] (3–5 colours), byTime:{<TIME_OF_DAY>: the light at that time, for each time in lighting[]}}}}}], scenes: [{title, locationName, timeOfDay, characterNames[], purpose, emotionalObjective, entryState, exitState, targetSeconds}] }.\ntimeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NIGHT. locationName must match an attached, library or new location exactly; characterNames likewise."
+    }
+  ],
+  "answer": {
+    "logline": "Elias and Najm confront the harbour master’s refusal to release a sealed logbook from the 1987 storm, only to discover a critical discrepancy in the official record that reopens an old wound.",
+    "synopsis": "The morning after the mysterious signal, Elias and Najm descend from the cliff to Kerran Point Harbour Office. Ingrid Dahl, the harbour master, is brisk and defensive, guarding the sealed logbook of the Mariner with bureaucratic rigidity. She refuses access, citing closure and protocol, but Najm’s patient, librarian-like persistence wears her down. \n\nInside the dusty archive room, they review the logbook. The final radio entry reveals a shocking contradiction: the Mariner turned back toward the point instead of fleeing the storm as the official inquiry stated. This implies the ship was drawn, not lost. Elias is visibly shaken by the implication that his wife Ruth may have made a deliberate choice.\n\nBack at the workshop that night, the meteor shower returns. The valve radio crackles to life, emitting a new bearing. Elias refuses to engage with the mechanics of the signal, haunted by the logbook’s revelation. He stands by the window, staring out at the dark sea where the bearing points. Najm quietly unrolls a nautical chart on the workbench, tracing the line, preparing for a journey Elias is not ready to make.",
+    "genre": "Mystery Drama",
+    "mood": "Melancholic, Tense, Atmospheric",
+    "titleAr": "مكتب الميناء",
+    "newCharacters": [
+      {
+        "name": "Ingrid Dahl",
+        "role": "Harbour Master",
+        "sex": "FEMALE",
+        "design": {
+          "build": "Compact, sturdy posture, shoulders squared as if against a wind that isn't there.",
+          "face": "Sharp features, high cheekbones, mouth set in a permanent line of authority.",
+          "hair": "Short, steel-gray bob, cut precisely and neatly.",
+          "skin": "Fair, weathered slightly by sea air, minimal makeup.",
+          "eyes": "Pale blue, direct and unyielding gaze.",
+          "distinguishing": [
+            "Wears a heavy wool blazer with brass buttons",
+            "Carries a leather-bound ledger always at her hip"
+          ],
+          "wardrobe": "Dark green wool blazer, charcoal trousers, sensible black boots. A small silver key ring dangles from her belt.",
+          "personality": "Brisk, professional, protective of the town's history. She believes some wounds should be left to scar over. Lost no one in the storm, so she views the inquiry as closed business.",
+          "ageYears": 52,
+          "canon": {
+            "heightCm": 165,
+            "accessories": [
+              "Silver key ring",
+              "Round wire-framed glasses"
+            ],
+            "visualRestrictions": [
+              "Always stands with hands clasped or on hips when asserting authority"
+            ],
+            "agePresentation": "Late 40s, early 50s",
+            "speech": "Crisp, authoritative, low volume but clear."
+          }
+        }
+      }
+    ],
+    "newLocations": [
+      {
+        "name": "Kerran Point Harbour Office",
+        "design": {
+          "description": "A small, functional administrative building attached to the main pier. Interior is cramped, filled with filing cabinets, wooden desks, and nautical charts pinned to cork boards. The air smells of salt and old paper.",
+          "kind": "INTERIOR",
+          "landmarks": [
+            "Heavy oak reception desk with a glass partition",
+            "Wall of metal filing cabinets labeled by year",
+            "Small reading table under a single pendant lamp",
+            "Door leading to the archives room"
+          ],
+          "props": [
+            "Sealed logbook in a plastic sleeve",
+            "Magnifying glass",
+            "Stacks of official inquiry reports",
+            "Clock on the wall"
+          ],
+          "lighting": [
+            "MORNING",
+            "NIGHT"
+          ],
+          "nameAr": "مكتب ميناء كيران بوينت",
+          "layout": {
+            "geography": "Ground floor, sea-facing windows on one side.",
+            "architecture": "Functional mid-century civic design. Flat roof, large windows.",
+            "materials": [
+              "Wood",
+              "Metal",
+              "Glass"
+            ],
+            "cameraZones": [
+              "Reception area (foreground)",
+              "Admin desk (mid-ground)",
+              "Archive corner (background)"
+            ],
+            "entrances": [
+              "Main door from street",
+              "Inner door to archives"
+            ],
+            "spatial": "Tight space, camera moves laterally to show separation between Ingrid and the visitors.",
+            "light": {
+              "key": "Soft diffused daylight from large windows on the right side of the room.",
+              "practicals": [
+                "Pendant lamp over reading table",
+                "Desk lamp"
+              ],
+              "palette": [
+                "Slate Gray",
+                "Wood Brown",
+                "Cream White",
+                "Rust Red (accent)"
+              ],
+              "byTime": {
+                "MORNING": "Bright, cool daylight cuts through dust motes. High contrast shadows from window panes.",
+                "NIGHT": "Not used in this episode for this location."
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Kerran Point Street",
+        "design": {
+          "description": "The cobblestone street leading from the cliff path down to the harbour. Wet from early morning mist, reflecting the gray sky.",
+          "kind": "EXTERIOR",
+          "landmarks": [
+            "Stone steps descending towards the water",
+            "Fishing nets drying on racks",
+            "The Harbour Office building at the bottom"
+          ],
+          "props": [],
+          "lighting": [
+            "MORNING"
+          ],
+          "nameAr": "شارع الميناء",
+          "layout": {
+            "geography": "Steep incline, narrow.",
+            "architecture": "Stone buildings on either side, creating a tunnel-like effect.",
+            "materials": [
+              "Wet cobblestone",
+              "Stone brick"
+            ],
+            "cameraZones": [
+              "Top of stairs (Elias's perspective)",
+              "Bottom of stairs (Approach to office)"
+            ],
+            "entrances": [],
+            "spatial": "Vertical composition emphasized by the descent.",
+            "light": {
+              "key": "Overcast, flat gray light. No strong shadows.",
+              "practicals": [],
+              "palette": [
+                "Slate Blue",
+                "Wet Gray",
+                "Muted Green (moss)"
+              ],
+              "byTime": {
+                "MORNING": "Damp, misty, cold. Breath visible in the air."
+              }
+            }
+          }
+        }
+      }
+    ],
+    "scenes": [
+      {
+        "title": "Descent to the Port",
+        "locationName": "Kerran Point Street",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "Establish the physical and emotional distance between the workshop (safety/memory) and the harbour (truth/confrontation).",
+        "emotionalObjective": "Elias feels reluctant and heavy; Najm is focused and determined.",
+        "entryState": "They leave the workshop, stepping into the cold morning air.",
+        "exitState": "They arrive at the Harbour Office door.",
+        "targetSeconds": 30
+      },
+      {
+        "title": "The Gatekeeper",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Najm",
+          "Ingrid Dahl"
+        ],
+        "purpose": "Introduce Ingrid Dahl as an obstacle. Establish her authority and the sealed nature of the logbook.",
+        "emotionalObjective": "Ingrid is defensive; Elias is intimidated but resolute; Najm is polite but persistent.",
+        "entryState": "Elias and Najm enter the office. Ingrid is busy filing.",
+        "exitState": "Ingres refuses their request to see the logbook.",
+        "targetSeconds": 45
+      },
+      {
+        "title": "The Librarian's Persuasion",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Najm",
+          "Ingrid Dahl"
+        ],
+        "purpose": "Show Najm’s skill in navigating bureaucracy and human nature. Win access to the archive.",
+        "emotionalObjective": "Ingrid softens slightly, seeing Najm not as an intruder but as a fellow keeper of records.",
+        "entryState": "Ingrid is turning them away. Najm steps forward.",
+        "exitState": "Ingres sighs and unlocks the inner door to the archives.",
+        "targetSeconds": 50
+      },
+      {
+        "title": "The Archive Room",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "Atmospheric transition. Isolate the protagonists with the past.",
+        "emotionalObjective": "Awe and tension. The weight of history in a small, dusty room.",
+        "entryState": "They enter the dim archive room.",
+        "exitState": "Ingres places the sealed logbook on the table and leaves them alone briefly to prepare tea (giving them space).",
+        "targetSeconds": 25
+      },
+      {
+        "title": "Opening the Seal",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "The physical act of revealing the truth. Tension builds as Elias touches the book.",
+        "emotionalObjective": "Fear and curiosity. Elias’s hand trembles.",
+        "entryState": "The logbook sits on the table, sealed in plastic.",
+        "exitState": "Najm carefully removes the seal. Elias opens the cover.",
+        "targetSeconds": 35
+      },
+      {
+        "title": "The Contradiction",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "Reveal the inciting incident of the episode: the logbook contradicts the official story.",
+        "emotionalObjective": "Shock and confusion. The ground shifts beneath them.",
+        "entryState": "They are reading the final pages.",
+        "exitState": "Elias reads Ruth’s last entry: 'Turning back to the point.' He looks up, stunned.",
+        "targetSeconds": 60
+      },
+      {
+        "title": "The Weight of Words",
+        "locationName": "Kerran Point Harbour Office",
+        "timeOfDay": "MORNING",
+        "characterNames": [
+          "Elias Moore",
+          "Ingrid Dahl"
+        ],
+        "purpose": "Ingrid’s reaction. She doesn’t know this detail, or ignores it. It highlights her disconnect from the personal tragedy.",
+        "emotionalObjective": "Alienation. Elias realizes no one knows the truth except him and the ghost.",
+        "entryState": "Ingres returns with tea.",
+        "exitState": "Elias closes the book abruptly. He wants to leave.",
+        "targetSeconds": 35
+      },
+      {
+        "title": "Back on the Cliff",
+        "locationName": "Kerran Point Street",
+        "timeOfDay": "AFTERNOON",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "Transition back to safety. The emotional hangover of the discovery.",
+        "emotionalObjective": "Silence and heaviness. The sea looks different now.",
+        "entryState": "They exit the office, ascending the stairs in silence.",
+        "exitState": "They reach the top of the cliff, looking up at the workshop.",
+        "targetSeconds": 25
+      },
+      {
+        "title": "Night Returns",
+        "locationName": "Elias’s Workshop",
+        "timeOfDay": "NIGHT",
+        "characterNames": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "purpose": "Re-establish the supernatural element. The meteors return, triggering the radio.",
+        "emotionalObjective": "Anticipation and dread. The past is not done with them.",
+        "entryState": "Night has fallen. Meteors streak past the window. Elias is sitting away from the radio.",
+        "exitState": "The radio crackles to life. A new bearing is transmitted.",
+        "targetSeconds": 45
+      },
+      {
+        "title": "The Refusal",
+        "locationName": "Elias’s Workshop",
+        "timeOfDay": "NIGHT",
+        "characterNames": [
+          "Elias Moore"
+        ],
+        "purpose": "Show Elias’s trauma response. He will not go out on the water.",
+        "emotionalObjective": "Resignation and fear. He is trapped by his own choice.",
+        "entryState": "The radio gives a clear bearing. Najm looks at Elias for guidance.",
+        "exitState": "Elias turns his back on the radio, walking to the window.",
+        "targetSeconds": 30
+      },
+      {
+        "title": "Charting the Course",
+        "locationName": "Elias’s Workshop",
+        "timeOfDay": "NIGHT",
+        "characterNames": [
+          "Najm"
+        ],
+        "purpose": "End on a note of forward motion. Najm takes the lead, honoring Elias’s limit but not stopping.",
+        "emotionalObjective": "Determination and quiet resolve.",
+        "entryState": "Elias is at the window, staring out. Najm is at the workbench.",
+        "exitState": "Najm unrolls a nautical chart and places a marker on the bearing point. Fade out.",
+        "targetSeconds": 20
+      }
+    ]
+  }
+}

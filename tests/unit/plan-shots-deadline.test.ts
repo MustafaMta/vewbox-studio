@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { JOB_DEADLINE_MS, PLAN_SHOTS_DEADLINE_CAP_MS, jobDeadline, planShotsWorkMs } from '@/server/jobs/deadlines';
 
-/** THE SHOT PLANNER'S DEADLINE SCALES WITH ITS WORK (docs/research/MODEL-EVAL-2026-10.md §7): a flat 60 min stopped
+/** THE SHOT PLANNER'S DEADLINE SCALES WITH ITS WORK (docs/research/MODEL-EVAL-2026-10.md §9): a flat 60 min stopped
  *  nothing on a one-scene short, but an 8-minute, 11-scene episode is planned scene by scene in two parts each — 11 ×
  *  ≈ 170 s on Gemma 4 31B (measured), far longer on a larger model with experts on the CPU. The deadline is now the
  *  scenes' answer tokens at the model's measured speed, twice over, plus 10 minutes; never below 60 min, capped. */

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-/** THE LOCAL MODEL ANSWERS AS A STREAM (docs/research/MODEL-EVAL-2026-10.md §7): a long answer from a large model with
+/** THE LOCAL MODEL ANSWERS AS A STREAM (docs/research/MODEL-EVAL-2026-10.md §9): a long answer from a large model with
  *  experts offloaded to the CPU takes longer than Node's fetch waits for response headers (300 s), so the local Ollama
  *  is asked with `stream: true` and the server-sent events are read into the same answer (content, stop reason, usage);
  *  the deadline grows with the output budget and a silent engine is given up early. A hosted or JSON answer is read
@@ -81,6 +81,45 @@ describe('local stream', () => {
     process.env.LLM_LOCAL_REASONING = 'on';
     expect(llm.reasoningOf({})).toBe(true);
     expect(llm.reasoningOf({ reasoning: false })).toBe(false);
+  });
+
+  it('a model that crawls once writing (weights paged out of VRAM) is stopped as RESOURCE_EXHAUSTION', async () => {
+    const llm = await local();
+    const ctrl = new AbortController();
+    const enc = new TextEncoder();
+    let timer: ReturnType<typeof setInterval> | undefined;
+    // three deltas, then one every 200 ms: 2 in a 400 ms window, below the floor of 5
+    const res = new Response(new ReadableStream({ start(c) { for (let i = 0; i < 3; i++) c.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: 'x' } }] })}\n\n`)); timer = setInterval(() => { try { c.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: 'y' } }] })}\n\n`)); } catch { clearInterval(timer); } }, 200); } }), { headers: { 'content-type': 'text/event-stream' } });
+    const p = llm.readChatStream(res, ctrl, 10_000, { windowMs: 400, minTokens: 5 });
+    await new Promise((r) => setTimeout(r, 1200));
+    clearInterval(timer);
+    expect(ctrl.signal.aborted).toBe(true);
+    const reason = ctrl.signal.reason as InstanceType<typeof llm.LocalModelStalled>;
+    expect(reason).toBeInstanceOf(llm.LocalModelStalled);
+    expect(reason).toMatchObject({ failureClass: 'RESOURCE_EXHAUSTION', retryable: true, code: 'UNAVAILABLE' });
+    expect(reason.message).toMatch(/slowed to \d+ tokens/);
+    const { classifyFailure, RETRYABLE_CLASSES } = await import('@/server/org/runs');
+    expect(RETRYABLE_CLASSES).toContain(classifyFailure(reason));
+    void p.catch(() => {});
+  });
+
+  it('a stall inside chat() unloads the model and fails RESOURCE_EXHAUSTION', async () => {
+    const llm = await local('qwen3.6:27b-q8_0');
+    const calls: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (u, init) => {
+      calls.push(String(u));
+      if (String(u).endsWith('/api/generate')) return new Response('{}');
+      // a stream that never sends: the silence watch (LOCAL_STALL_MS, fake time) aborts the request
+      const signal = (init as RequestInit).signal!;
+      return new Response(new ReadableStream({ start(c) { signal.addEventListener('abort', () => c.error(new DOMException('aborted', 'AbortError'))); } }), { headers: { 'content-type': 'text/event-stream' } });
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const p = llm.chat([{ role: 'user', content: 'x' }], { maxTokens: 100 }).catch((e) => e);
+    await vi.advanceTimersByTimeAsync(llm.LOCAL_STALL_MS + 1000);
+    const err = await p;
+    vi.useRealTimers();
+    expect(err).toBeInstanceOf(llm.LocalModelStalled);
+    expect(calls.some((c) => c.endsWith('/api/generate'))).toBe(true);
   });
 
   it('the local deadline grows with the output budget', async () => {

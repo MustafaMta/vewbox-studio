@@ -1,4 +1,4 @@
-/* PLANNING-LLM BENCHMARK REPORT (docs/research/MODEL-EVAL-2026-10.md §7): reads every model's evidence written by
+/* PLANNING-LLM BENCHMARK REPORT (docs/research/MODEL-EVAL-2026-10.md §9): reads every model's evidence written by
  * scripts/model-eval-llm-suite.ts (docs/evidence/model-eval-2026-10/llm-suite/<model>/) and prints one comparison:
  * reliability (first calls valid, repairs, re-asks, cut answers, errors), speed (answer tokens per second, time per
  * task), memory (card peak, Docker VM RAM peak) and the episode's mechanical continuity checks over all 11 scenes:

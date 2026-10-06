@@ -17,7 +17,7 @@ export type LlmProvider = 'minimax' | 'anthropic' | 'openai-compatible';
 
 export interface LlmMessage { role: 'system' | 'user' | 'assistant'; content: string }
 /** `reasoning`: let the local model think before it answers, with at most `reasoningTokens` of thinking added to the
- *  answer's budget (the context permitting). Off unless asked: explicit, never an accident (MODEL-EVAL-2026-10 §7). */
+ *  answer's budget (the context permitting). Off unless asked: explicit, never an accident (MODEL-EVAL-2026-10 §9). */
 export interface LlmOptions { maxTokens?: number; temperature?: number; provider?: LlmProvider; timeoutMs?: number; jobId?: string; reasoning?: boolean; reasoningTokens?: number }
 /** The thinking budget a reasoning call gets on top of its answer budget, when it names none. */
 export const DEFAULT_REASONING_TOKENS = 4096;
@@ -59,16 +59,22 @@ export function outputRoom(messages: LlmMessage[], opts: { provider?: LlmProvide
 }
 const isLocalOllama = (baseUrl: string) => /:11434(\/|$)/.test(baseUrl);
 
-/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Gemma 4 31B (QAT Q4_0, Ollama), chosen over qwen3:14b
- *  by the controlled test of docs/research/MODEL-EVAL-2026-10.md §3 (Iraqi dialogue and staged shot plans; 2.5–3× the
- *  latency). qwen3:14b stays selectable with OPENAI_COMPATIBLE_MODEL=qwen3:14b. */
-export const DEFAULT_LOCAL_LLM = 'gemma4:31b-it-qat';
+/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.6-27B dense, Q8_0 (Ollama
+ *  `qwen3.6:27b-q8_0`, Apache-2.0) — the production brain by the producer's directive of 2026-10-06
+ *  (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md; promotion record docs/research/MODEL-EVAL-2026-10.md §9).
+ *  It fills the card (≈ 31.5 GB at num_ctx 16384): a stall there fails fast (LocalModelStalled) and the documented
+ *  fallback is a Q6_K build of the same model (a Hugging Face GGUF: Ollama's library has no q6_K tag; §9.1). Gemma 4 31B (`gemma4:31b-it-qat`) stays installed as the emergency
+ *  fallback, qwen3:14b as a preview model — both through OPENAI_COMPATIBLE_MODEL. */
+export const DEFAULT_LOCAL_LLM = 'qwen3.6:27b-q8_0';
+/** The emergency fallback when the production model cannot run (selected by setting OPENAI_COMPATIBLE_MODEL to it). */
+export const FALLBACK_LOCAL_LLM = 'gemma4:31b-it-qat';
 
 /** What a local model holds on the card while it answers, in MB — the LLM family's GPU lease estimate. Measured on the
  *  RTX 5090 with num_ctx 16384 and a q8_0 KV cache (MODEL-EVAL-2026-10 §3, nvidia-smi peak incl. ≈ 0.8 GB of idle
- *  contexts): gemma4:31b-it-qat 21,405 MiB (Ollama: 19.1 GB, 100 % GPU), qwen3:14b 11,489 MiB (10.57 GB). A model
+ *  contexts): qwen3.6:27b-q8_0 31,499 MiB loaded, 31,708 writing (Ollama: 28.4 GB, 66/66 layers, 100 % GPU; §9 — the
+ *  whole card), gemma4:31b-it-qat 21,405 MiB (Ollama: 19.1 GB, 100 % GPU), qwen3:14b 11,489 MiB (10.57 GB). A model
  *  that was never measured keeps the earlier 12000 and should be measured before it is relied on. */
-export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['gemma4:31b', 21500], ['qwen3:14b', 12000]];
+export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.6:27b', 31500], ['gemma4:31b', 21500], ['qwen3:14b', 12000]];
 export const UNMEASURED_LLM_VRAM_MB = 12000;
 export function llmLeaseMb(model: string): number {
   const m = model.trim().toLowerCase();
@@ -76,10 +82,10 @@ export function llmLeaseMb(model: string): number {
 }
 
 /** How fast a local model answers on the RTX 5090, warm, at num_ctx 16384 (answer tokens per second over whole calls,
- *  prompt reading included; seconds to read one ≈ 4K-token shot-plan prompt): gemma4:31b-it-qat 52 tok/s (MODEL-EVAL-2026-10
- *  §7, shot plans), qwen3:14b ≈ 100 (§3). The shot planner's deadline is computed from it (src/server/jobs/work-deadline.ts).
+ *  prompt reading included; seconds to read one ≈ 4K-token shot-plan prompt): qwen3.6:27b-q8_0 25 tok/s (MODEL-EVAL-2026-10
+ *  §9: 3,402 answer tokens in 138 s, thinking off), gemma4:31b-it-qat 52 tok/s (§9, shot plans), qwen3:14b ≈ 100 (§3). The shot planner's deadline is computed from it (src/server/jobs/work-deadline.ts).
  *  A model never measured is assumed slow (8 tok/s, a large model with experts on the CPU) so its jobs are not cut short. */
-export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
+export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.6:27b', 25, 15], ['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
 export const UNMEASURED_LLM_SPEED = { tokensPerSecond: 8, promptSecondsPerPart: 90 };
 /** A hosted engine's speed for the same purpose (fast; its deadline stays near the flat value). */
 export const HOSTED_LLM_SPEED = { tokensPerSecond: 40, promptSecondsPerPart: 10 };
@@ -114,7 +120,7 @@ export const localDeadlineMs = (maxTokens: number) => 300_000 + Math.max(0, maxT
 export const LOCAL_STALL_MS = 240_000;
 
 /** What the local model is asked besides the chat itself: THINKING OFF (the studio asks for JSON, not reasoning).
- *  Ollama's OpenAI-compatible endpoint ignores a top-level `think` — measured on 0.35.1 (MODEL-EVAL-2026-10 §7):
+ *  Ollama's OpenAI-compatible endpoint ignores a top-level `think` — measured on 0.35.1 (MODEL-EVAL-2026-10 §9):
  *  with `think: false` alone, gemma4:31b-it-qat and qwen3.6:27b (both "thinking: default true") still reasoned, and
  *  the reasoning was counted in completion_tokens and max_tokens (qwen3.6: 4,621 reasoning characters and a cut answer
  *  for a 120-token JSON; Gemma's answers ran 0.6–2 characters per token where JSON runs 3–4) — the hidden cause of
@@ -129,15 +135,40 @@ export const reasoningOf = (opts: Pick<LlmOptions, 'reasoning'>, e: Record<strin
 
 type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
 
+/** THE LOCAL MODEL STALLED: no first token within LOCAL_STALL_MS, or, once it writes, fewer than
+ *  LOCAL_MIN_TOKENS_PER_WINDOW tokens in a LOCAL_SLOW_WINDOW_MS window. Seen on the RTX 5090 with qwen3.6:27b-q8_0 at
+ *  the card's edge (32.0 of 32.6 GB, 0–2 % GPU utilisation: Windows had paged the weights to shared system memory) —
+ *  the engine never errors, it crawls. Failed fast as RESOURCE_EXHAUSTION (retryable: the next attempt reloads the
+ *  model on a free card); recurring stalls are the cue for the Q6_K fallback (MODEL-EVAL-2026-10 §9). */
+export class LocalModelStalled extends StudioError {
+  readonly failureClass = 'RESOURCE_EXHAUSTION';
+  readonly retryable = true;
+  constructor(message: string, details: Record<string, unknown> = {}) { super('UNAVAILABLE', message, { ...details, failureClass: 'RESOURCE_EXHAUSTION', reason: 'LOCAL_LLM_STALLED' }); }
+}
+/** The slowest a writing local model may be before it counts as stalled: 90 tokens in 90 s (1/s; the 27–31B models
+ *  write 25–55/s on this card). */
+export const LOCAL_SLOW_WINDOW_MS = 90_000;
+export const LOCAL_MIN_TOKENS_PER_WINDOW = 90;
+
 /** Read an OpenAI-compatible server-sent-event stream into the shape of a whole answer: the content deltas joined, the
- *  last finish_reason, the usage chunk (`stream_options.include_usage`). A silence longer than `stallMs` aborts. */
-export async function readChatStream(res: Response, ctrl: AbortController, stallMs: number): Promise<ChatAnswer> {
+ *  last finish_reason, the usage chunk (`stream_options.include_usage`). A silence longer than `stallMs`, or a crawl
+ *  (fewer than `minTokens` deltas in `windowMs` once writing), aborts with LocalModelStalled. */
+export async function readChatStream(res: Response, ctrl: AbortController, stallMs: number, slow: { windowMs: number; minTokens: number } = { windowMs: LOCAL_SLOW_WINDOW_MS, minTokens: LOCAL_MIN_TOKENS_PER_WINDOW }): Promise<ChatAnswer> {
   const reader = res.body?.getReader();
   if (!reader) return {};
   const decoder = new TextDecoder();
   let buffer = ''; let content = ''; let reasoning = ''; let finish: string | undefined; let usage: ChatAnswer['usage']; let error: ChatAnswer['error'];
   let stall: ReturnType<typeof setTimeout> | undefined;
-  const arm = () => { if (stall) clearTimeout(stall); stall = setTimeout(() => ctrl.abort(new StudioError('PROVIDER', `the local model sent nothing for ${Math.round(stallMs / 1000)} s`)), stallMs); };
+  const arm = () => { if (stall) clearTimeout(stall); stall = setTimeout(() => ctrl.abort(new LocalModelStalled(`the local model sent nothing for ${Math.round(stallMs / 1000)} s (the card may be over-full)`, { stallMs })), stallMs); };
+  // the crawl watch: deltas counted per window once the model writes
+  let deltas = 0; let windowStart = 0; let windowDeltas = 0;
+  const crawl = setInterval(() => {
+    if (!windowStart) return;
+    const now = Date.now();
+    if (now - windowStart < slow.windowMs) return;
+    if (windowDeltas < slow.minTokens) ctrl.abort(new LocalModelStalled(`the local model slowed to ${windowDeltas} tokens in ${Math.round((now - windowStart) / 1000)} s after ${deltas} (the card may be over-full: its weights paged out of VRAM)`, { tokensInWindow: windowDeltas, windowMs: now - windowStart, tokens: deltas }));
+    windowStart = now; windowDeltas = 0;
+  }, Math.max(50, Math.min(5_000, Math.floor(slow.windowMs / 6))));
   const take = (line: string) => {
     const data = line.replace(/^data:\s?/, '').trim();
     if (!data || data === '[DONE]') return;
@@ -145,6 +176,7 @@ export async function readChatStream(res: Response, ctrl: AbortController, stall
     try { j = JSON.parse(data); } catch { return; }
     if (j.error) error = j.error;
     const c = j.choices?.[0];
+    if (c?.delta?.content || c?.delta?.reasoning) { deltas++; windowDeltas++; if (!windowStart) windowStart = Date.now(); }
     if (c?.delta?.content) content += c.delta.content;
     if (c?.delta?.reasoning) reasoning += c.delta.reasoning;
     if (c?.finish_reason) finish = c.finish_reason;
@@ -161,7 +193,7 @@ export async function readChatStream(res: Response, ctrl: AbortController, stall
       while ((nl = buffer.indexOf('\n')) >= 0) { const line = buffer.slice(0, nl); buffer = buffer.slice(nl + 1); if (line.startsWith('data:')) take(line); }
     }
     if (buffer.startsWith('data:')) take(buffer);
-  } finally { if (stall) clearTimeout(stall); }
+  } finally { if (stall) clearTimeout(stall); clearInterval(crawl); }
   return { choices: [{ message: { content, ...(reasoning ? { reasoning } : {}) }, finish_reason: finish }], usage, error };
 }
 
@@ -221,7 +253,13 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     if (reasoning && !think) log.warn({ model: cfg.model, reasoningChars: reasoning.length, outputTokens: json.usage?.completion_tokens }, 'the local model reasoned although thinking is off');
     return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0, finishReason, truncated: finishReason === 'length', maxTokens };
   } catch (e) {
-    if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
+    const reason = stopReasonOf(ctrl.signal);
+    // a stalled model is unloaded so the retry loads it again onto a card with room (never left crawling)
+    if (reason instanceof LocalModelStalled) {
+      log.warn({ model: cfg.model, err: reason.message }, 'local model stalled: unloading it');
+      await fetch(`${cfg.baseUrl.replace(/\/v1\/?$/, '')}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }).catch(() => undefined);
+    }
+    if (reason) throw reason;
     if ((e as Error).name === 'AbortError') throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model} timed out after ${Math.round(timeoutMs / 1000)} s`);
     if (e instanceof StudioError) throw e;
     throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${(e as Error).message}`);
