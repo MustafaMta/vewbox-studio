@@ -39,7 +39,7 @@ describe('local stream', () => {
     expect(r.data.shots[0].a).toBe('Ein Licht}');
     expect(r.attempts).toBe(1);
     expect(r.result).toMatchObject({ inputTokens: 3785, outputTokens: 6151, finishReason: 'stop', truncated: false });
-    expect(sent[0]).toMatchObject({ stream: true, stream_options: { include_usage: true }, think: false, options: { num_ctx: 16384 }, max_tokens: 9000 });
+    expect(sent[0]).toMatchObject({ stream: true, stream_options: { include_usage: true }, think: false, reasoning_effort: 'none', options: { num_ctx: 16384 }, max_tokens: 9000 });
   });
 
   it('a streamed answer cut at the limit is still a truncation', async () => {
