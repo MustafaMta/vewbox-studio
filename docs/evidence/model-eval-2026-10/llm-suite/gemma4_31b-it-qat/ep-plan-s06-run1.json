@@ -1,0 +1,843 @@
+{
+  "task": "ep-plan-s06",
+  "run": 1,
+  "model": "gemma4:31b-it-qat",
+  "ms": 206068,
+  "attempts": 2,
+  "firstAttemptValid": false,
+  "firstCalls": 2,
+  "repairs": 0,
+  "reasks": 0,
+  "everyFirstCallValid": true,
+  "truncatedAttempts": 0,
+  "answerTokens": 9853,
+  "tokPerS": 48,
+  "attemptsDetail": [
+    {
+      "kind": "first",
+      "requestKey": "16547:Plan the shots for Scene 6 \"The Silent Departure\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where ",
+      "ms": 121680,
+      "status": 200,
+      "maxTokens": 10670,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical manifestation of Elias's shock\",\n      \"action\": \"Elias's bandaged hand trembles violently over the ope",
+      "tail": "d disappointment. The lighting is soft and warm, highlighting the tactile texture of his tweed jacket against the blurred stone wall of the office.\"\n    }\n  ]\n}",
+      "requestChars": 16739,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 3758,
+      "completionTokens": 5601,
+      "tokPerS": 46
+    },
+    {
+      "kind": "first",
+      "requestKey": "16545:Plan the shots for Scene 6 \"The Silent Departure\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the p",
+      "ms": 83803,
+      "status": 200,
+      "maxTokens": 10674,
+      "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Capture the immediate emotional pivot as they turn away.\",\n      \"action\": \"Elias and Najm slowly turn their backs to Ing",
+      "tail": "window. The lighting is soft, highlighting the wind-burn on her cheeks and the tactile texture of her wool blazer. The emotion is subtle but heavy.\"\n    }\n  ]\n}",
+      "requestChars": 16737,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 3747,
+      "completionTokens": 4252,
+      "tokPerS": 50.7
+    }
+  ],
+  "vramBeforeMiB": 22481,
+  "vramPeakMiB": 26461,
+  "ram": {
+    "containerGiB": 23.75,
+    "vmUsedGiB": 18.35
+  },
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "gemma4:31b-it-qat",
+        "model": "gemma4:31b-it-qat",
+        "size": 19099004435,
+        "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "gemma4",
+          "families": [
+            "gemma4"
+          ],
+          "parameter_size": "30.7B",
+          "quantization_level": "Q4_0"
+        },
+        "expires_at": "2026-10-05T23:45:42.221818191Z",
+        "size_vram": 19099004435,
+        "context_length": 16384
+      }
+    ]
+  },
+  "at": "2026-10-05T23:43:42.579Z",
+  "checks": {
+    "shots": 11,
+    "budget": 47,
+    "totalSeconds": 46,
+    "scriptLines": 0,
+    "everyLineOnce": true,
+    "linesForgottenByPlanner": 0,
+    "castAddedFromActions": 0,
+    "speechScrubbed": 0,
+    "framingChanged": 0,
+    "cutsDropped": 0,
+    "promptsWithCastName": 0,
+    "promptWordsMedian": 85,
+    "promptsOutside60to160": 0,
+    "boundaries": [
+      "transition",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut",
+      "cut"
+    ]
+  },
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\n\nLanguage: English. Write natural spoken English in \"text\"; leave \"textAr\" empty.\n\nTIMELINES: each existing character's age is their age now and \"bornAbout\" is the year they were born. Every year in a character's own life — a marriage, a loss, work, a journey — falls after they were about 16 and not after this year. A year before a character was born appears only as history they read or heard about, never as something they or their spouse lived."
+    },
+    {
+      "role": "user",
+      "content": "Plan the shots for Scene 6 \"The Silent Departure\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previous shot below, ending the scene). Aspect WIDE_16_9. This part should run about 23 seconds in 4–6 shots of 3–10 seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).\nLocation: {\"id\":\"loc-bench-1\",\"name\":\"Kerran Point Harbour Office\",\"kind\":\"INTERIOR\",\"description\":\"A small, salt-worn stone building perched on the edge of the harbour. The interior is a dense archive of nautical history, smelling of old paper, brine, and cold tea.\",\"landmarks\":[\"A massive, scarred oak desk that dominates the center of the room\",\"A wall of antique brass clocks showing different time zones\",\"A heavy iron safe embedded in the back stone wall\",\"Floor-to-ceiling wooden shelving filled with grey archival boxes\"],\"props\":[\"A heavy leather-bound logbook with '1987' embossed in gold\",\"A mechanical date-stamper\",\"A steaming ceramic tea pot\",\"A brass magnifying glass\"],\"lighting\":[\"MORNING\"],\"layout\":{\"architecture\":\"Thick stone walls, low timber ceilings\",\"materials\":[\"Rough-hewn stone\",\"Dark oak\",\"Brass\"],\"entrances\":[\"A heavy wooden door leading to the wharf\"]}}\nTime of day: MORNING. Purpose: The realization that the official story was a lie.. Emotional objective: Heavy realization.. Entry state: (mid-scene: as the previous shot ends). Exit state: They leave the office in a stunned silence; Ingrid watches them go, looking conflicted..\nCharacters present (exact names; include their look so prompts can describe them): [{\"id\":\"char-56c47abc59\",\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"sex\":\"MALE\",\"ageYears\":72,\"bornAbout\":1954,\"species\":\"Human\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\",\"wardrobe\":\"Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)\",\"distinguishing\":[\"A faded navy wool cap with a single red button on his own left side\",\"A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves\"],\"personality\":\"Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm and resonant, with a faint wheeze from old age\",\"hasAppearance\":true},{\"id\":\"char-e71e80cde4\",\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"sex\":\"MALE\",\"ageYears\":65,\"bornAbout\":1961,\"look\":\"\",\"wardrobe\":\"\",\"distinguishing\":[],\"personality\":\"Wise but absent-minded, with a quiet enthusiasm for forgotten knowledge. Speaks in measured, deliberate phrases, often pausing to adjust his glasses or scratch his beard when lost in thought. Kind but socially awkward, preferring books to people.\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":true},{\"id\":\"char-bench-1\",\"name\":\"Ingrid Dahl\",\"role\":\"Harbour Master of Kerran Point\",\"sex\":\"FEMALE\",\"ageYears\":55,\"bornAbout\":1971,\"look\":\"Lean and rigid, standing as straight as a plumb line; Sharp, angular features with thin lips and a pointed chin; Silver-grey hair pulled back into a tight, severe bun; Steel blue, piercing and efficient eyes; Pale, with a permanent wind-burn on her cheeks skin\",\"wardrobe\":\"A charcoal grey wool blazer over a crisp white button-down shirt, navy tailored trousers, and sensible black loafers\",\"distinguishing\":[\"A silver nautical whistle on a black lanyard around her neck\",\"Perfectly pressed clothing despite the seaside humidity\"],\"personality\":\"Brisk, no-nonsense, and emotionally guarded; she believes order and rules prevent further tragedy\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":false}]\nBeats and lines of the part, in order: [{\"beat\":3,\"action\":\"Elias and Najm turn and walk out of the office in a stunned, heavy silence. Their footsteps echo on the wharf.\",\"lines\":[]},{\"beat\":4,\"action\":\"Shot of Ingrid standing alone by her desk. She watches them leave through the window, her rigid expression softening into one of deep conflict.\",\"lines\":[]}]\nDialogue lines indexed (use the index numbers in dialogueLineIndexes; every line must be assigned to exactly one shot, in order): []\nThe previous shot (from the preceding scene or earlier in this scene) ended like this; keep continuity or mark a clear transition: {\"action\":\"Najm looks at Ingrid with a heavy, quiet sadness.\",\"continuity\":{\"characters\":[{\"characterId\":\"char-e71e80cde4\",\"wardrobe\":\"tweed jacket, wire-rimmed glasses\",\"pose\":\"standing\",\"position\":\"center\",\"screenDirection\":\"LEFT\",\"eyeline\":\"at Ingrid\",\"emotion\":\"melancholy\",\"holding\":[]}],\"props\":[],\"environment\":{\"locationId\":\"loc-bench-1\",\"timeOfDay\":\"MORNING\",\"weather\":\"windy\",\"lighting\":\"warm morning light, side-lit\",\"state\":\"interior\"},\"camera\":{\"framing\":\"MEDIUM_CLOSE_UP\",\"move\":\"STATIC\",\"lensIntent\":\"50mm\",\"angle\":\"eye level\"},\"relationToPrevious\":\"CUT\"}}\nWorld rules: Kerran Point is a small cold fishing town on a northern cliff coast; the story stays grounded — no ghosts are ever shown, only what a radio, a logbook or a person can carry. The old valve radio only receives the Mariner's frequency while meteors are falling; on a clear night without meteors it hears nothing but static. Elias has not set foot on a boat since the storm of 1987 and will not go out on the water.\nRETURNING LOCATION (World Bible): Kerran Point Harbour Office was already shown in 5 earlier scenes (its plates are reused by id). Same architecture, layout and fixed features; do not redesign it (Thick stone walls, low timber ceilings; fixed features: A massive, scarred oak desk that dominates the center of the room, A wall of antique brass clocks showing different time zones, A heavy iron safe embedded in the back stone wall, Floor-to-ceiling wooden shelving filled with grey archival boxes). Left at the end of an earlier scene: {\"props\":[]}. Only light, weather, time of day and movable things may differ now, and the shots should say how.\nProps last seen with the people in this scene: jar of screws (Upturned, screws scattering); wrench (Oiled, rusted edges); cracked valve radio (Cracked casing, faded '1987' label).\nLast worn (keep unless the story changes the day): Elias Moore: Striped navy sweater, yellow raincoat with red scarf, aged leather gloves; Najm: Tweed jacket with frayed sleeves, wire-rimmed glasses, worn leather gloves.\nCamera rules for this direction: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\nFor each shot write \"prompt\": a complete video-generation prompt in English, 60–160 words, in this order: the production direction look (\"high-end 3D animated feature film still, stylized CG characters with appealing s…\" is prepended automatically, do not repeat it), then the setting with its landmarks, then each visible character described by name-free appearance (never the character's name, always their look: age, build, hair, skin, wardrobe, distinguishing detail), what they do and feel, the camera framing and movement, the light. If the shot has dialogue, do not write the spoken words or any <d> tag: say who speaks (by appearance) and how they deliver it; the studio appends the exact script lines. Do not describe what to avoid.\nContinuity for each shot: characters (wardrobe, pose, position in frame, screenDirection LEFT/RIGHT/TOWARD/AWAY/NEUTRAL, eyeline, emotion, holding), props (name, owner, state, position), environment (timeOfDay, weather, lighting, state), camera (lensIntent, angle), relationToPrevious: CONTINUATION (same action continues from the previous shot), CUT (new framing of the same moment), STORY_TRANSITION (place/time/state changes). Keep the 180° line: once a character faces LEFT they keep facing LEFT until a visible turn or a STORY_TRANSITION.\nTHE BOUNDARY of each shot (\"boundary\"), how it joins the shot before it — decide it deliberately, it decides how the shot is filmed: \"continuous\" = the same action carries straight on without a cut (the previous shot's last moment is handed to this one; the camera may keep moving but nothing jumps); \"cut\" = an editorial cut on the same moment — same people, same place, same story state, an intentional new camera setup (a reverse, a closer size, an insert); \"transition\" = a new place or a new time (the story moves on; the first shot of a scene is always a transition). Use \"continuous\" only when the action truly flows and the previous shot is in this scene; prefer \"cut\" for a change of angle; never hide a jump in time or place behind \"continuous\".\nTHE STAGING inside each shot: \"beats\" — 2 to 6 observable actions in order, each with \"seconds\" timed by how long the action really takes (a glance about 1 s, opening a door 3–4 s, crossing a room 5 s or more, a spoken line about 3 words a second), uneven, never equal slices; \"actions\" — every discrete visible action the shot covers (a comma list is several); \"pace\" — DWELL (one moment expanded, no cuts), NORMAL, or MONTAGE (a run of distinct actions); a beat may carry \"cut\": {\"camera\": \"…\", \"location\": \"…\"} when the story needs a new angle or a new place INSIDE the shot — at most two, never in the first or last 3 seconds, never to hide a jump; \"pov\": the character whose eyes the camera is (only when a barrier justifies it — a peephole, a door crack; they are not seen); \"extras\": unnamed people present, as groups described in words ({\"description\": \"four tired shoppers in winter coats\", \"count\": 4}) — never invent a named character and never make a group look like a cast member. Stage the events, never the telling: shoot the listener, not the talker; show a place in use. Everyone who acts in a beat is in characterNames. A shot with no dialogue line names no speech at all: no \"says\", no \"whispers\", no quoted words, not even as a trailing scrap. With a character on screen the framing is MEDIUM, MEDIUM_CLOSE_UP or CLOSE_UP (or TWO_SHOT / OVER_THE_SHOULDER for two) — never WIDE for a speaking face; nobody looks at the camera.\nReturn JSON: { shots: [{ purpose, action, framing, cameraMove, durationSeconds, characterNames[], dialogueLineIndexes[], transition, boundary, beats:[{seconds,action,cut?}], actions[], pace, pov?, extras:[{description,count}], continuity:{characters[],props[],environment{},camera{},relationToPrevious,notes?}, prompt }] }.\nExample of ONE complete shot (shape only; write your own content): {\"purpose\":\"Establish the yard and her hesitation\",\"action\":\"She stops at the gate, hand on the latch, then pushes it open.\",\"framing\":\"WIDE\",\"cameraMove\":\"STATIC\",\"durationSeconds\":5,\"characterNames\":[\"Layla\"],\"dialogueLineIndexes\":[0],\"transition\":\"CUT\",\"boundary\":\"transition\",\"beats\":[{\"seconds\":1.5,\"action\":\"She stops at the gate, hand on the latch.\"},{\"seconds\":3.5,\"action\":\"She pushes the gate open and steps through.\"}],\"actions\":[\"stops at the gate\",\"pushes the gate open\",\"steps through\"],\"pace\":\"NORMAL\",\"extras\":[],\"continuity\":{\"characters\":[{\"characterName\":\"Layla\",\"wardrobe\":\"green coat, red scarf\",\"pose\":\"standing, hand on latch\",\"position\":\"left third, facing right\",\"screenDirection\":\"RIGHT\",\"eyeline\":\"at the gate\",\"emotion\":\"hesitant\",\"holding\":[\"canvas bag\"]}],\"props\":[{\"name\":\"canvas bag\",\"ownerCharacterName\":\"Layla\",\"state\":\"full\",\"position\":\"on her shoulder\"}],\"environment\":{\"timeOfDay\":\"GOLDEN_HOUR\",\"weather\":\"clear\",\"lighting\":\"low warm sun from the right, long shadows\",\"state\":\"gate closed, leaves on the path\"},\"camera\":{\"lensIntent\":\"35mm, eye level\",\"angle\":\"slightly low\"},\"relationToPrevious\":\"CUT\",\"notes\":\"Her scarf stays over the left shoulder in every shot.\"},\"prompt\":\"A full prompt for this video clip in the production's visual language, describing the place, the people by appearance (never by name), the action, the camera and the light.\"}\nEvery continuity.characters entry must use the key \"characterName\" with the exact character name. boundary ∈ continuous, cut, transition (and relationToPrevious ∈ CONTINUATION, CUT, STORY_TRANSITION says the same thing). Use null for nothing; never omit required keys.\nframing ∈ EXTREME_WIDE, WIDE, MEDIUM_WIDE, MEDIUM, MEDIUM_CLOSE_UP, CLOSE_UP, EXTREME_CLOSE_UP, INSERT, TWO_SHOT, OVER_THE_SHOULDER. cameraMove ∈ STATIC, PUSH_IN, PULL_BACK, PAN_LEFT, PAN_RIGHT, TILT_UP, TILT_DOWN, TRUCK_LEFT, TRUCK_RIGHT, HANDHELD, FOLLOW, ORBIT, CRANE_UP, CRANE_DOWN, RACK_FOCUS. transition ∈ CUT, EXTEND, DISSOLVE, FADE (use CUT unless the story asks otherwise; never use a dissolve to hide a continuity problem)."
+    }
+  ],
+  "answer": {
+    "shots": [
+      {
+        "purpose": "Show the physical manifestation of Elias's shock",
+        "action": "Elias's bandaged hand trembles violently over the open logbook.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-56c47abc59"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "striped navy-and-white wool sweater",
+              "pose": "leaning over desk",
+              "position": "center",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "down at book",
+              "emotion": "shocked",
+              "holding": [
+                "leather-bound logbook"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "state": "open",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "macro lens",
+            "angle": "high angle"
+          },
+          "relationToPrevious": "STORY_TRANSITION"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. Close-up of a weathered, tanned hand with a thick white bandage wrapped around the palm and wrist, trembling violently. The hand rests on the yellowed, ink-stained pages of a heavy leather-bound logbook. The scene is set on a scarred, dark oak desk with warm bounce light hitting the texture of the paper and the rough fabric of a navy-and-white striped wool sweater sleeve. Simplified geometry, saturated local colors, and soft, tactile materials.",
+        "boundary": "transition",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The bandaged left hand shakes uncontrollably against the yellowed paper."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "trembling hand"
+          ]
+        }
+      },
+      {
+        "purpose": "Capture the emotional weight of the realization",
+        "action": "Elias stares down at the book, his expression one of profound betrayal.",
+        "framing": "MEDIUM_CLOSE_UP",
+        "cameraMove": "PUSH_IN",
+        "durationSeconds": 5,
+        "characterIds": [
+          "char-56c47abc59"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "striped navy-and-white wool sweater, yellow raincoat",
+              "pose": "stooped, head bowed",
+              "position": "center",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "down",
+              "emotion": "heartbroken",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM_CLOSE_UP",
+            "move": "PUSH_IN",
+            "lensIntent": "50mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. A medium close-up of a portly elderly man with silver-gray hair and deep, weathered lines around his hazel eyes. He wears a navy-and-white striped wool sweater and a yellow raincoat with a fur collar. He is looking downward, his face etched with a heavy, quiet realization and betrayal. The lighting is warm and directional, casting soft shadows across his features. The background shows the blurred, warm tones of a nautical office with brass clocks.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Elias remains frozen, staring at the page."
+            },
+            {
+              "at": 2,
+              "action": "His eyes glisten with unshed tears; he refuses to look up."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "staring",
+            "blinking slowly"
+          ]
+        }
+      },
+      {
+        "purpose": "Establish the shared silence between the two men",
+        "action": "Najm looks at Elias with empathy, then looks down at the book.",
+        "framing": "TWO_SHOT",
+        "cameraMove": "STATIC",
+        "durationSeconds": 5,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "striped navy-and-white wool sweater, yellow raincoat",
+              "pose": "stooped, head bowed",
+              "position": "left",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "down",
+              "emotion": "devastated",
+              "holding": []
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, wire-rimmed glasses",
+              "pose": "standing straight",
+              "position": "right",
+              "screenDirection": "LEFT",
+              "eyeline": "at Elias",
+              "emotion": "empathetic",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "state": "open",
+              "position": "between them on desk"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "TWO_SHOT",
+            "move": "STATIC",
+            "lensIntent": "35mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. A two-shot of two elderly men at a massive, scarred oak desk. On the left, a portly man in a yellow raincoat keeps his head bowed in grief. On the right, a leaner man with wire-rimmed glasses and a frayed tweed jacket looks at his friend with a gaze of deep, quiet empathy. Between them lies an open leather logbook. The room is filled with warm, dusty morning light and the blurred shapes of archival boxes in the background.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm watches Elias, his expression soft and sad."
+            },
+            {
+              "at": 3,
+              "action": "Najm shifts his gaze down to the open logbook."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "watching",
+            "shifting gaze"
+          ]
+        }
+      },
+      {
+        "purpose": "Signify the end of the discovery",
+        "action": "Najm gently closes the logbook.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 3,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, worn leather gloves",
+              "pose": "reaching forward",
+              "position": "right",
+              "screenDirection": "LEFT",
+              "eyeline": "down",
+              "emotion": "solemn",
+              "holding": [
+                "leather-bound logbook"
+              ]
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "state": "closing",
+              "position": "center frame"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "50mm",
+            "angle": "slightly high"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. Close-up of a pair of aged hands in worn leather gloves gently and firmly closing a heavy, gold-embossed leather logbook. The book rests on the dark, grain-heavy surface of a scarred oak desk. The motion is slow and deliberate, emphasizing the finality of the moment. Warm morning light catches the dust motes in the air.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm's hands close the heavy cover of the book."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "closing book"
+          ]
+        }
+      },
+      {
+        "purpose": "Return the evidence to the authority",
+        "action": "Najm slides the closed book across the desk toward Ingrid.",
+        "framing": "MEDIUM",
+        "cameraMove": "STATIC",
+        "durationSeconds": 3,
+        "characterIds": [
+          "char-e71e80cde4",
+          "char-bench-1"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, wire-rimmed glasses",
+              "pose": "standing",
+              "position": "right",
+              "screenDirection": "LEFT",
+              "eyeline": "at Ingrid",
+              "emotion": "sad",
+              "holding": []
+            },
+            {
+              "characterId": "char-bench-1",
+              "wardrobe": "charcoal grey wool blazer",
+              "pose": "standing rigid",
+              "position": "left",
+              "screenDirection": "RIGHT",
+              "eyeline": "at book",
+              "emotion": "guarded",
+              "holding": []
+            }
+          ],
+          "props": [
+            {
+              "name": "leather-bound logbook",
+              "state": "closed",
+              "position": "sliding across desk"
+            }
+          ],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM",
+            "move": "STATIC",
+            "lensIntent": "35mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. A medium shot from the side. A man in a tweed jacket and wire-rimmed glasses slowly slides a closed leather logbook across a massive, scarred oak desk. On the other side of the desk, a lean woman with silver-grey hair in a severe bun and a charcoal grey blazer stands rigid as a plumb line. The composition is clean, following the line of the desk. Warm, saturated morning light.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm slides the book across the wood toward the opposite side of the desk."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "sliding book"
+          ]
+        }
+      },
+      {
+        "purpose": "Convey the moral weight of the moment",
+        "action": "Najm looks at Ingrid with a heavy, quiet sadness.",
+        "framing": "MEDIUM_CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 3,
+        "characterIds": [
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, wire-rimmed glasses",
+              "pose": "standing",
+              "position": "center",
+              "screenDirection": "LEFT",
+              "eyeline": "at Ingrid",
+              "emotion": "melancholy",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM_CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "50mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. A medium close-up of a man with wire-rimmed glasses and a short grey beard. He is looking toward the left of the frame with a heavy, quiet sadness in his eyes, his lips pressed thin. His expression is not one of accusation, but of profound disappointment. The lighting is soft and warm, highlighting the tactile texture of his tweed jacket against the blurred stone wall of the office.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Najm holds Ingrid's gaze, his expression devoid of anger, only sadness."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "looking",
+            "sighing slightly"
+          ]
+        }
+      },
+      {
+        "purpose": "Capture the immediate emotional pivot as they turn away.",
+        "action": "Elias and Najm slowly turn their backs to Ingrid, their shoulders slumped in defeat.",
+        "framing": "TWO_SHOT",
+        "cameraMove": "STATIC",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, navy wool cap, striped navy sweater",
+              "pose": "standing, turning",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "away from Ingrid",
+              "emotion": "devastated",
+              "holding": []
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, wire-rimmed glasses",
+              "pose": "standing, turning",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "away from Ingrid",
+              "emotion": "melancholy",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light, side-lit",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "TWO_SHOT",
+            "move": "STATIC",
+            "lensIntent": "50mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters with appealing proportions. Inside the salt-worn stone Harbour Office, a portly 72-year-old man in a bright yellow raincoat and navy cap and a 65-year-old man in a frayed tweed jacket and wire-rimmed glasses turn their backs to the camera. Their silhouettes are heavy, shoulders slumped in a gesture of profound sadness and defeat. The background shows the massive scarred oak desk and the wall of brass clocks. Warm morning light streams in from the side, casting long, soft shadows. The camera is static, capturing the slow, heavy movement of their turn.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "Elias and Najm slowly rotate away from Ingrid."
+            },
+            {
+              "at": 2,
+              "action": "Their shoulders slump, heads bowing slightly."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "turn away",
+            "slump shoulders"
+          ]
+        }
+      },
+      {
+        "purpose": "Show the distance growing between the men and the authority figure.",
+        "action": "Elias and Najm walk toward the heavy wooden door, their footsteps slow and rhythmic.",
+        "framing": "MEDIUM_WIDE",
+        "cameraMove": "PULL_BACK",
+        "durationSeconds": 6,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, navy wool cap, striped navy sweater",
+              "pose": "walking",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "toward the door",
+              "emotion": "stunned",
+              "holding": []
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket, wire-rimmed glasses",
+              "pose": "walking",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "toward the door",
+              "emotion": "stunned",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "warm morning light",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM_WIDE",
+            "move": "PULL_BACK",
+            "lensIntent": "35mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, stylized CG characters. A medium-wide shot from behind a portly man in a yellow raincoat and a thinner man in a tweed jacket as they walk slowly toward a heavy wooden door in the Kerran Point Harbour Office. The camera pulls back smoothly, emphasizing the oppressive height of the floor-to-ceiling wooden shelving filled with grey archival boxes. The lighting is warm and saturated, with dust motes dancing in the morning beams. The motion is slow and rhythmic, conveying a sense of heavy realization.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The men take several slow steps toward the door."
+            },
+            {
+              "at": 3,
+              "action": "The camera pulls back, revealing more of the archival boxes surrounding them."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "walking away",
+            "pulling back"
+          ]
+        }
+      },
+      {
+        "purpose": "The finality of their departure.",
+        "action": "The men step out onto the wharf; the heavy wooden door swings shut behind them.",
+        "framing": "WIDE",
+        "cameraMove": "STATIC",
+        "durationSeconds": 5,
+        "characterIds": [
+          "char-56c47abc59",
+          "char-e71e80cde4"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-56c47abc59",
+              "wardrobe": "yellow raincoat, navy wool cap",
+              "pose": "walking",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "toward wharf",
+              "emotion": "stunned",
+              "holding": []
+            },
+            {
+              "characterId": "char-e71e80cde4",
+              "wardrobe": "tweed jacket",
+              "pose": "walking",
+              "position": "center",
+              "screenDirection": "AWAY",
+              "eyeline": "toward wharf",
+              "emotion": "stunned",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "high contrast between interior shadow and exterior brightness",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "WIDE",
+            "move": "STATIC",
+            "lensIntent": "35mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still. A wide shot of the interior of the stone office. The portly man in the yellow raincoat and the man in the tweed jacket step out through the open doorway into the blindingly bright, cold morning light of the wharf. As they disappear, the heavy wooden door swings shut with a definitive, heavy thud, returning the room to its quiet, dim state. The composition is centered on the door, with the dark oak desk visible in the foreground.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The two men exit the frame into the bright exterior light."
+            },
+            {
+              "at": 3,
+              "action": "The heavy wooden door swings shut, leaving the room empty."
+            }
+          ],
+          "pace": "NORMAL",
+          "actions": [
+            "exiting",
+            "door closing"
+          ]
+        }
+      },
+      {
+        "purpose": "Shift focus to Ingrid's internal state.",
+        "action": "Ingrid stands motionless by her desk, staring out the window at the departing men.",
+        "framing": "MEDIUM",
+        "cameraMove": "PUSH_IN",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-bench-1"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-bench-1",
+              "wardrobe": "charcoal grey wool blazer, white button-down, silver-grey bun",
+              "pose": "standing rigid",
+              "position": "right third",
+              "screenDirection": "LEFT",
+              "eyeline": "toward window",
+              "emotion": "guarded",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "soft morning light",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "MEDIUM",
+            "move": "PUSH_IN",
+            "lensIntent": "50mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still. A medium shot of a lean, rigid woman with silver-grey hair in a severe bun, wearing a sharp charcoal grey wool blazer. She stands beside a massive scarred oak desk, her posture straight as a plumb line. She is staring out the window, her expression cold and efficient. The camera pushes in slowly toward her, capturing the stillness of the room and the soft, warm bounce light reflecting off the brass clocks on the wall behind her.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The camera pushes in slowly on Ingrid as she watches the window."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "standing still",
+            "staring"
+          ]
+        }
+      },
+      {
+        "purpose": "Reveal the emotional crack in Ingrid's armor.",
+        "action": "Ingrid's rigid expression softens; her eyes shimmer with a flicker of conflict and guilt.",
+        "framing": "CLOSE_UP",
+        "cameraMove": "STATIC",
+        "durationSeconds": 4,
+        "characterIds": [
+          "char-bench-1"
+        ],
+        "dialogue": [],
+        "transition": "CUT",
+        "continuity": {
+          "characters": [
+            {
+              "characterId": "char-bench-1",
+              "wardrobe": "charcoal grey wool blazer, silver-grey bun",
+              "pose": "standing",
+              "position": "center",
+              "screenDirection": "NEUTRAL",
+              "eyeline": "downward",
+              "emotion": "conflicted",
+              "holding": []
+            }
+          ],
+          "props": [],
+          "environment": {
+            "locationId": "loc-bench-1",
+            "timeOfDay": "MORNING",
+            "weather": "windy",
+            "lighting": "soft morning light",
+            "state": "interior"
+          },
+          "camera": {
+            "framing": "CLOSE_UP",
+            "move": "STATIC",
+            "lensIntent": "85mm",
+            "angle": "eye level"
+          },
+          "relationToPrevious": "CUT"
+        },
+        "prompt": "A high-end 3D animated feature film still, extreme detail on facial expression. A close-up of the woman with the silver-grey bun and piercing steel-blue eyes. The rigid, severe set of her thin lips and pointed chin slowly relaxes. A flicker of deep conflict and guilt crosses her features, and her eyes shimmer slightly as she looks down away from the window. The lighting is soft, highlighting the wind-burn on her cheeks and the tactile texture of her wool blazer. The emotion is subtle but heavy.",
+        "boundary": "cut",
+        "staging": {
+          "beats": [
+            {
+              "at": 0,
+              "action": "The tension in her jaw relaxes slightly."
+            },
+            {
+              "at": 2,
+              "action": "Her steel-blue eyes soften, looking downward."
+            }
+          ],
+          "pace": "DWELL",
+          "actions": [
+            "expression softening",
+            "looking down"
+          ]
+        }
+      }
+    ],
+    "budget": 47,
+    "maxShot": 10
+  }
+}

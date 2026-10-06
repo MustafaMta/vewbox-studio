@@ -108,9 +108,15 @@ export const localDeadlineMs = (maxTokens: number) => 300_000 + Math.max(0, maxT
  *  be read, which a partly offloaded model does at a few hundred tokens a second). */
 export const LOCAL_STALL_MS = 240_000;
 
-/** What the local model is asked besides the chat itself: thinking off (the studio asks for JSON, not reasoning). */
+/** What the local model is asked besides the chat itself: THINKING OFF (the studio asks for JSON, not reasoning).
+ *  Ollama's OpenAI-compatible endpoint ignores a top-level `think` — measured on 0.35.1 (MODEL-EVAL-2026-10 §7):
+ *  with `think: false` alone, gemma4:31b-it-qat and qwen3.6:27b (both "thinking: default true") still reasoned, and
+ *  the reasoning was counted in completion_tokens and max_tokens (qwen3.6: 4,621 reasoning characters and a cut answer
+ *  for a 120-token JSON; Gemma's answers ran 0.6–2 characters per token where JSON runs 3–4) — the hidden cause of
+ *  budgets running out. `reasoning_effort: "none"` is the switch that endpoint maps to think=false (0 reasoning
+ *  characters, 114 tokens, 3.6 s instead of 71 s); `think: false` stays for servers that read it. */
 export function localModelRequest(_model: string): Record<string, unknown> {
-  return { think: false };
+  return { think: false, reasoning_effort: 'none' };
 }
 
 type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
@@ -200,6 +206,9 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     if (!res.ok || json.error) throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model}: ${json.error?.message ?? `HTTP ${res.status}`}`, { status: res.status });
     const text = json.choices?.[0]?.message?.content ?? '';
     const finishReason = json.choices?.[0]?.finish_reason;
+    // reasoning the studio asked to be off still spends the answer's budget: say so (a server that ignores the switch)
+    const reasoning = json.choices?.[0]?.message?.reasoning ?? '';
+    if (reasoning) log.warn({ model: cfg.model, reasoningChars: reasoning.length, outputTokens: json.usage?.completion_tokens }, 'the local model reasoned although thinking is off');
     return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0, finishReason, truncated: finishReason === 'length', maxTokens };
   } catch (e) {
     if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);
