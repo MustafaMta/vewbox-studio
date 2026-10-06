@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { dropNulls } from '../story/lenient';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
@@ -193,7 +194,7 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     // can take longer than Node's fetch waits for response headers (300 s), and a stream shows a stalled engine early
     const maxTokens = opts.maxTokens ?? 8000;
     const local = isLocalOllama(cfg.baseUrl);
-    const res = await withTimeout(fetch(`${cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    const res = await withTimeout(fetch(`${guardedEngineUrl(cfg.baseUrl, 'the local story model')}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
     const json = /text\/event-stream/i.test(res.headers.get('content-type') ?? '') && res.ok
       ? await withTimeout(readChatStream(res, ctrl, LOCAL_STALL_MS), timeoutMs, `${cfg.provider} ${cfg.model}`)
       : await res.json().catch(() => ({})) as ChatAnswer;

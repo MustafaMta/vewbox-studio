@@ -13,6 +13,10 @@ const fromShell = new Set(Object.keys(process.env));
 for (const [k, v] of Object.entries(readEnvFiles())) if (!fromShell.has(k)) process.env[k] = v;
 // never the files' (live) values for these
 process.env.DATABASE_URL = resolveTestDatabaseUrl();
+// the GPU lease of the worker suite is its own test database (src/server/gpu/lease-db.ts): it never queues on - or
+// writes to - the live studio's lease, so the guard refuses its calls to the machine's real engines (the suites use
+// fixture engines: VEWBOX_FIXTURE_ENGINES=1 where they stand in for them)
+process.env.GPU_LEASE_DATABASE_URL = process.env.DATABASE_URL;
 process.env.LIBRARY_ROOT = testLibraryRoot('worker');
 process.env.TMP_ROOT = path.join(process.env.LIBRARY_ROOT, 'tmp');
 

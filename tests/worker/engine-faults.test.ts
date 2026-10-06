@@ -26,7 +26,8 @@ for (const m of req0.models) (models[m.folder] ??= []).push(m.file);
 const comfyStub: StubComfy = await stubComfy({ nodes: req0.nodes, models, goodClip: fs.readFileSync(clipFile), runMs: 600 });
 const speechStub = await stubSpeech(fs.readFileSync(wavFile));
 // the clients read their URLs once, on first use: point them at the fixtures before anything asks
-Object.assign(process.env, { COMFYUI_URL: comfyStub.url, TTS_URL: speechStub.url, ASR_URL: speechStub.url, VIDEO_BACKEND: 'local', MINIMAX_API_KEY: '' });
+// these are FIXTURE engines on loopback ports: the lease guard (gpu/lease-db.ts) lets this file call them
+Object.assign(process.env, { VEWBOX_FIXTURE_ENGINES: '1', COMFYUI_URL: comfyStub.url, TTS_URL: speechStub.url, ASR_URL: speechStub.url, VIDEO_BACKEND: 'local', MINIMAX_API_KEY: '' });
 
 const { eq, inArray } = await import('drizzle-orm');
 const { db, schema } = await import('@/server/db/client');
