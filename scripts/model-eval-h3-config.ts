@@ -195,6 +195,7 @@ async function main() {
       results[id] = { arm, what: a.what, config: a.cfg, shot: { key: k, scene: scene?.number, number: sh.number, framing: sh.framing, characters: sh.characterIds }, line: sh.dialogue[0]?.text ?? '', seed: SEED, seconds, expectedFrames: h3FrameCount(seconds), engineMs: r.engineMs, wallMs: Date.now() - t0, vramPeakMiB: vram.peak(t0), ramPeakMiB: ram.peak(t0), output: pr, prompt, pictures: pack.pictures.map((x, i) => `<Picture ${i + 1}> ${x.role} ${x.assetId}`), opening: pack.opening.kind, workflowVersion: r.workflowVersion, file: path.relative(ROOT, file), at: new Date().toISOString() };
       console.log(`${pr.frames} frames, audio ${pr.audio ? 'yes' : 'NONE'}, engine ${Math.round((r.engineMs ?? 0) / 1000)} s, wall ${Math.round((Date.now() - t0) / 1000)} s, VRAM ${vram.peak(t0)} MiB, RAM ${ram.peak(t0)} MiB`);
     } catch (e) {
+      await cancelOurs('item failed'); // a timed-out prompt must not keep running after this item
       results[id] = { arm, what: a.what, submitted, error: String((e as Error).message ?? e), wallMs: Date.now() - t0, vramPeakMiB: vram.peak(t0), ramPeakMiB: ram.peak(t0), at: new Date().toISOString() };
       console.log(`${submitted ? 'ENGINE ERROR' : 'HARNESS ERROR (not an attempt)'} ${(e as Error).message}`);
     }
