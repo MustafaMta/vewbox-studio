@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PLATE_WIDE_FRAMINGS, personCropFor, plateCropFor, stillFrameAction } from '@/server/story/prompts';
+import { FRAMING_CROP_FLOOR, PLATE_WIDE_FRAMINGS, framingCropFromFace, personCropFor, plateCropFor, stillFrameAction } from '@/server/story/prompts';
 
 /** A close shot's opening frame (acceptance 2026-10-06, Tea 1.3): the people of the frame are the shot's people only,
  *  and the place reference is cut to the shot's distance. */
@@ -38,5 +38,30 @@ describe('the place reference at the shot’s distance', () => {
     expect(personCropFor('WIDE', canon)).toBeUndefined();
     expect(personCropFor('MEDIUM_CLOSE_UP', canon)).toEqual({ x: 0, y: 0, width: 928, height: Math.round(1664 * 0.45) });
     expect(personCropFor('CLOSE_UP', canon)!.height).toBeLessThan(personCropFor('MEDIUM', canon)!.height);
+  });
+});
+
+describe('a drawn one-person frame cut to its framing around the face', () => {
+  const frame = { width: 1344, height: 768 };
+  it('Tea 1.3: a medium-shot drawing (face ≈ 170 px) is cut to a medium close-up around the face, at the frame’s aspect, inside it', () => {
+    const face = { x: 560, y: 130, width: 130, height: 170 };
+    const c = framingCropFromFace('MEDIUM_CLOSE_UP', face, frame)!;
+    expect(c.width / c.height).toBeCloseTo(1344 / 768, 1);
+    expect(c.height).toBeCloseTo(170 * 3.0, -1);
+    expect(c.x + c.width / 2).toBeCloseTo(625, -1); // the face centred across
+    expect(face.y - c.y).toBeCloseTo(0.14 * c.height, -1); // the face top at the framing's height
+    expect(c.x).toBeGreaterThanOrEqual(0); expect(c.y).toBeGreaterThanOrEqual(0);
+    expect(c.x + c.width).toBeLessThanOrEqual(1344); expect(c.y + c.height).toBeLessThanOrEqual(768);
+  });
+  it('kept as drawn: no face extent for the framing, already as close, or below the quality floor', () => {
+    expect(framingCropFromFace('WIDE', { x: 600, y: 100, width: 60, height: 80 }, frame)).toBeUndefined();
+    expect(framingCropFromFace('MEDIUM_CLOSE_UP', { x: 500, y: 60, width: 200, height: 260 }, frame)).toBeUndefined(); // already an MCU (3 × 260 px ≥ the frame)
+    const tiny = { x: 650, y: 200, width: 40, height: 50 }; // a small figure: the MCU crop would be 180 px tall
+    expect(framingCropFromFace('MEDIUM_CLOSE_UP', tiny, frame)).toBeUndefined();
+    expect(50 * 3.0 * (1344 / 768)).toBeLessThan(1344 * FRAMING_CROP_FLOOR);
+  });
+  it('a face near the edge keeps the crop inside the picture', () => {
+    const c = framingCropFromFace('MEDIUM_CLOSE_UP', { x: 1250, y: 20, width: 80, height: 180 }, frame)!;
+    expect(c.x + c.width).toBe(1344); expect(c.y).toBe(0);
   });
 });
