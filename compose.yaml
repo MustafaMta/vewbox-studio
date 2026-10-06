@@ -257,7 +257,9 @@ services:
     profiles: ["lipsync"]
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, LIPSYNC_KEEP_LOADED: "${LIPSYNC_KEEP_LOADED:-0}" }
+    # the caches point into the store like every service's (the image's TORCH_HOME lines are docker/asr's, kept verbatim
+    # for layer reuse); the service is offline and the store read-only here
+    environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, LIPSYNC_KEEP_LOADED: "${LIPSYNC_KEEP_LOADED:-0}" }
     volumes: [ "models:/models:ro", "nvjit:/cache/nv-jit", "./docker/lipsync/app.py:/app/app.py:ro", "./docker/lipsync/corrector.py:/app/corrector.py:ro", "./docker/lipsync/face_track.py:/app/face_track.py:ro", "./docker/lipsync/cli.py:/app/cli.py:ro", "./docker/lipsync/eval_batch.py:/app/eval_batch.py:ro" ]
     ports: [ "127.0.0.1:${LIPSYNC_PORT:-8040}:8040" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
@@ -405,7 +407,7 @@ volumes:
   pgdata:
   workertmp:
   # the model store (see the top of this file): binds of VEWBOX_MODELS_ROOT, under names of their own, so the old
-  # vewbox_models / vewbox_ollama volumes are never reused or "recreated" by compose. Removing these volumes (even
+  # vewbox_models / vewbox_ollama volumes are never reused or "recreated" by compose (model-paths: allow). Removing these volumes (even
   # `down -v`) removes only Docker's record of the bind, never the store's files (verified 2026-10-06).
   models:
     name: vewbox_models_store

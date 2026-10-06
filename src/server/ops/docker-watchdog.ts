@@ -5,7 +5,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { ENGINE_WSL_DIR, MARKER, judgeWslMount, readStoreEnv, storeConfig, wslMountArgs } from '../../../scripts/lib/models-store.mjs';
+import { ENGINE_WSL_DIR, MARKER, judgeModelMounts, judgeTombstones, judgeWslMount, readStoreEnv, storeConfig, wslMountArgs } from '../../../scripts/lib/models-store.mjs';
 
 const run = promisify(execFile);
 
@@ -55,12 +55,12 @@ export interface WatchdogState {
   /** the model store (docs/MODELS-STORAGE.md), when watched: `attached` is known only while the engine answers (its
    *  marker seen through the engine); `stranded` = studio containers that failed to start because the store was not
    *  attached when Docker started them */
-  modelStore?: { attached: boolean | undefined; stranded: string[] };
+  modelStore?: { attached: boolean | undefined; stranded: string[]; mountProblems?: string[] };
 }
 
 export type WatchdogAction =
   | { kind: 'ok'; detail: string }
-  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY' | 'WEB_UNHEALTHY' | 'WEB_DOWN' | 'MODELS_DETACHED' | 'MODELS_STRANDED'; detail: string }
+  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY' | 'WEB_UNHEALTHY' | 'WEB_DOWN' | 'MODELS_DETACHED' | 'MODELS_STRANDED' | 'MODEL_MOUNTS'; detail: string }
   | { kind: 'attach-models' }
   | { kind: 'start-stranded'; containers: string[] }
   | { kind: 'rename-stale-socket' }
@@ -102,6 +102,9 @@ export function planWatchdog(s: WatchdogState, opts: { fix: boolean }): Watchdog
     // the worker is started on the next pass, once the engine and the database answer
     return out;
   }
+  // a container on old storage (a retired volume or its tombstone, another named volume, a C: path) or a tombstone
+  // that is not one: reported, never "fixed" here (it is a stale compose file or an ad-hoc run; a person decides)
+  if (ms?.mountProblems?.length) out.push({ kind: 'warn', code: 'MODEL_MOUNTS', detail: `model weights outside the store: ${ms.mountProblems.join('; ')} — recreate those containers from main's compose.yaml (docs/MODELS-STORAGE.md)` });
   // services Docker could not start while the store was detached: started once it is there (they never ran, so this
   // restarts nothing; a container someone stopped on purpose carries no such error and is left alone)
   if (ms?.stranded.length) {
@@ -269,6 +272,19 @@ export async function probeStranded(cfg: { root: string }, project = 'vewbox'): 
   if (!ids.length) return [];
   const out = await tryRun('docker', ['inspect', ...ids]);
   try { return strandedContainers(JSON.parse(out ?? '[]'), cfg); } catch { return []; }
+}
+
+/** Every container (running or stopped, any project) that loads model weights from outside the store, plus a retired
+ *  volume name that is not a tombstone. Empty when the engine does not answer. */
+export async function probeModelMounts(cfg: { root: string }): Promise<string[]> {
+  const ids = (await tryRun('docker', ['ps', '-aq']))?.split(/\s+/).filter(Boolean) ?? [];
+  const containers = ids.length ? JSON.parse((await tryRun('docker', ['inspect', ...ids], 60_000)) ?? '[]') : [];
+  const names = [...new Set((containers as Array<{ Mounts?: Array<{ Type?: string; Name?: string }> }>).flatMap((c) => (c.Mounts ?? []).filter((m) => m.Type === 'volume').map((m) => String(m.Name))))];
+  const volumes = names.length ? JSON.parse((await tryRun('docker', ['volume', 'inspect', ...names])) ?? '[]') : [];
+  const retired = [];
+  for (const n of ['vewbox_models', 'vewbox_ollama']) { // model-paths: allow (the tombstones)
+    const v = await tryRun('docker', ['volume', 'inspect', n]); if (v) retired.push(...JSON.parse(v)); }
+  return [...judgeModelMounts(containers, volumes, cfg.root).problems, ...judgeTombstones(retired, cfg.root).problems];
 }
 
 /** Attach the store (idempotent: "already mounted" is success). */
