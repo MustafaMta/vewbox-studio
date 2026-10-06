@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, Production, ShotRelation, Take } from '@/domain/types';
-import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
+import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, ROOM_TONE, roomToneStretch, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
 import { buildMixPlan, buildTimeline, CUT_RATE } from '@/server/media/assembly';
 import { gainExpression, mixPlanOf, trackFilter } from '@/server/media/mix';
 import { DEFAULT_AUDIO_POLICY } from '@/domain/world';
@@ -123,6 +123,23 @@ describe('the dialogue policy', () => {
     // MODEL_VOICE keeps the take's speech anyway
     t.soundtrack.lines[0].audioAssetId = 'rec-1';
     expect(buildAudioTimeline(p, assets, { policy: { ...DEFAULT_AUDIO_POLICY, dialogue: 'MODEL_VOICE' } }).cues.some((c) => c.kind === 'DIALOGUE')).toBe(false);
+  });
+
+  it('room tone: the longest stretch of the take without speech loops under each replaced span; without one the take is ducked, never silenced', () => {
+    expect(roomToneStretch({ head: 0, takeSeconds: 6.58, speech: [{ from: 0.4, to: 4.87 }] })).toEqual({ from: 4.99, to: 6.53 });
+    expect(roomToneStretch({ head: 22 / 24, takeSeconds: 6.58, speech: [{ from: 1.3, to: 6.5 }] })).toBeUndefined();
+    const { p, assets } = speaking(false);
+    const tl = buildAudioTimeline(p, assets);
+    const room = tl.cues.find((c) => c.kind === 'AMBIENCE')!;
+    expect(room).toMatchObject({ sourceAssetId: 'vid-0', loopSamples: expect.any(Number), voice: false, fadeInSamples: ROOM_TONE.rampSamples });
+    const take = tl.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!;
+    expect(room.startSample).toBe(take.startSample + take.automation!.spans[0].from - ROOM_TONE.rampSamples);
+    expect(tl.problems).toEqual([]);
+    // the whole take is speech: ducked −20 dB
+    p.shots[0].takes[0].soundtrack!.lines[0] = { lineId: 'l1', from: 22 / 24, to: 158 / 24 };
+    const ducked = buildAudioTimeline(p, assets);
+    expect(ducked.cues.some((c) => c.kind === 'AMBIENCE')).toBe(false);
+    expect(ducked.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!.automation!.spans[0].gain).toBe(ROOM_TONE.duckGain);
   });
 
   it('a take made before the anchor was recorded: read from its joined soundtrack’s line list with the join rule', () => {
