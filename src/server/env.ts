@@ -42,9 +42,10 @@ const Schema = z.object({
   TTS_HABIBI_URL: z.string().default('http://tts-habibi:8021'),
   /** Candidate voice engines (docker/tts-bench, compose profile `bench`; src/server/providers/voice-engines.ts). Used
    *  only by an identity that pins them, or for new English identities when VOICE_ENGINE_EN names one. */
-  TTS_VOXCPM2_URL: z.string().default('http://tts-bench-voxcpm2:8040'),
-  TTS_DOTS_URL: z.string().default('http://tts-bench-dots:8041'),
-  TTS_MOSS_URL: z.string().default('http://tts-bench-moss:8042'),
+  TTS_VOXCPM2_URL: z.string().default('http://127.0.0.1:8040'),
+  TTS_DOTS_URL: z.string().default('http://127.0.0.1:8041'),
+  /** MOSS-TTS v1.5 (compose service tts-moss, profile `moss`); host port by default like TTS_DESIGN_URL. */
+  TTS_MOSS_URL: z.string().default('http://127.0.0.1:8023'),
   /** The engine NEW English voices are built with (indextts | voxcpm2 | dots | moss). Default IndexTTS 2.5 until a
    *  candidate is promoted after the real-UI test (FINAL-LOCAL-DIRECTIVE §25); pinned identities keep their engine. */
   VOICE_ENGINE_EN: z.string().default('indextts'),

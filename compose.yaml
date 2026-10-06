@@ -55,7 +55,7 @@ x-app-env: &app-env
   # the English voice engine for NEW voices (src/server/providers/voice-engines.ts): indextts until MOSS-TTS is promoted
   # by the real-UI test; then VOICE_ENGINE_EN=moss and the tts-moss service runs (profile moss)
   VOICE_ENGINE_EN: ${VOICE_ENGINE_EN:-indextts}
-  TTS_MOSS_URL: ${TTS_MOSS_URL:-http://tts-bench-moss:8042}
+  TTS_MOSS_URL: ${TTS_MOSS_URL:-http://tts-moss:8023}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   LIPSYNC_URL: ${LIPSYNC_URL:-http://lipsync:8040}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
@@ -258,10 +258,30 @@ services:
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8041/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
 
-  tts-bench-moss:
+  # MOSS-TTS v1.5 (OpenMOSS, 8 B, Apache-2.0): the primary English production voice candidate (PRODUCTION-STACK-DIRECTIVE
+  # 2026-10-06), the same /synthesize contract as `tts`, one reference clip per identity, token-level duration control.
+  # Profile `moss` until the real-UI proof promotes it; then VOICE_ENGINE_EN=moss selects it for NEW English voices
+  # (pinned voices keep their engine). Weights from the store (group eval-voice-moss, 22.4 GB; tts/bench/moss-*).
+  # Measured on the bench: ≈ 20 GB of the card loaded (bf16, SDPA); unload before any other family.
+  tts-moss:
     logging: *logging
     build: { context: ., dockerfile: docker/tts-bench/Dockerfile, target: moss, secrets: [extra_ca] }
-    image: vewbox/tts-bench-moss:${CODE_VERSION:-dev}
+    image: vewbox/tts-moss:${CODE_VERSION:-dev}
+    profiles: ["moss"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, BENCH_ENGINE: moss }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
+    command: ["python", "-m", "uvicorn", "vewbox_bench_app:app", "--host", "0.0.0.0", "--port", "8023", "--workers", "1"]
+    ports: [ "127.0.0.1:${TTS_MOSS_PORT:-8023}:8023" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8023/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+    stop_grace_period: 30s
+
+  # the bench's MOSS arm: the same image (built by tts-moss) on the bench port
+  tts-bench-moss:
+    logging: *logging
+    image: vewbox/tts-moss:${CODE_VERSION:-dev}
     profiles: ["bench"]
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all }

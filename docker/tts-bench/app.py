@@ -223,7 +223,21 @@ def unload():
         torch.cuda.reset_peak_memory_stats()
     except Exception:  # noqa: BLE001
         pass
-    return {"ok": True, "gpu": gpu_mem()}
+    # the freed host memory (an 8 B model's weights pass through the heap) goes back to the system, as the live
+    # voice services do it (docker/tts/app.py release_host_memory: malloc_trim); reports resident memory after
+    rss_mb = None
+    trimmed = False
+    try:
+        import ctypes
+
+        trimmed = bool(ctypes.CDLL("libc.so.6").malloc_trim(0))
+        with open("/proc/self/status", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    rss_mb = int(line.split()[1]) // 1024
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "gpu": gpu_mem(), "host": {"malloc_trim": trimmed, "rss_mb": rss_mb}}
 
 
 @app.post("/synthesize")

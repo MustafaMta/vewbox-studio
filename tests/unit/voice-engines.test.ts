@@ -55,6 +55,16 @@ describe('voice engines', () => {
     expect(ttsVramFor('moss')).toBeGreaterThanOrEqual(16000);
   });
 
+  it('sends each engine only the fields it honours: the transcript to Habibi/dots, the target length to MOSS as `duration`', async () => {
+    const { synthesisFields } = await import('@/server/providers/speech');
+    const line = { text: 'Did your father teach you this?', language: 'EN' as const, referenceText: 'the reference says this', seed: 7, speed: 1, emotion: 'curious', durationSeconds: 2.3456 };
+    expect(synthesisFields(line, 'moss')).toMatchObject({ text: line.text, language: 'en', engine: 'moss', seed: '7', duration: '2.346', emotion: 'curious' });
+    expect(synthesisFields(line, 'moss').reference_text).toBeUndefined();
+    expect(synthesisFields(line, 'indextts').duration).toBeUndefined();
+    expect(synthesisFields({ ...line, language: 'AR', dialect: 'IRAQI_BAGHDADI', nfeStep: 32 }, 'habibi')).toMatchObject({ language: 'ar', dialect: 'IRAQI_BAGHDADI', reference_text: line.referenceText, nfe_step: '32' });
+    expect(synthesisFields(line, 'dots').reference_text).toBe(line.referenceText);
+  });
+
   it('lists only commercial-safe engines (producer’s rule 2026-10-06)', () => {
     for (const e of Object.values(VOICE_ENGINES)) expect(e.licence).not.toMatch(/non-commercial|NC\b|research/i);
   });

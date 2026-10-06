@@ -149,23 +149,30 @@ export function routeLine(text: string, language: Language, dialect?: Dialect, p
   return { script, engine: base, asrLanguage: language === 'AR' ? 'ar' : 'en' };
 }
 
+/** The text fields of one /synthesize request (pure, tested): what every engine gets, plus what only an engine with
+ *  the capability gets — the reference transcript (Habibi, dots), the target length as `duration` (MOSS's token
+ *  budget), the emotion (IndexTTS vector / VoxCPM2 style; the others accept it and condition on the reference). */
+export function synthesisFields(i: Omit<SynthesizeInput, 'referenceWav'>, engine: LocalTtsEngine): Record<string, string> {
+  const caps = VOICE_ENGINES[engine];
+  const f: Record<string, string> = { text: i.text, language: i.language === 'AR' ? 'ar' : 'en', engine };
+  if (i.dialect) f.dialect = i.dialect;
+  if (i.referenceText && caps.usesReferenceText) f.reference_text = i.referenceText;
+  if (i.emotion) f.emotion = i.emotion;
+  if (i.emotionAlpha !== undefined) f.emotion_alpha = String(i.emotionAlpha);
+  if (i.speed !== undefined) f.speed = String(i.speed);
+  if (i.seed !== undefined) f.seed = String(Math.trunc(i.seed));
+  if (i.nfeStep !== undefined) f.nfe_step = String(Math.trunc(i.nfeStep));
+  if (i.cfgStrength !== undefined) f.cfg_strength = String(i.cfgStrength);
+  if (i.swaySamplingCoef !== undefined) f.sway_sampling_coef = String(i.swaySamplingCoef);
+  if (i.durationSeconds !== undefined && caps.durationControl === 'tokens') f.duration = String(Math.round(i.durationSeconds * 1000) / 1000);
+  return f;
+}
+
 export async function synthesize(i: SynthesizeInput, outDir: string): Promise<SynthesizeResult> {
   const engine = pickEngine(i.language, i.dialect, i.engine);
   const fd = new FormData();
-  fd.set('text', i.text);
-  fd.set('language', i.language === 'AR' ? 'ar' : 'en');
-  if (i.dialect) fd.set('dialect', i.dialect);
-  fd.set('engine', engine);
+  for (const [k, v] of Object.entries(synthesisFields(i, engine))) fd.set(k, v);
   fd.set('reference', new Blob([await fsp.readFile(i.referenceWav)]), path.basename(i.referenceWav));
-  if (i.referenceText) fd.set('reference_text', i.referenceText);
-  if (i.emotion) fd.set('emotion', i.emotion);
-  if (i.emotionAlpha !== undefined) fd.set('emotion_alpha', String(i.emotionAlpha));
-  if (i.speed !== undefined) fd.set('speed', String(i.speed));
-  if (i.seed !== undefined) fd.set('seed', String(Math.trunc(i.seed)));
-  if (i.nfeStep !== undefined) fd.set('nfe_step', String(Math.trunc(i.nfeStep)));
-  if (i.cfgStrength !== undefined) fd.set('cfg_strength', String(i.cfgStrength));
-  if (i.swaySamplingCoef !== undefined) fd.set('sway_sampling_coef', String(i.swaySamplingCoef));
-  if (i.durationSeconds !== undefined && VOICE_ENGINES[engine].durationControl === 'tokens') fd.set('duration', String(Math.round(i.durationSeconds * 1000) / 1000));
   const t0 = Date.now();
   const { res, body: buf } = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
   const file = path.join(outDir, `line-${Date.now().toString(36)}.wav`);

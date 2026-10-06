@@ -32,9 +32,10 @@ export interface VoiceEngineCaps {
 export const VOICE_ENGINES: Record<LocalTtsEngine, VoiceEngineCaps> = {
   indextts: { id: 'indextts', label: 'IndexTTS 2.5', urlEnv: 'TTS_URL', defaultUrl: 'http://tts:8020', languages: ['EN', 'AR'], durationControl: 'speed', emotion: 'vector', usesReferenceText: false, oneWordLeadIn: true, licence: 'bilibili Model Use License (commercial below 100M MAU / RMB 1bn; §3.4c)', vramMb: 6000 },
   habibi: { id: 'habibi', label: 'Habibi-TTS IRQ', urlEnv: 'TTS_HABIBI_URL', defaultUrl: 'http://tts-habibi:8021', languages: ['AR'], durationControl: 'speed', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0 per licensor; data-provenance risk (F5-TTS / Emilia)', vramMb: 2000 },
-  voxcpm2: { id: 'voxcpm2', label: 'VoxCPM2 (clone)', urlEnv: 'TTS_VOXCPM2_URL', defaultUrl: 'http://tts-bench-voxcpm2:8040', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'style', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 7700 },
-  dots: { id: 'dots', label: 'dots.tts-soar', urlEnv: 'TTS_DOTS_URL', defaultUrl: 'http://tts-bench-dots:8041', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 8000 },
-  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://tts-bench-moss:8042', languages: ['EN', 'AR'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 20000 },
+  // the candidates' defaults are HOST ports (like TTS_DESIGN_URL): the worker runs on the host; compose passes the service names
+  voxcpm2: { id: 'voxcpm2', label: 'VoxCPM2 (clone)', urlEnv: 'TTS_VOXCPM2_URL', defaultUrl: 'http://127.0.0.1:8040', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'style', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 7700 },
+  dots: { id: 'dots', label: 'dots.tts-soar', urlEnv: 'TTS_DOTS_URL', defaultUrl: 'http://127.0.0.1:8041', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 8000 },
+  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://127.0.0.1:8023', languages: ['EN', 'AR'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 20000 },
 };
 
 export const isLocalTtsEngine = (x: unknown): x is LocalTtsEngine => typeof x === 'string' && Object.prototype.hasOwnProperty.call(VOICE_ENGINES, x);
