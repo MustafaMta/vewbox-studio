@@ -50,7 +50,7 @@ src/worker/         the job worker: lanes, GPU lease, one handler per job type
 docker/             web, worker, comfyui, tts (IndexTTS 2.5 + Habibi-TTS), asr (faster-whisper + Demucs), models fetcher
 drizzle/            SQL migrations (applied on boot)
 tests/              unit · api · worker · e2e, plus real media fixtures
-docs/               architecture, setup, operations, models, producing, the implementation checklist with evidence
+docs/               architecture, setup, operations, models, licences, contracts, design standard (index: docs/README.md)
 ```
 
 ## How it works, in one paragraph
@@ -65,10 +65,9 @@ appearance freezes the first time they appear in a generated video.
 
 ## Read next
 
+- [docs/README.md](docs/README.md) — the documentation index
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the shape of the system and why
-- [docs/PRODUCTION.md](docs/PRODUCTION.md) — producing: Auto Idea, Manual Brief, story → script → storyboard → takes → export
+- [docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md](docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md) — the frozen production stack and priorities
 - [docs/MODELS.md](docs/MODELS.md) — every model, where it runs, licence, VRAM plan
-- [docs/IMPLEMENTATION-CHECKLIST.md](docs/IMPLEMENTATION-CHECKLIST.md) — what is verified, with evidence, and what is blocked
 - [docs/CHARACTER-CONTINUITY.md](docs/CHARACTER-CONTINUITY.md) — the regeneration rule
-- [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md) and [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) — the interface
-- [docs/research/](docs/research/) — the MiniMax, image, audio and local-engine research the stack rests on
+- [docs/design/VISUAL-STANDARD-V5.1.md](docs/design/VISUAL-STANDARD-V5.1.md) and [docs/design/PAGE-ENGINEERING-BRIEF.md](docs/design/PAGE-ENGINEERING-BRIEF.md) — the interface (binding)

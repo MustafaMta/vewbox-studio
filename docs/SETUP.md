@@ -11,7 +11,7 @@ Container Toolkit work the same way.
 | Docker Engine 27+ / Docker Desktop 4.40+ with Compose v2.30+ | the stack is one `compose.yaml` |
 | NVIDIA driver 570+ and the NVIDIA container runtime (Docker Desktop ships it; Linux installs `nvidia-container-toolkit`) | the GPU services (`comfyui`, `tts`, `tts-habibi`, `asr`, `llm`) request `driver: nvidia` |
 | 32 GB VRAM (24 GB works with the smaller image models; the local MiniMax H3 needs the full 32 GB) | one model family is resident at a time |
-| ~200 GB free disk for the models volume, plus your library | MiniMax H3 ≈ 42 GB, Qwen-Image stack ≈ 45 GB, Whisper ≈ 3 GB, music engines ≈ 20 GB, voices ≈ 10 GB |
+| Several hundred GB free on the drive that holds the model store (on the reference machine one VHDX on D:, see docs/MODELS-STORAGE.md), plus your library | MiniMax H3 ≈ 42 GB, Qwen-Image stack ≈ 45 GB, the 27B planner ≈ 29 GB, Whisper ≈ 3 GB, music engines ≈ 20 GB, voices ≈ 10–35 GB |
 | Internet for the first start (images, weights) | after that the studio contacts nothing unless you add a MiniMax key |
 
 Verify the GPU is visible to containers before anything else:
@@ -32,7 +32,7 @@ Edit `.env`:
 - `STUDIO_PASSWORD` — optional. Leave empty on a trusted LAN; set it to require a password on every page and API call.
 - `MINIMAX_API_KEY` — optional. With it, video generation uses the hosted MiniMax API (H3) and the story engine can use
   MiniMax M3. Without it, video comes from the local MiniMax H3 (open weights) in ComfyUI and writing from the bundled
-  local model. Nothing else changes.
+  local model. Nothing else changes. The frozen production stack (2026-10-06) is local only: leave it empty.
 - `LIBRARY_DIR` — where generated and uploaded media lives on the host (default `./var/library`).
 - `MODEL_GROUPS` — which weight groups the fetcher downloads (default: everything the studio can use).
 
@@ -66,15 +66,15 @@ loads torch; the voice services download their own weights on first boot). The s
 <http://localhost:4200>; Settings → Engines shows which engines answer right now.
 
 The database schema is applied automatically on boot (`drizzle/` migrations, under an advisory lock, so several
-replicas can start together). An untouched database is seeded with the sample studio.
+replicas can start together). A new database starts as an empty studio (the sample studio is a test fixture only,
+docs/OPERATIONS.md "Resetting").
 
 ## 4. Check
 
 - Settings → Engines: ComfyUI, voices, transcription and the story engine are green.
-- Open **The Last Sip → S1E1 → Produce** and press **Prepare frames** on a shot: a job appears in Activity and
-  images arrive in the shot a minute later.
-- Open a character → **Voice → Build the voice**, then **Preview**: a line is spoken and checked by transcription.
-- Press **Generate** on a shot: a MiniMax H3 take arrives (hosted or local), with its provenance on the take.
+- Create a character from a line: its canonical image arrives as a job in Production → Activity.
+- Open the character → voice → build and preview it: a line is spoken and checked by transcription.
+- In a production, generate a shot: a local MiniMax H3 take arrives with its provenance on the take.
 
 ## Development on the host
 

@@ -12,7 +12,7 @@ Inputs: the three Home renders (`docs/evidence/home-v1/`), the Home code (`src/c
 app view at 1440×900 and 2000×991), Runway, Higgsfield, Luma, Linear, Framer, Apple, Apple TV, A24, Awwwards and
 Godly. No interface, branding or artwork is copied; the principles are.
 
-The defect list for Home is `docs/design/HOME-DEFECTS-V1.md`. Annotated renders: `docs/evidence/visual-review/`.
+Home's v1 defect list (`HOME-DEFECTS-V1.md`) was resolved when Home was approved and is archived (2026-10-06).
 
 ---
 

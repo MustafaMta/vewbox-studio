@@ -11,8 +11,12 @@
 | `tts` | vewbox/tts-indextts | 8020 | GPU: IndexTTS 2.5 voices (English, Arabic) |
 | `tts-habibi` | vewbox/tts-habibi | 8021 | GPU: Habibi-TTS IRQ voices (Iraqi Arabic) |
 | `tts-design` | vewbox/tts-design | 8022 | GPU: VoxCPM2 voice design from a description (EN, MSA); CPU: ECAPA speaker embeddings |
-| `asr` | vewbox/asr | 8030 | GPU: faster-whisper large-v3 transcription |
-| `llm` | ollama/ollama | 11434 | GPU: local story engine (qwen3:14b) when no hosted key is set |
+| `tts-moss` (profile `moss`) | vewbox/tts-moss | 8023 | GPU: MOSS-TTS v1.5, the English voice engine for new voices (`VOICE_ENGINE_EN=moss`) |
+| `sfx-moss` (profile `sfx`) | vewbox/tts-moss | 8024 | GPU: MOSS-SoundEffect, effects and ambience outside the song |
+| `asr` | vewbox/asr | 8030 | GPU: faster-whisper large-v3 transcription, wav2vec2 CTC forced alignment, picture QA |
+| `lipsync` (profile `lipsync`) | vewbox/lipsync | 8045 | GPU: LatentSync 1.6 targeted repair of a failing realistic speaking shot (opt-in) |
+| `tts-bench-*` (profile `bench`) | — | 8040–8042 | voice benchmark arms (docs/research/VOICE-BENCH-2026-10.md); not production |
+| `llm` | ollama/ollama | 11434 | GPU: local story engine (qwen3.6:27b-q8_0; gemma4:31b-it-qat fallback) |
 | `models` (profile) | vewbox/models | — | one-shot weight fetcher |
 
 Only `web` is published beyond the loopback interface. Everything else is reachable from the host for debugging and
@@ -34,8 +38,8 @@ from the other services by name.
 ### Voice design service (`tts-design`, :8022)
 
 VoxCPM2 (OpenBMB, Apache-2.0) designs a *synthetic* voice from a text description, with no audio input; ECAPA-TDNN
-(SpeechBrain, Apache-2.0) embeds a recording as a 192-d speaker vector. Contract and rules:
-`docs/research/VOICE-IDENTITY-V2.md` §2.2, §2.3 (Rule V-DESIGN), §3.3, §5.1. Client: `src/server/providers/voice-design.ts`.
+(SpeechBrain, Apache-2.0) embeds a recording as a 192-d speaker vector. Contract and rules (origins, Rule V-DESIGN):
+`docs/CONTRACTS-VOICE-IDENTITY-V2.md`. Client: `src/server/providers/voice-design.ts`.
 
 | | |
 |---|---|
@@ -145,7 +149,7 @@ Watch the card with `nvidia-smi -l 2` on the host. Measured holds and waits are 
 scripts) runs under the same lease: `scripts/gpu-hold.ts <FAMILY> <estimateMb> -- <command>` (estimates: the measured
 peaks in docs/research/GPU-STAGING-2026-10.md). One GPU-heavy inference at a time; film jobs before benchmarks.
 
-Image models, whole card measured with `nvidia-smi` during the 2026-10-03 comparison (docs/research/FLUX-VS-QWEN.md):
+Image models, whole card measured with `nvidia-smi` during the 2026-10-03 FLUX-vs-Qwen comparison (archived):
 
 | Use | Engine | Card while drawing | Time per image |
 |---|---|---|---|
