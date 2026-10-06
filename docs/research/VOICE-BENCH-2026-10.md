@@ -40,7 +40,25 @@ Voice-model engineer, 2026-10-06. FINAL-LOCAL-DIRECTIVE §§15, 18, 25, 28; MODE
 
 ## 3. Results
 
-(Filled from `docs/evidence/voice-eval-2026-10/report.json` when the runs complete.)
+**The broad bench was stopped by the PRODUCTION-STACK-DIRECTIVE (2026-10-06): MOSS-TTS v1.5 is the English production
+candidate; the comparison narrows to MOSS vs the incumbent on the acceptance scene's real lines (§3.2).** What exists
+from the broad run stays on disk, unscored, as the record (`docs/evidence/voice-eval-2026-10/takes/*.json`; WAVs under
+`media/`, git-ignored):
+
+| Engine | Takes spoken (attempt #1) | Request failures | Note |
+|---|---|---|---|
+| IndexTTS 2.5 | 170 (session 1, 5 speakers × 28 lines + 30 duration takes) + 35 (session 2) | 0 | `duration_factor` lands within ±1 % of the asked length on 30/30 (0.8× and 1.25×) — the quality of those takes is scored in §3.2 |
+| VoxCPM2 clone | 170 + 35 | 0 | RTF ≈ 0.6; one-word lines 0.16–1.3 s (no trailing syllable seen in the durations) |
+| dots.tts-soar | 56 (2 speakers) | 0 | RTF 1.5–2 on this image (no torch.compile: the runtime image has no C compiler); session 2 and 3 speakers not run |
+| MOSS-TTS v1.5 | — | — | goes straight to the focused validation |
+
+### 3.2 Focused validation: MOSS-TTS v1.5 vs IndexTTS 2.5 on the acceptance lines
+
+Set `tests/fixtures/voice/acceptance-clara-2026-10.json` (Clara's two lines as written and as first written, the two
+realistic-take lines of g13, three one-word lines); reference = Clara's pinned designed seed (`gen-b23150ec5e`, 8.8 s);
+sessions 1 and 2 (unload between), seed-7 repeat, duration targets ×0.8 / ×1.25 on Clara's lines (MOSS: token budget;
+IndexTTS: `duration_factor`). Evidence `docs/evidence/voice-eval-2026-10/moss-vs-indextts/` (report.json, index.html,
+review-blind.html). Results: (filled when the run completes).
 
 ## 4. Integration (in the code, default unchanged)
 
