@@ -18,7 +18,10 @@ import { harness, until } from './fixtures/harness';
  *  rendering; a new worker carries the production on. Then only the failed shot is regenerated. */
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-produce-'));
-const h = harness({ dir });
+// a loaded machine (H3 renders, downloads) delays heartbeats and polls: a longer lease, waits on observed state with
+// generous ceilings, and a render long enough that the kill always lands mid-render
+const h = harness({ dir, lease: 8 });
+const CEILING = 10 * 60_000;
 let productionId = '';
 const shots: string[] = [];
 const row = async (id: string) => (await db().select().from(schema.jobs).where(eq(schema.jobs.id, id)))[0];
@@ -38,13 +41,13 @@ afterAll(async () => { if (productionId) await commands([{ name: 'deleteProducti
 describe('a production that loses its worker, with one failing shot', () => {
   it('killed mid-production: the next worker carries on — no shot generated twice, the finished takes kept, the failed shot reported; regenerating it alone completes the film', async () => {
     const failing = shots[4];
-    const a = h.start('produce-a', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500', WORKER_ONLY_PRODUCTIONS: productionId });
+    const a = h.start('produce-a', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '15000', WORKER_ONLY_PRODUCTIONS: productionId });
     const { job: produce } = await enqueue({ type: 'PRODUCE', payload: { productionId } });
     // past the pilot: a later shot is rendering
-    await until('a non-pilot take rendering', async () => { const js = (await Promise.all(shots.slice(1, 4).map(takeJobsOf))).flat(); return js.some((j) => j.status === 'GENERATING' && (j.progress as { percent?: number } | null)?.percent) ? js : undefined; });
+    await until('a non-pilot take rendering', async () => { const js = (await Promise.all(shots.slice(1, 4).map(takeJobsOf))).flat(); return js.some((j) => j.status === 'GENERATING' && j.providerTaskId) ? js : undefined; }, CEILING, 250);
     await h.kill(a);
     const b = h.start('produce-b', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500', WORKER_ONLY_PRODUCTIONS: productionId });
-    const settled = await until('the production settled', async () => { const r = await row(produce.id); return ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'].includes(r.status) ? r : undefined; }, 180_000);
+    const settled = await until('the production settled', async () => { const r = await row(produce.id); return ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'].includes(r.status) ? r : undefined; }, CEILING);
     await h.stop(b);
     // a production with a failed shot is not "done": it waits for the producer, the failure named in its result
     expect(settled.status, JSON.stringify(settled.error ?? settled.result)).toBe('AWAITING_REVIEW');
@@ -71,16 +74,16 @@ describe('a production that loses its worker, with one failing shot', () => {
     const before = (await db().select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.productionId, productionId))).length;
     const c = h.start('produce-c', { FIXTURE_RENDER_MS: '500', WORKER_ONLY_PRODUCTIONS: productionId });
     const r = await regenerate(productionId, { shotId: failing, select: true });
-    await until('the regenerated take', async () => (await row(r.job.id)).status === 'COMPLETED');
+    await until('the regenerated take', async () => (await row(r.job.id)).status === 'COMPLETED', CEILING);
     const after = (await db().select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.productionId, productionId))).length;
     expect(after - before).toBe(1);
     const { job: cut } = await enqueue({ type: 'ASSEMBLE', payload: { productionId } });
-    await until('the cut', async () => { const x = await row(cut.id); return x.status === 'COMPLETED' || x.status === 'FAILED' ? x : undefined; }, 120_000);
+    await until('the cut', async () => { const x = await row(cut.id); return x.status === 'COMPLETED' || x.status === 'FAILED' ? x : undefined; }, CEILING);
     await h.stop(c);
     const p2 = await prod();
     expect((await row(cut.id)).status).toBe('COMPLETED');
     for (const s of shots.slice(0, 4)) expect(p2.shots.find((x) => x.id === s)!.takes.map((t) => t.id)).toEqual(keep[s]);
     expect(p2.shots.find((x) => x.id === failing)!.takes).toHaveLength(1);
     expect(p2.cutAssetId).toBeTruthy();
-  }, 400_000);
+  }, 40 * 60_000);
 });
