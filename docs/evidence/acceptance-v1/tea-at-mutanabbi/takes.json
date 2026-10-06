@@ -692,7 +692,7 @@
   "shotId": "shot-6ad9db5269",
   "shot": 2,
   "boundary": "continuous",
-  "selected": true,
+  "selected": false,
   "id": "take-ecc5c02658d8d2ef75d6",
   "label": "Take 2",
   "assetId": "gen-ecc5c02658d8427b84c3",
@@ -1022,6 +1022,496 @@
    "model": "MiniMax-H3 (local, pruned int8)",
    "workflowVersion": "b92e60d0de7f0501",
    "seed": 950839190
+  }
+ },
+ {
+  "shotId": "shot-6ad9db5269",
+  "shot": 2,
+  "boundary": "continuous",
+  "selected": true,
+  "id": "take-fd0cb3e0007bc7b5e2e6",
+  "label": "Take 3",
+  "assetId": "gen-fd0cb3e0007ba89f0493",
+  "createdAt": "2026-10-06 15:04:12.547+00",
+  "status": "READY",
+  "provider": "MINIMAX",
+  "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+  "requestId": "afc0f5e7-2cfb-5d6f-86ad-f5f0ed2fabe3",
+  "seed": 1926492699,
+  "references": [
+   {
+    "kind": "VIDEO",
+    "note": "continuation guide: the last 22 frames the cut shows of the previous take (ending at its frame 144) with their own sound",
+    "assetId": "gen-ce083627c68d860271bb",
+    "binding": "guide@0"
+   },
+   {
+    "kind": "CHARACTER",
+    "note": "canonical image",
+    "assetId": "gen-70bd991ea7a1f918e0df",
+    "binding": "<Picture 1> = <Subject 1>",
+    "characterId": "char-3a54ed1937"
+   },
+   {
+    "kind": "CHARACTER",
+    "note": "canonical image",
+    "assetId": "gen-45ec75f1d454ec2f36d9",
+    "binding": "<Picture 2> = <Subject 2>",
+    "characterId": "char-0556d14a04"
+   },
+   {
+    "kind": "LOCATION",
+    "note": "established frame of Tea stall, Mutanabbi Street at morning (from an approved take) (World Bible revision 3)",
+    "assetId": "gen-62fa9abb8e",
+    "binding": "<Picture 3> = <Subject 3>",
+    "locationId": "loc-75cdbdb376"
+   }
+  ],
+  "width": 1344,
+  "height": 768,
+  "durationSeconds": 6.583333,
+  "fps": 24,
+  "generationMs": 681057,
+  "qa": {
+   "ok": true,
+   "checks": [
+    {
+     "ok": true,
+     "name": "decodable",
+     "detail": "h264 1344x768 24.00 fps"
+    },
+    {
+     "ok": true,
+     "name": "duration",
+     "value": 6.58,
+     "threshold": "6.583333333333333±1.6s"
+    },
+    {
+     "ok": true,
+     "name": "resolution",
+     "value": "1344x768",
+     "threshold": "≥ 672x384"
+    },
+    {
+     "ok": true,
+     "name": "audio_stream",
+     "value": "aac",
+     "threshold": "present"
+    },
+    {
+     "ok": true,
+     "name": "black_frames",
+     "value": 0,
+     "threshold": "≤ 0.7s"
+    },
+    {
+     "ok": true,
+     "name": "frozen_video",
+     "value": 0,
+     "threshold": "≤ 2.0s"
+    },
+    {
+     "ok": true,
+     "name": "flicker",
+     "value": 0,
+     "threshold": "< 0.08 of frames swing > 40 luma"
+    },
+    {
+     "ok": true,
+     "name": "audio_silence",
+     "value": 0,
+     "threshold": "< 6.3s"
+    },
+    {
+     "ok": true,
+     "name": "guide-head-repeats-tail",
+     "value": 2.8,
+     "detail": "the head repeats the tail (mean difference 2.80 luma, allowed 12.00); 22 frames are dropped",
+     "threshold": 12
+    },
+    {
+     "ok": true,
+     "name": "people-on-screen",
+     "value": 2,
+     "detail": "12 moments counted, never more than 2",
+     "threshold": "≤ 2"
+    },
+    {
+     "ok": true,
+     "name": "identity-references-applied",
+     "value": 2,
+     "detail": "2 of 2 present character(s) conditioned on their canonical image (char-3a54ed1937: <Picture 1> = gen-70bd991ea7a1f918e0df; char-0556d14a04: <Picture 2> = gen-45ec75f1d454ec2f36d9)",
+     "threshold": 2
+    },
+    {
+     "ok": true,
+     "name": "location-matches-plate",
+     "detail": "not comparable: a two shot shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place; the plate gen-62fa9abb8e was conditioned on"
+    },
+    {
+     "ok": true,
+     "name": "identity-similarity",
+     "detail": "2 face(s) match their canonical image"
+    },
+    {
+     "ok": true,
+     "name": "no-accidental-fade",
+     "value": 0,
+     "detail": "no fade or black dip",
+     "threshold": "no ramp from or to luma < 16 over ≥ 6 frames, no black dip"
+    },
+    {
+     "ok": true,
+     "name": "no-duplicate-frames",
+     "value": 4,
+     "detail": "4 repeated frame(s) of 135",
+     "threshold": "≤ 5 % of frames, runs ≤ 3"
+    },
+    {
+     "ok": true,
+     "name": "no-unplanned-cut",
+     "value": 0,
+     "detail": "no cut",
+     "threshold": "planned: none"
+    },
+    {
+     "ok": true,
+     "name": "colour-continuity",
+     "value": 0.81,
+     "detail": "against the end of the shot before: ΔY -0.6, ΔU +0.8, ΔV -0.2 over 12/12 frames",
+     "threshold": "|ΔU|,|ΔV| ≤ 4, |ΔY| ≤ 12 (continuous)"
+    },
+    {
+     "ok": true,
+     "name": "container-valid",
+     "value": "h264 yuv420p 24.00 fps + aac"
+    }
+   ],
+   "reviewer": "AUTO",
+   "reviewedAt": "2026-10-06T15:01:44.792Z"
+  },
+  "jobId": "job-6932b0da32",
+  "codeVersion": "dev",
+  "workflowVersion": "98c3e439db09024e",
+  "thumbnailAssetId": "gen-fd0cb3e0007b378b2642",
+  "trimStartFrames": 22,
+  "relation": "CONTINUATION",
+  "continuesTakeId": "take-ce083627c68deb3ea2bb",
+  "prompt": "subject_definitions:\n<Subject 1> is the 58-year-old man in <Picture 1>, featuring Slightly plump with a soft belly and rounded shoulders, Round and friendly with prominent apple-cheeks and deep laughter lines around the eyes, Salt-and-pepper hair, thinning at the top and cropped short on the sides hair, Golden-brown, sun-kissed skin skin, Small, twinkling dark brown eyes eyes, wearing an ankle-length white cotton dishdasha, a red-and-white checked keffiyeh draped loosely over his own right shoulder, and brown leather sandals, a pair of small gold-rimmed reading glasses hanging from a black cord around his neck.\n<Subject 2> is the 32-year-old woman in <Picture 2>, featuring Slim, Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks, Shoulder-length auburn hair tied back in a low ponytail hair, Fair skin, Green eyes, wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots, a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.\n<Subject 3> is the exterior environment in <Picture 3>, featuring A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall (place identity v2).\n\nsummary:\n[keyframe completion + reference generation] The target video shows <Subject 1> and <Subject 2> in <Subject 3>: <Subject 1> chuckles warmly without a word, takes a tulip glass and fills it with dark amber tea from the tap of the brass samovar, then sets it on a saucer in front of <Subject 2>. It continues the previous shot without a cut: the first 0.9 seconds are the end of the previous shot, anchored on the timeline, and the action carries on from there. The camera is locked off: the framing never changes.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 2> are kept exactly.\n<Subject 3> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 3> are kept; the camera position and framing may differ.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there: A medium two-shot of the tea seller and the photographer. The plump older man with apple-cheeks and a white dishdasha chuckles warmly, his dark brown eyes twinkling. He pours a thin, steady stream of dark amber tea from a brass samovar into a small, clear tulip-shaped glass. The woman with the auburn ponytail and olive jacket watches the tea fill the glass with a look of eager curiosity. The lighting is warm and saturated, highlighting the tactile texture of the wooden counter and the glint of the brass samovar. Camera: two shot, locked off on a tripod: no zoom, no push-in, no pull-back, no pan, no tilt, no dolly; the framing of the first frame holds to the last frame, and the people move inside it. <Subject 1> is right, facing left, faces screen left, looks at <Subject 2>, holds brass samovar handle. <Subject 2> is left, facing right, faces screen right, looks at the tea glass. Props: brass samovar (pouring) right end of counter; tulip glass (filling with amber liquid) center counter. Light: warm morning sun, saturated colours. Scene state (carried on): morning, weather: sunny, light: warm morning sun, saturated colours, the place: same as previous. <Subject 1> is right, facing left, holds brass samovar handle; <Subject 2> is left, facing right. props: brass samovar (pouring) right end of counter; tulip glasses (arranged in rows) on counter; tulip glass (filling with amber liquid) center counter. <Subject 1> feels beaming. <Subject 2> feels anticipating. Blocking (the 180° line holds): <Subject 2> is to the left of <Subject 1>, on screen. [0:00] <Subject 1> chuckles warmly, his eyes twinkling. [0:02] He pours a stream of dark amber tea from the samovar into a tulip glass and slides it onto a saucer toward <Subject 2>. Nobody speaks in this shot; mouths stay closed. Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nOutdoor ambience of the place at morning; no dialogue and no voices.\n\nnon_diegetic_music:\nN/A",
+  "params": {
+   "last": false,
+   "refs": 3,
+   "tier": "final",
+   "drift": {
+    "identity": {
+     "ok": true,
+     "characters": [
+      {
+       "applied": true,
+       "assetId": "gen-70bd991ea7a1f918e0df",
+       "picture": 1,
+       "characterId": "char-3a54ed1937"
+      },
+      {
+       "applied": true,
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "picture": 2,
+       "characterId": "char-0556d14a04"
+      }
+     ]
+    },
+    "location": {
+     "note": "not comparable: a two shot shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place",
+     "measured": false,
+     "plateAssetId": "gen-62fa9abb8e"
+    }
+   },
+   "first": false,
+   "graph": "REF2VA",
+   "guide": {
+    "head": {
+     "detail": "the head repeats the tail (mean difference 2.80 luma, allowed 12.00); 22 frames are dropped",
+     "maxDiff": 3.566,
+     "repeats": true,
+     "meanDiff": 2.8,
+     "corrected": false,
+     "threshold": 12,
+     "lastMatchIndex": 21,
+     "trimStartFrames": 22
+    },
+    "join": "TRIM",
+    "frames": 22,
+    "settings": {
+     "engine": "minimax-h3-local",
+     "source": {
+      "guideAudio": "ENGINE",
+      "guideFrames": "ENGINE"
+     },
+     "guideAudio": "AUTO",
+     "guideFrames": 22
+    },
+    "withAudio": true,
+    "audioSeconds": 0.916667,
+    "sourceFrames": 22,
+    "sourceEndFrame": 144,
+    "audioLatentSteps": 36.67
+   },
+   "steps": 20,
+   "turbo": false,
+   "world": {
+    "plate": {
+     "role": "ESTABLISHED",
+     "assetId": "gen-62fa9abb8e"
+    },
+    "pinned": true,
+    "location": {
+     "locationId": "loc-75cdbdb376",
+     "establishedHere": false,
+     "identityVersion": 2
+    },
+    "revision": 3,
+    "characters": [
+     {
+      "version": 1,
+      "characterId": "char-3a54ed1937"
+     },
+     {
+      "version": 1,
+      "characterId": "char-0556d14a04"
+     }
+    ],
+    "revisionId": "wrev-3afcfc8b1a"
+   },
+   "frames": 158,
+   "guides": [
+    {
+     "audio": true,
+     "image": true,
+     "video": true,
+     "frameIdx": 0
+    }
+   ],
+   "attempt": {
+    "jobAttempt": 1,
+    "firstAttempt": false,
+    "firstForShot": false,
+    "shotGeneration": 3
+   },
+   "context": {
+    "gaps": [
+     "shot list: shot 1 gives no end pose for Abu Haidar, so where this continuous shot starts is unknown",
+     "shot list: shot 1 gives no end pose for Clara Hughes, so where this continuous shot starts is unknown"
+    ],
+    "hash": "768b3025b031ecb5",
+    "changes": [],
+    "version": 2,
+    "blocking": {
+     "people": [
+      {
+       "side": "RIGHT",
+       "facing": "LEFT",
+       "carried": [],
+       "characterId": "char-3a54ed1937"
+      },
+      {
+       "side": "LEFT",
+       "facing": "RIGHT",
+       "carried": [],
+       "characterId": "char-0556d14a04"
+      }
+     ],
+     "lineFrom": "shot-cb4a02d3cc",
+     "relations": [
+      [
+       "char-0556d14a04",
+       "char-3a54ed1937"
+      ]
+     ]
+    },
+    "boundary": "continuous",
+    "dialogue": [],
+    "location": {
+     "changes": [],
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376",
+     "identityHash": "9272b037086cd595",
+     "identityVersion": 2
+    },
+    "previous": {
+     "shotId": "shot-cb4a02d3cc",
+     "takeId": "take-ce083627c68deb3ea2bb",
+     "approved": true
+    },
+    "relation": "CONTINUATION",
+    "anchoring": {
+     "after": 4,
+     "reanchor": false,
+     "chainLength": 1
+    },
+    "characters": [
+     {
+      "emotion": "beaming",
+      "canonical": {
+       "status": "APPROVED",
+       "assetId": "gen-70bd991ea7a1f918e0df",
+       "version": 1
+      },
+      "condition": [],
+      "characterId": "char-3a54ed1937",
+      "voiceRevision": 1
+     },
+     {
+      "emotion": "anticipating",
+      "canonical": {
+       "status": "APPROVED",
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "version": 1
+      },
+      "condition": [],
+      "characterId": "char-0556d14a04",
+      "voiceRevision": 1
+     }
+    ],
+    "constraints": []
+   },
+   "quality": "final",
+   "verdict": {
+    "flags": [],
+    "decision": "ACCEPT",
+    "autoChoose": true,
+    "notMeasured": [
+     "location-matches-plate"
+    ]
+   },
+   "engineMs": 679209,
+   "identity": {
+    "ok": true,
+    "rule": "identity-reapplication",
+    "location": {
+     "assetId": "gen-62fa9abb8e",
+     "picture": 3,
+     "locationId": "loc-75cdbdb376"
+    },
+    "characters": [
+     {
+      "source": "CANONICAL",
+      "assetId": "gen-70bd991ea7a1f918e0df",
+      "picture": 1,
+      "characterId": "char-3a54ed1937"
+     },
+     {
+      "source": "CANONICAL",
+      "assetId": "gen-45ec75f1d454ec2f36d9",
+      "picture": 2,
+      "characterId": "char-0556d14a04"
+     }
+    ]
+   },
+   "timeline": {
+    "basis": "PLAN",
+    "newFrames": 120,
+    "clipFrames": 158,
+    "headFrames": 22
+   },
+   "audioRefs": 0,
+   "graphNodes": 21,
+   "sceneState": {
+    "props": [
+     {
+      "name": "brass samovar",
+      "state": "pouring",
+      "position": "right end of counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glasses",
+      "state": "arranged in rows",
+      "position": "on counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glass",
+      "state": "filling with amber liquid",
+      "position": "center counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     }
+    ],
+    "shotId": "shot-6ad9db5269",
+    "present": [
+     {
+      "holding": [
+       "brass samovar handle"
+      ],
+      "position": "right, facing left",
+      "wardrobe": "white cotton dishdasha, red-and-white keffiyeh on right shoulder, gold-rimmed glasses on cord",
+      "characterId": "char-3a54ed1937",
+      "screenDirection": "LEFT"
+     },
+     {
+      "position": "left, facing right",
+      "wardrobe": "olive green field jacket, cream sweater",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     }
+    ],
+    "sceneId": "scene-420beb3158",
+    "sources": {
+     "props": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-cb4a02d3cc"
+     },
+     "wardrobe": {
+      "char-0556d14a04": {
+       "kind": "SHOT",
+       "shotId": "shot-6ad9db5269"
+      },
+      "char-3a54ed1937": {
+       "kind": "SHOT",
+       "shotId": "shot-6ad9db5269"
+      }
+     },
+     "environment": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-cb4a02d3cc"
+     }
+    },
+    "weather": "sunny",
+    "boundary": "continuous",
+    "lighting": "warm morning sun, saturated colours",
+    "relation": "CONTINUATION",
+    "timeOfDay": "MORNING",
+    "locationId": "loc-75cdbdb376",
+    "placeState": "same as previous"
+   },
+   "identityCheck": {
+    "verdict": "PASS",
+    "characters": {
+     "char-0556d14a04": {
+      "min": 0.4454,
+      "detail": [],
+      "median": 0.6743,
+      "verdict": "PASS",
+      "framesWithFace": 13
+     },
+     "char-3a54ed1937": {
+      "min": 0.8567,
+      "detail": [],
+      "median": 0.8823,
+      "verdict": "PASS",
+      "framesWithFace": 13
+     }
+    },
+    "thresholds": "START"
+   }
+  },
+  "video": {
+   "assetId": "gen-fd0cb3e0007ba89f0493",
+   "path": "video/2026/10/gen-fd0cb3e0007ba89f0493.a1.mp4",
+   "sha256": "d33293d3de5e7ebdefdff304a53a4e120f2bafc824a38ee66b93abeb823369c4",
+   "bytes": 1738259,
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "workflowVersion": "98c3e439db09024e",
+   "seed": 1926492699
   }
  },
  {
@@ -3426,7 +3916,7 @@
   "shotId": "shot-050ff6f102",
   "shot": 3,
   "boundary": "cut",
-  "selected": true,
+  "selected": false,
   "id": "take-34af7614550bf525df9f",
   "label": "Take 9",
   "assetId": "gen-34af7614550b8d4daa3b",
@@ -4184,6 +4674,904 @@
    "model": "MiniMax-H3 (local, pruned int8)",
    "workflowVersion": "3aa2ab3c16c09f94",
    "seed": 1557491053
+  }
+ },
+ {
+  "shotId": "shot-050ff6f102",
+  "shot": 3,
+  "boundary": "cut",
+  "selected": false,
+  "id": "take-4830f1e7a604fb3c09d4",
+  "label": "Take 11",
+  "assetId": "gen-4830f1e7a60471705f7a",
+  "createdAt": "2026-10-06 15:26:43.963+00",
+  "status": "READY",
+  "provider": "MINIMAX",
+  "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+  "requestId": "cf80a282-6660-55f1-9f23-c68e0464ec24",
+  "seed": 2099994865,
+  "references": [
+   {
+    "kind": "CHARACTER",
+    "note": "canonical image",
+    "assetId": "gen-45ec75f1d454ec2f36d9",
+    "binding": "<Picture 1> = <Subject 1>",
+    "characterId": "char-0556d14a04"
+   },
+   {
+    "kind": "LOCATION",
+    "note": "master plate of Tea stall, Mutanabbi Street (World Bible revision 3)",
+    "assetId": "gen-02b5d1949e4d7c60a384",
+    "binding": "<Picture 2> = <Subject 2>",
+    "locationId": "loc-75cdbdb376"
+   }
+  ],
+  "width": 1344,
+  "height": 768,
+  "durationSeconds": 8,
+  "fps": 24,
+  "generationMs": 757925,
+  "qa": {
+   "ok": true,
+   "checks": [
+    {
+     "ok": true,
+     "name": "decodable",
+     "detail": "h264 1344x768 24.00 fps"
+    },
+    {
+     "ok": true,
+     "name": "duration",
+     "value": 8,
+     "threshold": "8±2.0s"
+    },
+    {
+     "ok": true,
+     "name": "resolution",
+     "value": "1344x768",
+     "threshold": "≥ 672x384"
+    },
+    {
+     "ok": true,
+     "name": "audio_stream",
+     "value": "aac",
+     "threshold": "present"
+    },
+    {
+     "ok": true,
+     "name": "black_frames",
+     "value": 0,
+     "threshold": "≤ 0.8s"
+    },
+    {
+     "ok": true,
+     "name": "frozen_video",
+     "value": 0,
+     "threshold": "≤ 2.4s"
+    },
+    {
+     "ok": true,
+     "name": "flicker",
+     "value": 0,
+     "threshold": "< 0.08 of frames swing > 40 luma"
+    },
+    {
+     "ok": true,
+     "name": "audio_silence",
+     "value": 0,
+     "threshold": "< 7.6s"
+    },
+    {
+     "ok": true,
+     "name": "script-spoken",
+     "value": 1,
+     "detail": "heard: Oh, that is wonderful. Thank you so much. It really is the best tea in Baghdad. (CER 0.00, WER 0.00)",
+     "threshold": 0.7
+    },
+    {
+     "ok": true,
+     "name": "people-on-screen",
+     "value": 1,
+     "detail": "16 moments counted, never more than 1",
+     "threshold": "≤ 1"
+    },
+    {
+     "ok": true,
+     "name": "identity-references-applied",
+     "value": 1,
+     "detail": "1 of 1 present character(s) conditioned on their canonical image (char-0556d14a04: <Picture 1> = gen-45ec75f1d454ec2f36d9)",
+     "threshold": 1
+    },
+    {
+     "ok": true,
+     "name": "location-matches-plate",
+     "detail": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place; the plate gen-02b5d1949e4d7c60a384 was conditioned on"
+    },
+    {
+     "ok": false,
+     "name": "lip-sync",
+     "value": -1,
+     "detail": "review against the recorded lines: speaker track 0: mouth activity inside speech only 0.84× outside (< 1.3); speaker track 0: the mouth moves while nothing is said",
+     "threshold": "|lag| ≤ 1 frame; 2–6 repaired by moving the sound"
+    },
+    {
+     "ok": false,
+     "name": "identity-similarity",
+     "detail": "char-0556d14a04: identity drifts 0.27 from the first frame (> 0.15)"
+    },
+    {
+     "ok": true,
+     "name": "no-accidental-fade",
+     "value": 0,
+     "detail": "no fade or black dip",
+     "threshold": "no ramp from or to luma < 16 over ≥ 6 frames, no black dip"
+    },
+    {
+     "ok": true,
+     "name": "no-duplicate-frames",
+     "value": 2,
+     "detail": "2 repeated frame(s) of 191",
+     "threshold": "≤ 5 % of frames, runs ≤ 3"
+    },
+    {
+     "ok": true,
+     "name": "no-unplanned-cut",
+     "value": 0,
+     "detail": "no cut",
+     "threshold": "planned: none"
+    },
+    {
+     "ok": true,
+     "name": "no-repeated-speech",
+     "value": 0,
+     "detail": "no phrase repeated beyond the script"
+    },
+    {
+     "ok": true,
+     "name": "colour-continuity",
+     "value": 2.96,
+     "detail": "against the end of the shot before: ΔY -0.9, ΔU -0.5, ΔV -3.0 over 24/24 frames",
+     "threshold": "|ΔU|,|ΔV| ≤ 8, |ΔY| ≤ 25 (cut on the same moment)"
+    },
+    {
+     "ok": true,
+     "name": "dialogue-timing",
+     "value": 1,
+     "detail": "1 line(s) on time",
+     "threshold": "start ±0.6 s, length ±45 %"
+    },
+    {
+     "ok": true,
+     "name": "container-valid",
+     "value": "h264 yuv420p 24.00 fps + aac"
+    }
+   ],
+   "reviewer": "AUTO",
+   "reviewedAt": "2026-10-06T15:25:44.237Z"
+  },
+  "jobId": "job-e4ad003011",
+  "codeVersion": "dev",
+  "workflowVersion": "b6e3415221da15ad",
+  "thumbnailAssetId": "gen-4830f1e7a604a7c0e29c",
+  "soundtrack": {
+   "kind": "DIALOGUE",
+   "lines": [
+    {
+     "to": 5.99,
+     "from": 0.05,
+     "lineId": "line-efab0ca83f",
+     "anchoredFrom": 0.4,
+     "audioAssetId": "gen-e9834af668f3faf62e91"
+    }
+   ],
+   "assetId": "gen-e9834af668f32d2dea6e"
+  },
+  "relation": "CUT",
+  "prompt": "subject_definitions:\n<Subject 1> is the 32-year-old woman in <Picture 1>, featuring Slim, Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks, Shoulder-length auburn hair tied back in a low ponytail hair, Fair skin, Green eyes, wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots, a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.\n<Subject 2> is the exterior environment in <Picture 2>, featuring A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall (place identity v2).\n\nsummary:\n[reference generation] The target video shows <Subject 1> in <Subject 2>: <Subject 1> holds the warm tulip glass in both hands and smiles as she speaks, looking off-screen to her right across the counter; after her words she takes a small sip. It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes. One continuous moment held in one framing, no cuts. The camera is locked off: the framing never changes.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 2> are kept; the camera position and framing may differ.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] <Subject 1> in <Subject 2>: <Subject 1> holds the warm tulip glass in both hands and smiles as she speaks, looking off-screen to her right across the counter; after her words she takes a small sip. Camera: medium close up, locked off on a tripod: no zoom, no push-in, no pull-back, no pan, no tilt, no dolly; the framing of the first frame holds to the last frame, and the people move inside it. From its very first frame the shot is a medium close up: the camera is much closer than in <Picture 2>, whose look is kept, not its framing. <Subject 1> (S1) is center, facing right, faces screen right, looks at the 58-year-old man, Slightly plump with a soft belly and rounded shoulders (off-screen), holds tulip glass. Props: tulip glass (half-full) in her hands. Light: warm morning sun, soft glow on face. Scene state (carried across the cut): morning, weather: sunny, light: warm morning sun, soft glow on face, the place: same as previous. <Subject 1> is center, facing right, holds tulip glass. props: brass samovar (pouring) right end of counter; tulip glasses (arranged in rows) on counter; tulip glass (half-full) in her hands. <Subject 1> feels delighted. <Subject 1> (S1) says, <d>[English] Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.</d> Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nOutdoor ambience of the place at morning; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+  "params": {
+   "last": false,
+   "refs": 2,
+   "tier": "final",
+   "drift": {
+    "identity": {
+     "ok": true,
+     "characters": [
+      {
+       "applied": true,
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "picture": 1,
+       "characterId": "char-0556d14a04"
+      }
+     ]
+    },
+    "location": {
+     "note": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place",
+     "measured": false,
+     "plateAssetId": "gen-02b5d1949e4d7c60a384"
+    }
+   },
+   "first": false,
+   "graph": "REF2VA",
+   "steps": 20,
+   "turbo": false,
+   "world": {
+    "plate": {
+     "role": "MASTER",
+     "assetId": "gen-02b5d1949e4d7c60a384"
+    },
+    "pinned": true,
+    "location": {
+     "locationId": "loc-75cdbdb376",
+     "establishedHere": false,
+     "identityVersion": 2
+    },
+    "revision": 3,
+    "characters": [
+     {
+      "version": 1,
+      "characterId": "char-0556d14a04"
+     }
+    ],
+    "revisionId": "wrev-3afcfc8b1a"
+   },
+   "frames": 192,
+   "guides": [
+    {
+     "audio": true,
+     "image": false,
+     "video": false,
+     "frameIdx": 0
+    }
+   ],
+   "attempt": {
+    "jobAttempt": 1,
+    "firstAttempt": false,
+    "firstForShot": false,
+    "shotGeneration": 11
+   },
+   "context": {
+    "gaps": [],
+    "hash": "4936ab0ba82f0bd3",
+    "changes": [],
+    "version": 2,
+    "blocking": {
+     "people": [
+      {
+       "side": "CENTER",
+       "facing": "RIGHT",
+       "carried": [],
+       "characterId": "char-0556d14a04"
+      }
+     ],
+     "lineFrom": "shot-cb4a02d3cc"
+    },
+    "boundary": "cut",
+    "dialogue": [
+     {
+      "lineId": "line-efab0ca83f",
+      "source": "RECORDED",
+      "durationSeconds": 5.863039
+     }
+    ],
+    "location": {
+     "changes": [],
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376",
+     "identityHash": "9272b037086cd595",
+     "identityVersion": 2
+    },
+    "previous": {
+     "shotId": "shot-6ad9db5269",
+     "takeId": "take-ecc5c02658d8d2ef75d6",
+     "approved": true
+    },
+    "relation": "CUT",
+    "anchoring": {
+     "after": 4,
+     "reanchor": false,
+     "chainLength": 0
+    },
+    "characters": [
+     {
+      "emotion": "delighted",
+      "canonical": {
+       "status": "APPROVED",
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "version": 1
+      },
+      "condition": [],
+      "characterId": "char-0556d14a04",
+      "voiceRevision": 1
+     }
+    ],
+    "constraints": []
+   },
+   "lipSync": {
+    "flags": [
+     {
+      "flag": "MOUTH_MOVING_WHILE_SILENT",
+      "track": 0
+     }
+    ],
+    "lagMs": -41.7,
+    "against": "RECORDED",
+    "verdict": "REVIEW",
+    "lagFrames": -1,
+    "thresholds": "START",
+    "offsetRepair": false,
+    "speakerTrack": 0
+   },
+   "quality": "final",
+   "verdict": {
+    "flags": [
+     "lip-sync",
+     "identity-similarity"
+    ],
+    "decision": "REVIEW",
+    "autoChoose": false,
+    "notMeasured": [
+     "location-matches-plate"
+    ]
+   },
+   "engineMs": 695164,
+   "identity": {
+    "ok": true,
+    "rule": "identity-reapplication",
+    "location": {
+     "assetId": "gen-02b5d1949e4d7c60a384",
+     "picture": 2,
+     "locationId": "loc-75cdbdb376"
+    },
+    "characters": [
+     {
+      "source": "CANONICAL",
+      "assetId": "gen-45ec75f1d454ec2f36d9",
+      "picture": 1,
+      "characterId": "char-0556d14a04"
+     }
+    ]
+   },
+   "timeline": {
+    "basis": "DIALOGUE",
+    "newFrames": 192,
+    "clipFrames": 192,
+    "headFrames": 0
+   },
+   "audioRefs": 0,
+   "graphNodes": 19,
+   "sceneState": {
+    "props": [
+     {
+      "name": "brass samovar",
+      "state": "pouring",
+      "position": "right end of counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glasses",
+      "state": "arranged in rows",
+      "position": "on counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glass",
+      "state": "half-full",
+      "position": "in her hands",
+      "ownerCharacterId": "char-0556d14a04"
+     }
+    ],
+    "shotId": "shot-050ff6f102",
+    "present": [
+     {
+      "holding": [
+       "tulip glass"
+      ],
+      "position": "center, facing right",
+      "wardrobe": "olive green field jacket, cream sweater",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     }
+    ],
+    "sceneId": "scene-420beb3158",
+    "sources": {
+     "props": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-6ad9db5269"
+     },
+     "wardrobe": {
+      "char-0556d14a04": {
+       "kind": "SHOT",
+       "shotId": "shot-050ff6f102"
+      }
+     },
+     "environment": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-6ad9db5269"
+     }
+    },
+    "weather": "sunny",
+    "boundary": "cut",
+    "lighting": "warm morning sun, soft glow on face",
+    "relation": "CUT",
+    "timeOfDay": "MORNING",
+    "locationId": "loc-75cdbdb376",
+    "placeState": "same as previous"
+   },
+   "dialogueGuide": {
+    "padSeconds": 1.437,
+    "guideSeconds": 8
+   },
+   "identityCheck": {
+    "verdict": "REVIEW",
+    "characters": {
+     "char-0556d14a04": {
+      "min": 0.5721,
+      "detail": [
+       "char-0556d14a04: identity drifts 0.27 from the first frame (> 0.15)"
+      ],
+      "median": 0.7775,
+      "verdict": "REVIEW",
+      "framesWithFace": 16
+     }
+    },
+    "thresholds": "START"
+   }
+  },
+  "video": {
+   "assetId": "gen-4830f1e7a60471705f7a",
+   "path": "video/2026/10/gen-4830f1e7a60471705f7a.a1.mp4",
+   "sha256": "ff1249d5c8f7d2cdbf9b306ef0a958aae5b6238e559f2461c702f768ae6d8aaa",
+   "bytes": 1308096,
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "workflowVersion": "b6e3415221da15ad",
+   "seed": 2099994865
+  }
+ },
+ {
+  "shotId": "shot-050ff6f102",
+  "shot": 3,
+  "boundary": "cut",
+  "selected": true,
+  "id": "take-0848c8106e01b0814b38",
+  "label": "Take 12",
+  "assetId": "gen-0848c8106e01144aa64b",
+  "createdAt": "2026-10-06 16:00:31.127+00",
+  "status": "READY",
+  "provider": "MINIMAX",
+  "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+  "requestId": "9af741e7-6659-5fa3-b291-f32a95893cb2",
+  "seed": 681369956,
+  "references": [
+   {
+    "kind": "CHARACTER",
+    "note": "canonical image",
+    "assetId": "gen-45ec75f1d454ec2f36d9",
+    "binding": "<Picture 1> = <Subject 1>",
+    "characterId": "char-0556d14a04"
+   },
+   {
+    "kind": "LOCATION",
+    "note": "master plate of Tea stall, Mutanabbi Street (World Bible revision 4)",
+    "assetId": "gen-02b5d1949e4d7c60a384",
+    "binding": "<Picture 2> = <Subject 2>",
+    "locationId": "loc-75cdbdb376"
+   }
+  ],
+  "width": 1344,
+  "height": 768,
+  "durationSeconds": 8,
+  "fps": 24,
+  "generationMs": 697230,
+  "qa": {
+   "ok": true,
+   "checks": [
+    {
+     "ok": true,
+     "name": "decodable",
+     "detail": "h264 1344x768 24.00 fps"
+    },
+    {
+     "ok": true,
+     "name": "duration",
+     "value": 8,
+     "threshold": "8±2.0s"
+    },
+    {
+     "ok": true,
+     "name": "resolution",
+     "value": "1344x768",
+     "threshold": "≥ 672x384"
+    },
+    {
+     "ok": true,
+     "name": "audio_stream",
+     "value": "aac",
+     "threshold": "present"
+    },
+    {
+     "ok": true,
+     "name": "black_frames",
+     "value": 0,
+     "threshold": "≤ 0.8s"
+    },
+    {
+     "ok": true,
+     "name": "frozen_video",
+     "value": 0,
+     "threshold": "≤ 2.4s"
+    },
+    {
+     "ok": true,
+     "name": "flicker",
+     "value": 0,
+     "threshold": "< 0.08 of frames swing > 40 luma"
+    },
+    {
+     "ok": true,
+     "name": "audio_silence",
+     "value": 0,
+     "threshold": "< 7.6s"
+    },
+    {
+     "ok": true,
+     "name": "script-spoken",
+     "value": 1,
+     "detail": "heard: Oh, that is wonderful. Thank you so much. It really is the best tea in Baghdad. (CER 0.00, WER 0.00)",
+     "threshold": 0.7
+    },
+    {
+     "ok": true,
+     "name": "people-on-screen",
+     "value": 1,
+     "detail": "16 moments counted, never more than 1",
+     "threshold": "≤ 1"
+    },
+    {
+     "ok": true,
+     "name": "identity-references-applied",
+     "value": 1,
+     "detail": "1 of 1 present character(s) conditioned on their canonical image (char-0556d14a04: <Picture 1> = gen-45ec75f1d454ec2f36d9)",
+     "threshold": 1
+    },
+    {
+     "ok": true,
+     "name": "location-matches-plate",
+     "detail": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place; the plate gen-02b5d1949e4d7c60a384 was conditioned on"
+    },
+    {
+     "ok": false,
+     "name": "lip-sync",
+     "value": -2,
+     "detail": "fail against the recorded lines: speaker track 0: the mouth does not follow the audio (r 0.02, activity ratio 0.32); offset -2 frames (-83.3 ms): shift the audio by -2 frames and re-score; speaker track 0: weak correlation with the audio (r 0.02 < 0.3); speaker track 0: mouth activity inside speech only 0.32× outside (< 1.3); speaker track 0: the mouth moves while nothing is said",
+     "threshold": "|lag| ≤ 1 frame; 2–6 repaired by moving the sound"
+    },
+    {
+     "ok": true,
+     "name": "identity-similarity",
+     "detail": "1 face(s) match their canonical image"
+    },
+    {
+     "ok": true,
+     "name": "no-accidental-fade",
+     "value": 0,
+     "detail": "no fade or black dip",
+     "threshold": "no ramp from or to luma < 16 over ≥ 6 frames, no black dip"
+    },
+    {
+     "ok": true,
+     "name": "no-duplicate-frames",
+     "value": 1,
+     "detail": "1 repeated frame(s) of 191",
+     "threshold": "≤ 5 % of frames, runs ≤ 3"
+    },
+    {
+     "ok": true,
+     "name": "no-unplanned-cut",
+     "value": 0,
+     "detail": "no cut",
+     "threshold": "planned: none"
+    },
+    {
+     "ok": true,
+     "name": "no-repeated-speech",
+     "value": 0,
+     "detail": "no phrase repeated beyond the script"
+    },
+    {
+     "ok": true,
+     "name": "colour-continuity",
+     "value": 3.71,
+     "detail": "against the end of the shot before: ΔY +1.6, ΔU +0.2, ΔV -3.7 over 24/24 frames",
+     "threshold": "|ΔU|,|ΔV| ≤ 8, |ΔY| ≤ 25 (cut on the same moment)"
+    },
+    {
+     "ok": true,
+     "name": "dialogue-timing",
+     "value": 1,
+     "detail": "1 line(s) on time",
+     "threshold": "start ±0.6 s, length ±45 %"
+    },
+    {
+     "ok": true,
+     "name": "container-valid",
+     "value": "h264 yuv420p 24.00 fps + aac"
+    }
+   ],
+   "reviewer": "AUTO",
+   "reviewedAt": "2026-10-06T15:57:39.698Z"
+  },
+  "jobId": "job-78001628a5",
+  "codeVersion": "dev",
+  "workflowVersion": "b6e3415221da15ad",
+  "thumbnailAssetId": "gen-0848c8106e010be362e4",
+  "soundtrack": {
+   "kind": "DIALOGUE",
+   "lines": [
+    {
+     "to": 5.99,
+     "from": 0.05,
+     "lineId": "line-efab0ca83f",
+     "anchoredFrom": 0.4,
+     "audioAssetId": "gen-e9834af668f3faf62e91"
+    }
+   ],
+   "assetId": "gen-e9834af668f32d2dea6e"
+  },
+  "relation": "CUT",
+  "prompt": "subject_definitions:\n<Subject 1> is the 32-year-old woman in <Picture 1>, featuring Slim, Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks, Shoulder-length auburn hair tied back in a low ponytail hair, Fair skin, Green eyes, wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots, a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.\n<Subject 2> is the exterior environment in <Picture 2>, featuring A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall (place identity v2).\n\nsummary:\n[reference generation] The target video shows <Subject 1> in <Subject 2>: <Subject 1> holds the warm tulip glass in both hands and smiles as she speaks, looking off-screen to her right across the counter; after her words she takes a small sip. It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes. One continuous moment held in one framing, no cuts. The camera is locked off: the framing never changes.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 2> are kept; the camera position and framing may differ.\n\ndetailed_description:\nhigh-end 3D animated feature film still, stylized CG characters with appealing simplified shapes, soft subsurface skin, large expressive eyes, clean readable silhouettes, rich saturated but controlled palette, painterly global illumination, shallow depth of field, cinematic composition. [Shot 1] <Subject 1> in <Subject 2>: <Subject 1> holds the warm tulip glass in both hands and smiles as she speaks, looking off-screen to her right across the counter; after her words she takes a small sip. Camera: medium close up, locked off on a tripod: no zoom, no push-in, no pull-back, no pan, no tilt, no dolly; the framing of the first frame holds to the last frame, and the people move inside it. From its very first frame the shot is a medium close up: the camera is much closer than in <Picture 2>, whose look is kept, not its framing. <Subject 1> (S1) is center, facing right, faces screen right, looks at the 58-year-old man, Slightly plump with a soft belly and rounded shoulders (off-screen), holds tulip glass. Props: tulip glass (half-full) in her hands. Light: warm morning sun, soft glow on face. Scene state (carried across the cut): morning, weather: sunny, light: warm morning sun, soft glow on face, the place: same as previous. <Subject 1> is center, facing right, holds tulip glass. props: brass samovar right end of counter; tulip glasses (arranged in rows) on counter; tulip glass (half-full) in her hands. <Subject 1> feels delighted. <Subject 1> (S1) says, <d>[English] Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.</d> Every frame stays stylized CG animation: no photographic realism, no live-action texture, no uncanny semi-real faces, no motion blur smears, no text artifacts, no extra fingers or limbs.\n\noverall_soundscape:\nOutdoor ambience of the place at morning; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+  "params": {
+   "last": false,
+   "refs": 2,
+   "tier": "final",
+   "drift": {
+    "identity": {
+     "ok": true,
+     "characters": [
+      {
+       "applied": true,
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "picture": 1,
+       "characterId": "char-0556d14a04"
+      }
+     ]
+    },
+    "location": {
+     "note": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place",
+     "measured": false,
+     "plateAssetId": "gen-02b5d1949e4d7c60a384"
+    }
+   },
+   "first": false,
+   "graph": "REF2VA",
+   "steps": 20,
+   "turbo": false,
+   "world": {
+    "plate": {
+     "role": "MASTER",
+     "assetId": "gen-02b5d1949e4d7c60a384"
+    },
+    "pinned": true,
+    "location": {
+     "locationId": "loc-75cdbdb376",
+     "establishedHere": false,
+     "identityVersion": 2
+    },
+    "revision": 4,
+    "characters": [
+     {
+      "version": 1,
+      "characterId": "char-0556d14a04"
+     }
+    ],
+    "revisionId": "wrev-24cffd9301"
+   },
+   "frames": 192,
+   "guides": [
+    {
+     "audio": true,
+     "image": false,
+     "video": false,
+     "frameIdx": 0
+    }
+   ],
+   "attempt": {
+    "jobAttempt": 1,
+    "firstAttempt": false,
+    "firstForShot": false,
+    "shotGeneration": 12
+   },
+   "context": {
+    "gaps": [],
+    "hash": "c6d27459ea26a33b",
+    "changes": [],
+    "version": 2,
+    "blocking": {
+     "people": [
+      {
+       "side": "CENTER",
+       "facing": "RIGHT",
+       "carried": [],
+       "characterId": "char-0556d14a04"
+      }
+     ],
+     "lineFrom": "shot-cb4a02d3cc"
+    },
+    "boundary": "cut",
+    "dialogue": [
+     {
+      "lineId": "line-efab0ca83f",
+      "source": "RECORDED",
+      "durationSeconds": 5.863039
+     }
+    ],
+    "location": {
+     "changes": [],
+     "timeOfDay": "MORNING",
+     "locationId": "loc-75cdbdb376",
+     "identityHash": "9272b037086cd595",
+     "identityVersion": 2
+    },
+    "previous": {
+     "shotId": "shot-6ad9db5269",
+     "takeId": "take-fd0cb3e0007bc7b5e2e6",
+     "approved": true
+    },
+    "relation": "CUT",
+    "anchoring": {
+     "after": 4,
+     "reanchor": false,
+     "chainLength": 0
+    },
+    "characters": [
+     {
+      "emotion": "delighted",
+      "canonical": {
+       "status": "APPROVED",
+       "assetId": "gen-45ec75f1d454ec2f36d9",
+       "version": 1
+      },
+      "condition": [],
+      "characterId": "char-0556d14a04",
+      "voiceRevision": 1
+     }
+    ],
+    "constraints": []
+   },
+   "lipSync": {
+    "flags": [
+     {
+      "flag": "MOUTH_MOVING_WHILE_SILENT",
+      "track": 0
+     }
+    ],
+    "lagMs": -83.3,
+    "against": "RECORDED",
+    "verdict": "FAIL",
+    "lagFrames": -2,
+    "thresholds": "START",
+    "offsetRepair": false,
+    "speakerTrack": 0
+   },
+   "quality": "final",
+   "verdict": {
+    "flags": [
+     "lip-sync"
+    ],
+    "decision": "REVIEW",
+    "autoChoose": false,
+    "notMeasured": [
+     "location-matches-plate"
+    ]
+   },
+   "engineMs": 685018,
+   "identity": {
+    "ok": true,
+    "rule": "identity-reapplication",
+    "location": {
+     "assetId": "gen-02b5d1949e4d7c60a384",
+     "picture": 2,
+     "locationId": "loc-75cdbdb376"
+    },
+    "characters": [
+     {
+      "source": "CANONICAL",
+      "assetId": "gen-45ec75f1d454ec2f36d9",
+      "picture": 1,
+      "characterId": "char-0556d14a04"
+     }
+    ]
+   },
+   "timeline": {
+    "basis": "DIALOGUE",
+    "newFrames": 192,
+    "clipFrames": 192,
+    "headFrames": 0
+   },
+   "audioRefs": 0,
+   "graphNodes": 19,
+   "sceneState": {
+    "props": [
+     {
+      "name": "brass samovar",
+      "position": "right end of counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glasses",
+      "state": "arranged in rows",
+      "position": "on counter",
+      "ownerCharacterId": "char-3a54ed1937"
+     },
+     {
+      "name": "tulip glass",
+      "state": "half-full",
+      "position": "in her hands",
+      "ownerCharacterId": "char-0556d14a04"
+     }
+    ],
+    "shotId": "shot-050ff6f102",
+    "present": [
+     {
+      "holding": [
+       "tulip glass"
+      ],
+      "position": "center, facing right",
+      "wardrobe": "olive green field jacket, cream sweater",
+      "characterId": "char-0556d14a04",
+      "screenDirection": "RIGHT"
+     }
+    ],
+    "sceneId": "scene-420beb3158",
+    "sources": {
+     "props": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-6ad9db5269"
+     },
+     "wardrobe": {
+      "char-0556d14a04": {
+       "kind": "SHOT",
+       "shotId": "shot-050ff6f102"
+      }
+     },
+     "environment": {
+      "kind": "PREVIOUS_SHOT",
+      "shotId": "shot-6ad9db5269"
+     }
+    },
+    "weather": "sunny",
+    "boundary": "cut",
+    "lighting": "warm morning sun, soft glow on face",
+    "relation": "CUT",
+    "timeOfDay": "MORNING",
+    "locationId": "loc-75cdbdb376",
+    "placeState": "same as previous"
+   },
+   "dialogueGuide": {
+    "padSeconds": 1.437,
+    "guideSeconds": 8
+   },
+   "identityCheck": {
+    "verdict": "PASS",
+    "characters": {
+     "char-0556d14a04": {
+      "min": 0.6071,
+      "detail": [],
+      "median": 0.6863,
+      "verdict": "PASS",
+      "framesWithFace": 16
+     }
+    },
+    "thresholds": "START"
+   }
+  },
+  "video": {
+   "assetId": "gen-0848c8106e01144aa64b",
+   "path": "video/2026/10/gen-0848c8106e01144aa64b.a1.mp4",
+   "sha256": "c2f11cc3bf09a5ec703579fea765f6fb9786a2d939b5a9539f52428d3e47589b",
+   "bytes": 1526905,
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "workflowVersion": "b6e3415221da15ad",
+   "seed": 681369956
   }
  }
 ]

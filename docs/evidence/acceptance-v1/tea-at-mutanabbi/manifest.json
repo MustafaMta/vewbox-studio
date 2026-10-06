@@ -7,8 +7,8 @@
   "stage": "COMPLETE"
  },
  "generatedBy": "docs/evidence/acceptance-v1/driver/bundle.mjs",
- "updatedAt": "2026-10-06T11:29:06.030Z",
- "lastStage": "2026-10-06 room-tone re-assembly (UI Cut 6), re-approved, export 3 with fixed credit card; take 10 rejected (plate defect)",
+ "updatedAt": "2026-10-06T16:07:11.918Z",
+ "lastStage": "2026-10-06 FINAL-tier retakes 1.2 (take 3) and 1.3 (take 12), cut + export gen-c4161f13c5bf330c7a21 watched",
  "files": {
   "production.json": "story, scenes and the shot plan (prompts, staging, boundaries) as stored",
   "characters.json": "cast with canonical image records, file sha256 and proxies",
@@ -28,9 +28,9 @@
   "characters": 2,
   "locations": 1,
   "shots": 3,
-  "takes": 13,
-  "jobs": 39,
-  "cuts": 6,
-  "exports": 12
+  "takes": 16,
+  "jobs": 51,
+  "cuts": 9,
+  "exports": 24
  }
 }

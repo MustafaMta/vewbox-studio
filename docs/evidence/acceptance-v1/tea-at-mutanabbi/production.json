@@ -23,7 +23,7 @@
  ],
  "genre": "Slice of Life",
  "mood": "Warm, sunny, and welcoming",
- "cutAssetId": "gen-0cb0ff13b48aa2048c5f",
+ "cutAssetId": "gen-ae9c787cc756f0f5e879",
  "exports": [
   {
    "id": "export-41d2d6f28b14485fc891",
@@ -57,10 +57,43 @@
    "subtitles": "en",
    "resolution": "1080",
    "durationSeconds": 23
+  },
+  {
+   "id": "export-86aa38e300bf5de9e097",
+   "bytes": 14165267,
+   "jobId": "job-3132c5011b",
+   "format": "mp4-h264",
+   "assetId": "gen-86aa38e300bf53736fda",
+   "createdAt": "2026-10-06T15:31:17.521Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 23
+  },
+  {
+   "id": "export-c71dea7af8924d224014",
+   "bytes": 14881349,
+   "jobId": "job-b280374f3f",
+   "format": "mp4-h264",
+   "assetId": "gen-c71dea7af892d913c0cb",
+   "createdAt": "2026-10-06T16:02:24.202Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 23
+  },
+  {
+   "id": "export-c4161f13c5bf19bbd713",
+   "bytes": 14882896,
+   "jobId": "job-619b4bbf11",
+   "format": "mp4-h264",
+   "assetId": "gen-c4161f13c5bf330c7a21",
+   "createdAt": "2026-10-06T16:06:21.852Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 23
   }
  ],
  "createdAt": "2026-10-05 17:09:54.758+00",
- "updatedAt": "2026-10-06 11:24:55.769+00",
+ "updatedAt": "2026-10-06 16:06:21.852+00",
  "scenes": [
   {
    "id": "scene-420beb3158",
@@ -240,7 +273,7 @@
    ],
    "dialogue": [],
    "transition": "EXTEND",
-   "selectedTakeId": "take-ecc5c02658d8d2ef75d6",
+   "selectedTakeId": "take-fd0cb3e0007bc7b5e2e6",
    "continuity": {
     "props": [
      {
@@ -318,7 +351,8 @@
    },
    "takeIds": [
     "take-6394fe8c2f5a19e52873",
-    "take-ecc5c02658d8d2ef75d6"
+    "take-ecc5c02658d8d2ef75d6",
+    "take-fd0cb3e0007bc7b5e2e6"
    ]
   },
   {
@@ -326,8 +360,8 @@
    "sceneId": "scene-420beb3158",
    "number": 3,
    "purpose": "Capture the emotional payoff of the first taste",
-   "action": "Clara, alone in the frame, holds the warm tulip glass in both hands and smiles as she speaks; after her words she takes a small sip.",
-   "framing": "MEDIUM",
+   "action": "Clara holds the warm tulip glass in both hands and smiles as she speaks, looking off-screen to her right across the counter; after her words she takes a small sip.",
+   "framing": "MEDIUM_CLOSE_UP",
    "cameraMove": "STATIC",
    "durationSeconds": 4,
    "characterIds": [
@@ -344,9 +378,7 @@
     }
    ],
    "transition": "CUT",
-   "openingFrameAssetId": "gen-4ecaa7969e73e194b398",
-   "endingFrameAssetId": "gen-4ecaa7969e73c2b6c5b3",
-   "selectedTakeId": "take-34af7614550bf525df9f",
+   "selectedTakeId": "take-0848c8106e01b0814b38",
    "continuity": {
     "props": [
      {
@@ -406,7 +438,9 @@
     "take-57fe000bbef99adca983",
     "take-e9834af668f3c525e575",
     "take-34af7614550bf525df9f",
-    "take-ba8f80a2c9d2a055bdcc"
+    "take-ba8f80a2c9d2a055bdcc",
+    "take-4830f1e7a604fb3c09d4",
+    "take-0848c8106e01b0814b38"
    ]
   }
  ]

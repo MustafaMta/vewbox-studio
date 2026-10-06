@@ -1,5 +1,5 @@
 {
- "currentCutAssetId": "gen-0cb0ff13b48aa2048c5f",
+ "currentCutAssetId": "gen-ae9c787cc756f0f5e879",
  "cuts": [
   {
    "assetId": "gen-a6b264f9896f3df07c21",
@@ -1747,7 +1747,7 @@
    "assetId": "gen-0cb0ff13b48aa2048c5f",
    "label": "Tea at Mutanabbi — assembled cut",
    "createdAt": "2026-10-06 11:19:19.615+00",
-   "current": true,
+   "current": false,
    "file": {
     "assetId": "gen-0cb0ff13b48aa2048c5f",
     "path": "video/2026/10/gen-0cb0ff13b48aa2048c5f.a1.mp4",
@@ -2166,6 +2166,1602 @@
       "IndexTTS-2.5"
      ],
      "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 19,
+       "detail": "expected 19.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 19
+   }
+  },
+  {
+   "assetId": "gen-fae7578834b7c5f7ea4b",
+   "label": "Tea at Mutanabbi — assembled cut",
+   "createdAt": "2026-10-06 15:30:17.092+00",
+   "current": false,
+   "file": {
+    "assetId": "gen-fae7578834b7c5f7ea4b",
+    "path": "video/2026/10/gen-fae7578834b7c5f7ea4b.a1.mp4",
+    "sha256": "8a56c5c429b9b6f0d6b30776a9c8f9312792634c90c360f07201d208d81b0501",
+    "bytes": 13813403
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-4830f1e7a604fb3c09d4",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-4830f1e7a604fb3c09d4",
+       "automation": {
+        "spans": [
+         {
+          "to": 304626,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-4830f1e7a60471705f7a",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-4830f1e7a604fb3c09d4-0",
+       "voice": false,
+       "policy": "the take's room tone (6.38–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-4830f1e7a604fb3c09d4",
+       "loopSamples": 75216,
+       "startSample": 541280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-4830f1e7a60471705f7a",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 306384
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 547200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-fae7578834b7c5f7ea4b.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 33.33,
+       "fluxP95": 26.487,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 56.34,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 456,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 5816169,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 19
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-4830f1e7a60471705f7a",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 3,
+     "revisionId": "wrev-3afcfc8b1a"
+    },
+    "loudness": {
+     "truePeak": -8.18,
+     "integrated": -22.99
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-4830f1e7a604fb3c09d4",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-4830f1e7a60471705f7a",
+       "lineage": "take:take-4830f1e7a604fb3c09d4",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-4830f1e7a604fb3c09d4-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 541280,
+       "ducked": 0,
+       "offset": 306384,
+       "source": "gen-4830f1e7a60471705f7a",
+       "lineage": "roomtone:take:take-4830f1e7a604fb3c09d4",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 547200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-4830f1e7a604fb3c09d4",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "none",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 19,
+       "detail": "expected 19.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 19
+   }
+  },
+  {
+   "assetId": "gen-a99440fdb888236561f4",
+   "label": "Tea at Mutanabbi — assembled cut",
+   "createdAt": "2026-10-06 16:01:36.904+00",
+   "current": false,
+   "file": {
+    "assetId": "gen-a99440fdb888236561f4",
+    "path": "video/2026/10/gen-a99440fdb888236561f4.a1.mp4",
+    "sha256": "a001fdde7ba445dd41d7303eb5a03b17844f6827dcb54e0ce9865b8c980c5a63",
+    "bytes": 14534999
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.30–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-0848c8106e01b0814b38",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "automation": {
+        "spans": [
+         {
+          "to": 300626,
+          "from": 11200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-0848c8106e01b0814b38-0",
+       "voice": false,
+       "policy": "the take's room tone (6.30–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "loopSamples": 79214,
+       "startSample": 537280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 302386
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 543200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-a99440fdb888236561f4.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 33.51,
+       "fluxP95": 30.577,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 55.856,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 456,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 6119999,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 19
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-0848c8106e01144aa64b",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 4,
+     "revisionId": "wrev-24cffd9301"
+    },
+    "loudness": {
+     "truePeak": -8.15,
+     "integrated": -22.99
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-0848c8106e01b0814b38",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-0848c8106e01b0814b38-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 537280,
+       "ducked": 0,
+       "offset": 302386,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 543200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.30–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-0848c8106e01b0814b38",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "none",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 19,
+       "detail": "expected 19.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 19
+   }
+  },
+  {
+   "assetId": "gen-ae9c787cc756f0f5e879",
+   "label": "Tea at Mutanabbi — assembled cut",
+   "createdAt": "2026-10-06 16:05:47.896+00",
+   "current": true,
+   "file": {
+    "assetId": "gen-ae9c787cc756f0f5e879",
+    "path": "video/2026/10/gen-ae9c787cc756f0f5e879.a1.mp4",
+    "sha256": "789f0b659fc40b088944b0f2cb736b0d1cb41235a4b1de21d5eff9291d7f148c",
+    "bytes": 14539243
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-0848c8106e01b0814b38",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "automation": {
+        "spans": [
+         {
+          "to": 304626,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-0848c8106e01b0814b38-0",
+       "voice": false,
+       "policy": "the take's room tone (6.38–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "loopSamples": 75216,
+       "startSample": 541280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 306384
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 547200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-ae9c787cc756f0f5e879.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 32.73,
+       "fluxP95": 23.796,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 55.856,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 456,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 6121786,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 19
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-0848c8106e01144aa64b",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 4,
+     "revisionId": "wrev-24cffd9301"
+    },
+    "loudness": {
+     "truePeak": -8.05,
+     "integrated": -22.99
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-0848c8106e01b0814b38",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-0848c8106e01b0814b38-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 541280,
+       "ducked": 0,
+       "offset": 306384,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 547200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-0848c8106e01b0814b38",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "none",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
     },
     "validation": {
      "ok": true,
@@ -3902,6 +5498,1824 @@
     "for": "gen-e36c2b4dbe3d319e1f5e",
     "lang": "en",
     "path": "subtitle/2026/10/gen-e36c2b4dbe3d8a605c56.a1.vtt",
+    "format": "vtt"
+   }
+  },
+  {
+   "assetId": "gen-86aa38e300bfe444e3a4",
+   "label": "Tea at Mutanabbi — subtitles en (srt)",
+   "createdAt": "2026-10-06 15:31:17.521+00",
+   "file": {
+    "assetId": "gen-86aa38e300bfe444e3a4",
+    "path": "subtitle/2026/10/gen-86aa38e300bfe444e3a4.a1.srt",
+    "sha256": "0942a5d7e9981e4f7e7104388b05d8c20f39d6aea3d6f6ea5d0118a5a996ee47",
+    "bytes": 201
+   },
+   "provenance": {
+    "for": "gen-86aa38e300bf53736fda",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-86aa38e300bfe444e3a4.a1.srt",
+    "format": "srt"
+   }
+  },
+  {
+   "assetId": "gen-86aa38e300bf73f6835b",
+   "label": "Tea at Mutanabbi — subtitles en (vtt)",
+   "createdAt": "2026-10-06 15:31:17.521+00",
+   "file": {
+    "assetId": "gen-86aa38e300bf73f6835b",
+    "path": "subtitle/2026/10/gen-86aa38e300bf73f6835b.a1.vtt",
+    "sha256": "883b6ebb662aa19f38987a961d602e5d68a7d0185d5e8d1ace3c3d8eefa8e7a2",
+    "bytes": 205
+   },
+   "provenance": {
+    "for": "gen-86aa38e300bf53736fda",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-86aa38e300bf73f6835b.a1.vtt",
+    "format": "vtt"
+   }
+  },
+  {
+   "assetId": "gen-86aa38e300bf53736fda",
+   "label": "Tea at Mutanabbi — export 1080p mp4-h264",
+   "createdAt": "2026-10-06 15:31:17.521+00",
+   "file": {
+    "assetId": "gen-86aa38e300bf53736fda",
+    "path": "video/2026/10/gen-86aa38e300bf53736fda.a1.mp4",
+    "sha256": "dd1b460d3e7a6e723b366ddbe5bf1266318d45decdb970bc1fc45071949aa4d6",
+    "bytes": 14165267
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-4830f1e7a604fb3c09d4",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-4830f1e7a604fb3c09d4",
+       "automation": {
+        "spans": [
+         {
+          "to": 304626,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-4830f1e7a60471705f7a",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-4830f1e7a604fb3c09d4-0",
+       "voice": false,
+       "policy": "the take's room tone (6.38–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-4830f1e7a604fb3c09d4",
+       "loopSamples": 75216,
+       "startSample": 541280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-4830f1e7a60471705f7a",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 306384
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 547200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-86aa38e300bf53736fda.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 33.33,
+       "fluxP95": 26.487,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 56.34,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 552,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 4927049,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 23
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-4830f1e7a60471705f7a",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 3,
+     "revisionId": "wrev-3afcfc8b1a"
+    },
+    "credits": {
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "seconds": 4
+    },
+    "loudness": {
+     "truePeak": -8.18,
+     "integrated": -22.92
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-4830f1e7a604fb3c09d4",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-4830f1e7a60471705f7a",
+       "lineage": "take:take-4830f1e7a604fb3c09d4",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-4830f1e7a604fb3c09d4-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 541280,
+       "ducked": 0,
+       "offset": 306384,
+       "source": "gen-4830f1e7a60471705f7a",
+       "lineage": "roomtone:take:take-4830f1e7a604fb3c09d4",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 547200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-4830f1e7a604fb3c09d4",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "en",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 23,
+       "detail": "expected 23.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      },
+      {
+       "ok": true,
+       "name": "subtitles",
+       "value": "2 cue(s) burned (en)",
+       "detail": "cues written, language matches, burn filter ran"
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 23
+   }
+  },
+  {
+   "assetId": "gen-86aa38e300bfca34e6e1",
+   "label": "Tea at Mutanabbi — export poster",
+   "createdAt": "2026-10-06 15:31:17.521+00",
+   "file": {
+    "assetId": "gen-86aa38e300bfca34e6e1",
+    "path": "image/2026/10/gen-86aa38e300bfca34e6e1.a1.jpg",
+    "sha256": "10db41bb07c6e64edb0e3bae7822432df067124d98a6b44539cfde8c3bca9946",
+    "bytes": 126564
+   },
+   "provenance": {
+    "path": "image/2026/10/gen-86aa38e300bfca34e6e1.a1.jpg",
+    "probe": {
+     "fps": 25,
+     "width": 1280,
+     "height": 720,
+     "pixFmt": "yuvj420p",
+     "bitrate": 25312800,
+     "hasAudio": false,
+     "hasVideo": true,
+     "container": "image2",
+     "colorSpace": "bt470bg",
+     "videoCodec": "mjpeg",
+     "durationSeconds": 0.04
+    }
+   }
+  },
+  {
+   "assetId": "gen-c71dea7af892c54da638",
+   "label": "Tea at Mutanabbi — subtitles en (vtt)",
+   "createdAt": "2026-10-06 16:02:24.202+00",
+   "file": {
+    "assetId": "gen-c71dea7af892c54da638",
+    "path": "subtitle/2026/10/gen-c71dea7af892c54da638.a1.vtt",
+    "sha256": "86d360acd5fcb2723989617586c00c6297f7fc4e76c011c665e2e51391a1f59b",
+    "bytes": 205
+   },
+   "provenance": {
+    "for": "gen-c71dea7af892d913c0cb",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-c71dea7af892c54da638.a1.vtt",
+    "format": "vtt"
+   }
+  },
+  {
+   "assetId": "gen-c71dea7af8921583a966",
+   "label": "Tea at Mutanabbi — export poster",
+   "createdAt": "2026-10-06 16:02:24.202+00",
+   "file": {
+    "assetId": "gen-c71dea7af8921583a966",
+    "path": "image/2026/10/gen-c71dea7af8921583a966.a1.jpg",
+    "sha256": "10db41bb07c6e64edb0e3bae7822432df067124d98a6b44539cfde8c3bca9946",
+    "bytes": 126564
+   },
+   "provenance": {
+    "path": "image/2026/10/gen-c71dea7af8921583a966.a1.jpg",
+    "probe": {
+     "fps": 25,
+     "width": 1280,
+     "height": 720,
+     "pixFmt": "yuvj420p",
+     "bitrate": 25312800,
+     "hasAudio": false,
+     "hasVideo": true,
+     "container": "image2",
+     "colorSpace": "bt470bg",
+     "videoCodec": "mjpeg",
+     "durationSeconds": 0.04
+    }
+   }
+  },
+  {
+   "assetId": "gen-c71dea7af892d913c0cb",
+   "label": "Tea at Mutanabbi — export 1080p mp4-h264",
+   "createdAt": "2026-10-06 16:02:24.202+00",
+   "file": {
+    "assetId": "gen-c71dea7af892d913c0cb",
+    "path": "video/2026/10/gen-c71dea7af892d913c0cb.a1.mp4",
+    "sha256": "1ee1d7119c5ba87077d973922a35f28f8c33c26e73b487e6abd97d199d6ef17b",
+    "bytes": 14881349
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.30–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-0848c8106e01b0814b38",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "automation": {
+        "spans": [
+         {
+          "to": 300626,
+          "from": 11200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-0848c8106e01b0814b38-0",
+       "voice": false,
+       "policy": "the take's room tone (6.30–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "loopSamples": 79214,
+       "startSample": 537280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 302386
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 543200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-c71dea7af892d913c0cb.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 33.51,
+       "fluxP95": 30.577,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 55.856,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 552,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 5176121,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 23
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-0848c8106e01144aa64b",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 4,
+     "revisionId": "wrev-24cffd9301"
+    },
+    "credits": {
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "seconds": 4
+    },
+    "loudness": {
+     "truePeak": -8.14,
+     "integrated": -22.92
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-0848c8106e01b0814b38",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-0848c8106e01b0814b38-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 537280,
+       "ducked": 0,
+       "offset": 302386,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 543200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.30–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-0848c8106e01b0814b38",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "en",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 23,
+       "detail": "expected 23.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      },
+      {
+       "ok": true,
+       "name": "subtitles",
+       "value": "2 cue(s) burned (en)",
+       "detail": "cues written, language matches, burn filter ran"
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 23
+   }
+  },
+  {
+   "assetId": "gen-c71dea7af892433256f3",
+   "label": "Tea at Mutanabbi — subtitles en (srt)",
+   "createdAt": "2026-10-06 16:02:24.202+00",
+   "file": {
+    "assetId": "gen-c71dea7af892433256f3",
+    "path": "subtitle/2026/10/gen-c71dea7af892433256f3.a1.srt",
+    "sha256": "31ff467413aa0c6281a9bda68d467e8f553f4834029e1f46f47ea38482a16c3d",
+    "bytes": 201
+   },
+   "provenance": {
+    "for": "gen-c71dea7af892d913c0cb",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-c71dea7af892433256f3.a1.srt",
+    "format": "srt"
+   }
+  },
+  {
+   "assetId": "gen-c4161f13c5bf391c6264",
+   "label": "Tea at Mutanabbi — subtitles en (srt)",
+   "createdAt": "2026-10-06 16:06:21.852+00",
+   "file": {
+    "assetId": "gen-c4161f13c5bf391c6264",
+    "path": "subtitle/2026/10/gen-c4161f13c5bf391c6264.a1.srt",
+    "sha256": "0942a5d7e9981e4f7e7104388b05d8c20f39d6aea3d6f6ea5d0118a5a996ee47",
+    "bytes": 201
+   },
+   "provenance": {
+    "for": "gen-c4161f13c5bf330c7a21",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-c4161f13c5bf391c6264.a1.srt",
+    "format": "srt"
+   }
+  },
+  {
+   "assetId": "gen-c4161f13c5bf330c7a21",
+   "label": "Tea at Mutanabbi — export 1080p mp4-h264",
+   "createdAt": "2026-10-06 16:06:21.852+00",
+   "file": {
+    "assetId": "gen-c4161f13c5bf330c7a21",
+    "path": "video/2026/10/gen-c4161f13c5bf330c7a21.a1.mp4",
+    "sha256": "d22b7acb414e44f994e2b919cfd2650bf3a759bea7a948c035cd218a4e8c4696",
+    "bytes": 14882896
+   },
+   "provenance": {
+    "fps": 24,
+    "mix": {
+     "rate": 48000,
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb",
+      "2 recorded line(s) replace the takes' own speech"
+     ],
+     "tracks": [
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-ce083627c68deb3ea2bb",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "automation": {
+        "spans": [
+         {
+          "to": 237752,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 0,
+       "fadeOutCurve": "qsin",
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 6000,
+       "durationSamples": 288000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-ce083627c68deb3ea2bb-0",
+       "voice": false,
+       "policy": "the take's room tone (4.99–6.53 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 13280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 1920,
+       "durationSamples": 226392,
+       "sourceOffsetSamples": 239510
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-c066061248",
+       "voice": true,
+       "lineId": "line-c066061248",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-cb4a02d3cc",
+       "lineage": "line:line-c066061248",
+       "startSample": 19200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-ce083627c68d092944d1",
+       "fadeOutSamples": 480,
+       "durationSamples": 214552,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-fd0cb3e0007bc7b5e2e6",
+       "voice": false,
+       "policy": "native MiniMax sound",
+       "shotId": "shot-6ad9db5269",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "fadeInCurve": "qsin",
+       "startSample": 282000,
+       "fadeInSamples": 6000,
+       "sourceAssetId": "gen-fd0cb3e0007ba89f0493",
+       "fadeOutSamples": 480,
+       "durationSamples": 246000,
+       "sourceOffsetSamples": 38000
+      },
+      {
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "cueId": "take-take-0848c8106e01b0814b38",
+       "voice": true,
+       "policy": "the take's room and movement; under the recorded lines that replace its speech, its own room tone instead",
+       "shotId": "shot-050ff6f102",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "automation": {
+        "spans": [
+         {
+          "to": 304626,
+          "from": 15200,
+          "gain": 0
+         }
+        ],
+        "rampSamples": 1920
+       },
+       "startSample": 528000,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 480,
+       "durationSamples": 384000,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "cueId": "room-take-0848c8106e01b0814b38-0",
+       "voice": false,
+       "policy": "the take's room tone (6.38–7.95 s of the take, no speech) under the recorded line, looped",
+       "shotId": "shot-050ff6f102",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "loopSamples": 75216,
+       "startSample": 541280,
+       "fadeInSamples": 1920,
+       "sourceAssetId": "gen-0848c8106e01144aa64b",
+       "fadeOutSamples": 1920,
+       "durationSamples": 293266,
+       "sourceOffsetSamples": 306384
+      },
+      {
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "cueId": "line-line-efab0ca83f",
+       "voice": true,
+       "lineId": "line-efab0ca83f",
+       "policy": "the character's recorded line replaces the take's speech (the take was generated to it (audio-first))",
+       "shotId": "shot-050ff6f102",
+       "lineage": "line:line-efab0ca83f",
+       "startSample": 547200,
+       "fadeInSamples": 480,
+       "sourceAssetId": "gen-e9834af668f3faf62e91",
+       "fadeOutSamples": 480,
+       "durationSamples": 281426,
+       "sourceOffsetSamples": 0
+      },
+      {
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "cueId": "roombed-loc-75cdbdb376-0",
+       "voice": false,
+       "policy": "the place's room tone (take take-ce083627c68deb3ea2bb, 4.99–6.53 s, looped) under the 3 shot(s) there, -10 dB: no digital silence between or inside the takes",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "loopSamples": 74088,
+       "startSample": 0,
+       "fadeInSamples": 12000,
+       "sourceAssetId": "gen-ce083627c68d860271bb",
+       "fadeOutSamples": 12000,
+       "durationSamples": 912000,
+       "sourceOffsetSamples": 239510
+      }
+     ],
+     "targetLufs": -23
+    },
+    "path": "video/2026/10/gen-c4161f13c5bf330c7a21.a1.mp4",
+    "size": {
+     "width": 1920,
+     "height": 1080
+    },
+    "sync": [],
+    "joins": [
+     {
+      "ok": false,
+      "join": "TRIM",
+      "audio": {
+       "flux": 0.392,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 27.42,
+       "fluxP95": 11.198,
+       "rmsStepDb": 0.64
+      },
+      "index": 1,
+      "judged": true,
+      "picture": {
+       "ok": false,
+       "diff": 5.072,
+       "intraP95": 5.059,
+       "threshold": 5.059
+      },
+      "relation": "CONTINUATION",
+      "toShotId": "shot-6ad9db5269",
+      "atSeconds": 6,
+      "fromShotId": "shot-cb4a02d3cc"
+     },
+     {
+      "ok": true,
+      "audio": {
+       "flux": 0,
+       "rmsOk": true,
+       "fluxOk": true,
+       "rmsP95": 32.73,
+       "fluxP95": 23.796,
+       "rmsStepDb": 9.63
+      },
+      "index": 2,
+      "judged": false,
+      "picture": {
+       "ok": false,
+       "diff": 55.856,
+       "intraP95": 4.619,
+       "threshold": 4.619
+      },
+      "relation": "CUT",
+      "toShotId": "shot-050ff6f102",
+      "atSeconds": 11,
+      "fromShotId": "shot-6ad9db5269"
+     }
+    ],
+    "probe": {
+     "fps": 24,
+     "width": 1920,
+     "frames": 552,
+     "height": 1080,
+     "pixFmt": "yuv420p",
+     "bitrate": 5176659,
+     "channels": 2,
+     "hasAudio": true,
+     "hasVideo": true,
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "audioCodec": "aac",
+     "colorSpace": "bt709",
+     "sampleRate": 48000,
+     "videoCodec": "h264",
+     "durationSeconds": 23
+    },
+    "shots": [
+     {
+      "basis": "INTENDED",
+      "start": 0,
+      "frames": 144,
+      "shotId": "shot-cb4a02d3cc",
+      "duration": 6,
+      "relation": "STORY_TRANSITION",
+      "holdFrames": 0,
+      "startFrame": 0,
+      "takeAssetId": "gen-ce083627c68d860271bb",
+      "trimStartFrames": 0
+     },
+     {
+      "join": "TRIM",
+      "basis": "INTENDED",
+      "start": 6,
+      "frames": 120,
+      "shotId": "shot-6ad9db5269",
+      "duration": 5,
+      "relation": "CONTINUATION",
+      "holdFrames": 0,
+      "startFrame": 144,
+      "takeAssetId": "gen-fd0cb3e0007ba89f0493",
+      "trimStartFrames": 22
+     },
+     {
+      "basis": "INTENDED",
+      "start": 11,
+      "frames": 192,
+      "shotId": "shot-050ff6f102",
+      "duration": 8,
+      "relation": "CUT",
+      "holdFrames": 0,
+      "startFrame": 264,
+      "takeAssetId": "gen-0848c8106e01144aa64b",
+      "trimStartFrames": 0
+     }
+    ],
+    "world": {
+     "pinned": true,
+     "revision": 4,
+     "revisionId": "wrev-24cffd9301"
+    },
+    "credits": {
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "seconds": 4
+    },
+    "loudness": {
+     "truePeak": -8.05,
+     "integrated": -22.92
+    },
+    "timeline": {
+     "cues": [
+      {
+       "id": "take-take-ce083627c68deb3ea2bb",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 0,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "take:take-ce083627c68deb3ea2bb",
+       "duration": 288000
+      },
+      {
+       "id": "room-take-ce083627c68deb3ea2bb-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 13280,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:take:take-ce083627c68deb3ea2bb",
+       "duration": 226392
+      },
+      {
+       "id": "line-line-c066061248",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 19200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-ce083627c68d092944d1",
+       "lineage": "line:line-c066061248",
+       "duration": 214552
+      },
+      {
+       "id": "take-take-fd0cb3e0007bc7b5e2e6",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 282000,
+       "ducked": 0,
+       "offset": 38000,
+       "source": "gen-fd0cb3e0007ba89f0493",
+       "lineage": "take:take-fd0cb3e0007bc7b5e2e6",
+       "duration": 246000
+      },
+      {
+       "id": "take-take-0848c8106e01b0814b38",
+       "gain": 1,
+       "kind": "GENERATED_VIDEO_AUDIO",
+       "muted": false,
+       "start": 528000,
+       "ducked": 1,
+       "offset": 0,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "take:take-0848c8106e01b0814b38",
+       "duration": 384000
+      },
+      {
+       "id": "room-take-0848c8106e01b0814b38-0",
+       "gain": 1,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 541280,
+       "ducked": 0,
+       "offset": 306384,
+       "source": "gen-0848c8106e01144aa64b",
+       "lineage": "roomtone:take:take-0848c8106e01b0814b38",
+       "duration": 293266
+      },
+      {
+       "id": "line-line-efab0ca83f",
+       "gain": 1,
+       "kind": "DIALOGUE",
+       "muted": false,
+       "start": 547200,
+       "ducked": 0,
+       "offset": 0,
+       "source": "gen-e9834af668f3faf62e91",
+       "lineage": "line:line-efab0ca83f",
+       "duration": 281426
+      },
+      {
+       "id": "roombed-loc-75cdbdb376-0",
+       "gain": 0.32,
+       "kind": "AMBIENCE",
+       "muted": false,
+       "start": 0,
+       "ducked": 0,
+       "offset": 239510,
+       "source": "gen-ce083627c68d860271bb",
+       "lineage": "roomtone:bed:take-ce083627c68deb3ea2bb",
+       "duration": 912000
+      }
+     ],
+     "clock": "DIALOGUE",
+     "notes": [
+      "shot shot-cb4a02d3cc: 14 frame(s) past what the take was generated for are left out",
+      "shot shot-6ad9db5269: 16 frame(s) past what the take was generated for are left out",
+      "shot shot-cb4a02d3cc: room tone from 4.99–6.53 s of the take under 1 recorded line span(s)",
+      "shot shot-050ff6f102: room tone from 6.38–7.95 s of the take under 1 recorded line span(s)",
+      "continuation join before shot shot-6ad9db5269: the takes' sound cross-fades over 3 frames",
+      "room bed under 3 shot(s) at loc-75cdbdb376 from take take-ce083627c68deb3ea2bb"
+     ],
+     "shots": [
+      {
+       "basis": "INTENDED",
+       "frames": 144,
+       "shotId": "shot-cb4a02d3cc",
+       "takeId": "take-ce083627c68deb3ea2bb",
+       "relation": "STORY_TRANSITION",
+       "holdFrames": 0,
+       "startFrame": 0,
+       "sourceStartFrame": 0
+      },
+      {
+       "join": "TRIM",
+       "basis": "INTENDED",
+       "frames": 120,
+       "shotId": "shot-6ad9db5269",
+       "takeId": "take-fd0cb3e0007bc7b5e2e6",
+       "relation": "CONTINUATION",
+       "holdFrames": 0,
+       "startFrame": 144,
+       "sourceStartFrame": 22
+      },
+      {
+       "basis": "INTENDED",
+       "frames": 192,
+       "shotId": "shot-050ff6f102",
+       "takeId": "take-0848c8106e01b0814b38",
+       "relation": "CUT",
+       "holdFrames": 0,
+       "startFrame": 264,
+       "sourceStartFrame": 0
+      }
+     ],
+     "policy": {
+      "songBed": "INSTRUMENTAL_WHEN_AVAILABLE",
+      "dialogue": "AUTO"
+     },
+     "problems": [],
+     "totalFrames": 456,
+     "songOffsetFrames": 0
+    },
+    "shotCount": 3,
+    "subtitles": "en",
+    "disclosure": {
+     "comment": "AI-generated with Vewbox Studio; video by MiniMax H3",
+     "engines": [
+      "MiniMax-H3 (local, pruned int8)",
+      "MiniMax-H3 (local, pruned int8, base 20 steps)",
+      "IndexTTS-2.5"
+     ],
+     "description": "AI-generated with Vewbox Studio; video by MiniMax H3. Engines: MiniMax-H3 (local, pruned int8); MiniMax-H3 (local, pruned int8, base 20 steps); IndexTTS-2.5."
+    },
+    "validation": {
+     "ok": true,
+     "checks": [
+      {
+       "ok": true,
+       "name": "decodable",
+       "value": "h264 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "codec",
+       "value": "h264",
+       "detail": "expected h264"
+      },
+      {
+       "ok": true,
+       "name": "container",
+       "value": "mov,mp4,m4a,3gp,3g2,mj2",
+       "detail": "expected mp4"
+      },
+      {
+       "ok": true,
+       "name": "stream-count",
+       "value": "1 video, 1 audio",
+       "detail": "exactly one picture and one sound stream"
+      },
+      {
+       "ok": true,
+       "name": "ai-disclosure",
+       "value": "AI-generated with Vewbox Studio; video by MiniMax H3",
+       "detail": "container comment discloses AI generation (MiniMax H3 AUP)"
+      },
+      {
+       "ok": true,
+       "name": "size",
+       "value": "1920x1080",
+       "detail": "expected 1920x1080"
+      },
+      {
+       "ok": true,
+       "name": "frame-rate",
+       "value": 24,
+       "detail": "expected 24"
+      },
+      {
+       "ok": true,
+       "name": "audio-present",
+       "value": "aac"
+      },
+      {
+       "ok": true,
+       "name": "duration",
+       "value": 23,
+       "detail": "expected 23.000 s"
+      },
+      {
+       "ok": true,
+       "name": "audio-video-length",
+       "value": 0,
+       "detail": "difference in seconds"
+      },
+      {
+       "ok": true,
+       "name": "timestamps-start",
+       "value": "0.000000 / 0.000000"
+      },
+      {
+       "ok": true,
+       "name": "no-black-segments",
+       "value": 0,
+       "detail": ""
+      },
+      {
+       "ok": true,
+       "name": "subtitles",
+       "value": "2 cue(s) burned (en)",
+       "detail": "cues written, language matches, burn filter ran"
+      }
+     ]
+    },
+    "dialogueAudio": 2,
+    "durationSeconds": 23
+   }
+  },
+  {
+   "assetId": "gen-c4161f13c5bfcac94fb7",
+   "label": "Tea at Mutanabbi — export poster",
+   "createdAt": "2026-10-06 16:06:21.852+00",
+   "file": {
+    "assetId": "gen-c4161f13c5bfcac94fb7",
+    "path": "image/2026/10/gen-c4161f13c5bfcac94fb7.a1.jpg",
+    "sha256": "10db41bb07c6e64edb0e3bae7822432df067124d98a6b44539cfde8c3bca9946",
+    "bytes": 126564
+   },
+   "provenance": {
+    "path": "image/2026/10/gen-c4161f13c5bfcac94fb7.a1.jpg",
+    "probe": {
+     "fps": 25,
+     "width": 1280,
+     "height": 720,
+     "pixFmt": "yuvj420p",
+     "bitrate": 25312800,
+     "hasAudio": false,
+     "hasVideo": true,
+     "container": "image2",
+     "colorSpace": "bt470bg",
+     "videoCodec": "mjpeg",
+     "durationSeconds": 0.04
+    }
+   }
+  },
+  {
+   "assetId": "gen-c4161f13c5bf47221bf2",
+   "label": "Tea at Mutanabbi — subtitles en (vtt)",
+   "createdAt": "2026-10-06 16:06:21.852+00",
+   "file": {
+    "assetId": "gen-c4161f13c5bf47221bf2",
+    "path": "subtitle/2026/10/gen-c4161f13c5bf47221bf2.a1.vtt",
+    "sha256": "883b6ebb662aa19f38987a961d602e5d68a7d0185d5e8d1ace3c3d8eefa8e7a2",
+    "bytes": 205
+   },
+   "provenance": {
+    "for": "gen-c4161f13c5bf330c7a21",
+    "lang": "en",
+    "path": "subtitle/2026/10/gen-c4161f13c5bf47221bf2.a1.vtt",
     "format": "vtt"
    }
   }

@@ -6,7 +6,8 @@
   "Qwen-Image-Edit-2511",
   "FLUX.2-klein-4B",
   "MiniMax-H3 (local, pruned int8)",
-  "Habibi-TTS IRQ (F5-TTS v1)"
+  "Habibi-TTS IRQ (F5-TTS v1)",
+  "MiniMax-H3 (local, pruned int8, base 20 steps)"
  ],
  "registryModels": [
   {
@@ -146,6 +147,14 @@
    "group": "eval-qwen-image-2.1"
   },
   {
+   "name": "diffusion_models/qwen_image_2512_bf16.safetensors",
+   "version": "Comfy-Org/Qwen-Image_ComfyUI",
+   "sha256": "cbf55390fff27dbc785046d7007b04e0c5dd7421e7ef128f2831eacb53a8e075",
+   "bytes": 40861031488,
+   "status": "MISSING",
+   "group": "eval-qwen-image-2512-bf16"
+  },
+  {
    "name": "diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
    "version": "Comfy-Org/Qwen-Image_ComfyUI",
    "sha256": "5dc80554d5d83390046a2f4a94ece06afb7700bf7b0aaf8bde9769793875876b",
@@ -226,6 +235,14 @@
    "group": "eval-qwen-image-2.1"
   },
   {
+   "name": "text_encoders/qwen3vl_8b_joyimage_edit_int8_convrot.safetensors",
+   "version": "Comfy-Org/JoyAI-Image-Edit",
+   "sha256": "683de3ab15337afb9dcf19caaabb683a5ce53eb311eb302ff8eeaf4f553ad1a8",
+   "bytes": 10064089100,
+   "status": "PRESENT",
+   "group": "eval-joyai-image-edit"
+  },
+  {
    "name": "text_encoders/qwen_0.6b_ace15.safetensors",
    "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
    "sha256": "fd4590c82153b8ddb67e15a2e7aaa8afa8b83a858c8a9b82a4831063156aa7a7",
@@ -256,6 +273,14 @@
    "bytes": 8044982048,
    "status": "PRESENT",
    "group": "images-flux2-klein"
+  },
+  {
+   "name": "text_encoders/qwen_4b_ace15.safetensors",
+   "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
+   "sha256": "ffe5ffb855086c2ab55e467e9859fb01894781020a0376484dd19de166b79873",
+   "bytes": 8379154232,
+   "status": "MISSING",
+   "group": "music-ace-step-xl"
   },
   {
    "name": "voice/habibi-tts-irq",
@@ -328,6 +353,38 @@
    "group": "images-qwen"
   },
   {
+   "name": "vae/wan_2.1_vae.safetensors",
+   "version": "Comfy-Org/JoyAI-Image-Edit",
+   "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+   "bytes": 253815318,
+   "status": "PRESENT",
+   "group": "eval-joyai-image-edit"
+  },
+  {
+   "name": "lipsync/latentsync-1.6/whisper/tiny.pt",
+   "version": "ByteDance/LatentSync-1.6",
+   "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9",
+   "bytes": 75572083,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
+   "name": "lipsync/sd-vae-ft-mse/config.json",
+   "version": "stabilityai/sd-vae-ft-mse",
+   "sha256": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+   "bytes": 547,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
+   "name": "lipsync/sd-vae-ft-mse/diffusion_pytorch_model.safetensors",
+   "version": "stabilityai/sd-vae-ft-mse",
+   "sha256": "a1d993488569e928462932c8c38a0760b874d166399b14414135bd9c42df5815",
+   "bytes": 334643276,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
    "name": "tts/voxcpm2/audiovae.pth",
    "version": "openbmb/VoxCPM2",
    "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1",
@@ -350,12 +407,32 @@
    "version": "4c1b228baf946747"
   },
   {
+   "name": "ace-step-1.5.xl-sft.song",
+   "version": "645ab6cdae0c6dd3"
+  },
+  {
+   "name": "ace-step-1.5.xl-turbo.song",
+   "version": "cd0a084d610e2ad4"
+  },
+  {
    "name": "flux2-klein.canonical-reference",
    "version": "283613ceafdf1ac4"
   },
   {
    "name": "minimax-h3.fl2va",
+   "version": "f140f0da6119bd25"
+  },
+  {
+   "name": "minimax-h3.fl2va",
    "version": "bcb2042658f27aa1"
+  },
+  {
+   "name": "minimax-h3.fl2va-draft",
+   "version": "bcb2042658f27aa1"
+  },
+  {
+   "name": "minimax-h3.ref2va",
+   "version": "2e2e69f44978d9cf"
   },
   {
    "name": "minimax-h3.ref2va",
@@ -367,7 +444,19 @@
   },
   {
    "name": "minimax-h3.ref2va-continuation",
+   "version": "4b4b4e1a5ed4433d"
+  },
+  {
+   "name": "minimax-h3.ref2va-continuation",
    "version": "83b32f245b2ad0ad"
+  },
+  {
+   "name": "minimax-h3.ref2va-draft",
+   "version": "7909c7b9d65b9981"
+  },
+  {
+   "name": "minimax-h3.ref2va-opening",
+   "version": "450192c3d473dba2"
   },
   {
    "name": "minimax-h3.ref2va-opening",
