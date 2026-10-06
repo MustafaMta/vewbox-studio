@@ -1,25 +1,40 @@
+# --- dependencies
 node_modules/
-.next/
-.next-test/
-*.tsbuildinfo
-.DS_Store
-.env
-.env.local
+.pnpm-store/
 
-# test evidence written by Playwright and the screenshot tool
+# --- build output and caches
+.next/
+.next-*/
+.turbo/
+.cache/
+.eslintcache
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# --- test output (Playwright, the screenshot tool, coverage)
 test-results/
 playwright-report/
-var/
-coverage/
 blob-report/
-# stray logs at the repository root (evidence logs under docs/evidence are committed on purpose)
-/*.log
+coverage/
 
-# agent worktrees
-.claude/worktrees/
+# --- logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
 
-# generated media stays on the workstation, never in Git (producer's rule, 2026-10-05): evidence screenshots, generated
-# images, voice and video under docs/ are written to disk only; the reports, JSON and HTML beside them are committed.
+# --- local media, library and outputs (LIBRARY_DIR=./var/library, var/model-eval, var/*.log …)
+var/
+
+# --- evidence stays on the workstation (archived out of the repo 2026-10-06); only the files unit tests read are tracked
+docs/evidence/**
+!docs/evidence/**/
+!docs/evidence/acceptance-v1/resume.json
+!docs/evidence/model-eval-2026-10/llm/*/design-run*.json
+!docs/evidence/model-eval-2026-10/voice-en/one-word/results.json
+
+# --- generated media under docs/ is never committed (producer's rule, 2026-10-05); the reports beside it are.
 # App samples (public/sample) and test fixtures (tests/fixtures) are tracked on purpose.
 docs/**/*.png
 docs/**/*.jpg
@@ -35,6 +50,33 @@ docs/**/*.mp4
 docs/**/*.webm
 docs/**/*.mov
 
-# Python bytecode (docker service tests)
-__pycache__/
-.pytest_cache/
+# --- model weights live in the model store (VEWBOX_MODELS_ROOT), never in Git
+*.safetensors
+*.gguf
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.bin
+!tests/fixtures/**/*.bin
+
+# --- local database dumps
+*.dump
+*.sql.gz
+*.pgdump
+
+# --- temp and editor files
+*.tmp
+*.temp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# --- secrets: every env file except the documented example
+.env
+.env.*
+!.env.example
+
+# --- agent worktrees
+.claude/worktrees/
