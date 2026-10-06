@@ -108,6 +108,12 @@ if ($DropVolumes) {
 }
 if ($Execute) {
   # tell the virtual disk which blocks are free (no downtime); the file on C: shrinks only at compaction
-  docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -- fstrim -v /mnt/docker-desktop-disk | ForEach-Object { Say "fstrim: $_" }
+  $trim = @(docker run --rm --privileged --pid=host alpine nsenter -t 1 -m -- fstrim -v /mnt/docker-desktop-disk)
+  $trim | ForEach-Object { Say "fstrim: $_" }
+  # the record scripts/compact-docker-disk.ps1 requires before it compacts
+  $logDir = Join-Path $repo 'var\models-store'; New-Item -ItemType Directory -Force $logDir | Out-Null
+  $rec = @{ at = (Get-Date).ToString('o'); freedBytes = $freed; dropVolumes = [bool]$DropVolumes; oldVolumesLeft = @(docker volume ls -q | Where-Object { $_ -in 'vewbox_models', 'vewbox_ollama' }); fstrim = ($trim -join ' '); cFreeGB = (CFreeGB) } | ConvertTo-Json -Compress
+  [IO.File]::AppendAllText((Join-Path $logDir 'retire.log'), $rec + "`n", (New-Object System.Text.UTF8Encoding $false))
+  Say "recorded in var\models-store\retire.log"
 }
 Say ("done; {0:N1} GB of folders deleted; C: free now {1} GB (docker_data.vhdx keeps its size until compacted)" -f ($freed / 1GB), (CFreeGB))
