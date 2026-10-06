@@ -26,6 +26,7 @@ import { POST } from '@/app/api/jobs/route';
 import { requeueKeyFor, voiceBuildKey } from '@/server/jobs/keys';
 import { createCharacterKey, startCreateCharacter } from '@/components/character/contract';
 import { canonical, hashString } from '@/domain/hash';
+import { TERMS_VERSION } from '@/domain/terms';
 
 const post = async (body: Record<string, unknown>) => { const res = await POST(new Request('http://studio.test/api/jobs', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }), undefined); return { status: res.status, body: await res.json() as { job: Job & { key?: string }; created: boolean } }; };
 const finish = (id: string, status: JobStatus) => { const j = fake.jobs.find((x) => x.id === id)!; j.status = status; };
@@ -35,7 +36,8 @@ beforeEach(() => {
   let s = seed();
   s = addAsset(s, { id: 'up-rec', kind: 'AUDIO', src: '/api/media/up-rec', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' }).state;
   s = addVoiceRecording(s, 'nour', 'up-rec', 'take one', { consent: { statement: 'MY_VOICE', by: 'PRODUCER', at: '2026-10-03T00:00:00.000Z' } });
-  fake.state = s;
+  // the studio has accepted the terms of use (src/domain/terms.ts); without them POST /api/jobs refuses 403
+  fake.state = { ...s, settings: { ...s.settings, terms: { version: TERMS_VERSION, acceptedAt: '2026-10-06T00:00:00.000Z' } } };
 });
 
 describe('requeueKeyFor (pure)', () => {

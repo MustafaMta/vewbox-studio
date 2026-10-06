@@ -6,7 +6,7 @@ import { productionContextFor } from '@/domain/production-context';
 import { useStudio } from '@/studio/store';
 import { shotLabel } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
-import { Button, Field, Input, Select, StateWord } from '@/components/ui/kit';
+import { Button, Checkbox, Field, Input, Segmented, Select, StateWord } from '@/components/ui/kit';
 
 /** THE SHOT'S PRODUCTION CONTEXT on the shot page (cloud directive 2026-10-05 §4): the state of each person in the
  *  shot, kept by the studio and edited here (condition, emotion, how they start and end, which way they move), and
@@ -30,7 +30,10 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
   const people = shot.characterIds.map((id) => state.characters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => Boolean(c));
   const initial = useMemo(() => Object.fromEntries(people.map((c) => [c.id, { ...(shot.continuity?.characters.find((x) => x.characterId === c.id) ?? { characterId: c.id }) }])) as Record<string, Person>, [shot.continuity, people]);
   const [draft, setDraft] = useState<Record<string, Person>>(initial);
-  const dirty = !same(draft, initial);
+  // the camera crossing the 180° line on purpose (camera.crossesLine): the log then does not flag the swapped sides
+  const lineInitial = Boolean(shot.continuity?.camera?.crossesLine);
+  const [crosses, setCrosses] = useState(lineInitial);
+  const dirty = !same(draft, initial) || crosses !== lineInitial;
   useEffect(() => { onDirty?.(dirty); }, [dirty, onDirty]);
   useEffect(() => () => onDirty?.(false), [onDirty]);
   const set = (id: string, patch: Partial<Person>) => setDraft((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
@@ -39,7 +42,7 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
     const others = base.characters.filter((x) => !shot.characterIds.includes(x.characterId));
     if (!dirty) return; // a save with nothing changed would only move the continuity's version on (QA m1)
     const { version: _v, ...rest } = base;
-    try { act('setShotContinuity', p.id, shot.id, { ...rest, characters: [...others, ...shot.characterIds.map((id) => clean(draft[id] ?? { characterId: id }))] }); toast.ok('The people’s state is saved.'); } catch (e) { toast.bad((e as Error).message); }
+    try { act('setShotContinuity', p.id, shot.id, { ...rest, camera: { ...(rest.camera ?? {}), crossesLine: crosses || undefined }, characters: [...others, ...shot.characterIds.map((id) => clean(draft[id] ?? { characterId: id }))] }); toast.ok('The people’s state is saved.'); } catch (e) { toast.bad((e as Error).message); }
   };
   const ctx = useMemo(() => productionContextFor(state, p, shot), [state, p, shot]);
   const name = (id: string) => state.characters.find((c) => c.id === id)?.name ?? id;
@@ -60,6 +63,9 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
               <Input value={x.startPose ?? ''} onChange={(e) => set(c.id, { startPose: e.target.value })} dir="auto" placeholder="Where and how they are at the first frame" />
             </Field>
             <Field label="Ends" help="A continuous next shot starts from this."><Input value={x.endPose ?? ''} onChange={(e) => set(c.id, { endPose: e.target.value })} dir="auto" placeholder="Where and how they are at the last frame" /></Field>
+            <Field label="Side of frame" help="Where they stand on screen. Across a cut, people keep their sides unless the camera crosses the line.">
+              <Segmented<string> label={`: side of frame`} size="sm" value={x.frameSide ?? ''} onChange={(v) => set(c.id, { frameSide: (v || undefined) as Person['frameSide'] })} options={[{ value: '', label: 'Not set' }, { value: 'LEFT', label: 'Left' }, { value: 'CENTER', label: 'Centre' }, { value: 'RIGHT', label: 'Right' }]} />
+            </Field>
             <Field label="Moves">
               <Select value={x.motion?.direction ?? ''} options={MOTIONS} onChange={(e) => set(c.id, { motion: { ...(x.motion ?? {}), direction: (e.target.value || undefined) as ShotMotion['direction'] } })} aria-label={`${c.name} moves`} />
             </Field>
@@ -76,7 +82,8 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
           </fieldset>
         );
       })}
-      {people.length > 0 && <div className="ws-actions"><Button size="sm" variant="primary" disabled={!dirty} onClick={save}>Save the people’s state</Button>{dirty && <Button size="sm" variant="quiet" onClick={() => setDraft(initial)}>Discard</Button>}</div>}
+      {people.length > 1 && <Checkbox label="This shot crosses the line" help="The camera moves to the other side of the action on purpose, so left and right swap. The continuity log stops flagging the swap." checked={crosses} onChange={(e) => setCrosses(e.target.checked)} />}
+      {people.length > 0 && <div className="ws-actions"><Button size="sm" variant="primary" disabled={!dirty} onClick={save}>Save the people’s state</Button>{dirty && <Button size="sm" variant="quiet" onClick={() => { setDraft(initial); setCrosses(lineInitial); }}>Discard</Button>}</div>}
 
       <div className="ws-context-next">
         <span className="t-label">What the next take is made from</span>
@@ -91,8 +98,8 @@ export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /
           {ctx.anchoring.chainLength > 1 && <div><dt className="t-label">Continuous chain</dt><dd>{ctx.anchoring.chainLength} shots in a row{ctx.anchoring.reanchor ? ' · re-anchors on the characters’ own images (shortest guide)' : ''}</dd></div>}
         </dl>
         {ctx.gaps.length > 0 && (
-          <ul className="ws-files" role="list" aria-label="Missing before filming">
-            {ctx.gaps.map((g) => <li key={g}><span className="ws-file-words"><span className="t-meta" dir="auto">{g}</span></span><StateWord tone="waiting">Missing</StateWord></li>)}
+          <ul className="ws-files" role="list" aria-label="Not stated yet">
+            {ctx.gaps.map((g) => <li key={g}><span className="ws-file-words"><span className="t-meta" dir="auto">{g}</span></span><StateWord tone="idle">Not stated</StateWord></li>)}
           </ul>
         )}
       </div>

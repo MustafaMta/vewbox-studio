@@ -11,26 +11,19 @@
  *    pnpm exec tsx --env-file=.env --env-file=.env.local scripts/gpu-hold.ts IMAGE 30400 -- node bench/images.mjs --case 3
  *    pnpm exec tsx --env-file=.env --env-file=.env.local scripts/gpu-hold.ts --priority normal VIDEO 31900 -- node x.mjs
  *
- *  Family: IMAGE | VIDEO | TTS | ASR | MUSIC | LLM. Estimate: the measured peak in MB (docs/research/GPU-STAGING-2026-10.md).
+ *  Family: IMAGE | VIDEO | TTS | ASR | MUSIC | LLM | LIPSYNC. Estimate: the measured peak in MB (docs/research/GPU-STAGING-2026-10.md).
  *  Hold the card for one bounded batch at a time (minutes, not hours): the acceptance run's jobs wait while it is held.
  *  The command inherits stdio; its exit code is this script's. */
 import { spawn } from 'node:child_process';
-import { gpuLease, type GpuFamily, type GpuPriority } from '../src/server/gpu/lease';
+import { gpuLease } from '../src/server/gpu/lease';
+import { HOLD_USAGE, parseHoldArgs } from '../src/server/gpu/hold-args';
 
-const FAMILIES: GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM'];
-let argv = process.argv.slice(2);
-let priority: GpuPriority = 'background';
-if (argv[0] === '--priority') { if (argv[1] !== 'normal' && argv[1] !== 'background') { console.error('--priority must be normal or background'); process.exit(2); } priority = argv[1]; argv = argv.slice(2); }
-const [family, estimate] = argv;
-// `--` before the command is optional (pnpm exec consumes it)
-const cmd = argv[2] === '--' ? argv.slice(3) : argv.slice(2);
-if (!FAMILIES.includes(family as GpuFamily) || !Number.isFinite(Number(estimate)) || cmd.length === 0) {
-  console.error('usage: gpu-hold.ts [--priority background|normal] <IMAGE|VIDEO|TTS|ASR|MUSIC|LLM> <estimateMb> -- <command> [args…]');
-  process.exit(2);
-}
+const parsed = parseHoldArgs(process.argv.slice(2));
+if ('error' in parsed) { console.error(parsed.error === HOLD_USAGE ? HOLD_USAGE : `${parsed.error}\n${HOLD_USAGE}`); process.exit(2); }
+const { family, estimateMb, priority, cmd } = parsed;
 
 const t0 = Date.now();
-const code = await gpuLease(family as GpuFamily, Number(estimate), () => new Promise<number>((resolve) => {
+const code = await gpuLease(family, estimateMb, () => new Promise<number>((resolve) => {
   console.error(`[gpu-hold] ${family} (${priority}) granted after ${((Date.now() - t0) / 1000).toFixed(1)} s: ${cmd.join(' ')}`);
   // Windows needs the shell for pnpm/npx (.cmd shims); the shell then re-splits the line, so quote each argument
   const win = process.platform === 'win32';

@@ -26,7 +26,8 @@ for (const m of req0.models) (models[m.folder] ??= []).push(m.file);
 const comfyStub: StubComfy = await stubComfy({ nodes: req0.nodes, models, goodClip: fs.readFileSync(clipFile), runMs: 600 });
 const speechStub = await stubSpeech(fs.readFileSync(wavFile));
 // the clients read their URLs once, on first use: point them at the fixtures before anything asks
-Object.assign(process.env, { COMFYUI_URL: comfyStub.url, TTS_URL: speechStub.url, ASR_URL: speechStub.url, VIDEO_BACKEND: 'local', MINIMAX_API_KEY: '' });
+// these are FIXTURE engines on loopback ports: the lease guard (gpu/lease-db.ts) lets this file call them
+Object.assign(process.env, { VEWBOX_FIXTURE_ENGINES: '1', COMFYUI_URL: comfyStub.url, TTS_URL: speechStub.url, ASR_URL: speechStub.url, VIDEO_BACKEND: 'local', MINIMAX_API_KEY: '' });
 
 const { eq, inArray } = await import('drizzle-orm');
 const { db, schema } = await import('@/server/db/client');
@@ -94,6 +95,28 @@ describe('ComfyUI container down for a while (docker restart)', () => {
     await down;
     expect(fs.statSync(r.file).size).toBe(fs.statSync(clipFile).size);
   }, 60_000);
+});
+
+describe('ComfyUI busy when the card leaves it (incident 2026-10-06 12:41Z)', () => {
+  it('the ComfyUI unload of the lease waits for prompts still running there (a foreign or abandoned prompt), then frees', async () => {
+    const { enginesToUnload } = await import('@/server/gpu/unloaders');
+    const comfyEngine = enginesToUnload('IMAGE', 'LLM').find((e) => e.name === 'comfyui')!;
+    comfyStub.queueBusy = 3;
+    const frees = comfyStub.frees;
+    const t0 = Date.now();
+    process.env.GPU_COMFY_DRAIN_MS = '60000';
+    await comfyEngine.unload();
+    expect(comfyStub.queueBusy).toBe(0);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(3_500); // waited through the busy polls (2 s apart)
+    expect(comfyStub.frees).toBe(frees + 1);
+  }, 60_000);
+  it('waitIdle gives up after its bound and says so', async () => {
+    const { waitIdle } = await import('@/server/providers/comfy');
+    comfyStub.queueBusy = 1000;
+    const w = await waitIdle(1_500, 300);
+    comfyStub.queueBusy = 0;
+    expect(w).toMatchObject({ idle: false, promptIds: ['foreign-prompt-1'] });
+  }, 30_000);
 });
 
 describe('GPU out of memory', () => {

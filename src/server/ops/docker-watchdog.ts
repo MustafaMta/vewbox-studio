@@ -5,6 +5,7 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { ENGINE_WSL_DIR, MARKER, judgeWslMount, readStoreEnv, storeConfig, wslMountArgs } from '../../../scripts/lib/models-store.mjs';
 
 const run = promisify(execFile);
 
@@ -51,11 +52,17 @@ export interface WatchdogState {
   web?: { port: number; healthy: boolean; listening: boolean; wanted: boolean };
   /** Docker starts this watchdog performed in the last hour */
   recentDockerStarts: number;
+  /** the model store (docs/MODELS-STORAGE.md), when watched: `attached` is known only while the engine answers (its
+   *  marker seen through the engine); `stranded` = studio containers that failed to start because the store was not
+   *  attached when Docker started them */
+  modelStore?: { attached: boolean | undefined; stranded: string[] };
 }
 
 export type WatchdogAction =
   | { kind: 'ok'; detail: string }
-  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY' | 'WEB_UNHEALTHY' | 'WEB_DOWN'; detail: string }
+  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY' | 'WEB_UNHEALTHY' | 'WEB_DOWN' | 'MODELS_DETACHED' | 'MODELS_STRANDED'; detail: string }
+  | { kind: 'attach-models' }
+  | { kind: 'start-stranded'; containers: string[] }
   | { kind: 'rename-stale-socket' }
   | { kind: 'start-docker' }
   | { kind: 'wait-engine' }
@@ -73,6 +80,14 @@ export function planWatchdog(s: WatchdogState, opts: { fix: boolean }): Watchdog
   if (c && (c.dockerInAppJob > 0 || c.workerInAppJob > 0 || (c.webInAppJob ?? 0) > 0)) {
     out.push({ kind: 'warn', code: 'CONTAINED', detail: `${c.dockerInAppJob} Docker process(es), ${c.workerInAppJob} worker process(es) and ${c.webInAppJob ?? 0} web server process(es) were launched from the Claude app (or another launcher's job object): they will be terminated at its next update, restart or exit. Relaunch them outside the job (scripts/relaunch-outside-job.ps1, or docker-watchdog --start-docker / --start-worker / --start-web) at a moment no film job is running.` });
   }
+  // THE MODEL STORE first: attached before Docker starts, every model service finds its weights (a VM restart — reboot,
+  // `wsl --shutdown`, Docker Desktop quit and the VM idling out — detaches it). Attaching is idempotent and needs no
+  // admin, so with --fix it is simply done whenever the store is not known to be attached.
+  const ms = s.modelStore;
+  if (ms) {
+    if (opts.fix && ms.attached !== true) out.push({ kind: 'attach-models' });
+    else if (!opts.fix && ms.attached === false) out.push({ kind: 'warn', code: 'MODELS_DETACHED', detail: 'the model store (D:\\models\\vewbox-models.vhdx) is not attached: no service that mounts models can start. Run with --fix, or: wsl --mount --vhd <VEWBOX_MODELS_VHDX> --name models' });
+  }
   if (!s.engineOk) {
     if (s.dockerProcesses > 0) {
       // starting, or hung: never killed by the watchdog (a force-kill is what leaves the stale socket)
@@ -86,6 +101,12 @@ export function planWatchdog(s: WatchdogState, opts: { fix: boolean }): Watchdog
     out.push({ kind: 'start-docker' }, { kind: 'wait-engine' });
     // the worker is started on the next pass, once the engine and the database answer
     return out;
+  }
+  // services Docker could not start while the store was detached: started once it is there (they never ran, so this
+  // restarts nothing; a container someone stopped on purpose carries no such error and is left alone)
+  if (ms?.stranded.length) {
+    if (opts.fix) out.push({ kind: 'start-stranded', containers: ms.stranded });
+    else out.push({ kind: 'warn', code: 'MODELS_STRANDED', detail: `${ms.stranded.join(', ')} could not start without the model store; run with --fix (attaches it, then starts them)` });
   }
   if (!s.dbHealthy) { out.push({ kind: 'warn', code: 'DB_UNHEALTHY', detail: 'the engine answers but vewbox-db-1 is not healthy yet; the worker and the web server are not started' }); return out; }
   // THE WORKER
@@ -221,4 +242,45 @@ export function workerAliveAgeMs(file = process.env.WORKER_ALIVE_FILE || path.jo
   try { return now - fs.statSync(file).mtimeMs; } catch { return undefined; }
 }
 
-export const secretsSocketExists = (localAppData = process.env.LOCALAPPDATA ?? ''): boolean => fs.existsSync(path.join(localAppData, 'docker-secrets-engine', 'engine.sock'));
+// ------------------------------------------------------------------------------------------------- the model store
+
+/** The store's settings (VEWBOX_MODELS_ROOT / _VHDX from the environment or the repo's env files). */
+export function modelStoreConfig(repo: string, env: NodeJS.ProcessEnv = process.env) { return storeConfig(readStoreEnv(repo, env)); }
+
+/** Is the store's marker visible to the engine? undefined when the engine does not answer. The parent directory is
+ *  mounted, never the store's own path (a bind of a missing path would create it, empty). */
+export async function probeModelStore(cfg: { name: string }, engineOk: boolean): Promise<boolean | undefined> {
+  if (!engineOk) return undefined;
+  try { await run('docker', ['run', '--rm', '-v', `${ENGINE_WSL_DIR}:/w:ro`, 'alpine', 'test', '-f', `/w/${cfg.name}/${MARKER}`], { timeout: 60_000, windowsHide: true }); return true; } catch { return false; }
+}
+
+/** Studio containers that never started because a model-store volume could not be mounted (their State.Error names
+ *  the store's volume or root). Pure over `docker inspect` output. */
+export function strandedContainers(inspect: Array<{ Name?: string; State?: { Status?: string; Error?: string }; HostConfig?: { RestartPolicy?: { Name?: string } } }>, cfg: { root: string }): string[] {
+  const notRunning = (c: (typeof inspect)[number]) => ['created', 'exited'].includes(c.State?.Status ?? '');
+  // only services that are meant to run (a one-off `run` container has no restart policy)
+  const meantToRun = (c: (typeof inspect)[number]) => ['always', 'unless-stopped'].includes(c.HostConfig?.RestartPolicy?.Name ?? '');
+  const storeError = (e: string) => /vewbox_models_store|vewbox_ollama_store/.test(e) || e.includes(cfg.root);
+  return inspect.filter((c) => notRunning(c) && meantToRun(c) && storeError(c.State?.Error ?? '')).map((c) => String(c.Name ?? '').replace(/^\//, ''));
+}
+
+export async function probeStranded(cfg: { root: string }, project = 'vewbox'): Promise<string[]> {
+  const ids = (await tryRun('docker', ['ps', '-aq', '--filter', `label=com.docker.compose.project=${project}`, '--filter', 'status=exited', '--filter', 'status=created']))?.split(/\s+/).filter(Boolean) ?? [];
+  if (!ids.length) return [];
+  const out = await tryRun('docker', ['inspect', ...ids]);
+  try { return strandedContainers(JSON.parse(out ?? '[]'), cfg); } catch { return []; }
+}
+
+/** Attach the store (idempotent: "already mounted" is success). */
+export async function attachModelStore(cfg: { vhdx: string; name: string }): Promise<{ ok: boolean; state: string; detail: string }> {
+  if (process.platform !== 'win32') return { ok: true, state: 'already', detail: 'not Windows: nothing to attach' };
+  if (!fs.existsSync(cfg.vhdx)) return { ok: false, state: 'missing', detail: `${cfg.vhdx} does not exist` };
+  return new Promise((resolve) => {
+    execFile('wsl.exe', wslMountArgs(cfg), { encoding: 'buffer', timeout: 120_000, windowsHide: true }, (err, stdout, stderr) => {
+      const code = err ? (typeof (err as { code?: unknown }).code === 'number' ? (err as { code: number }).code : 1) : 0;
+      resolve(judgeWslMount(code, Buffer.concat([stdout as Buffer, stderr as Buffer])));
+    });
+  });
+}
+
+export const secretsSocketExists =(localAppData = process.env.LOCALAPPDATA ?? ''): boolean => fs.existsSync(path.join(localAppData, 'docker-secrets-engine', 'engine.sock'));

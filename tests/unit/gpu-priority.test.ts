@@ -44,4 +44,17 @@ describe('GPU lease priority', () => {
     // 44 min is not starving
     expect(may([row(bg('bench'), 1, 'IMAGE', 'WAITING', ago(44 * 60_000)), rows[1]], bg('bench'), 'IMAGE')).toBe(false);
   });
+  it('incident 13:05Z: a starved background request is NEVER admitted beside a holder of another family — granted, switching (HOLDING without granted_at) or legacy SWITCHING', () => {
+    const starved = row(bg('tts-bench'), 1, 'TTS', 'WAITING', ago(BACKGROUND_STARVATION_MS + 60_000));
+    const holders = [
+      { ...row('worker:asr', 0, 'ASR', 'HOLDING'), grantedAt: ago(5_000) },
+      { ...row('worker:asr', 0, 'ASR', 'HOLDING'), grantedAt: null },
+      { ...row('worker:asr', 0, 'ASR', 'HOLDING'), state: 'SWITCHING', grantedAt: ago(5_000) },
+    ];
+    for (const h of holders) expect(admits([h, starved], { holder: bg('tts-bench'), family: 'TTS', jobId: null }, NOW, {}), `${h.state}/${h.grantedAt}`).toBe(false);
+    // and not beside a switching holder of its OWN family either (the unloads are not done)
+    expect(admits([{ ...row('worker:tts', 0, 'TTS', 'HOLDING'), grantedAt: null }, starved], { holder: bg('tts-bench'), family: 'TTS', jobId: null }, NOW, {})).toBe(false);
+    // once the card is free it is served
+    expect(admits([starved], { holder: bg('tts-bench'), family: 'TTS', jobId: null }, NOW, { gpuJobsWaiting: true })).toBe(true);
+  });
 });

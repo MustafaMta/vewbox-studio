@@ -97,27 +97,37 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
   const rate = opts.mix.rate;
   const totalSamples = Math.round((timeline.totalFrames / fps) * rate);
   const live = opts.mix.tracks.filter((t) => !t.muted && t.gain > 0);
-  const inputs: string[] = ['-i', joined];
-  const filters: string[] = [];
-  const labels: string[] = [];
-  live.forEach((t, k) => {
-    const file = opts.files[t.sourceAssetId];
-    if (!file) throw new StudioError('NOT_FOUND', `The mix names a source that has no file (${t.kind} ${t.sourceAssetId}).`);
-    // a looping bed (ambience) repeats its source to fill the cue
-    inputs.push(...(t.loop ? ['-stream_loop', '-1'] : []), '-i', file);
-    const n = k + 1;
-    filters.push(trackFilter(t, `[${n}:a]`, `[t${n}]`, rate));
-    labels.push(`[t${n}]`);
-  });
-  if (!labels.length) { inputs.push('-f', 'lavfi', '-i', `anullsrc=channel_layout=stereo:sample_rate=${rate}`); filters.push(`[1:a]atrim=end_sample=${totalSamples}[t1]`); labels.push('[t1]'); }
-  filters.push(`${labels.join('')}${labels.length > 1 ? `amix=inputs=${labels.length}:duration=longest:dropout_transition=0:normalize=0,` : ''}apad=whole_len=${totalSamples},atrim=end_sample=${totalSamples}[mix]`);
+  const mixArgs = (tracks: typeof live, first: number) => {
+    const inputs: string[] = []; const filters: string[] = []; const labels: string[] = [];
+    tracks.forEach((t, k) => {
+      const file = opts.files[t.sourceAssetId];
+      if (!file) throw new StudioError('NOT_FOUND', `The mix names a source that has no file (${t.kind} ${t.sourceAssetId}).`);
+      // a looping bed (ambience) repeats its source to fill the cue
+      inputs.push(...(t.loop ? ['-stream_loop', '-1'] : []), '-i', file);
+      const n = k + first;
+      filters.push(trackFilter(t, `[${n}:a]`, `[t${n}]`, rate));
+      labels.push(`[t${n}]`);
+    });
+    if (!labels.length) { inputs.push('-f', 'lavfi', '-i', `anullsrc=channel_layout=stereo:sample_rate=${rate}`); filters.push(`[${first}:a]atrim=end_sample=${totalSamples}[t${first}]`); labels.push(`[t${first}]`); }
+    filters.push(`${labels.join('')}${labels.length > 1 ? `amix=inputs=${labels.length}:duration=longest:dropout_transition=0:normalize=0,` : ''}apad=whole_len=${totalSamples},atrim=end_sample=${totalSamples}[mix]`);
+    return { inputs, filter: filters.join(';') };
+  };
+  const all = mixArgs(live, 1);
   const mixed = path.join(dir, 'mixed.mp4');
-  await ffmpeg([...inputs, '-filter_complex', filters.join(';'), '-map', '0:v:0', '-map', '[mix]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', String(rate), mixed], { timeoutMs: 30 * 60_000 });
-  // 3b) JOIN QA: every join measured on the conformed pictures and on the mix the audience hears
+  await ffmpeg(['-i', joined, ...all.inputs, '-filter_complex', all.filter, '-map', '0:v:0', '-map', '[mix]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', String(rate), mixed], { timeoutMs: 30 * 60_000 });
+  // 3b) JOIN QA: every join measured on the conformed pictures and on the takes' sound — the mix without its beds (a
+  //     place's room bed or ambience runs on across the join by design; it is not the takes' continuity)
   let joins: JoinMetric[] = [];
   if (opts.joins !== false && timeline.items.length > 1) {
     await opts.onProgress?.('measuring the joins');
-    joins = await measureJoins(timeline.items.map((it, i) => ({ file: parts[i], shotId: it.shot.id, relation: it.relation, join: it.join, startFrame: it.startFrame, frames: it.frames })), mixed, fps).catch((e) => { log.warn({ err: (e as Error).message }, 'join measurement failed'); return []; });
+    const isBed = (t: (typeof live)[number]) => t.kind === 'AMBIENCE' && !t.lineage.startsWith('roomtone:take:');
+    let joinAudio = mixed;
+    if (live.some(isBed)) {
+      const stem = mixArgs(live.filter((t) => !isBed(t)), 0);
+      joinAudio = path.join(dir, 'join-stem.wav');
+      await ffmpeg([...stem.inputs, '-filter_complex', stem.filter, '-map', '[mix]', '-ac', '1', '-ar', '16000', joinAudio], { timeoutMs: 30 * 60_000 }).catch((e) => { log.warn({ err: (e as Error).message }, 'join stem failed; joins measured on the mix'); joinAudio = mixed; });
+    }
+    joins = await measureJoins(timeline.items.map((it, i) => ({ file: parts[i], shotId: it.shot.id, relation: it.relation, join: it.join, startFrame: it.startFrame, frames: it.frames })), joinAudio, fps).catch((e) => { log.warn({ err: (e as Error).message }, 'join measurement failed'); return []; });
   }
   // 4) loudness: two-pass EBU R128 to the target (−23 LUFS for episodes/shorts, −14 for music videos), true peak −1
   await opts.onProgress?.('normalising loudness');
