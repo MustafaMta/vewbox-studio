@@ -43,7 +43,8 @@ const extra: Engine[] = [];
 /** The engines the lease unloads, in order. */
 export function engines(): Engine[] {
   return [
-    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: () => comfy.free() },
+    // ComfyUI's queue drains first: a prompt nobody holds the lease for must not run beside the next family's model
+    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: async () => { const w = await comfy.waitIdle(Number(process.env.GPU_COMFY_DRAIN_MS ?? 20 * 60_000)); if (w.promptIds.length) await (await import('../jobs/queue')).recordMetric('gpu.comfy_drain_ms', w.waitedMs, 'ms', { idle: w.idle, prompts: w.promptIds.length }).catch(() => undefined); await comfy.free(); } },
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
