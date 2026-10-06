@@ -65,8 +65,8 @@ describe('docker watchdog: the studio web server (:4200)', () => {
     expect(kinds(planWatchdog({ ...crashed, web: { port: 4200, healthy: false, listening: false, wanted: true } }, { fix: true }))).toEqual(['rename-stale-socket', 'start-docker', 'wait-engine']);
   });
   it('the command line runs `pnpm dev` (scripts/serve.ts dev) on the port, logging to var/web-detached.log', () => {
-    const cl = webCommandLine('D:\\volexar-studio\\volexar-studio', 'D:\\tools\\node\\node.exe', 4200);
-    expect(cl).toContain("Set-Location -LiteralPath 'D:\\volexar-studio\\volexar-studio'; $env:WEB_PORT='4200'; & 'D:\\tools\\node\\node.exe' 'D:\\volexar-studio\\volexar-studio\\node_modules\\tsx\\dist\\cli.mjs' scripts/serve.ts dev *>> var/web-detached.log");
+    const cl = webCommandLine('D:\\vewbox', 'D:\\tools\\node\\node.exe', 4200);
+    expect(cl).toContain("Set-Location -LiteralPath 'D:\\vewbox'; $env:WEB_PORT='4200'; & 'D:\\tools\\node\\node.exe' 'D:\\vewbox\\node_modules\\tsx\\dist\\cli.mjs' scripts/serve.ts dev *>> var/web-detached.log");
   });
   it('probes: a port with a listener answers; /api/health is judged by its status', async () => {
     const http = await import('node:http');
@@ -96,9 +96,9 @@ describe('docker watchdog helpers', () => {
   });
   it('builds the WMI create call and the worker command line with quoting intact', () => {
     expect(wmiCreateScript(`"C:\\Program Files\\Docker\\Docker Desktop.exe"`, "D:\\o'brien")).toBe(`$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '"C:\\Program Files\\Docker\\Docker Desktop.exe"'; CurrentDirectory = 'D:\\o''brien' }; if ($r.ReturnValue -ne 0) { Write-Error ("Win32_Process.Create failed: " + $r.ReturnValue); exit 1 }; $r.ProcessId`);
-    const cl = workerCommandLine('D:\\volexar-studio\\volexar-studio', 'D:\\tools\\node\\node.exe');
+    const cl = workerCommandLine('D:\\vewbox', 'D:\\tools\\node\\node.exe');
     expect(cl).toMatch(/^powershell\.exe -NoProfile -WindowStyle Hidden -Command "/);
-    expect(cl).toContain("& 'D:\\tools\\node\\node.exe' 'D:\\volexar-studio\\volexar-studio\\node_modules\\tsx\\dist\\cli.mjs' --env-file=.env --env-file=.env.local src/worker/index.ts *>> var/worker-detached.log");
+    expect(cl).toContain("& 'D:\\tools\\node\\node.exe' 'D:\\vewbox\\node_modules\\tsx\\dist\\cli.mjs' --env-file=.env --env-file=.env.local src/worker/index.ts *>> var/worker-detached.log");
   });
 });
 
