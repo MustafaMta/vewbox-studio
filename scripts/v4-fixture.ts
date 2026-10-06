@@ -14,6 +14,7 @@
 import { seed } from '@/domain/sample';
 import { emptyStudio } from '@/domain/actions';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
+import { TERMS_VERSION } from '@/domain/terms';
 import type { StudioState } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
 
@@ -31,7 +32,8 @@ const ago = (hours: number) => new Date(FIXTURE_NOW - hours * 3_600_000).toISOSt
 const job = (p: Partial<Job> & Pick<Job, 'id' | 'type' | 'status'>): Job => ({ priority: 0, payload: {}, attempts: 1, maxAttempts: 2, cancelRequested: false, createdAt: ago(0.2), updatedAt: ago(0.05), ...p });
 
 export function buildFixture(kind: FixtureKind): Fixture {
-  const settings = { ...DEFAULT_SETTINGS };
+  // the terms of use accepted (src/domain/terms.ts): a capture shows the studio as it is used, without the terms line
+  const settings = { ...DEFAULT_SETTINGS, terms: { version: TERMS_VERSION, acceptedAt: new Date(FIXTURE_NOW).toISOString(), by: 'fixture' } };
   if (kind === 'empty') return { kind, state: { ...emptyStudio(settings), settings }, jobs: [], pipeline: { productions: [] } };
   const state: StudioState = { ...seed(), settings };
   if (kind === 'sample') return { kind, state, jobs: [], pipeline: { productions: [] } };

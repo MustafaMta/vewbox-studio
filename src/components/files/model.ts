@@ -1,6 +1,13 @@
 import type { Asset, StudioState } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
 import { productionHref } from '@/studio/selectors';
+import { faceReferenceProvenance } from '@/domain/face-reference';
+
+/** A production-only reference the studio derived for its own use (a face crop of a canonical image, FINAL §12): never
+ *  an identity, so never listed among the studio's files; the character's page shows it under its canonical image. */
+export const productionOnly = (a: Pick<Asset, 'provenance' | 'tags'>): boolean => Boolean(faceReferenceProvenance(a)) || a.tags.includes('production-reference');
+/** The files the Files page lists. */
+export const listed = <T extends Pick<Asset, 'provenance' | 'tags'>>(assets: readonly T[]): T[] => assets.filter((a) => !productionOnly(a));
 
 /** FILES, GROUPED BY OWNER (docs/DESIGN-SYSTEM-V5.md §8.13) — pure: whose each file is, from the record and nothing
  *  else, in this order: the owner's own fields reference it (a character's canonical image and voice samples, a
@@ -68,7 +75,7 @@ export function groups(s: S, own: Map<string, Owner>, f: { q: string; kind: Kind
   const q = f.q.trim().toLowerCase();
   const order = new Map(owners(s).map((o, i) => [o.id, i]));
   const by = new Map<string, OwnerGroup>();
-  for (const a of s.assets) {
+  for (const a of listed(s.assets)) {
     const owner = own.get(a.id) ?? OTHER;
     const kind = a.kind as FileKind;
     if (f.kind !== 'ALL' && kind !== f.kind) continue;
@@ -85,8 +92,9 @@ export function groups(s: S, own: Map<string, Owner>, f: { q: string; kind: Kind
 const KIND_ORDER: FileKind[] = ['IMAGE', 'VIDEO', 'AUDIO', 'SUBTITLE'];
 
 export function kindCounts(s: Pick<S, 'assets'>): Record<KindFilter, number> {
-  const c: Record<KindFilter, number> = { ALL: s.assets.length, IMAGE: 0, VIDEO: 0, AUDIO: 0, SUBTITLE: 0 };
-  for (const a of s.assets) if (a.kind in c) c[a.kind as FileKind] += 1;
+  const shown = listed(s.assets);
+  const c: Record<KindFilter, number> = { ALL: shown.length, IMAGE: 0, VIDEO: 0, AUDIO: 0, SUBTITLE: 0 };
+  for (const a of shown) if (a.kind in c) c[a.kind as FileKind] += 1;
   return c;
 }
 
@@ -94,4 +102,4 @@ export function kindCounts(s: Pick<S, 'assets'>): Record<KindFilter, number> {
 export const clip = (sec?: number | null) => { if (!sec || !Number.isFinite(sec)) return null; const s = Math.round(sec); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** 1.2 MB · 340 KB */
 export const size = (b?: number | null) => (!b ? null : b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
-export const originWords = (a: Pick<Asset, 'origin' | 'sample' | 'tier'>) => (a.sample ? 'Sample' : a.tier === 'CANONICAL' ? 'Canonical' : a.origin === 'UPLOAD' ? 'Uploaded' : a.origin === 'DERIVED' ? 'Derived' : 'Made by the studio');
+export const originWords = (a: Pick<Asset, 'origin' | 'sample' | 'tier'> & Partial<Pick<Asset, 'provenance' | 'tags'>>) => (a.tags && productionOnly(a as Pick<Asset, 'provenance' | 'tags'>) ? 'Derived · production only' : a.sample ? 'Sample' : a.tier === 'CANONICAL' ? 'Canonical' : a.origin === 'UPLOAD' ? 'Uploaded' : a.origin === 'DERIVED' ? 'Derived' : 'Made by the studio');

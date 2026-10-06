@@ -1,0 +1,47 @@
+{
+    "align":  [
+                  {
+                      "label":  "cut6-shot1",
+                      "language":  "en",
+                      "file":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot1.wav",
+                      "text":  "Excuse me, is this the famous tea everyone talks about?"
+                  },
+                  {
+                      "label":  "cut6-shot3",
+                      "language":  "en",
+                      "file":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot3.wav",
+                      "text":  "Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad."
+                  }
+              ],
+    "similarity":  [
+                       {
+                           "label":  "cut6-shot1-vs-cut6-shot3",
+                           "b":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot3.wav",
+                           "a":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot1.wav"
+                       },
+                       {
+                           "label":  "voice-ref-vs-cut6-shot1",
+                           "b":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot1.wav",
+                           "a":  "var/library/audio/2026/10/gen-b23150ec5e.wav"
+                       },
+                       {
+                           "label":  "voice-ref-vs-cut6-shot3",
+                           "b":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot3.wav",
+                           "a":  "var/library/audio/2026/10/gen-b23150ec5e.wav"
+                       }
+                   ],
+    "mouth":  [
+                  {
+                      "label":  "cut6-full",
+                      "speakers":  1,
+                      "video":  "var/library/video/2026/10/gen-b0c2a3db715ae05bc65e.a1.mp4"
+                  }
+              ],
+    "transcribe":  [
+                       {
+                           "label":  "cut6-shot2",
+                           "language":  "en",
+                           "file":  "docs/evidence/acceptance-v1/tea-at-mutanabbi/recheck/cut6-shot2.wav"
+                       }
+                   ]
+}

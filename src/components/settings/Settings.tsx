@@ -12,21 +12,22 @@ import { PageHead, Section } from '@/components/studio/parts';
 import { SettingsSkeleton } from './SettingsSkeleton';
 import { aspectLabel, dialectLabel } from '@/lib/format';
 import type { HonouredSettingKey, SettingsHonoured } from '@/domain/settings';
+import { MINIMAX_H3_LOCAL, type ContinuationChoice } from '@/domain/video-capability';
+import { REANCHOR } from '@/domain/production-context';
+import { designedIraqiAllowed } from '@/components/character/contract';
+import { ENGINE_LICENCES, DISTRIBUTION_NOTE } from '@/domain/licences';
+import { TERMS_VERSION, termsAccepted } from '@/domain/terms';
+import { fmtDate } from '@/lib/format';
 
-/** SETTINGS (docs/DESIGN-SYSTEM-V5.md §8.13) — how the studio makes new work, in plain words: the video model and its
- *  resolution, the story engine and the voice engine; trend research and its sources; the motion preference; the
- *  defaults for new work. Every change goes through the studio's own `updateSettings` command and the head says
+/** SETTINGS (docs/DESIGN-SYSTEM-V5.md §8.13) — how the studio makes new work, in plain words: the engines it runs on
+ *  (said, not offered: the server configures them; MiniMax H3 on this machine is the only video engine); continuity
+ *  (the guide a continuous shot starts from, its sound, re-anchoring); voices (the designed-Iraqi experiment); trend
+ *  research and its sources; the motion preference; the defaults for new work. Every change goes through the studio's own `updateSettings` command and the head says
  *  whether it is saved. An engine the server cannot reach is offered disabled, with the reason beside it. There is no
  *  interface language: the website is English-only. Engines, models and reliability live in Production's engine room. */
 
 interface Sources { enabled: boolean; cacheHours: number | null; sources: Array<{ platform: ResearchPlatform; status: 'READY' | 'NOT_CONFIGURED' | 'UNSUPPORTED' | 'DISABLED'; detail: string; ttlHours: number }> }
 
-const VIDEO_MODELS = [
-  { value: 'MiniMax-H3', label: 'MiniMax H3, on this machine', hosted: false },
-  { value: 'MiniMax-Hailuo-2.3', label: 'MiniMax Hailuo 2.3, hosted', hosted: true },
-  { value: 'MiniMax-Hailuo-02', label: 'MiniMax Hailuo 02, hosted', hosted: true },
-];
-const RESOLUTIONS = ['512P', '768P', '1080P'] as const;
 const PLATFORM_NAME: Record<ResearchPlatform, string> = { TIKTOK: 'TikTok', INSTAGRAM: 'Instagram', FACEBOOK: 'Facebook', YOUTUBE: 'YouTube', NEWS: 'News', WIKIPEDIA: 'Wikipedia' };
 const STYLE_NAME: Record<string, string> = { CARTOON: 'Cartoon', ANIME: 'Anime', REALISTIC: 'Realistic' };
 const CACHE = [1, 6, 12, 24, 48, 72, 168];
@@ -45,34 +46,58 @@ export function SettingsPage() {
   const set = (patch: Partial<StudioSettings>) => act('updateSettings', patch);
   const setGen = (patch: NonNullable<StudioSettings['generation']>) => set({ generation: { ...gen, ...patch } });
   const setResearch = (patch: Partial<ResearchSettings>) => set({ research: { ...research, ...patch } });
-  const hostedReason = caps && !caps.minimax ? 'Needs the hosted MiniMax key on the server.' : undefined;
-  const videoModel = gen.videoModel ?? caps?.videoModel ?? 'MiniMax-H3';
-  const resolution = (gen.videoResolution ?? caps?.videoResolution ?? '768P') as (typeof RESOLUTIONS)[number];
+  // the studio's continuation choice, inside the local engine's capability (src/domain/video-capability.ts); a key set
+  // back to its default is removed (the generation patch replaces `continuation` whole)
+  const g = MINIMAX_H3_LOCAL.guides!;
+  const cont: ContinuationChoice = gen.continuation ?? {};
+  const setCont = (patch: Record<string, unknown>) => { const next = { ...cont, ...patch } as Record<string, unknown>; for (const k of Object.keys(next)) if (next[k] === undefined) delete next[k]; setGen({ continuation: next as ContinuationChoice }); };
   const storyNow = caps?.llm === 'openai-compatible' ? 'a local model' : caps?.llm === 'anthropic' ? 'Anthropic' : caps?.llm === 'minimax' ? 'MiniMax' : 'no engine';
   return (
     <div className="cp settings">
       <PageHead title="Settings" lead="How the studio makes new work. Each change is saved as you make it." end={<SaveWord state={saving} className="st-save" />} />
 
-      <Section id="generation" title="Generation" description={caps ? `The server runs ${caps.videoModel} at ${caps.videoResolution} and writes with ${storyNow} right now.` : undefined}>
+      {/* the engines are the server's configuration, not a choice made here: the studio films with MiniMax H3 on this
+          machine only (no hosted video engine), so a model or resolution picker would change nothing — they are said,
+          not offered (final directive §21: no control without an implementation) */}
+      <Section id="generation" title="Engines" description="What makes new work. These are set where the studio is installed; the engine room shows whether each one is running.">
         <div className="card st-panel">
-          <SettingRow label="Video model" hint="The model that films new takes." unused={off('videoModel')}>
-            {(id) => <Select id={id} value={videoModel} onChange={(e) => setGen({ videoModel: e.target.value })} options={VIDEO_MODELS.map((m) => ({ value: m.value, label: m.label, disabled: m.hosted && Boolean(hostedReason) }))} />}
+          <InfoRow label="Video" hint="Films every take. The only video engine." value={`MiniMax H3, on this machine${caps?.videoResolution ? ` · ${caps.videoResolution}` : ''}`} />
+          <InfoRow label="Story" hint="Writes ideas, stories, scripts and shot plans." value={storyNow === 'no engine' ? 'No story engine is configured' : storyNow === 'a local model' ? 'A model on this machine' : `${storyNow}, hosted`} />
+          {caps?.minimax ? (
+            <SettingRow label="Voice engine" hint="Speaks new voices and dialogue." unused={off('voiceProvider')}>
+              {() => <Segmented label="Voice engine" value={gen.voiceProvider ?? 'LOCAL_TTS'} onChange={(v) => setGen({ voiceProvider: v })} options={[{ value: 'LOCAL_TTS', label: 'On this machine' }, { value: 'MINIMAX', label: 'MiniMax, hosted' }]} />}
+            </SettingRow>
+          ) : <InfoRow label="Voices" hint="Speaks new voices and dialogue." value="On this machine" />}
+          <div className="st-row"><span className="st-row-words"><span className="st-label">Is each engine running?</span><span className="t-meta">Services, the GPU and the queue.</span></span><Link href="/production#engine-room" className="btn btn-secondary btn-sm">Open the engine room</Link></div>
+        </div>
+      </Section>
+
+      <Section id="continuity" title="Continuity" description="How a continuous shot carries on from the shot before it. A shot can choose its own on its page.">
+        <div className="card st-panel">
+          <SettingRow label="Guide from the shot before" hint={`The frames of the shot before that a continuous take starts from. Longer carries more motion and leaves less new picture. MiniMax H3 keeps ${g.continuationChoices.join(', ')} frames; it uses ${g.defaultContinuationFrames} unless you choose.`}>
+            {() => <Segmented label="Guide from the shot before, in frames" value={cont.guideFrames && g.continuationChoices.includes(cont.guideFrames) ? String(cont.guideFrames) : ''} onChange={(v) => setCont({ guideFrames: v ? Number(v) : undefined })} options={[{ value: '', label: `Default · ${g.defaultContinuationFrames}` }, ...g.continuationChoices.map((n) => ({ value: String(n), label: `${n}` }))]} />}
           </SettingRow>
-          {hostedReason && <p className="t-meta st-reason">The hosted models need a key the server does not have.</p>}
-          <SettingRow label="Video resolution" hint="Higher resolution takes longer to film." unused={off('videoResolution')}>
-            {() => <Segmented label="Video resolution" value={resolution} onChange={(v) => setGen({ videoResolution: v })} options={RESOLUTIONS.map((r) => ({ value: r, label: <span className="t-ro t-ro-md">{r}</span> }))} />}
+          <SettingRow label="Sound of the guide" hint="Whether a continuous take hears the end of the shot before. Automatic leaves it out when the shot before speaks and the new one has no lines.">
+            {() => <Segmented label="Sound of the guide" value={cont.guideAudio ?? 'AUTO'} onChange={(v) => setCont({ guideAudio: v === 'AUTO' ? undefined : v })} options={[{ value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }, { value: 'OFF', label: 'Never' }]} />}
           </SettingRow>
-          <SettingRow label="Story engine" hint="Writes ideas, stories, scripts and shot plans." unused={off('llmProvider')}>
-            {(id) => <Select id={id} value={gen.llmProvider ?? ''} onChange={(e) => setGen({ llmProvider: e.target.value || undefined })} options={[
-              { value: '', label: `Server default · ${storyNow}` },
-              { value: 'openai-compatible', label: 'A model on this machine', disabled: caps ? !caps.openaiCompatible : false },
-              { value: 'anthropic', label: 'Anthropic, hosted', disabled: caps ? !caps.anthropic : false },
-              { value: 'minimax', label: 'MiniMax, hosted', disabled: caps ? !caps.minimax : false },
-            ]} />}
+          {/* the derived face reference (src/domain/face-reference.ts): a crop of the canonical image's face sent beside it on
+              close framings; OFF until the A/B on real takes decides (research G13) */}
+          <SettingRow label={<>Face close-up reference <StateWord tone="waiting" className="st-src">Under evaluation</StateWord></>} hint="On close framings the studio can also send a close crop of each character’s face, cut from their canonical image and stored as a production-only reference (never a new identity). Automatic: only when the canonical image holds too few face pixels for the framing. Off until the comparison on real takes is done.">
+            {() => <Segmented label="Face close-up reference" value={gen.faceReference ?? 'OFF'} onChange={(v) => setGen({ faceReference: v as 'OFF' | 'AUTO' | 'ON' })} options={[{ value: 'OFF', label: 'Off' }, { value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }]} />}
           </SettingRow>
-          <SettingRow label="Voice engine" hint="Speaks new voices and dialogue." unused={off('voiceProvider')}>
-            {() => <Segmented label="Voice engine" value={gen.voiceProvider ?? 'LOCAL_TTS'} onChange={(v) => setGen({ voiceProvider: v })} options={[{ value: 'LOCAL_TTS', label: 'On this machine' }, { value: 'MINIMAX', label: 'MiniMax, hosted', disabled: Boolean(hostedReason), reason: hostedReason }]} />}
+          <SettingRow label="Re-anchor after" hint="After this many continuous shots in a row, the next one leans on the characters’ canonical images (the shortest guide) so faces do not drift along the chain.">
+            {(id) => <Select id={id} value={String(cont.reanchorAfter ?? REANCHOR.after)} onChange={(e) => setCont({ reanchorAfter: Number(e.target.value) === REANCHOR.after ? undefined : Number(e.target.value) })} options={[2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: String(n), label: `${n} shots${n === REANCHOR.after ? ' (default)' : ''}` }))} />}
           </SettingRow>
+        </div>
+      </Section>
+
+      <Section id="voices" title="Voices" description="How characters get their voices.">
+        <div className="card st-panel">
+          <div className="st-row st-row-toggle">
+            <Toggle label={<>Design Iraqi voices without a recording <StateWord tone="waiting" className="st-src">Experiment</StateWord></>} checked={designedIraqiAllowed(s)} onChange={(v) => set({ voice: { ...(s.voice ?? {}), allowDesignedIraqi: v } })}
+              help="Off (recommended): an Iraqi character needs a real recording of an Iraqi speaker, 5–12 seconds, before it can speak. On: the studio may design an Arabic voice and speak it with the Iraqi engine. Such a voice is marked unverified and waits for a native listener’s review; it never counts as an authentic Baghdadi voice. Voices made while it was on stay marked." />
+            {off('allowDesignedIraqi') && <span className="t-meta st-unused">Saved — the studio does not use this choice yet.</span>}
+          </div>
         </div>
       </Section>
 
@@ -113,9 +138,24 @@ export function SettingsPage() {
         </div>
       </Section>
 
+      <Section id="licences" title="Licences and terms" description="What the engines’ licences allow, and what they ask of the studio and of you. The full record: docs/LICENSES.md.">
+        <div className="card st-panel">
+          <div className="st-row"><span className="st-row-words"><span className="st-label">Terms of use</span><span className="t-meta">{termsAccepted(s) ? `Accepted${s.terms?.acceptedAt ? ` on ${fmtDate(s.terms.acceptedAt)}` : ''} (version ${TERMS_VERSION}).` : 'Not accepted yet: the studio makes nothing new until they are.'}</span></span><Link href="/terms" className={termsAccepted(s) ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}>{termsAccepted(s) ? 'Read the terms' : 'Read and accept'}</Link></div>
+          <InfoRow label="Where films may be shown" hint={DISTRIBUTION_NOTE} value={<StateWord tone="waiting">Territory licence pending</StateWord>} />
+          <InfoRow label="AI disclosure" hint="Every cut and export says in its file’s metadata that it is AI-generated with MiniMax H3; an export can also end on a card naming the engines." value="Always on" />
+        </div>
+        <ul className="card st-panel st-credits" role="list" aria-label="The engines and their licences">
+          {ENGINE_LICENCES.map((l) => (
+            <li key={l.id} className="st-row">
+              <span className="st-row-words"><span className="st-label">{l.engine}{l.status === 'EVALUATING' ? <StateWord tone="waiting" className="st-src">Under evaluation</StateWord> : null}</span><span className="t-meta">{l.role}. {l.obligations.join(' ')}</span></span>
+              <span className="st-control st-value">{l.licence}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
       <Section id="elsewhere" title="Elsewhere">
         <div className="card st-panel">
-          <div className="st-row"><span className="st-row-words"><span className="st-label">Engines, models and reliability</span><span className="t-meta">What the studio runs on and how it ran.</span></span><Link href="/production#engine-room" className="btn btn-secondary btn-sm">Open the engine room</Link></div>
           <div className="st-row"><span className="st-row-words"><span className="st-label">The studio holds</span><span className="t-meta">{state.productions.length} {state.productions.length === 1 ? 'production' : 'productions'} · {state.characters.length} {state.characters.length === 1 ? 'character' : 'characters'} · {state.locations.length} {state.locations.length === 1 ? 'location' : 'locations'} · {state.assets.length} files</span></span><Link href="/assets" className="btn btn-secondary btn-sm">Open Files</Link></div>
         </div>
       </Section>
@@ -130,6 +170,16 @@ function SettingRow({ label, hint, unused, children }: { label: ReactNode; hint?
     <div className="st-row">
       <span className="st-row-words"><label htmlFor={id} className="st-label">{label}</label>{hint && <span className="t-meta">{hint}</span>}{unused && <span className="t-meta st-unused">Saved — the studio does not use this choice yet.</span>}</span>
       <span className="st-control">{children(id)}</span>
+    </div>
+  );
+}
+
+/** A fact, not a choice: its label and help on the start, the value on the end (stacked on phones). */
+function InfoRow({ label, hint, value }: { label: ReactNode; hint?: ReactNode; value: ReactNode }) {
+  return (
+    <div className="st-row">
+      <span className="st-row-words"><span className="st-label">{label}</span>{hint && <span className="t-meta">{hint}</span>}</span>
+      <span className="st-control st-value">{value}</span>
     </div>
   );
 }

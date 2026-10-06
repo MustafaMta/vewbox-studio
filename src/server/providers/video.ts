@@ -9,6 +9,8 @@ import { H3_FPS, h3FrameCount, h3GraphKind, minimaxH3Video } from '../workflows'
 import { tmpDir } from '../media/ffmpeg';
 import { libraryRoot } from '../media';
 import { cachedEngineReadiness, graphRequirements, storageReadiness } from '../production/readiness';
+import { jobScope } from '../jobs/context';
+import { preserveFailedOutput, rejectTaskOutput, rejectedTaskIds, videoProblem } from '../jobs/evidence';
 
 /** VIDEO = MINIMAX, two ways to run it. `api`: the hosted MiniMax H3 on platform.minimax.io. `local`: the
  *  open-weights MiniMax H3 in ComfyUI on this machine's RTX 5090. Same request shape, same result shape, same
@@ -69,9 +71,28 @@ export function hostedVideoProblem(req: Pick<VideoRequest, 'guides' | 'firstFram
   return null;
 }
 
+/** THE ENGINE'S OUTPUT IS INSPECTED BEFORE IT IS USED (directive §26 "corrupted output"): zero bytes, a truncated or
+ *  undecodable clip is fetched once more (a transfer cut short), and if it is still unusable it is kept as evidence,
+ *  its task is marked rejected (a later attempt generates again instead of adopting it), and the attempt fails as
+ *  OUTPUT_CORRUPTION — never passed on for a later step to misreport as an invalid input. */
+async function acceptOutput(file: string, taskId: string, name: string, refetch: () => Promise<unknown>, engine: string): Promise<void> {
+  let bad = await videoProblem(file);
+  if (bad) {
+    log.warn({ taskId, problem: bad }, 'engine output unusable; fetching it once more');
+    await refetch();
+    bad = await videoProblem(file);
+  }
+  if (!bad) return;
+  const evidence = await preserveFailedOutput(name, { file });
+  await rejectTaskOutput(taskId, bad, evidence);
+  throw Object.assign(new StudioError('PROVIDER', `The ${engine} output for task ${taskId} is unusable: ${bad}.`, { taskId, evidence, problem: bad }), { failureClass: 'OUTPUT_CORRUPTION' });
+}
+
 export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const backend = chooseBackend();
   const t0 = Date.now();
+  const jobId = jobScope()?.jobId;
+  const rejected = jobId ? await rejectedTaskIds(jobId) : [];
   if (backend === 'api') {
     const problem = hostedVideoProblem(req);
     if (problem) throw new StudioError('NOT_CONFIGURED', `Unsupported on the hosted MiniMax API: ${problem}.`, { failureClass: 'UNSUPPORTED_CAPABILITY', backend: 'api' });
@@ -91,7 +112,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
       if (req.lastFrame) content.push({ type: 'image_url', image_url: { url: await minimax.dataUri(req.lastFrame.file, req.lastFrame.mime) }, role: 'last_frame' });
       ratio = 'adaptive';
     } else ratio = RATIOS[req.aspect] ?? '16:9';
-    let taskId = req.resumeTaskId;
+    // a task whose output an earlier attempt rejected as corrupt is never adopted again (src/server/jobs/evidence.ts)
+    let taskId = req.resumeTaskId && !rejected.includes(req.resumeTaskId) ? req.resumeTaskId : undefined;
     if (!taskId) {
       const created = await minimax.createVideo({ model, content, resolution, duration: seconds, ratio });
       taskId = created.taskId;
@@ -113,10 +135,12 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
     const file = path.join(dir, `${taskId}.mp4`);
     await req.onStatus?.({ status: 'downloading' });
     await minimax.download(task.url!, file);
-    return { file, backend, model, requestId: taskId, resolution: task.resolution ?? resolution, seconds: task.duration ?? seconds, costUsd: minimax.estimateVideoCostUsd(model, task.resolution ?? resolution, task.duration ?? seconds, (req.referenceImages?.length ?? 0) + (req.firstFrame ? 1 : 0) + (req.lastFrame ? 1 : 0)), ms: Date.now() - t0, params: { ratio, content: content.map((c) => ({ type: c.type, role: c.role })), usage: task.usage, ...(req.lowering ? { lowering: req.lowering } : {}) } };
+    await acceptOutput(file, taskId, `${taskId}.mp4`, () => minimax.download(task.url!, file), 'hosted MiniMax');
+    return { file, backend, model, requestId: taskId, resumed: Boolean(req.resumeTaskId && req.resumeTaskId === taskId), resolution: task.resolution ?? resolution, seconds: task.duration ?? seconds, costUsd: minimax.estimateVideoCostUsd(model, task.resolution ?? resolution, task.duration ?? seconds, (req.referenceImages?.length ?? 0) + (req.firstFrame ? 1 : 0) + (req.lastFrame ? 1 : 0)), ms: Date.now() - t0, params: { ratio, content: content.map((c) => ({ type: c.type, role: c.role })), usage: task.usage, ...(req.lowering ? { lowering: req.lowering } : {}) } };
   }
   // local: ComfyUI MiniMax H3
-  const h = await comfy.health();
+  // an engine that is restarting is waited for (up to COMFY_START_WAIT_MS, default 3 min) before the attempt fails
+  const h = await comfy.healthWithin(Number(process.env.COMFY_START_WAIT_MS ?? 180_000));
   if (!h.ok) throw new StudioError('UNAVAILABLE', 'The local MiniMax H3 engine (ComfyUI) is not reachable. Start the comfyui service or set MINIMAX_API_KEY for the hosted API.');
   const first = req.firstFrame ? await comfy.uploadInput(req.firstFrame.file) : undefined;
   const last = req.lastFrame ? await comfy.uploadInput(req.lastFrame.file) : undefined;
@@ -127,7 +151,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
   // FIRST-ATTEMPT RELIABILITY (src/server/production/readiness.ts): the node classes and model files THIS graph names
   // are present, and the library has room for the take — before the engine is asked (not when adopting a run)
-  if (!req.resumeTaskId) {
+  const resumeId = req.resumeTaskId && !rejected.includes(req.resumeTaskId) ? req.resumeTaskId : undefined;
+  if (!resumeId) {
     const ready = await cachedEngineReadiness(graphRequirements(graph as never));
     if (!ready.ok) throw Object.assign(new StudioError('UNAVAILABLE', `The local MiniMax H3 engine is not ready: ${ready.detail}`, { readiness: ready }), { failureClass: 'INFRASTRUCTURE' });
     const room = await storageReadiness(libraryRoot());
@@ -142,13 +167,14 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   await req.onStatus?.({ status: 'queued' });
   // the prompt id is recorded on the job as soon as it exists: a worker that restarts mid-generation waits for the
   // same prompt instead of asking the engine for a second one
-  const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, resumePromptId: req.resumeTaskId, onSubmitted: req.onTaskCreated, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
+  const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, resumePromptId: resumeId, rejectPromptIds: rejected, onSubmitted: req.onTaskCreated, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
   const out = comfy.firstOutput(run.outputs, 'video') ?? comfy.firstOutput(run.outputs, 'gifs') ?? comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no video output for the MiniMax H3 workflow.');
-  const bytes = await comfy.view(out);
   const dir = await tmpDir('h3');
   const file = path.join(dir, out.filename.endsWith('.mp4') ? out.filename : `${out.filename}.mp4`);
-  await fsp.writeFile(file, bytes);
+  const fetchOut = async () => { await fsp.writeFile(file, await comfy.view(out)); };
+  await fetchOut();
+  await acceptOutput(file, run.promptId, path.basename(file), fetchOut, 'local MiniMax H3');
   return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, resumed: run.resumed, params: { graph: graphKind, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
 }
 

@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ContinuityState, Production, Shot, ShotMotion } from '@/domain/types';
 import { productionContextFor } from '@/domain/production-context';
 import { useStudio } from '@/studio/store';
+import { shotLabel } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Select, StateWord } from '@/components/ui/kit';
 
@@ -19,18 +20,24 @@ const MOTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'TOWARD_CAMERA', label: 'Toward the camera' }, { value: 'AWAY_FROM_CAMERA', label: 'Away from the camera' },
 ];
 
-export function ShotContext({ p, shot }: { p: Production; shot: Shot }) {
+/** A person's state with nothing empty in it: '' and an unset direction are the same as absent (QA m1). */
+const clean = (x: Person): Person => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([, w]) => w !== '' && w !== undefined)) : v]).filter(([, v]) => v !== '' && v !== undefined && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && v && !Array.isArray(v) && Object.keys(v).length === 0))) as unknown as Person;
+const same = (a: Record<string, Person>, b: Record<string, Person>) => JSON.stringify(Object.keys(a).sort().map((k) => [k, clean(a[k])])) === JSON.stringify(Object.keys(b).sort().map((k) => [k, clean(b[k])]));
+
+export function ShotContext({ p, shot, onDirty }: { p: Production; shot: Shot; /** the inspector counts these edits as unsaved (its guard and its footer) */ onDirty?: (dirty: boolean) => void }) {
   const { state, act } = useStudio();
   const toast = useToast();
   const people = shot.characterIds.map((id) => state.characters.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => Boolean(c));
   const initial = useMemo(() => Object.fromEntries(people.map((c) => [c.id, { ...(shot.continuity?.characters.find((x) => x.characterId === c.id) ?? { characterId: c.id }) }])) as Record<string, Person>, [shot.continuity, people]);
   const [draft, setDraft] = useState<Record<string, Person>>(initial);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const dirty = !same(draft, initial);
+  useEffect(() => { onDirty?.(dirty); }, [dirty, onDirty]);
+  useEffect(() => () => onDirty?.(false), [onDirty]);
   const set = (id: string, patch: Partial<Person>) => setDraft((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   const save = () => {
     const base = shot.continuity ?? { version: 0, characters: [], props: [], environment: {}, camera: {} };
     const others = base.characters.filter((x) => !shot.characterIds.includes(x.characterId));
-    const clean = (x: Person): Person => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== '' && v !== undefined && !(typeof v === 'object' && v && !Array.isArray(v) && !Object.values(v).some(Boolean)))) as unknown as Person;
+    if (!dirty) return; // a save with nothing changed would only move the continuity's version on (QA m1)
     const { version: _v, ...rest } = base;
     try { act('setShotContinuity', p.id, shot.id, { ...rest, characters: [...others, ...shot.characterIds.map((id) => clean(draft[id] ?? { characterId: id }))] }); toast.ok('The people’s state is saved.'); } catch (e) { toast.bad((e as Error).message); }
   };
@@ -74,7 +81,7 @@ export function ShotContext({ p, shot }: { p: Production; shot: Shot }) {
       <div className="ws-context-next">
         <span className="t-label">What the next take is made from</span>
         <dl className="ws-dl">
-          <div><dt className="t-label">Join</dt><dd>{ctx.shot.boundary === 'continuous' ? `continues shot ${ctx.shot.previous ? p.shots.find((s) => s.id === ctx.shot.previous!.shotId)?.number ?? '' : ''}${ctx.shot.previous?.takeId ? '' : ' (no chosen take yet)'}` : ctx.shot.boundary === 'cut' ? 'a new camera on the same moment' : 'a new place or time'}</dd></div>
+          <div><dt className="t-label">Join</dt><dd>{ctx.shot.boundary === 'continuous' ? `continues shot ${(() => { const prev = ctx.shot.previous ? p.shots.find((s) => s.id === ctx.shot.previous!.shotId) : undefined; return prev ? shotLabel(p, prev) : ''; })()}${ctx.shot.previous?.takeId ? '' : ' (no chosen take yet)'}` : ctx.shot.boundary === 'cut' ? 'a new camera on the same moment' : 'a new place or time'}</dd></div>
           {ctx.location && <div><dt className="t-label">Place</dt><dd dir="auto"><bdi>{ctx.location.name}</bdi> · identity v{ctx.location.identity.version}{ctx.location.changes.length ? ` · as the story left it: ${ctx.location.changes.map((k) => k.text).join('; ')}` : ''}</dd></div>}
           {ctx.story.sceneObjective && <div><dt className="t-label">Scene objective</dt><dd dir="auto">{ctx.story.sceneObjective}</dd></div>}
           {ctx.story.eventsCompleted.length > 0 && <div><dt className="t-label">Already happened</dt><dd dir="auto">{ctx.story.eventsCompleted.slice(-3).map((e) => e.text).join(' · ')}{ctx.story.eventsCompleted.length > 3 ? ` (+${ctx.story.eventsCompleted.length - 3} earlier)` : ''}</dd></div>}

@@ -13,6 +13,7 @@ import { sceneSetupFrom } from './scene-setup';
 import { cutInputsHash } from './cut';
 import { reconcileContinuationChain } from './continuation';
 import { advanceIdentity, withLocationIdentity } from './location';
+import { withEditorialTransition } from './editorial';
 
 export { nid } from './ids';
 
@@ -321,7 +322,8 @@ export type ShotInput = Omit<Shot, 'id' | 'number' | 'takes' | 'selectedTakeId'>
 export function addShot(s: S, productionId: string, input: ShotInput): { state: S; shot: Shot } {
   const p = mustFind(s.productions, productionId, 'Production');
   mustFind(p.scenes, input.sceneId, 'Scene');
-  const shot: Shot = { ...input, id: nid('shot'), number: 0, takes: [] };
+  // the editorial join follows the boundary (src/domain/editorial.ts): never a producer's dissolve or fade
+  const shot: Shot = withEditorialTransition({ ...input, id: nid('shot'), number: 0, takes: [] });
   const state = withProduction(s, productionId, (x) => {
     // insert after the last shot of the same scene so the storyboard reads in scene order
     const idx = x.shots.map((y) => y.sceneId).lastIndexOf(input.sceneId);
@@ -338,7 +340,7 @@ export function replaceSceneShots(s: S, productionId: string, sceneId: string, s
   return withProduction(s, productionId, (p) => {
     const existing = p.shots.filter((sh) => sh.sceneId === sceneId);
     if (!force && existing.some((sh) => sh.takes.length > 0)) throw new StudioError('CONFLICT', 'This scene already has takes; replan with force to replace its shots.', { sceneId });
-    const fresh: Shot[] = shots.map((sh) => ({ ...sh, sceneId, id: nid('shot'), number: 0, takes: [] }));
+    const fresh: Shot[] = shots.map((sh) => withEditorialTransition({ ...sh, sceneId, id: nid('shot'), number: 0, takes: [] }));
     const idx = p.shots.findIndex((sh) => sh.sceneId === sceneId);
     const rest = p.shots.filter((sh) => sh.sceneId !== sceneId);
     const at = idx === -1 ? rest.length : Math.min(idx, rest.length);
@@ -354,7 +356,7 @@ export type ShotPatchInput = Partial<Omit<Shot, 'id' | 'number' | 'openingFrameA
 export function updateShot(s: S, productionId: string, shotId: string, input: ShotPatchInput): S {
   const { openingFrameAssetId: o, endingFrameAssetId: e, ...rest } = input;
   const patch: Partial<Omit<Shot, 'id' | 'number'>> = { ...rest, ...(o !== undefined ? { openingFrameAssetId: o ?? undefined } : {}), ...(e !== undefined ? { endingFrameAssetId: e ?? undefined } : {}) };
-  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? { ...sh, ...patch, ...plannedDirectionAfter(sh, patch) } : sh))) }; });
+  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? withEditorialTransition({ ...sh, ...patch, ...plannedDirectionAfter(sh, patch) }) : sh))) }; });
 }
 
 /** THE PRODUCER'S "WHAT HAPPENS" WINS. The planner's direction of a shot — its prompt body and its timed staging beats —

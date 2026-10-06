@@ -45,7 +45,8 @@ export const POST = route(async (req) => {
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) throw new StudioError('INVALID', parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '));
   const { key, warnings } = await prepareCharacterJob(parsed.data.type, parsed.data.payload, parsed.data.idempotencyKey);
-  let r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: key, priority: parsed.data.priority });
+  // a submission identical to an active job (double click, two tabs, a resent request) gets that job back
+  let r = await enqueue({ type: parsed.data.type, payload: parsed.data.payload, idempotencyKey: key, priority: parsed.data.priority, dedupeActive: true });
   // a voice-build or creation key met an earlier attempt that has ended (it failed, or was cancelled): that is a new
   // request, not a duplicate — queue it under a fresh key rather than hand back the old job, whoever supplied the key
   const fresh = !r.created ? requeueKeyFor(key, r.job) : null;
