@@ -1,0 +1,295 @@
+{
+  "checked": "2026-10-05T22:31:36.487Z",
+  "base": "http://localhost:4252",
+  "results": [
+    {
+      "step": "1440 shot 2: \"People and story state\" opens",
+      "ok": true,
+      "note": {
+        "legends": [
+          "Abu Haidar",
+          "Clara Hughes"
+        ],
+        "next": "What the next take is made from Join continues shot 1 Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea.",
+        "overflow": []
+      }
+    },
+    {
+      "step": "1440 shot 2: fields, labels and hit areas",
+      "ok": true,
+      "note": [
+        "input \"Condition\" 319×32",
+        "input \"Emotion\" 319×32",
+        "input \"Starts\" 319×32",
+        "input \"Ends\" 319×32",
+        "select \"Abu Haidar moves\" 319×32",
+        "button \"Clara Hughes\" 105×32",
+        "input \"Condition\" 319×32",
+        "input \"Emotion\" 319×32",
+        "input \"Starts\" 319×32",
+        "input \"Ends\" 319×32",
+        "select \"Clara Hughes moves\" 319×32",
+        "button \"Abu Haidar\" 91×32",
+        "button \"Save the people’s state\" 166×28"
+      ]
+    },
+    {
+      "step": "shot 2: save Clara's condition → stored on the shot",
+      "ok": false,
+      "note": "stored: {\"pose\":\"standing, watching intently\",\"emotion\":\"anticipating\",\"eyeline\":\"at the tea glass\",\"holding\":[],\"position\":\"left, facing right\",\"wardrobe\":\"olive green field jacket, cream sweater\",\"characterId\":\"char-0556d14a04\",\"screenDirection\":\"RIGHT\"}"
+    },
+    {
+      "step": "shot 2: type then erase (no real change) → is Save still offered?",
+      "ok": false,
+      "note": "Save the people’s state is enabled and Discard shown (1) although nothing changed (empty string vs absent field)"
+    },
+    {
+      "step": "shot 2: Moves → Left to right → Not set (no real change) → is Save still offered?",
+      "ok": false,
+      "note": "Save offered for a no-op; after saving, stored: {\"pose\":\"standing, watching intently\",\"emotion\":\"anticipating\",\"eyeline\":\"at the tea glass\",\"holding\":[],\"position\":\"left, facing right\",\"wardrobe\":\"olive green field jacket, cream sweater\",\"characterId\":\"char-0556d14a04\",\"screenDirection\":\"RIGHT\"}"
+    },
+    {
+      "step": "shot 2: \"With\" chips toggle aria-pressed",
+      "ok": true,
+      "note": "false → true"
+    },
+    {
+      "step": "shot 2: keyboard reaches the context fields with a visible ring",
+      "ok": true,
+      "note": "input ring · input ring · input ring · input ring · select[Abu Haidar moves] ring · button ring · input ring · input ring"
+    },
+    {
+      "step": "shot 2: boundary control and editorial transition (contradiction allowed?)",
+      "ok": false,
+      "note": "locator.scrollIntoViewIfNeeded: Timeout 30000ms exceeded."
+    },
+    {
+      "step": "1440 shot 1 (the film's first): boundary and context wording",
+      "ok": true,
+      "note": {
+        "boundaryShown": false,
+        "value": null,
+        "help": "",
+        "next": "What the next take is made from Join a new place or time Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea. Lines 4.5 s recorded"
+      }
+    },
+    {
+      "step": "1440 shot 3: take cards (verdicts, drift line, \"made in\")",
+      "ok": true,
+      "note": [
+        "5.2 s Take 1 Failed its checks · Automatic checks failed: script-spoken made in 5 min 58 s place 15.75 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 2 Failed its checks · Automatic checks failed: script-spoken made in 1 min 57 s place 15.66 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 3 Failed its checks · Automatic checks failed: script-spoken made in 2 min place 15.80 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 4 Failed its checks · Automatic checks failed: script-spoken made in 1 min 59 s place 15.77 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 5 Not judged made in 1 min 31 s place 15.62 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "5.2 s Take 6 Not judged made in 1 min 55 s place 15.68 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "5.2 s Take 7 Not judged made in 2 min place 12.62 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "8.0 s Take 8 Not judged made in 3 min 14 s place 12.63 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "8.0 s Take 9 Selected made in 3 min 13 s place 12.70 of 36.00 · faces 1 of 1 Good Reject Compare"
+      ]
+    },
+    {
+      "step": "1440 shot 3: people/story context",
+      "ok": true,
+      "note": "Clara Hughes Condition What must show and persist: wet, injured, out of breath Emotion Starts Ends A continuous next shot starts from this. Moves Not set Still Left to right Right to left Toward the camera Away from the camera Save the people’s state What the next take is made from Join a new camera on the same moment Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea. L"
+    },
+    {
+      "step": "1440 story: \"What the scene changes\" present",
+      "ok": true,
+      "note": "What the scene changes Kept by the studio and carried into every later shot: what happened, what someone now knows, and what stays changed. Events Add an event What has happened once the scene is over. Persistent changes Add a change A wound, wet clothes, a broken window, a cup left on the table — u"
+    },
+    {
+      "step": "story: Add an event → stored at once (empty)?",
+      "ok": true,
+      "note": "commands sent 1; stored events undefined"
+    },
+    {
+      "step": "story: typing 20 characters into the event → commands sent",
+      "ok": true,
+      "note": "8 write requests for 20 keystrokes; field \"Clara pours the tea.\"; stored [{\"id\":\"fact-74698cef05\",\"text\":\"Clara pours the tea.\"}]"
+    },
+    {
+      "step": "story: Add a change → a row of controls (layout)",
+      "ok": true,
+      "note": {
+        "changeRow": [
+          "select[Who or what changes] 452,497 160×32",
+          "input[The change] 620,497 186×32",
+          "select[From when] 814,497 206×32",
+          "label 452,537 160×18",
+          "input[Change key] 620,537 186×32",
+          "button[Remove the change] 814,537 28×28"
+        ],
+        "eventRow": [
+          "input 160×32",
+          "button 28×28"
+        ]
+      }
+    },
+    {
+      "step": "story: change subject → A prop shows the prop field; \"Ends an earlier change\" switches the placeholder",
+      "ok": true,
+      "note": {
+        "propField": 1,
+        "placeholders": [
+          "The change, as it should look",
+          "What ends (healed, dried, repaired)"
+        ],
+        "whenOpts": [
+          "From the end of the scene",
+          "From after shot 1.1",
+          "From after shot 1.2",
+          "From after shot 1.3"
+        ],
+        "stored": [
+          {
+            "id": "fact-a4642c1174",
+            "text": "lid cracked",
+            "cleared": true,
+            "subject": {
+              "kind": "PROP",
+              "name": "teapot"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "step": "story: Add what someone learns; remove buttons work",
+      "ok": false,
+      "note": "Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+    },
+    {
+      "step": "story: does the shot context show the scene's events / changes? (round trip)",
+      "ok": true,
+      "note": "What the next take is made from Join a new camera on the same moment Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea. Lines 5.9 s recorded the recorded lines run 5.9 s, longer than the shot's 4 s Missing"
+    },
+    {
+      "step": "1440 final cut: summary and export controls",
+      "ok": true,
+      "note": {
+        "text": "Tea at Mutanabbi Tea at Mutanabbi Short film · production Map Story (done) Cast & World (done) Storyboard (done) Produce (done) Final cut (waits for your approval) Saved Screen it The studio is ready: a new take starts when you ask for one. Engines Outline 3 shots Script 1 scene · 3 lines 1 · A Taste of Mutanabbi 3/3 1.1 Two-shot · push in Establish the location and the first interaction 1 take · selected 1.2 Two-shot · static Show Abu Haidar's hospitality and the ritual of pouring tea 2 takes · take 2 selected 1.3 Medium · static Capture the emotional payoff of the first taste 9 takes · take 9 selected Final cut Cut 3 Final cut Cut 3 waits for your approval 00:00:00:00 / 00:00:19:00 In Out Assemble a new cut Screen it The assembly 3 The selected takes in film order, each as wide as its shot · 0:14 of 0:15 1.1 1.2 1.3 Every shot has a selected take 2 of 2 lines recorded 1 of 1 speaking c",
+        "disabled": [
+          "\"Export\" NO REASON"
+        ]
+      }
+    },
+    {
+      "step": "1440 page errors",
+      "ok": true,
+      "note": "none"
+    },
+    {
+      "step": "390 shot 2: \"People and story state\" opens",
+      "ok": true,
+      "note": {
+        "legends": [
+          "Abu Haidar",
+          "Clara Hughes"
+        ],
+        "next": "What the next take is made from Join continues shot 1 Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea.",
+        "overflow": []
+      }
+    },
+    {
+      "step": "390 shot 2: fields, labels and hit areas",
+      "ok": true,
+      "note": [
+        "input \"Condition\" 350×32",
+        "input \"Emotion\" 350×32",
+        "input \"Starts\" 350×32",
+        "input \"Ends\" 350×32",
+        "select \"Abu Haidar moves\" 350×32",
+        "button \"Clara Hughes\" 105×32",
+        "input \"Condition\" 350×32",
+        "input \"Emotion\" 350×32",
+        "input \"Starts\" 350×32",
+        "input \"Ends\" 350×32",
+        "select \"Clara Hughes moves\" 350×32",
+        "button \"Abu Haidar\" 91×32",
+        "button \"Save the people’s state\" 166×28"
+      ]
+    },
+    {
+      "step": "390 shot 1 (the film's first): boundary and context wording",
+      "ok": true,
+      "note": {
+        "boundaryShown": false,
+        "value": null,
+        "help": "",
+        "next": "What the next take is made from Join a new place or time Place Tea stall, Mutanabbi Street · identity v2 Scene objective To establish a warm first encounter between Clara and Abu Haidar through the shared experience of traditional tea. Lines 4.5 s recorded"
+      }
+    },
+    {
+      "step": "390 shot 3: take cards (verdicts, drift line, \"made in\")",
+      "ok": true,
+      "note": [
+        "5.2 s Take 1 Failed its checks · Automatic checks failed: script-spoken made in 5 min 58 s place 15.75 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 2 Failed its checks · Automatic checks failed: script-spoken made in 1 min 57 s place 15.66 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 3 Failed its checks · Automatic checks failed: script-spoken made in 2 min place 15.80 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 4 Failed its checks · Automatic checks failed: script-spoken made in 1 min 59 s place 15.77 of 36.00 · faces 1 of 1 Compare",
+        "5.2 s Take 5 Not judged made in 1 min 31 s place 15.62 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "5.2 s Take 6 Not judged made in 1 min 55 s place 15.68 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "5.2 s Take 7 Not judged made in 2 min place 12.62 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "8.0 s Take 8 Not judged made in 3 min 14 s place 12.63 of 36.00 · faces 1 of 1 Use this take Good Reject Compare",
+        "8.0 s Take 9 Selected made in 3 min 13 s place 12.70 of 36.00 · faces 1 of 1 Good Reject Compare"
+      ]
+    },
+    {
+      "step": "390 shot 3: people/story context",
+      "ok": false,
+      "note": "locator.click: Timeout 30000ms exceeded."
+    },
+    {
+      "step": "390 story: \"What the scene changes\" present",
+      "ok": true,
+      "note": "What the scene changes Kept by the studio and carried into every later shot: what happened, what someone now knows, and what stays changed. Events Add an event What has happened once the scene is over. Persistent changes Abu Haidar Clara Hughes The place A prop From the end of the scene From after s"
+    },
+    {
+      "step": "390 story: Add a change → row layout at 390",
+      "ok": true,
+      "note": {
+        "overflow": 0,
+        "small": [
+          "input[Event] 318×32",
+          "button[Remove the event] 28×28",
+          "button[button] 122×28",
+          "select[Who or what changes] 318×32",
+          "input[Which prop] 99×32",
+          "input[The change] 211×32",
+          "select[From when] 99×32",
+          "input[checkbox] 13×13",
+          "input[Change key] 99×32",
+          "button[Remove the change] 28×28",
+          "select[Who or what changes] 318×32",
+          "input[The change] 99×32",
+          "select[From when] 211×32",
+          "input[checkbox] 13×13",
+          "input[Change key] 211×32",
+          "button[Remove the change] 28×28",
+          "button[button] 125×28",
+          "select[Who learns it] 318×32",
+          "input[What they learn] 104×32",
+          "select[From when] 206×32",
+          "button[Remove] 28×28",
+          "button[button] 199×28"
+        ]
+      }
+    },
+    {
+      "step": "390 final cut: summary and export controls",
+      "ok": true,
+      "note": {
+        "text": "Tea at Mutanabbi Tea at Mutanabbi Short film · production Map Story (done) Cast & World (done) Storyboard (done) Produce (done) Final cut (waits for your approval) Screen it The studio is ready: a new take starts when you ask for one. Engines Final cut Cut 3 waits for your approval 00:00:00:00 / 00:00:19:00 In Out Assemble a new cut Screen it The assembly 3 The selected takes in film order, each as wide as its shot · 0:14 of 0:15 1.1 1.2 1.3 Every shot has a selected take 2 of 2 lines recorded 1 of 1 speaking character has a voice Cut versions 3 Cut 3 the current cut · 3 shots · 0:19 · 1920×1080 On the canvas Cut 2 an earlier cut · 3 shots · 0:16 · 1920×1080 Show Cut 1 an earlier cut · 3 shots · 0:16 · 1920×1080 Show Approve the cut The export waits for your approval of this cut. Request changes Approve Subtitles Tea at Mutanabbi — subtitles en (srt) Download Tea at Mutanabbi — subtitles",
+        "disabled": [
+          "\"Export\" NO REASON"
+        ]
+      }
+    },
+    {
+      "step": "390 page errors",
+      "ok": false,
+      "note": "Invalid or unexpected token | console: Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move th | console: Encountered a script tag while rendering React co"
+    }
+  ]
+}

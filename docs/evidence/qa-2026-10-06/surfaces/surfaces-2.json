@@ -1,0 +1,47 @@
+{
+  "checked": "2026-10-05T22:39:59.197Z",
+  "base": "http://localhost:4252",
+  "results": [
+    {
+      "step": "shot 2: inspector sections",
+      "ok": true,
+      "note": [
+        "Generation settings",
+        "Camera and framing",
+        "Cast and references",
+        "Action and dialogue",
+        "People and story state",
+        "Notes",
+        "Details · take 2",
+        "The words it was made from"
+      ]
+    },
+    {
+      "step": "shot 2: boundary + editorial transition can contradict (Continuous + Fade), with no word on the page",
+      "ok": true,
+      "note": {
+        "before": {
+          "boundary": "Continuous",
+          "transition": "Continues",
+          "options": [
+            "Cut",
+            "Continues",
+            "Dissolve",
+            "Fade"
+          ]
+        },
+        "afterChoosingFade": "Framing Extreme wide Wide Medium wide Medium Medium close-up Close-up Extreme close-up Insert Two-shot Over the shoulder Camera Static Push in Pull back Pan left Pan right Tilt up Tilt down Truck left Truck right Handheld Follow Orbit Crane up Crane down Rack focus Length 4 s 5 s 6 s 7 s 8 s 10 s Join with the shot before Continuous Cut Transition The action carries on without a cut: the take starts from the end of the shot before it. Editorial transition Cut Continues Dissolve Fade What the vie"
+      }
+    },
+    {
+      "step": "shot 2: unsaved people state — footer and leaving the page",
+      "ok": true,
+      "note": {
+        "footerWhileEditing": "Saved Save the shot",
+        "dialogsShown": [],
+        "afterKey": "/shorts/short-efe98843f0/shots/shot-050ff6f102",
+        "storedCondition": "(none: the edit was dropped)"
+      }
+    }
+  ]
+}

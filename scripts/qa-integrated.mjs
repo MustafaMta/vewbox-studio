@@ -89,6 +89,21 @@ export const PAGES = [
   { name: 'settings', path: '/settings' },
   { name: 'assets', path: '/assets' },
   { name: 'kit', path: '/kit' },
+  // the cloud session's surfaces (QA 2026-10-06): the continuity production Tea at Mutanabbi
+  { name: 'tea-short', path: '/shorts/short-efe98843f0' },
+  { name: 'tea-workspace', path: '/shorts/short-efe98843f0/production' },
+  { name: 'tea-story', path: '/shorts/short-efe98843f0/production?tab=story' },
+  { name: 'tea-storyboard', path: '/shorts/short-efe98843f0/production?tab=storyboard' },
+  { name: 'tea-produce', path: '/shorts/short-efe98843f0/production?tab=produce' },
+  { name: 'tea-final', path: '/shorts/short-efe98843f0/production?tab=final' },
+  { name: 'tea-cast', path: '/shorts/short-efe98843f0/production?tab=cast' },
+  { name: 'tea-shot1', path: '/shorts/short-efe98843f0/shots/shot-cb4a02d3cc' },
+  { name: 'tea-shot2', path: '/shorts/short-efe98843f0/shots/shot-6ad9db5269' },
+  { name: 'tea-shot3', path: '/shorts/short-efe98843f0/shots/shot-050ff6f102' },
+  { name: 'tea-screening', path: '/screening?p=short-efe98843f0' },
+  { name: 'tea-location', path: '/locations/loc-75cdbdb376' },
+  { name: 'clara', path: '/characters/char-0556d14a04' },
+  { name: 'abu-haidar', path: '/characters/char-3a54ed1937' },
 ];
 
 const SIZE = { 1440: { w: 1440, h: 900, touch: false }, 1920: { w: 1920, h: 1080, touch: false }, 390: { w: 390, h: 844, touch: true } };
