@@ -41,3 +41,19 @@ Voice-model engineer, 2026-10-06. FINAL-LOCAL-DIRECTIVE §§15, 18, 25, 28; MODE
 ## 3. Results
 
 (Filled from `docs/evidence/voice-eval-2026-10/report.json` when the runs complete.)
+
+## 4. Integration (in the code, default unchanged)
+
+`src/server/providers/voice-engines.ts` describes every local engine as capability data — URL, languages, duration
+control (`speed` / `tokens` / none), emotion input (`vector` / `style` / reference only), whether the reference
+transcript conditions it, whether one-word lines need the IndexTTS lead-in, licence, VRAM. `speech.ts` routes by it:
+
+- `VOICE_ENGINE_EN` (env, default `indextts`) chooses the engine for NEW English voices; an identity keeps the engine it
+  was pinned with (`VoiceIdentity.model`), so switching the default never changes an existing character's voice.
+- Latin-script lines stay on the voice's own engine when it speaks English (a pinned candidate keeps its timbre);
+  Habibi voices fall back to IndexTTS as before; mixed Arabic/Latin lines stay on IndexTTS.
+- The reference transcript is sent to engines that use it (Habibi, dots); a `durationSeconds` target is sent to an
+  engine with token-level control (MOSS); the one-word lead-in applies to IndexTTS only.
+- The candidates run as compose profile `bench` services (`tts-bench-voxcpm2` :8040, `tts-bench-dots` :8041,
+  `tts-bench-moss` :8042); a promotion adds the chosen one to the default profile and sets `VOICE_ENGINE_EN` — only after
+  the real-UI test (FINAL-LOCAL-DIRECTIVE §25).
