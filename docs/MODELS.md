@@ -175,7 +175,7 @@ performance is the default; the corrector runs only for ONE take the producer co
 (job `CORRECT_LIPSYNC`, `src/worker/handlers/lipsync.ts`; rules and thresholds as data in
 `src/domain/lipsync-correction.ts`). It redraws the mouth region of the existing take to the authoritative audio and
 records the result as a NEW take (`derivedFrom`) beside the original, accepted or rejected with before/after numbers.
-It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (port 8040, no VRAM while idle,
+It never generates video. Compose: `docker compose --profile lipsync up -d lipsync` (host port 8045, container 8040, no VRAM while idle,
 weights dropped after every request unless `LIPSYNC_KEEP_LOADED=1`). GPU family `LIPSYNC`: ComfyUI (H3) and every other
 engine unload before it loads.
 
