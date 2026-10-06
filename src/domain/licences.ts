@@ -31,8 +31,8 @@ export const ENGINE_LICENCES: readonly EngineLicence[] = [
   { id: 'demucs', engine: 'Demucs', role: 'Separates a song’s voice and music', licence: 'MIT', status: 'IN_USE', obligations: ['Keep the licence notice.'] },
   { id: 'ace-step', engine: 'ACE-Step 1.5', role: 'Makes songs', licence: 'MIT', status: 'IN_USE', obligations: ['Keep the licence notice.'] },
   { id: 'minimax-music3', engine: 'MiniMax Music 3 (open weights)', role: 'Makes songs (second engine)', licence: 'MiniMax-Music3 Community License', status: 'IN_USE', obligations: ['“MiniMax Music 3” is credited where it is used.', 'Commercial use only below US$20M a year.'] },
-  { id: 'gemma', engine: 'Gemma 4 31B', role: 'Writes ideas, stories, scripts and shot plans', licence: 'Gemma Terms of Use', status: 'IN_USE', passesRestrictions: true, obligations: ['Its Prohibited Use Policy binds the users of what it writes.'] },
-  { id: 'qwen3', engine: 'Qwen3 14B', role: 'Story engine (selectable)', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
+  { id: 'qwen38', engine: 'Qwen3.8-27B-FP8', role: 'Writes ideas, stories, scripts and shot plans', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
+  { id: 'gemma', engine: 'Gemma 4 31B', role: 'Emergency fallback for the story model only (not used unless the server is switched to it)', licence: 'Gemma Terms of Use', status: 'EVALUATING', passesRestrictions: true, obligations: ['Its Prohibited Use Policy binds the users of what it writes, when it is used.'] },
   { id: 'latentsync', engine: 'LatentSync', role: 'Lip-sync correction', licence: 'OpenRAIL++-M', status: 'EVALUATING', passesRestrictions: true, obligations: ['Its use restrictions (Attachment A) bind the users of what it makes.'] },
   { id: 'geist', engine: 'Geist and Geist Mono', role: 'The interface’s typefaces', licence: 'SIL Open Font License 1.1', status: 'FONT', obligations: ['Ship the licence with the font files.'] },
 ] as const;

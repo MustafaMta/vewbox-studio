@@ -71,14 +71,13 @@ const isLocalLlm = (baseUrl: string) => llmRuntime(baseUrl) !== 'remote';
 /** The local model's context window, prompt and answer together (vLLM --max-model-len / Ollama num_ctx). */
 export const localContextLength = (): number => env().LLM_CONTEXT_LENGTH ?? env().OLLAMA_CONTEXT_LENGTH;
 
-/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.6-27B dense, Q8_0 (Ollama
- *  `qwen3.6:27b-q8_0`, Apache-2.0) — the production brain by the producer's directive of 2026-10-06
- *  (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md; promotion record docs/research/MODEL-EVAL-2026-10.md §9).
- *  It fills the card (≈ 31.5 GB at num_ctx 16384): a stall there fails fast (LocalModelStalled) and the documented
- *  fallback is a Q6_K build of the same model (a Hugging Face GGUF: Ollama's library has no q6_K tag; §9.1). Gemma 4 31B (`gemma4:31b-it-qat`) stays installed as the emergency
- *  fallback, qwen3:14b as a preview model — both through OPENAI_COMPATIBLE_MODEL. */
-export const DEFAULT_LOCAL_LLM = 'qwen3.6:27b-q8_0';
-/** The emergency fallback when the production model cannot run (selected by setting OPENAI_COMPATIBLE_MODEL to it). */
+/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.8-27B-FP8 — the official fine-grained FP8
+ *  checkpoint Qwen/Qwen3.8-27B-FP8 (Apache-2.0, revision 017b9c7a, manifest group llm-qwen3.8-27b-fp8) served by vLLM
+ *  (compose service llm-vllm) under this id (`--served-model-name`); the producer's Phase 1 planner, 2026-10-06
+ *  (promotion record docs/research/MODEL-EVAL-2026-10.md §10). Gemma 4 31B on Ollama (`gemma4:31b-it-qat`) is the
+ *  emergency fallback only: OPENAI_COMPATIBLE_BASE_URL=http://…:11434/v1 + OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat. */
+export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-FP8';
+/** The emergency fallback when the production model cannot run (an explicit switch of base URL and model). */
 export const FALLBACK_LOCAL_LLM = 'gemma4:31b-it-qat';
 
 /** What a local model holds on the card while it answers, in MB — the LLM family's GPU lease estimate. Measured on the
@@ -86,7 +85,7 @@ export const FALLBACK_LOCAL_LLM = 'gemma4:31b-it-qat';
  *  contexts): qwen3.6:27b-q8_0 31,499 MiB loaded, 31,708 writing (Ollama: 28.4 GB, 66/66 layers, 100 % GPU; §9 — the
  *  whole card), gemma4:31b-it-qat 21,405 MiB (Ollama: 19.1 GB, 100 % GPU), qwen3:14b 11,489 MiB (10.57 GB). A model
  *  that was never measured keeps the earlier 12000 and should be measured before it is relied on. */
-export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.6:27b', 31500], ['gemma4:31b', 21500], ['qwen3:14b', 12000]];
+export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.8-27b', 31500], ['qwen3.6:27b', 31500], ['gemma4:31b', 21500], ['qwen3:14b', 12000]];
 export const UNMEASURED_LLM_VRAM_MB = 12000;
 export function llmLeaseMb(model: string): number {
   const m = model.trim().toLowerCase();
@@ -97,7 +96,7 @@ export function llmLeaseMb(model: string): number {
  *  prompt reading included; seconds to read one ≈ 4K-token shot-plan prompt): qwen3.6:27b-q8_0 25 tok/s (MODEL-EVAL-2026-10
  *  §9: 3,402 answer tokens in 138 s, thinking off), gemma4:31b-it-qat 52 tok/s (§9, shot plans), qwen3:14b ≈ 100 (§3). The shot planner's deadline is computed from it (src/server/jobs/work-deadline.ts).
  *  A model never measured is assumed slow (8 tok/s, a large model with experts on the CPU) so its jobs are not cut short. */
-export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.6:27b', 25, 15], ['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
+export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.8-27b', 25, 15], ['qwen3.6:27b', 25, 15], ['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
 export const UNMEASURED_LLM_SPEED = { tokensPerSecond: 8, promptSecondsPerPart: 90 };
 /** A hosted engine's speed for the same purpose (fast; its deadline stays near the flat value). */
 export const HOSTED_LLM_SPEED = { tokensPerSecond: 40, promptSecondsPerPart: 10 };

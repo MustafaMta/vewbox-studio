@@ -41,10 +41,14 @@ x-app-env: &app-env
   LLM_PROVIDER: ${LLM_PROVIDER:-auto}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
-  OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm:11434/v1}
-  OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-ollama}
-  # the local story model: Qwen3.6-27B Q8_0 since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md §9); gemma4:31b-it-qat is the fallback
-  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-qwen3.6:27b-q8_0}
+  # the local story model: Qwen3.8-27B-FP8 on vLLM (service llm-vllm) since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md
+  # §10). Emergency fallback only: OPENAI_COMPATIBLE_BASE_URL=http://llm:11434/v1, OPENAI_COMPATIBLE_RUNTIME=ollama,
+  # OPENAI_COMPATIBLE_MODEL=gemma4:31b-it-qat (and start `llm`, stop `llm-vllm`)
+  OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm-vllm:8000/v1}
+  OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-local}
+  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-Qwen3.8-27B-FP8}
+  OPENAI_COMPATIBLE_RUNTIME: ${OPENAI_COMPATIBLE_RUNTIME:-vllm}
+  LLM_CONTEXT_LENGTH: ${LLM_CONTEXT_LENGTH:-16384}
   # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
   OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -399,6 +403,8 @@ services:
     logging: *logging
     image: ollama/ollama:0.35.1
     dns: *dns
+    # the Gemma emergency fallback only: not started by a plain `up` (`docker compose --profile fallback up -d llm`)
+    profiles: ["fallback"]
     restart: unless-stopped
     environment:
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -487,7 +493,7 @@ services:
     dns: *dns
     profiles: ["models"]
     environment:
-      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3.6:27b-q8_0,gemma4:31b-it-qat}
+      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-gemma4:31b-it-qat}
       OLLAMA_HOST: 127.0.0.1:11435
       SSL_CERT_DIR: /etc/ssl/certs:/run/secrets # the extra root, as for `llm`
       OLLAMA_MODELS: /root/.ollama/models

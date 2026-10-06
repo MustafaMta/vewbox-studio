@@ -62,7 +62,7 @@ export function SettingsPage() {
       <Section id="generation" title="Engines" description="What makes new work. These are set where the studio is installed; the engine room shows whether each one is running.">
         <div className="card st-panel">
           <InfoRow label="Video" hint="Films every take. The only video engine." value={`MiniMax H3, on this machine${caps?.videoResolution ? ` · ${caps.videoResolution}` : ''}`} />
-          <InfoRow label="Story" hint="Writes ideas, stories, scripts and shot plans." value={storyNow === 'no engine' ? 'No story engine is configured' : storyNow === 'a local model' ? 'A model on this machine' : `${storyNow}, hosted`} />
+          <InfoRow label="Story" hint="Writes ideas, stories, scripts and shot plans." value={storyNow === 'no engine' ? 'No story engine is configured' : storyNow === 'a local model' ? `${caps?.llmModel ?? 'A model'}, on this machine` : `${storyNow}, hosted`} />
           {caps?.minimax ? (
             <SettingRow label="Voice engine" hint="Speaks new voices and dialogue." unused={off('voiceProvider')}>
               {() => <Segmented label="Voice engine" value={gen.voiceProvider ?? 'LOCAL_TTS'} onChange={(v) => setGen({ voiceProvider: v })} options={[{ value: 'LOCAL_TTS', label: 'On this machine' }, { value: 'MINIMAX', label: 'MiniMax, hosted' }]} />}

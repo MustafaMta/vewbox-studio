@@ -24,8 +24,8 @@ so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*,
 | Demucs | stems | MIT | in use | keep the notice | no |
 | ACE-Step 1.5 | songs | MIT | in use | keep the notice | no |
 | MiniMax Music 3 (open weights) | songs (second engine) | MiniMax-Music3 Community License | in use | credit "MiniMax Music 3" where used; US$20M cap | ◐ |
-| Gemma 4 31B (Ollama) | story, scripts, shot plans | Gemma Terms of Use | in use | its Prohibited Use Policy binds users of its outputs | yes |
-| Qwen3 14B | story engine (selectable) | Apache-2.0 | in use | keep the licence and notices | no |
+| Qwen3.8-27B-FP8 (vLLM; Qwen/Qwen3.8-27B-FP8 @ 017b9c7a) | story, scripts, shot plans (the production planner since 2026-10-06) | Apache-2.0 ✔ (model card and LICENSE, not gated) | in use | keep the licence and notices | no |
+| Gemma 4 31B (Ollama) | emergency fallback for the story model only (explicit switch; not in normal routing) | Gemma Terms of Use | fallback, not in use | its Prohibited Use Policy binds users of its outputs when it is used | yes (when used) |
 | LatentSync 1.6 (+ Whisper tiny MIT, SD VAE ft-MSE MIT) | lip-sync correction of a confirmed take (opt-in service) | weights CreativeML OpenRAIL++-M ✔ (model card), code Apache-2.0 ✔ | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial); the repo's auxiliary weights (S3FD, syncnet_v2, VGG, I3D, KonIQ, ViT-g) are not fetched | yes |
 | Geist, Geist Mono | interface typefaces | SIL Open Font License 1.1 | in use | ship the licence with the files (`src/app/fonts/OFL-Geist.txt`) | no |
 

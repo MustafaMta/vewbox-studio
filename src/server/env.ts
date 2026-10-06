@@ -1,3 +1,4 @@
+import { llmDisplayName } from '@/domain/llm-names';
 import { z } from 'zod';
 
 /** THE SERVER'S CONFIGURATION — read once from the environment, validated, never logged with secrets. Everything a
@@ -109,6 +110,8 @@ export function capabilities() {
     llm: e.LLM_PROVIDER === 'auto' ? (e.MINIMAX_API_KEY ? 'minimax' : e.ANTHROPIC_API_KEY ? 'anthropic' : e.OPENAI_COMPATIBLE_BASE_URL ? 'openai-compatible' : null) : e.LLM_PROVIDER,
     anthropic: Boolean(e.ANTHROPIC_API_KEY),
     openaiCompatible: Boolean(e.OPENAI_COMPATIBLE_BASE_URL),
+    /** the local story model as shown (Qwen3.8-27B-FP8 unless OPENAI_COMPATIBLE_MODEL names the fallback) */
+    llmModel: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL),
     comfyui: e.COMFYUI_URL,
     tts: e.TTS_URL,
     asr: e.ASR_URL,
