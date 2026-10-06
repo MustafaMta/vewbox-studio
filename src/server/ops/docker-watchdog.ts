@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -45,18 +46,21 @@ export interface WatchdogState {
   /** whether this watchdog may start the worker (the operator asked for it; generation not paused on purpose) */
   workerWanted: boolean;
   /** containment, when determinable (the watchdog runs inside the app's job): processes that die with the app */
-  containment?: { dockerInAppJob: number; workerInAppJob: number };
+  containment?: { dockerInAppJob: number; workerInAppJob: number; webInAppJob?: number };
+  /** the studio web server (:4200), when watched */
+  web?: { port: number; healthy: boolean; listening: boolean; wanted: boolean };
   /** Docker starts this watchdog performed in the last hour */
   recentDockerStarts: number;
 }
 
 export type WatchdogAction =
   | { kind: 'ok'; detail: string }
-  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY'; detail: string }
+  | { kind: 'warn'; code: 'CONTAINED' | 'HUNG' | 'WORKER_STALE' | 'RESTART_CAP' | 'DB_UNHEALTHY' | 'WEB_UNHEALTHY' | 'WEB_DOWN'; detail: string }
   | { kind: 'rename-stale-socket' }
   | { kind: 'start-docker' }
   | { kind: 'wait-engine' }
-  | { kind: 'start-worker' };
+  | { kind: 'start-worker' }
+  | { kind: 'start-web' };
 
 export const HUNG_AFTER_MS = 10 * 60_000;
 export const WORKER_STALE_AFTER_MS = 5 * 60_000;
@@ -65,8 +69,9 @@ export const MAX_DOCKER_STARTS_PER_HOUR = 2;
 /** What to do now. `fix`: false = report only. Pure. */
 export function planWatchdog(s: WatchdogState, opts: { fix: boolean }): WatchdogAction[] {
   const out: WatchdogAction[] = [];
-  if (s.containment && (s.containment.dockerInAppJob > 0 || s.containment.workerInAppJob > 0)) {
-    out.push({ kind: 'warn', code: 'CONTAINED', detail: `${s.containment.dockerInAppJob} Docker process(es) and ${s.containment.workerInAppJob} worker process(es) were launched from the Claude app (or another launcher's job object): they will be terminated at its next update, restart or exit. Relaunch them outside the job (docker-watchdog --start-docker / --start-worker) at a moment no film job is running.` });
+  const c = s.containment;
+  if (c && (c.dockerInAppJob > 0 || c.workerInAppJob > 0 || (c.webInAppJob ?? 0) > 0)) {
+    out.push({ kind: 'warn', code: 'CONTAINED', detail: `${c.dockerInAppJob} Docker process(es), ${c.workerInAppJob} worker process(es) and ${c.webInAppJob ?? 0} web server process(es) were launched from the Claude app (or another launcher's job object): they will be terminated at its next update, restart or exit. Relaunch them outside the job (scripts/relaunch-outside-job.ps1, or docker-watchdog --start-docker / --start-worker / --start-web) at a moment no film job is running.` });
   }
   if (!s.engineOk) {
     if (s.dockerProcesses > 0) {
@@ -82,17 +87,23 @@ export function planWatchdog(s: WatchdogState, opts: { fix: boolean }): Watchdog
     // the worker is started on the next pass, once the engine and the database answer
     return out;
   }
-  if (!s.dbHealthy) { out.push({ kind: 'warn', code: 'DB_UNHEALTHY', detail: 'the engine answers but vewbox-db-1 is not healthy yet; the worker is not started' }); return out; }
+  if (!s.dbHealthy) { out.push({ kind: 'warn', code: 'DB_UNHEALTHY', detail: 'the engine answers but vewbox-db-1 is not healthy yet; the worker and the web server are not started' }); return out; }
+  // THE WORKER
   if (!s.workerRunning) {
     if (opts.fix && s.workerWanted) out.push({ kind: 'start-worker' });
-    else out.push({ kind: 'ok', detail: `engine and database up; no host worker running${s.workerWanted ? ' (run with --fix to start it)' : ' (not started: --worker not given)'}` });
-    return out;
-  }
-  if (s.workerAliveAgeMs !== undefined && s.workerAliveAgeMs > WORKER_STALE_AFTER_MS) {
+    else out.push({ kind: 'ok', detail: `no host worker running${s.workerWanted ? ' (run with --fix to start it)' : ' (not started: --worker not given)'}` });
+  } else if (s.workerAliveAgeMs !== undefined && s.workerAliveAgeMs > WORKER_STALE_AFTER_MS) {
     out.push({ kind: 'warn', code: 'WORKER_STALE', detail: `the worker process exists but has not ticked for ${Math.round(s.workerAliveAgeMs / 60_000)} min (its alive file); look at var/worker-detached.log — it is not restarted automatically` });
-    return out;
+  } else out.push({ kind: 'ok', detail: 'worker up' });
+  // THE STUDIO WEB SERVER (:4200): started only when /api/health does not answer AND nothing listens on the port
+  // (a server that is compiling or stuck still holds the port: it is reported, never killed or doubled)
+  if (s.web) {
+    if (s.web.healthy) out.push({ kind: 'ok', detail: 'web server up' });
+    else if (s.web.listening) out.push({ kind: 'warn', code: 'WEB_UNHEALTHY', detail: `something listens on :${s.web.port} but /api/health does not answer; it is not restarted (look at var/web-detached.log)` });
+    else if (opts.fix && s.web.wanted) out.push({ kind: 'start-web' });
+    else out.push({ kind: 'warn', code: 'WEB_DOWN', detail: `no web server on :${s.web.port}${s.web.wanted ? ' (run with --fix to start it)' : ' (not started: --web not given)'}` });
   }
-  out.push({ kind: 'ok', detail: 'engine, database and worker up' });
+  out.unshift({ kind: 'ok', detail: 'engine and database up' });
   return out;
 }
 
@@ -118,6 +129,30 @@ export function workerCommandLine(repo: string, node = process.execPath): string
   const tsx = path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   const inner = `Set-Location -LiteralPath '${repo}'; $env:SERVICE_NAME='worker'; & '${node}' '${tsx}' --env-file=.env --env-file=.env.local src/worker/index.ts *>> var/worker-detached.log`;
   return `powershell.exe -NoProfile -WindowStyle Hidden -Command "${inner.replace(/"/g, '\\"')}"`;
+}
+
+/** The studio web server's command line: `pnpm dev` (scripts/serve.ts dev — loopback bind, WEB_PORT) from the
+ *  checkout, its output appended to var/web-detached.log, hidden window. */
+export function webCommandLine(repo: string, node = process.execPath, port = 4200): string {
+  const tsx = path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  const inner = `Set-Location -LiteralPath '${repo}'; $env:WEB_PORT='${port}'; & '${node}' '${tsx}' scripts/serve.ts dev *>> var/web-detached.log`;
+  return `powershell.exe -NoProfile -WindowStyle Hidden -Command "${inner.replace(/"/g, '\\"')}"`;
+}
+
+/** Does the studio answer /api/health on 127.0.0.1:port (any HTTP answer below 500)? */
+export async function probeWebHealth(port = 4200, timeoutMs = 15_000): Promise<boolean> {
+  try { const r = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(timeoutMs) }); return r.status < 500; } catch { return false; }
+}
+
+/** Does anything accept TCP connections on 127.0.0.1:port? */
+export function probePortListening(port = 4200, timeoutMs = 3_000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const s = net.connect({ host: '127.0.0.1', port });
+    const done = (v: boolean) => { s.destroy(); resolve(v); };
+    s.setTimeout(timeoutMs, () => done(false));
+    s.once('connect', () => done(true));
+    s.once('error', () => done(false));
+  });
 }
 
 export function dockerDesktopExe(env: Record<string, string | undefined> = process.env): string {
@@ -150,7 +185,7 @@ export async function probeDb(container = 'vewbox-db-1'): Promise<boolean> { ret
  *  ancestor launched by the shell, WMI or a service) descends from the Claude app, or sits in a job object — a
  *  process launched normally (Explorer, the Start menu, Task Scheduler, WMI) is in none. (Inner processes are in jobs
  *  of their own — libuv, Docker's backend — so the root is what is judged.) */
-export async function probeProcesses(): Promise<{ docker: number; worker: number; containment?: { dockerInAppJob: number; workerInAppJob: number } }> {
+export async function probeProcesses(): Promise<{ docker: number; worker: number; containment?: { dockerInAppJob: number; workerInAppJob: number; webInAppJob?: number } }> {
   const ps = `
 Add-Type -TypeDefinition @"
 using System; using System.Runtime.InteropServices;
@@ -171,14 +206,15 @@ function Contained($x) {
 }
 $d = @($p | Where-Object { $_.Name -in 'Docker Desktop.exe','com.docker.backend.exe' })
 $w = @($p | Where-Object { $_.CommandLine -like '*src/worker/index.ts*' -and $_.Name -eq 'node.exe' })
-[pscustomobject]@{ docker = $d.Count; worker = $w.Count; dockerInJob = @($d | Where-Object { Contained $_ }).Count; workerInJob = @($w | Where-Object { Contained $_ }).Count } | ConvertTo-Json -Compress`;
+$web = @($p | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*scripts/serve.ts*' })
+[pscustomobject]@{ docker = $d.Count; worker = $w.Count; web = $web.Count; dockerInJob = @($d | Where-Object { Contained $_ }).Count; workerInJob = @($w | Where-Object { Contained $_ }).Count; webInJob = @($web | Where-Object { Contained $_ }).Count } | ConvertTo-Json -Compress`;
   // run from a file: a here-string does not survive being passed through -Command
   const file = path.join(os.tmpdir(), `vewbox-watchdog-probe-${process.pid}.ps1`);
   await fsp.writeFile(file, ps, 'utf8');
   const out = await tryRun('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file], 60_000).finally(() => fsp.rm(file, { force: true }).catch(() => {}));
   if (!out) return { docker: 0, worker: 0 };
-  const j = JSON.parse(out.split('\n').pop()!) as { docker: number; worker: number; dockerInJob: number; workerInJob: number };
-  return { docker: j.docker, worker: j.worker, containment: { dockerInAppJob: j.dockerInJob, workerInAppJob: j.workerInJob } };
+  const j = JSON.parse(out.split('\n').pop()!) as { docker: number; worker: number; web: number; dockerInJob: number; workerInJob: number; webInJob: number };
+  return { docker: j.docker, worker: j.worker, containment: { dockerInAppJob: j.dockerInJob, workerInAppJob: j.workerInJob, webInAppJob: j.webInJob } };
 }
 
 export function workerAliveAgeMs(file = process.env.WORKER_ALIVE_FILE || path.join(os.tmpdir(), 'worker.alive'), now = Date.now()): number | undefined {
