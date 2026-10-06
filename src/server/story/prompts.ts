@@ -211,13 +211,26 @@ export const frameContinuityLine = (sh: Shot, cast: Character[], imageOf: Map<st
  *  person: people are never named in a prompt (the lint's `no-names` rule), and a bound subject keeps its identity. */
 export function bindNames(text: string, cast: Character[], subjectOf: (id: string) => string | undefined): string {
   let out = text;
-  for (const c of [...cast].sort((x, y) => y.name.length - x.name.length)) {
+  // every form of every name, longest first (the full name before the given name it starts with)
+  const forms = cast.flatMap((c) => nameForms(c, cast).map((name) => ({ c, name }))).sort((x, y) => y.name.length - x.name.length);
+  for (const { c, name } of forms) {
     const who = subjectOf(c.id) ?? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}`;
-    for (const name of [c.name, c.nameAr].filter((n): n is string => Boolean(n && n.trim().length > 1))) {
-      out = out.replace(new RegExp(`(^|[^\\p{L}])${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'gu'), `$1${who}`);
-    }
+    out = out.replace(new RegExp(`(^|[^\\p{L}])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'gu'), `$1${who}`);
   }
   return out;
+}
+
+/** The ways a text names a character: the full name, the Arabic name, and the given name alone ("Clara" for "Clara
+ *  Hughes": acceptance 2026-10-06, a G13 action "Clara lifts the glass" reached H3 as "clara lifts…") when no other
+ *  cast member shares it. */
+export function nameForms(c: Pick<Character, 'id' | 'name' | 'nameAr'>, cast: Array<Pick<Character, 'id' | 'name'>>): string[] {
+  const forms = [c.name, c.nameAr].filter((n): n is string => Boolean(n && n.trim().length > 1)).map((n) => n.trim());
+  const words = c.name.trim().split(/\s+/);
+  // a kunya or a title is not a given name ("Abu Haidar", "Umm Salam", "Dr Moss")
+  const particle = /^(abu|abou|umm|um|al|el|bin|ibn|mr|mrs|ms|miss|dr|sir|lady|lord|uncle|aunt|sheikh|hajji?)\.?$/i;
+  const given = words.length > 1 && words[0].length >= 3 && !particle.test(words[0]) ? words[0] : undefined;
+  if (given && !cast.some((o) => o.id !== c.id && o.name.trim().split(/\s+/)[0] === given)) forms.push(given);
+  return [...new Set(forms)];
 }
 
 /** THE LAST NAME PASS (acceptance 2026-10-05, open item 2: "character names leak into H3 prompts; the app only
@@ -230,7 +243,7 @@ export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subj
   const out = parts.map((part) => {
     if (part.startsWith('<d>')) return part;
     const bound = bindNames(part, cast, subjectOf);
-    if (bound !== part) for (const c of cast) for (const n of [c.name, c.nameAr]) if (n && n.trim().length > 1 && new RegExp(`(^|[^\\p{L}])${n.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'u').test(part)) replaced.add(n.trim());
+    if (bound !== part) for (const c of cast) for (const n of nameForms(c, cast)) if (new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'u').test(part)) replaced.add(n);
     return bound;
   }).join('');
   return { prompt: out, replaced: [...replaced] };
@@ -353,6 +366,11 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const body = quiet(bind(opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : `${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`)));
   // a take of several shots (in-take hard cuts) holds the camera still inside each shot, not across the cuts
   const camera = shotCount > 1 && sh.cameraMove === 'STATIC' ? `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, locked off inside each shot: no zoom, no push-in, no pan between the cuts.` : cameraDirection(sh);
+  // A CLOSE SHOT WITHOUT AN OPENING FRAME (acceptance 2026-10-06, G13 shot 1: a planned medium close-up opened on the
+  // plate's wide view and pushed in for a second to reach it): the first frame is already at the shot's framing, the
+  // place's picture gives its look, never its framing
+  const fromFrame = b.opening?.kind === 'FRAME' || (opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL');
+  const closer = b.location && !fromFrame && !PLATE_WIDE_FRAMINGS.includes(sh.framing) ? `From its very first frame the shot is a ${sh.framing.toLowerCase().replace(/_/g, ' ')}: the camera is much closer than in ${pictureLabel(b, b.location.picture)}, whose look is kept, not its framing.` : '';
   const opening = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL' ? 'The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there:' : b.opening?.kind === 'FRAME' ? `The shot begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}.` : '';
   const povLine = pov ? `The camera is <Subject ${subjectNo.get(pov)}>'s own eyes: what they see fills the frame, and they are never seen.` : '';
   const cont = continuitySentence(sh, cast, subjectOf, body);
@@ -372,7 +390,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   });
   // THE PRODUCTION CONTEXT (src/domain/production-context.ts): what persists about the people and the place
   const contextLine = opts.context ? contextLines(opts.context, plainSubject) : '';
-  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, camera, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, camera, closer, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [

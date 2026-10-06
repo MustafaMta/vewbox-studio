@@ -34,7 +34,7 @@ function startWorker(name: string, env: Record<string, string> = {}): Worker {
   const out = fs.openSync(path.join(logDir, `${name}.log`), 'a');
   const child = spawn(process.execPath, ['--import', 'tsx', 'tests/worker/fixtures/fault-worker.ts'], {
     cwd: REPO, stdio: ['ignore', out, out, 'ipc'], windowsHide: true,
-    env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: fixtureDir, FIXTURE_TAKE: '1', FIXTURE_RENDER_MS: '4000', LOG_LEVEL: 'info', LOG_PRETTY: '0', ...env },
+    env: { ...process.env, WORKER_ID: name, WORKER_LEASE_SECONDS: String(LEASE), WORKER_SHUTDOWN_GRACE_MS: '300', FIXTURE_DIR: fixtureDir, FIXTURE_TAKE: '1', FIXTURE_RENDER_MS: '4000', LOG_LEVEL: 'info', LOG_PRETTY: '0', WORKER_ONLY_PRODUCTIONS: productionId, ...env },
   });
   children.push(child);
   const exited = new Promise<number | null>((r) => child.once('exit', (code) => r(code)));
@@ -69,9 +69,7 @@ async function orphansOf(jobId: string) {
 }
 
 beforeAll(async () => {
-  // this database is the harness's own: nothing else may be claimed by the workers it starts
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: new Date().toISOString(), lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
-  await db().delete(schema.resourceLeases);
+  // the workers this file starts serve ONLY its production (WORKER_ONLY_PRODUCTIONS): no other test's job is touched
   const [prod] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Failure harness', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 20, brief: { mode: 'MANUAL', text: 'fixture' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = prod.production.id;
   const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
@@ -214,6 +212,25 @@ describe('invalid input and missing reference (§26) — the REAL take handler, 
     expect(r.attempts).toBe(1);
     expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
     expect((r.error as { message: string }).message).toMatch(/Shot not found/);
+  }, 120_000);
+
+  it('a job queued before the terms of use changed fails at claim as INVALID_INPUT naming /terms — no retry, no engine call', async () => {
+    const { TERMS_VERSION } = await import('@/domain/terms');
+    const job = await takeJob('shot-that-does-not-exist-either');
+    await command('updateSettings', [{ terms: { version: '2000-01-01', acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    try {
+      const w = startWorker('fault-terms', { FIXTURE_TAKE: '0' });
+      const r = await settled(job.id);
+      await stop(w);
+      expect(r.status).toBe('FAILED');
+      expect(r.attempts).toBe(1);
+      expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
+      expect(r.error as { code: string; message: string }).toMatchObject({ code: 'CONSENT_REQUIRED' });
+      expect((r.error as { message: string }).message).toMatch(/\/terms/);
+      expect(submissions(job.id)).toBe(0);
+    } finally {
+      await command('updateSettings', [{ terms: { version: TERMS_VERSION, acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    }
   }, 120_000);
 
   it('a character whose canonical picture file is gone: refused as MISSING_REFERENCE naming the picture — once, before any voice or video inference', async () => {

@@ -96,6 +96,28 @@ describe('ComfyUI container down for a while (docker restart)', () => {
   }, 60_000);
 });
 
+describe('ComfyUI busy when the card leaves it (incident 2026-10-06 12:41Z)', () => {
+  it('the ComfyUI unload of the lease waits for prompts still running there (a foreign or abandoned prompt), then frees', async () => {
+    const { enginesToUnload } = await import('@/server/gpu/unloaders');
+    const comfyEngine = enginesToUnload('IMAGE', 'LLM').find((e) => e.name === 'comfyui')!;
+    comfyStub.queueBusy = 3;
+    const frees = comfyStub.frees;
+    const t0 = Date.now();
+    process.env.GPU_COMFY_DRAIN_MS = '60000';
+    await comfyEngine.unload();
+    expect(comfyStub.queueBusy).toBe(0);
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(3_500); // waited through the busy polls (2 s apart)
+    expect(comfyStub.frees).toBe(frees + 1);
+  }, 60_000);
+  it('waitIdle gives up after its bound and says so', async () => {
+    const { waitIdle } = await import('@/server/providers/comfy');
+    comfyStub.queueBusy = 1000;
+    const w = await waitIdle(1_500, 300);
+    comfyStub.queueBusy = 0;
+    expect(w).toMatchObject({ idle: false, promptIds: ['foreign-prompt-1'] });
+  }, 30_000);
+});
+
 describe('GPU out of memory', () => {
   it('an execution_error OutOfMemory is RESOURCE_EXHAUSTION, retryable, and the engine is told to free its memory', async () => {
     const jobId = await heldJob();

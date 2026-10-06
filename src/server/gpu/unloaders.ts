@@ -3,6 +3,7 @@ import { log } from '../log';
 import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
 import { unloadDesign } from '../providers/voice-design';
+import { unloadLipsync } from '../providers/lipsync';
 import type { GpuFamily } from './lease';
 
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
@@ -42,11 +43,14 @@ const extra: Engine[] = [];
 /** The engines the lease unloads, in order. */
 export function engines(): Engine[] {
   return [
-    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: () => comfy.free() },
+    // ComfyUI's queue drains first: a prompt nobody holds the lease for must not run beside the next family's model
+    { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: async () => { const w = await comfy.waitIdle(Number(process.env.GPU_COMFY_DRAIN_MS ?? 20 * 60_000)); if (w.promptIds.length) await (await import('../jobs/queue')).recordMetric('gpu.comfy_drain_ms', w.waitedMs, 'ms', { idle: w.idle, prompts: w.promptIds.length }).catch(() => undefined); await comfy.free(); } },
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
     { name: 'ollama', serves: ['LLM'], unload: unloadOllama },
+    // the lip-sync corrector (docker/lipsync); it also drops its weights after every request (LIPSYNC_KEEP_LOADED=0)
+    { name: 'lipsync', serves: ['LIPSYNC'], unload: unloadLipsync },
     ...extra,
   ];
 }

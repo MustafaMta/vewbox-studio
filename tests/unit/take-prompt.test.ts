@@ -63,6 +63,17 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(takePrompt(p, planned, cast, loc, { timeOfDay: 'DUSK' })).toContain('locked off on a tripod');
   });
 
+  it('a close shot without an opening frame starts at its framing: the plate gives the look, not the framing (G13 shot 1 opened wide and pushed in)', () => {
+    const { p, cast, loc } = setup();
+    const base = shotOf(p, 's12');
+    const [a] = base.characterIds;
+    const noFrame: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }], location: { picture: 2 } };
+    const mcu = { ...base, characterIds: [a], framing: 'MEDIUM_CLOSE_UP' as const, cameraMove: 'STATIC' as const };
+    expect(h3ReferencePrompt(p, mcu, cast, loc, { timeOfDay: 'DUSK' }, noFrame, { relation: 'STORY_TRANSITION' })).toContain('From its very first frame the shot is a medium close up: the camera is much closer than in <Picture 2>');
+    expect(h3ReferencePrompt(p, { ...mcu, framing: 'WIDE' as const }, cast, loc, { timeOfDay: 'DUSK' }, noFrame, { relation: 'STORY_TRANSITION' })).not.toContain('From its very first frame');
+    expect(h3ReferencePrompt(p, mcu, cast, loc, { timeOfDay: 'DUSK' }, { ...noFrame, opening: { kind: 'FRAME', picture: 3 } }, { relation: 'CUT' })).not.toContain('From its very first frame');
+  });
+
   it('binds each canonical picture to its subject, the plate to the place, the opening frame as a frame — in the six sections, in order', () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');

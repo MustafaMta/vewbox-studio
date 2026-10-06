@@ -10,7 +10,7 @@ export type ApiError = { error: { code: string; message: string; details?: Recor
 export const json = <T>(body: T, init?: ResponseInit) => NextResponse.json(body, init);
 
 export function errorResponse(e: unknown): NextResponse<ApiError> {
-  if (isStudioError(e)) return NextResponse.json({ error: { code: e.code, message: e.message, details: e.details } }, { status: httpStatusFor(e.code) });
+  if (isStudioError(e)) return NextResponse.json({ error: { code: e.code, message: e.message, details: e.details } }, { status: typeof e.details?.httpStatus === 'number' ? e.details.httpStatus : httpStatusFor(e.code) });
   const ref = Math.random().toString(36).slice(2, 10);
   log.error({ err: e, ref }, 'unhandled api error');
   return NextResponse.json({ error: { code: 'INTERNAL', message: `Something went wrong on the server (ref ${ref}).`, ref } }, { status: 500 });

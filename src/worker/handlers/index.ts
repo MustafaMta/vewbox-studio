@@ -48,12 +48,13 @@ import { generateSong } from './music';
 import { assemble, exportCut } from './assemble';
 import { produce } from './produce';
 import { createCharacter } from './character';
+import { correctLipsync } from './lipsync';
 
 export const HANDLERS: Partial<Record<JobType, Handler>> = {
   CREATE_CHARACTER: createCharacter,
   MEDIA_PROBE: mediaProbe,
   AUTO_IDEA: autoIdea, DEVELOP_STORY: developStory, WRITE_SCRIPT: writeScript, PLAN_SHOTS: planShots,
-  GENERATE_TAKE: generateTake,
+  GENERATE_TAKE: generateTake, CORRECT_LIPSYNC: correctLipsync,
   CHARACTER_APPEARANCE: characterAppearance, CHARACTER_REFS: characterRefs, LOCATION_PLATES: locationPlates, SHOT_FRAMES: shotFrames,
   VOICE_DESIGN: voiceDesign, VOICE_BUILD: voiceBuild, VOICE_PREVIEW: voicePreview, DIALOGUE_AUDIO: dialogueAudio,
   GENERATE_SONG: generateSong,

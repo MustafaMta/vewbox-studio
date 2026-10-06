@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, schema } from '@/server/db/client';
-import { createDbGpuLease, type GpuFamily } from '@/server/gpu/lease';
+import { createDbGpuLease, workerGpuJobsWaiting, type GpuFamily } from '@/server/gpu/lease';
 import { enqueue, requestCancel } from '@/server/jobs/queue';
 import { resumeIntake } from '@/server/jobs/intake';
 
@@ -13,16 +13,18 @@ const fresh = () => { const r = `gpu-prio-${Math.random().toString(36).slice(2, 
 const latch = () => { let open!: () => void; const p = new Promise<void>((r) => { open = r; }); return { p, open }; };
 const until = async (cond: () => boolean, ms = 8000) => { const t0 = Date.now(); while (!cond()) { if (Date.now() - t0 > ms) throw new Error('timed out waiting'); await new Promise((r) => setTimeout(r, 10)); } };
 const made: string[] = [];
+/** this file's own production id: the 'a film job is about to ask' rule is judged on its jobs alone, never on another test's */
+const PROD = `p-prio-${Math.random().toString(36).slice(2, 8)}`;
 
 function procs(resource: string) {
   const unload = async () => {};
-  return { worker: createDbGpuLease({ process: `worker-${resource}`, resource, pollMs: 15, unload }), bench: createDbGpuLease({ process: `bench-${resource}`, resource, pollMs: 15, unload }) };
+  const gpuJobsWaiting: Parameters<typeof createDbGpuLease>[0]['gpuJobsWaiting'] = (tx, now) => workerGpuJobsWaiting(tx, now, { productionId: PROD });
+  return { worker: createDbGpuLease({ process: `worker-${resource}`, resource, pollMs: 15, unload, gpuJobsWaiting }), bench: createDbGpuLease({ process: `bench-${resource}`, resource, pollMs: 15, unload, gpuJobsWaiting }) };
 }
 const work = (log: string[], name: string, gate: Promise<void>) => async () => { log.push(`${name}+`); await gate; log.push(`${name}-`); };
 
 beforeAll(async () => {
-  // no worker GPU job may be waiting in this database, and intake must be open, for the rules to be seen alone
-  await db().update(schema.jobs).set({ status: 'CANCELLED', lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
+  // intake must be open for this file's own job to count as waiting (other tests' jobs are never looked at: PROD)
   await resumeIntake();
 });
 afterAll(async () => {
@@ -69,7 +71,7 @@ describe('GPU lease priority (the films first)', () => {
 
   it('a worker GPU job queued (about to ask for the card) keeps a background request out until it is gone', async () => {
     const r = fresh(); const { bench } = procs(r); const log: string[] = [];
-    const { job } = await enqueue({ type: 'SHOT_FRAMES', payload: { productionId: 'p-prio', shotId: 's-prio' } });
+    const { job } = await enqueue({ type: 'SHOT_FRAMES', payload: { productionId: PROD, shotId: 's-prio' } });
     made.push(job.id);
     const gb = latch();
     const b = bench('IMAGE', 1, work(log, 'B', gb.p), { priority: 'background' });
