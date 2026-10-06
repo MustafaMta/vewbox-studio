@@ -30,10 +30,10 @@ const asset = (id: string, kind: 'VIDEO' | 'AUDIO', seconds: number, ext = kind 
 interface Spec { id: string; take: string; seconds: number; trim?: number; intended?: number; relation?: ShotRelation; songWindow?: { from: number; to: number }; line?: { asset: string; seconds: number; from: number; to: number }; speechOk?: boolean }
 function production(kind: 'SHORT' | 'MUSIC_VIDEO', specs: Spec[], song?: string): Production {
   return {
-    id: 'p', kind, title: 'Fixture', scenes: [{ id: 'sc', number: 1, title: 'S', timeOfDay: 'DUSK', characterIds: [], beats: [] }],
+    id: 'p', kind, title: 'Fixture', scenes: specs.map((_s, i) => ({ id: `sc${i}`, number: i + 1, title: 'S', timeOfDay: 'DUSK', characterIds: [], beats: [] })),
     shots: specs.map((s, i) => {
       const take: Take = { id: `take-${s.id}`, label: 'Take 1', assetId: s.take, createdAt: 'x', status: 'READY', provider: 'MINIMAX', durationSeconds: s.seconds, trimStartFrames: s.trim, relation: s.relation, params: s.intended ? { timeline: { newFrames: s.intended } } : undefined, qa: { ok: true, checks: s.line ? [{ name: 'script-spoken', ok: s.speechOk ?? true }] : [] }, soundtrack: s.line ? { kind: 'DIALOGUE', lines: [{ lineId: `l-${s.id}`, from: s.line.from, to: s.line.to }] } : undefined };
-      return { id: s.id, sceneId: 'sc', number: i + 1, purpose: '', action: '', framing: 'MEDIUM', cameraMove: 'STATIC', durationSeconds: s.seconds, characterIds: [], dialogue: s.line ? [{ id: `l-${s.id}`, characterId: 'c', text: 'We close in ten minutes.', audioAssetId: s.line.asset, durationSeconds: s.line.seconds }] : [], transition: 'CUT', takes: [take], selectedTakeId: take.id, songWindow: s.songWindow };
+      return { id: s.id, sceneId: `sc${i}`, number: 1, purpose: '', action: '', framing: 'MEDIUM', cameraMove: 'STATIC', durationSeconds: s.seconds, characterIds: [], dialogue: s.line ? [{ id: `l-${s.id}`, characterId: 'c', text: 'We close in ten minutes.', audioAssetId: s.line.asset, durationSeconds: s.line.seconds }] : [], transition: 'CUT', takes: [take], selectedTakeId: take.id, songWindow: s.songWindow };
     }),
     song: song ? { id: 'song-rec', title: 'Song', source: 'GENERATED', assetId: song, durationSeconds: 30, caption: '', sections: [], singerIds: [] } : undefined,
   } as unknown as Production;
@@ -78,7 +78,7 @@ beforeAll(() => {
   video('take-a', 5, '10+N*1.5', 70, tone(440));
   video('take-b', 158 / 24, '10+N*1.5', 170, `aevalsrc=exprs='0.5*sin(2*PI*if(lt(t,0.916667),1320,660)*t)':s=48000`);
   // C speaks (880 Hz) only from 1.0 to 2.5 s; elsewhere its room (a quiet 3000 Hz)
-  video('take-c', 5, '10+N*1.5', 120, `aevalsrc=exprs='if(between(t\\,1\\,2.5)\\,0.5*sin(2*PI*880*t)\\,0.02*sin(2*PI*3000*t))':s=48000`);
+  video('take-c', 5, '10+N*1.5', 120, `aevalsrc=exprs='if(lt(t\\,0.4)\\,0\\,if(between(t\\,1\\,2.5)\\,0.5*sin(2*PI*880*t)\\,0.02*sin(2*PI*3000*t)))':s=48000`);
   ff('-f', 'lavfi', '-i', `${tone(1000)}:d=1.5`, '-ac', '1', '-c:a', 'pcm_s16le', path.join(dir, 'line.wav'));
   // join QA: a continuation whose first kept frame continues A2's motion, and one that jumps
   video('take-a2', 5, '120+50*sin(2*PI*(N-119)/40+PI/2)', 70, 'anoisesrc=color=pink:amplitude=0.1:seed=1:r=48000');
@@ -101,7 +101,7 @@ describe('a film cut on its dialogue clock', () => {
     const assets = [asset('take-a', 'VIDEO', 5), asset('take-b', 'VIDEO', 158 / 24), asset('take-c', 'VIDEO', 5), asset('line', 'AUDIO', 1.5)];
     const { timeline, mix, r, out } = await cut(p, assets, 'film');
     expect(timeline.items.map((it) => [it.startFrame, it.frames, it.trimStartFrames])).toEqual([[0, 120, 0], [120, 100, 22], [220, 96, 0]]);
-    expect(mix.tracks.map((t) => t.kind)).toEqual(['GENERATED_VIDEO_AUDIO', 'GENERATED_VIDEO_AUDIO', 'GENERATED_VIDEO_AUDIO', 'AMBIENCE', 'DIALOGUE']);
+    expect(mix.tracks.map((t) => t.kind)).toEqual(['GENERATED_VIDEO_AUDIO', 'GENERATED_VIDEO_AUDIO', 'GENERATED_VIDEO_AUDIO', 'AMBIENCE', 'DIALOGUE', 'AMBIENCE', 'AMBIENCE', 'AMBIENCE']);
     // the picture, frame by frame: which take (U) and which of its frames (Y)
     const f = await frames(out);
     expect(f).toHaveLength(316);
@@ -118,13 +118,15 @@ describe('a film cut on its dialogue clock', () => {
     expect(level(x, 1320, 4.885, 4.995)).toBeGreaterThan(5 * level(x, 1320, 3.0, 4.0));
     // C: its room (3000 Hz), then the character's recorded line (1000 Hz) with the take's speech (880 Hz) gone under
     // it, then its room again
-    expect(heard(x, 9.25, 10.1, tones)).toMatchObject({ hz: 3000 });
+    expect(heard(x, 9.6, 10.1, tones)).toMatchObject({ hz: 3000 });
     const line = heard(x, 10.25, 11.6, tones);
     expect(line.hz).toBe(1000); expect(line.margin).toBeGreaterThan(10);
     expect(level(x, 880, 10.3, 11.5)).toBeLessThan(0.02 * level(x, 1000, 10.3, 11.5));
     expect(heard(x, 11.75, 13.1, tones)).toMatchObject({ hz: 3000 });
     // THE ROOM NEVER DROPS OUT under the line (QA 2026-10-06): the take's room tone loops there at its own level
-    const room = level(x, 3000, 9.3, 10.0);
+    const room = level(x, 3000, 9.7, 10.1);
+    // the take opens with 0.4 s of digital silence: the place's room bed (−10 dB) fills it
+    expect(level(x, 3000, 9.2, 9.52)).toBeGreaterThan(0.15 * room);
     expect(level(x, 3000, 10.3, 11.5)).toBeGreaterThan(0.6 * room);
     expect(level(x, 3000, 10.3, 11.5)).toBeLessThan(1.6 * room);
     // join QA: A → B is a continuation and its picture jumps (frame 119 of A, frame 22 of another take); B → C is a cut

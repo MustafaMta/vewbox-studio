@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, Production, ShotRelation, Take } from '@/domain/types';
-import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, ROOM_TONE, roomToneStretch, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
+import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, ROOM_BED, ROOM_TONE, roomToneStretch, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
 import { buildMixPlan, buildTimeline, CUT_RATE } from '@/server/media/assembly';
 import { gainExpression, mixPlanOf, trackFilter } from '@/server/media/mix';
 import { DEFAULT_AUDIO_POLICY } from '@/domain/world';
@@ -239,7 +239,11 @@ describe('the mix plan and its filters', () => {
     const { p, assets } = production('SHORT', [{ seconds: 5 }, { seconds: 158 / 24, trim: 22, intended: 120 }]);
     const plan = buildMixPlan(p, buildTimeline(p, assets));
     expect(plan.targetLufs).toBe(-23);
-    expect(plan.tracks.map((t) => [t.kind, t.sourceAssetId, t.startSample, t.sourceOffsetSamples, t.gain])).toEqual([['GENERATED_VIDEO_AUDIO', 'vid-0', 0, 0, 1], ['GENERATED_VIDEO_AUDIO', 'vid-1', 120 * F, 22 * F, 1]]);
+    expect(plan.tracks.filter((t) => t.kind !== 'AMBIENCE').map((t) => [t.kind, t.sourceAssetId, t.startSample, t.sourceOffsetSamples, t.gain])).toEqual([['GENERATED_VIDEO_AUDIO', 'vid-0', 0, 0, 1], ['GENERATED_VIDEO_AUDIO', 'vid-1', 120 * F, 22 * F, 1]]);
+    // the place's room bed under the whole run of shots there, from the first take's room, −10 dB, looped
+    const bed = plan.tracks.find((t) => t.kind === 'AMBIENCE')!;
+    expect(bed).toMatchObject({ sourceAssetId: 'vid-0', startSample: 0, durationSamples: 240 * F, gain: ROOM_BED.gain, voice: false, loopSamples: expect.any(Number) });
+    expect(plan.tracks.filter((t) => t.kind === 'AMBIENCE')).toHaveLength(1);
     const mv = production('MUSIC_VIDEO', [{ seconds: 5 }], { seconds: 30 });
     expect(buildMixPlan(mv.p, buildTimeline(mv.p, mv.assets)).targetLufs).toBe(-14);
   });

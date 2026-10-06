@@ -101,6 +101,9 @@ export const REPLACED_SPEECH_PAD_SAMPLES = 2 * (48000 / 24);
  *  shortest usable stretch without speech, the longest kept, the margin kept from any speech, and the duck used when
  *  the take has no such stretch (−20 dB). */
 export const ROOM_TONE = { rampSamples: 0.04 * 48000, minSeconds: 0.25, maxSeconds: 2, marginSeconds: 0.12, duckGain: 0.1 } as const;
+/** The place's room bed under a film's run of shots at one place: −10 dB (the takes' own room dominates; the bed fills
+ *  their silences), 0.25 s fades at the run's edges. */
+export const ROOM_BED = { gain: 0.32, fadeSamples: 0.25 * 48000 } as const;
 
 /** The longest stretch of a take (seconds on its clock) after its guide head with no speech in it (each speech window
  *  widened by the margin), at least ROOM_TONE.minSeconds, at most maxSeconds (its middle); undefined when none. */
@@ -366,6 +369,8 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
   const edge = (c: Omit<AudioCue, 'fadeInSamples' | 'fadeOutSamples'> & Partial<Pick<AudioCue, 'fadeInSamples' | 'fadeOutSamples'>>): AudioCue => ({ fadeInSamples: Math.min(EDGE_FADE_SAMPLES, Math.floor(c.durationSamples / 2)), fadeOutSamples: Math.min(EDGE_FADE_SAMPLES, Math.floor(c.durationSamples / 2)), ...c });
   // 2) TAKES AND LINES
   const takeCue = new Map<string, AudioCue>();
+  /** each shot's stretch of its take without speech (its room tone), for the cue under replaced speech and the bed */
+  const roomOf = new Map<string, { assetId: string; takeId: string; from: number; to: number }>();
   for (const s of shots) {
     const sh = ordered.find((x) => x.id === s.shotId)!;
     const t = takeOf(sh)!;
@@ -419,10 +424,10 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
       // the line's pauses, −74 dB, and a 24 dB step back to the room): the take's own room, cut from a stretch where
       // nobody speaks, loops under each muted span and cross-fades with the take at its edges. Without such a stretch
       // the take is ducked instead of muted, never silenced.
+      const placedSpeech = t.soundtrack?.kind === 'DIALOGUE' ? t.soundtrack.lines : [];
+      const room = musicVideo ? undefined : roomToneStretch({ head, takeSeconds: a?.durationSeconds ?? s.availableFrames / CLOCK_FPS, speech: [...placedSpeech.map((w) => ({ from: w.from, to: w.to })), ...lineCues.map((l) => ({ from: head + (l.startSample - shotStart) / CLOCK_RATE, to: head + (l.startSample + l.durationSamples - shotStart) / CLOCK_RATE }))] });
+      if (room) roomOf.set(s.shotId, { assetId: s.assetId, takeId: t.id, ...room });
       if (c.automation) {
-        const placed = t.soundtrack?.kind === 'DIALOGUE' ? t.soundtrack.lines : [];
-        const takeSeconds = a?.durationSeconds ?? s.availableFrames / CLOCK_FPS;
-        const room = roomToneStretch({ head, takeSeconds, speech: [...placed.map((w) => ({ from: w.from, to: w.to })), ...lineCues.map((l) => ({ from: head + (l.startSample - shotStart) / CLOCK_RATE, to: head + (l.startSample + l.durationSamples - shotStart) / CLOCK_RATE }))] });
         if (!room) {
           c.automation = { ...c.automation, spans: c.automation.spans.map((x) => ({ ...x, gain: ROOM_TONE.duckGain })) };
           notes.push(`shot ${sh.id}: no stretch of the take without speech for room tone; its sound is ducked ${Math.round(20 * Math.log10(ROOM_TONE.duckGain))} dB under the recorded lines instead of muted`);
@@ -478,6 +483,32 @@ export function buildAudioTimeline(p: Production, assets: Asset[], opts: AudioTi
       if (ok) { if (run) run.to = S(s.startFrame + s.frames); else run = { asset: ok, from: S(s.startFrame), to: S(s.startFrame + s.frames), locationId: loc! }; }
     }
     flush();
+  }
+  // THE PLACE'S ROOM BED (QA 2026-10-06: Tea 1.3 opens with 0.45 s of digital silence right after the Cut, a room
+  // step a film never has): a film's run of shots at one place with no ambience bed of its own gets one continuous bed
+  // of the place's room tone — the first take of the run with a stretch without speech, looped — under its takes,
+  // ROOM_BED.gain below them: it fills the silences the takes leave and is lost under their own room elsewhere
+  if (!musicVideo) {
+    const bedded = new Set(cues.filter((c) => c.kind === 'AMBIENCE' && c.lineage.startsWith('ambience:')).flatMap((c) => shots.filter((s) => S(s.startFrame) >= c.startSample && S(s.startFrame) < c.startSample + c.durationSamples).map((s) => s.shotId)));
+    let run: { loc: string; first: number; last: number } | undefined;
+    const flushRoom = () => {
+      if (!run) return;
+      const members = shots.slice(run.first, run.last + 1);
+      const src = members.map((s) => roomOf.get(s.shotId)).find(Boolean);
+      if (src && !members.some((s) => bedded.has(s.shotId))) {
+        const from = S(members[0].startFrame); const to = S(members.at(-1)!.startFrame + members.at(-1)!.frames);
+        const fade = Math.min(ROOM_BED.fadeSamples, Math.floor((to - from) / 2));
+        cues.push({ id: `roombed-${run.loc}-${from}`, kind: 'AMBIENCE', sourceAssetId: src.assetId, lineage: `roomtone:bed:${src.takeId}`, startSample: from, durationSamples: to - from, sourceOffsetSamples: secS(src.from), loopSamples: secS(src.to - src.from), gain: ROOM_BED.gain, voice: false, fadeInSamples: fade, fadeOutSamples: fade, policy: `the place's room tone (take ${src.takeId}, ${src.from.toFixed(2)}–${src.to.toFixed(2)} s, looped) under the ${members.length} shot(s) there, ${Math.round(20 * Math.log10(ROOM_BED.gain))} dB: no digital silence between or inside the takes` });
+        notes.push(`room bed under ${members.length} shot(s) at ${run.loc} from take ${src.takeId}`);
+      }
+      run = undefined;
+    };
+    shots.forEach((s, i) => {
+      const loc = p.scenes.find((sc) => sc.id === s.sceneId)?.locationId ?? `scene:${s.sceneId}`;
+      if (run && run.loc !== loc) flushRoom();
+      if (run) run.last = i; else run = { loc, first: i, last: i };
+    });
+    flushRoom();
   }
   const timeline: AudioTimeline = { version: 1, fps: CLOCK_FPS, rate: CLOCK_RATE, clock: musicVideo ? 'SONG' : 'DIALOGUE', totalFrames, totalSamples, songOffsetFrames, policy, shots, cues, notes, problems: [] };
   timeline.problems = [...staleProblems, ...auditTimeline(timeline)];
