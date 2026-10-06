@@ -15,7 +15,7 @@ import { assetById, castOf, locationById, primaryImageOf, shotHref, shotLabel } 
 import { identityStatus, voiceTrackSource } from '@/components/character/identity';
 import { useToast } from '@/components/ui/toast';
 import { useDraft, useUnsavedGuard } from '@/lib/hooks';
-import { Button, Field, Input, Menu, MenuItem, Segmented, StateWord, Textarea, cls } from '@/components/ui/kit';
+import { Button, Checkbox, Dialog, Field, Input, Menu, MenuItem, Segmented, StateWord, Textarea, cls } from '@/components/ui/kit';
 import { RetryControl } from '@/components/ui/jobs';
 import { useErrorCopy } from '@/components/ui/progress';
 import { Frame } from '@/components/media/Frame';
@@ -34,6 +34,8 @@ import { ShotContext } from './ShotContext';
 import { Readiness } from './Readiness';
 import { lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf, takeVerdictOf, type TakeCheck } from './checks';
 import { lineRecordingCurrent } from '@/domain/voice-identity';
+import { REPAIR_REASON_MIN, reasonReady, repairInfoOf, repairOfferOf, repairPayload } from './lipsync-repair';
+import { useStartJob } from '@/components/ui/jobs';
 import { MINIMAX_H3_LOCAL, type ContinuationChoice, type GuideAudioMode } from '@/domain/video-capability';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
 import { BOUNDARY_WORDS, boundaryOf, driftOf, sceneStateOfTake, activeShotJob, canUseTake, expectationWords, frameRatioOf, jobsOf, linesToHear, neighbours, orderedShots, spokenDuration, takeVerdict, vocab, workspaceHref } from './model';
@@ -75,8 +77,16 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
   const [view, setView] = useState<View>(shown ? 'take' : 'opening');
   const [compare, setCompare] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
-  const shownAsset = assetById(state, shown?.assetId);
+  // a repaired take (lip-sync corrected from another take of the shot) plays before or after the repair
+  const [beforeAfter, setBeforeAfter] = useState<'before' | 'after'>('after');
+  const repairedFrom = shown?.derivedFrom ? shot.takes.find((t) => t.id === shown.derivedFrom!.takeId) : undefined;
+  const originalAsset = assetById(state, repairedFrom?.assetId);
+  const shownAsset = beforeAfter === 'before' && repairedFrom && originalAsset && !originalAsset.unavailable ? originalAsset : assetById(state, shown?.assetId);
   const opening = assetById(state, draft.openingFrameAssetId); const ending = assetById(state, draft.endingFrameAssetId);
+  // "Repair lip-sync" (src/components/workspace/lipsync-repair.ts): asked for take by take, with a reason, in a dialog
+  const [repairFor, setRepairFor] = useState<Take | null>(null);
+  const studioReason = gate.paused === null ? null : gate.blocked('video');
+  const repairing = (t: Take) => jobsOf(p, jobs).find((j) => j.type === 'CORRECT_LIPSYNC' && (j.payload as { takeId?: string }).takeId === t.id && (j.status === 'QUEUED' || j.status === 'PREPARING' || j.status === 'GENERATING' || j.status === 'VALIDATING' || j.status === 'POSTPROCESSING' || j.status === 'DOWNLOADING'));
 
   // [ and ] move between shots (Frame.io), unless the producer is typing
   useEffect(() => {
@@ -150,6 +160,9 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
             { value: 'ending', label: 'Ending frame', disabled: !ending, reason: 'This shot has no ending frame; it ends where the take ends.' },
           ]} />
           {compare.length === 2 && <Button size="sm" icon={<IconCompare aria-hidden />} onClick={() => setComparing((c) => !c)} aria-pressed={comparing}>{comparing ? 'Stop comparing' : `Compare takes ${compare.map((id) => takeNo(shot.takes.find((t) => t.id === id)!)).join(' and ')}`}</Button>}
+          {view === 'take' && repairedFrom && originalAsset && !originalAsset.unavailable && (
+            <Segmented<'before' | 'after'> label="Lip-sync repair" size="sm" value={beforeAfter} onChange={setBeforeAfter} options={[{ value: 'before', label: `Before · take ${takeNo(repairedFrom)}` }, { value: 'after', label: `After · take ${shown ? takeNo(shown) : ''}` }]} />
+          )}
         </div>
 
         <ShotFailure p={p} shotId={shot.id} gate={gate} />
@@ -186,6 +199,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
                     <ChecksLine take={t} />
                     {t.generationMs ? <span className="t-meta">made in {spokenDuration(t.generationMs)}</span> : <span className="t-meta">{shortWhen(t.createdAt)}</span>}
                     <DriftLine take={t} />
+                    <RepairLine shot={shot} take={t} takeNo={takeNo} running={Boolean(repairing(t))} />
                     <span className="ws-take-acts">
                       {!on && canUseTake(t) && <Button size="sm" onClick={() => use(t)}>Use this take</Button>}
                       {canUseTake(t) && t.status !== 'REJECTED' && (t.rating === 'GOOD'
@@ -193,6 +207,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
                         : <Button size="sm" variant="quiet" onClick={() => rate(t, 'GOOD')}>Good</Button>)}
                       {t.rating === 'REJECTED' ? <Button size="sm" variant="quiet" onClick={() => rate(t, null)}>Restore</Button> : t.status !== 'REJECTED' && <Button size="sm" variant="quiet" onClick={() => rate(t, 'REJECTED')}>Reject</Button>}
                       {shot.takes.length > 1 && <label className="ws-compare-tick"><input type="checkbox" checked={compare.includes(t.id)} onChange={() => toggleCompare(t.id)} />Compare</label>}
+                      <RepairButton p={p} shot={shot} take={t} takeNo={takeNo} studioReason={studioReason} running={Boolean(repairing(t))} onOpen={() => setRepairFor(t)} />
                     </span>
                   </li>
                 );
@@ -201,7 +216,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
           )}
         </section>
 
-        <Attempts shot={shot} jobs={jobsOf(p, jobs).filter((j) => j.type === 'GENERATE_TAKE' && j.shotId === shot.id)} />
+        <Attempts shot={shot} jobs={jobsOf(p, jobs).filter((j) => (j.type === 'GENERATE_TAKE' || j.type === 'CORRECT_LIPSYNC') && (j.shotId === shot.id || (j.payload as { shotId?: string }).shotId === shot.id))} />
+        <RepairLipSyncDialog p={p} shot={shot} take={repairFor} takeNo={takeNo} onClose={() => setRepairFor(null)} />
       </section>
 
       <aside className="ws-inspector" aria-label={`Shot ${shotLabel(p, shot)}: settings`}>
@@ -512,6 +528,7 @@ function Provenance({ take, shot }: { take?: Take; shot: Shot }) {
   return (
     <div className="ws-prov">
       <dl className="ws-dl">{rows.map(([k, v]) => <div key={k}><dt className="t-label">{k}</dt><dd>{v}</dd></div>)}</dl>
+      <RepairPanel take={take} shot={shot} />
       {ch && <ChecksPanel take={take} />}
       <TakeSceneState take={take} />
       {(take.rejectionReason || take.ratingReason) && <p className="t-meta" dir="auto">{take.ratingReason ?? take.rejectionReason}</p>}
@@ -603,6 +620,89 @@ function DriftLine({ take }: { take: Take }) {
   ].filter(Boolean).join(' · ');
   // the Review badge is the verdict's, on the checks line above (one badge per card)
   return <span className="ws-drift-line t-meta"><span>{parts}</span></span>;
+}
+
+/** "Repaired from Take N" on a corrected take's card, or the repair that is running on this take. */
+function RepairLine({ shot, take, takeNo, running }: { shot: Shot; take: Take; takeNo: (t: Take) => number; running: boolean }) {
+  const info = repairInfoOf(take);
+  const from = info ? shot.takes.find((t) => t.id === info.fromTakeId) : undefined;
+  if (running) return <span className="ws-take-repair"><StateWord tone="running">Repairing the lip-sync</StateWord></span>;
+  if (!info) return null;
+  return <span className="ws-take-repair t-meta" title={info.reason ? `Asked because: ${info.reason}` : undefined}>Lip-sync repaired from {from ? `take ${takeNo(from)}` : `take ${info.fromTakeId}`} · {info.accepted ? 'accepted' : 'not accepted'}</span>;
+}
+
+/** The "Repair lip-sync" action on a take card: offered when the corrector may take this take (emphasised when the
+ *  take's own lip-sync check asked for it), else disabled with the reason beside it. Never runs without the dialog. */
+function RepairButton({ p, shot, take, takeNo, studioReason, running, onOpen }: { p: Production; shot: Shot; take: Take; takeNo: (t: Take) => number; studioReason: string | null; running: boolean; onOpen: () => void }) {
+  const offer = repairOfferOf(p, shot, take, studioReason);
+  // a sample clip, a correction's own result or a take without a soundtrack: the action is not shown at all when the
+  // reason is one of those (nothing a producer could do here would make it available)
+  if (take.provider === 'SAMPLE' || take.derivedFrom) return null;
+  const why = running ? 'A repair of this take is already running.' : offer.disabledReason;
+  return (
+    <span className="ws-repair">
+      <Button size="sm" variant={offer.flagged && offer.available ? 'secondary' : 'quiet'} icon={<IconVoice aria-hidden />} disabled={Boolean(why)} title={why ?? undefined} aria-describedby={why ? `ws-repair-why-${take.id}` : undefined} onClick={onOpen}>Repair lip-sync{offer.flagged ? ' · flagged' : ''}</Button>
+      {why && <span id={`ws-repair-why-${take.id}`} className="t-meta ws-repair-why" aria-label={`Take ${takeNo(take)}: why the repair is off`}>{why}</span>}
+    </span>
+  );
+}
+
+/** THE CONFIRM DIALOG of a lip-sync repair: never silent — what the producer saw wrong (required, kept with the
+ *  corrected take) and whether the repaired take goes into the cut when it passes; the words say what the corrector
+ *  does and that the original take is kept. */
+function RepairLipSyncDialog({ p, shot, take, takeNo, onClose }: { p: Production; shot: Shot; take: Take | null; takeNo: (t: Take) => number; onClose: () => void }) {
+  const { start, busy } = useStartJob();
+  const [reason, setReason] = useState('');
+  const [select, setSelect] = useState(false);
+  const open = Boolean(take);
+  const close = () => { onClose(); setReason(''); setSelect(false); };
+  const submit = async () => {
+    if (!take || !reasonReady(reason)) return;
+    const job = await start('CORRECT_LIPSYNC', repairPayload(p, shot, take, reason, select), { quiet: true });
+    if (job) close();
+  };
+  const id = `ws-repair-reason-${take?.id ?? 'none'}`;
+  return (
+    <Dialog open={open} onClose={() => { if (!busy) close(); }} size="md" title={take ? `Repair the lip-sync of take ${takeNo(take)}` : 'Repair the lip-sync'} busy={busy}
+      description="Only the mouth region of this take is redrawn to follow the recorded line; the face, the expression and the rest of the picture stay as filmed. The original take is kept and a new take is made beside it, with its before-and-after measurements. About 1–3 minutes on the graphics card."
+      footer={<><Button variant="quiet" onClick={close} disabled={busy}>Cancel</Button><Button variant="primary" icon={<IconVoice aria-hidden />} loading={busy} disabled={!reasonReady(reason)} aria-describedby={reasonReady(reason) ? undefined : `${id}-why`} onClick={() => void submit()}>Repair the lip-sync</Button></>}>
+      <form className="ws-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+        <Field label="What’s wrong with the lip-sync?" required help="Kept with the repaired take in the production history."><Textarea id={id} value={reason} onChange={(e) => setReason(e.target.value)} rows={3} dir="auto" autoFocus placeholder="e.g. the mouth opens a beat after each word; closed on the second sentence" maxLength={1000} /></Field>
+        {!reasonReady(reason) && <p id={`${id}-why`} className="t-meta">At least {REPAIR_REASON_MIN} characters.</p>}
+        <Checkbox label="Use the repaired take if it passes" help="Only when its checks accept it; a repair that changes the face or follows the audio less is kept but never chosen by itself." checked={select} onChange={(e) => setSelect(e.target.checked)} />
+      </form>
+    </Dialog>
+  );
+}
+
+/** What a corrected take records about its repair (the Details section): why it was asked, the verdict with its
+ *  notes and problems, and the numbers before and after. */
+function RepairPanel({ take, shot }: { take: Take; shot: Shot }) {
+  const info = repairInfoOf(take);
+  if (!info) return null;
+  const from = shot.takes.find((t) => t.id === info.fromTakeId);
+  return (
+    <div className="ws-drift ws-repair-panel">
+      <span className="t-label">Lip-sync repair{info.accepted ? <StateWord tone="done" className="ws-badge-gap">Accepted</StateWord> : <StateWord tone="failed" className="ws-badge-gap">Not accepted</StateWord>}</span>
+      <dl className="ws-dl">
+        <div><dt className="t-label">Repaired from</dt><dd>{from ? `Take ${shot.takes.indexOf(from) + 1}` : info.fromTakeId}</dd></div>
+        {info.engine && <div><dt className="t-label">Corrector</dt><dd dir="ltr">{info.engine}</dd></div>}
+        {info.reason && <div className="ws-dl-wide"><dt className="t-label">Asked because</dt><dd dir="auto">{info.reason}</dd></div>}
+      </dl>
+      {(info.problems.length > 0 || info.notes.length > 0) && (
+        <ul className="ws-files" role="list" aria-label="The repair's verdict">
+          {info.problems.map((x) => <li key={x}><span className="ws-file-words"><span className="t-meta" dir="auto">{x}</span></span><StateWord tone="failed">Problem</StateWord></li>)}
+          {info.notes.map((x) => <li key={x}><span className="ws-file-words"><span className="t-meta" dir="auto">{x}</span></span><StateWord tone="done">OK</StateWord></li>)}
+        </ul>
+      )}
+      {info.rows.length > 0 && (
+        <table className="ws-table ws-repair-table"><caption className="sr-only">Before and after the repair</caption>
+          <thead><tr><th scope="col">Measure</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+          <tbody>{info.rows.map((r) => <tr key={r.label} data-better={r.better === undefined ? undefined : String(r.better)}><th scope="row">{r.label}</th><td className="ws-ro">{r.before}</td><td className="ws-ro">{r.after}</td></tr>)}</tbody>
+        </table>
+      )}
+    </div>
+  );
 }
 
 /** One line on the take card under its verdict: what its checks found (a failure named, every flag to review named,

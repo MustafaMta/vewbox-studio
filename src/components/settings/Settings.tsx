@@ -85,6 +85,9 @@ export function SettingsPage() {
           <SettingRow label={<>Face close-up reference <StateWord tone="waiting" className="st-src">Under evaluation</StateWord></>} hint="On close framings the studio can also send a close crop of each character’s face, cut from their canonical image and stored as a production-only reference (never a new identity). Automatic: only when the canonical image holds too few face pixels for the framing. Off until the comparison on real takes is done.">
             {() => <Segmented label="Face close-up reference" value={gen.faceReference ?? 'OFF'} onChange={(v) => setGen({ faceReference: v as 'OFF' | 'AUTO' | 'ON' })} options={[{ value: 'OFF', label: 'Off' }, { value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }]} />}
           </SettingRow>
+          <div className="st-row st-row-toggle">
+            <Toggle label="Draw a close shot’s opening frame before the take" help="A medium or closer shot with no drawn opening frame gets one drawn first, so the take opens at its framing instead of the plate’s wide view. Off: the shot is filmed as it is (the checks before a take still warn)." checked={gen.autoOpeningFrame !== false} onChange={(v) => setGen({ autoOpeningFrame: v })} />
+          </div>
           <SettingRow label="Re-anchor after" hint="After this many continuous shots in a row, the next one leans on the characters’ canonical images (the shortest guide) so faces do not drift along the chain.">
             {(id) => <Select id={id} value={String(cont.reanchorAfter ?? REANCHOR.after)} onChange={(e) => setCont({ reanchorAfter: Number(e.target.value) === REANCHOR.after ? undefined : Number(e.target.value) })} options={[2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: String(n), label: `${n} shots${n === REANCHOR.after ? ' (default)' : ''}` }))} />}
           </SettingRow>

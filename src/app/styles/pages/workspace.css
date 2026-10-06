@@ -363,6 +363,16 @@
   .ws-ready-head { margin: 0; }
   .ws-ready-note { margin: 0; }
   .ws-checks .ws-files > li[data-outcome='PASSED'] .ws-file-name { color: var(--text-2); }
+  /* "Repair lip-sync" (lipsync-repair.ts): the action with its reason under it; the repaired take's line; the Details
+     table of before/after numbers (its own table: the generic third-column rule for phones does not apply) */
+  .ws-repair { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-inline-size: 0; max-inline-size: 100%; }
+  .ws-repair-why { overflow-wrap: anywhere; }
+  .ws-take-repair { display: block; max-inline-size: 100%; overflow-wrap: anywhere; }
+  .ws-repair-panel .ws-dl-wide { grid-column: 1 / -1; }
+  .ws-repair-table th[scope='row'] { padding: 12px 12px 12px 0; border-block-end: 1px solid var(--line); font-size: 13px; line-height: 18px; font-weight: 400; color: var(--text-2); white-space: normal; }
+  .ws-repair-table td { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ws-repair-table tr[data-better='false'] td:last-child { color: var(--text-1); }
+  @media (max-width: 639px) { .ws-repair-table th:nth-child(3), .ws-repair-table td:nth-child(3) { display: table-cell; } }
   .ws-take-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-block-start: 6px; }
   .ws-compare-tick { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; padding-inline: 6px; font-size: 13px; line-height: 18px; color: var(--text-2); cursor: pointer; }
   .ws-attempts { margin-block-start: 16px; }
