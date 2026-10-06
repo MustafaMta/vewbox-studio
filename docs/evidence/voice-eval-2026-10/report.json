@@ -1,0 +1,326 @@
+{
+  "at": "2026-10-06T15:46:10.133Z",
+  "set": "tests/fixtures/voice/english-bench-2026-10.json",
+  "speakers": [
+    {
+      "id": "cv-f-young",
+      "sex": "F",
+      "age": "teens",
+      "label": "female, teens",
+      "source": "Common Voice 17.0 en/test row 4542 (fixie-ai/common_voice_17_0), contributor c15ed1e908f8…, votes 3/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-f-young.wav",
+      "referenceText": "A Lakeview branch of the Chicago public library was renamed in John Merlo's honor.",
+      "referenceSeconds": 9.46,
+      "clips": [
+        {
+          "idx": 4542,
+          "sentence": "A Lakeview branch of the Chicago public library was renamed in John Merlo's honor.",
+          "client": "c15ed1e908f8"
+        }
+      ]
+    },
+    {
+      "id": "cv-m-young",
+      "sex": "M",
+      "age": "teens",
+      "label": "male, teens, United States English",
+      "source": "Common Voice 17.0 en/test row 2104 (fixie-ai/common_voice_17_0), contributor 5a0386206941…, votes 4/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-m-young.wav",
+      "referenceText": "The track was written by Utada herself, alongside Pharrell Williams and Chad Hugo.",
+      "referenceSeconds": 6.1,
+      "clips": [
+        {
+          "idx": 2104,
+          "sentence": "The track was written by Utada herself, alongside Pharrell Williams and Chad Hugo.",
+          "client": "5a0386206941"
+        }
+      ]
+    },
+    {
+      "id": "cv-f-old",
+      "sex": "F",
+      "age": "seventies",
+      "label": "female, seventies",
+      "source": "Common Voice 17.0 en/test row 4852 (fixie-ai/common_voice_17_0), contributor cf5a3a79c90a…, votes 3/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-f-old.wav",
+      "referenceText": "\"I have watched the Caravan as it crossed the desert,\" he said.",
+      "referenceSeconds": 6.26,
+      "clips": [
+        {
+          "idx": 4852,
+          "sentence": "\"I have watched the Caravan as it crossed the desert,\" he said.",
+          "client": "cf5a3a79c90a"
+        }
+      ]
+    },
+    {
+      "id": "cv-m-old",
+      "sex": "M",
+      "age": "seventies",
+      "label": "male, seventies, Canadian English",
+      "source": "Common Voice 17.0 en/test row 4369 (fixie-ai/common_voice_17_0), contributor ba48005d36be…, votes 2/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-m-old.wav",
+      "referenceText": "This proof completed a programme initiated and largely developed by Alexander Grothendieck.",
+      "referenceSeconds": 6.16,
+      "clips": [
+        {
+          "idx": 4369,
+          "sentence": "This proof completed a programme initiated and largely developed by Alexander Grothendieck.",
+          "client": "ba48005d36be"
+        }
+      ]
+    },
+    {
+      "id": "fixture-en",
+      "sex": "M",
+      "age": "adult (unlabelled)",
+      "label": "tests/fixtures/speech-en.wav (the acceptance runs' English recording)",
+      "source": "repository fixture",
+      "licence": "repository fixture",
+      "reference": "media/refs/fixture-en.wav",
+      "referenceText": "The last bus to Karada leaves at midnight, and the driver has decided it will be his final shift.",
+      "referenceSeconds": 6.3,
+      "clips": []
+    }
+  ],
+  "engines": {
+    "indextts": {
+      "role": "incumbent (live tts service :8020)",
+      "checkpoint": "IndexTeam/IndexTTS-2.5@c39ce5b (gpt.pth, s2mel.pth, qwen0.6bemo4-merge; BigVGAN v2 22 kHz)",
+      "params": "≈1.5 B (IndexTTS2 family; GPT + S2M + emotion Qwen 0.6B)",
+      "precision": "bf16, use_cuda_kernel=False",
+      "settings": "emotion 8-dim vector, emo_alpha 0.7; duration via duration_factor = 1/speed (0.5–2)",
+      "licence": "bilibili Model Use License (commercial below 100M MAU / RMB 1bn; §3.4c)",
+      "output": "22.05 kHz"
+    },
+    "voxcpm2": {
+      "role": "candidate (bench :8040, the tts-design image)",
+      "checkpoint": "openbmb/VoxCPM2@32279ef (model.safetensors 4.58 GB, audiovae.pth)",
+      "params": "2 B",
+      "precision": "bf16 (voxcpm 2.0.3 default), optimize=False (no torch.compile)",
+      "settings": "reference_wav_path = the clip (clone mode, no transcript continuation); emotion as a '(style)' prefix; cfg 2.0, 10 timesteps; retry_badcase OFF",
+      "licence": "Apache-2.0",
+      "output": "48 kHz"
+    },
+    "dots": {
+      "role": "candidate (bench :8041)",
+      "checkpoint": "dots-studio/dots.tts-soar@2f9b3e1 (model.safetensors 4.40 GB, vocoder 0.72 GB, CAM++ speaker encoder)",
+      "params": "2 B",
+      "precision": "bf16",
+      "settings": "prompt_audio_path + prompt_text (reference transcript); num_steps 10, guidance 1.2, speaker_scale 1.5; no emotion input",
+      "licence": "Apache-2.0",
+      "output": "48 kHz"
+    },
+    "moss": {
+      "role": "candidate (bench :8042)",
+      "checkpoint": "OpenMOSS-Team/MOSS-TTS-v1.5@cdd3b91 + MOSS-Audio-Tokenizer@3cd226b",
+      "params": "8 B (Qwen3-8B backbone, 32-codebook delay pattern)",
+      "precision": "bf16, SDPA attention (no flash-attn)",
+      "settings": "reference=[clip]; language='English'; duration → tokens = seconds × frame rate; no emotion input",
+      "licence": "Apache-2.0",
+      "output": "24 kHz"
+    }
+  },
+  "summary": {
+    "dots": {
+      "attempts": 56,
+      "requestFailures": 0,
+      "firstAttemptPass": {
+        "pass": 0,
+        "of": 0
+      },
+      "firstAttemptClean": {
+        "clean": 0,
+        "of": 0
+      },
+      "short": {
+        "pass": 0,
+        "of": 0,
+        "clean": 0
+      },
+      "long": {
+        "pass": 0,
+        "of": 0,
+        "coverageMean": null
+      },
+      "numbersNames": {
+        "pass": 0,
+        "of": 0
+      },
+      "emotion": {
+        "pass": 0,
+        "of": 0
+      },
+      "werFoldedMean": null,
+      "cerMean": null,
+      "simRefMean": null,
+      "simRefMedian": null,
+      "simHeldOutMean": null,
+      "simRefShortMean": null,
+      "simRefLongMean": null,
+      "session2": {
+        "n": 0,
+        "simRefMean": null,
+        "simSession1Mean": null,
+        "pass": {
+          "pass": 0,
+          "of": 0
+        }
+      },
+      "determinism": {
+        "n": 0,
+        "identical": 0,
+        "simSession1Mean": null
+      },
+      "duration": {
+        "n": 0,
+        "meanAbsErrorPct": null,
+        "maxAbsErrorPct": null,
+        "via": "none"
+      },
+      "latency": {
+        "msMedian": 6239,
+        "rtfMedian": 1.756740702479339
+      },
+      "peakVramMb": 9706,
+      "flagged": 0,
+      "model": "dots-studio/dots.tts-soar",
+      "engineVersion": "dots.tts 0.3.1; model dots.tts-soar@2f9b3e1 sha256:2787e6d4fe0b; torch 2.8.0+cu128"
+    },
+    "indextts": {
+      "attempts": 140,
+      "requestFailures": 0,
+      "firstAttemptPass": {
+        "pass": 0,
+        "of": 0
+      },
+      "firstAttemptClean": {
+        "clean": 0,
+        "of": 0
+      },
+      "short": {
+        "pass": 0,
+        "of": 0,
+        "clean": 0
+      },
+      "long": {
+        "pass": 0,
+        "of": 0,
+        "coverageMean": null
+      },
+      "numbersNames": {
+        "pass": 0,
+        "of": 0
+      },
+      "emotion": {
+        "pass": 0,
+        "of": 0
+      },
+      "werFoldedMean": null,
+      "cerMean": null,
+      "simRefMean": null,
+      "simRefMedian": null,
+      "simHeldOutMean": null,
+      "simRefShortMean": null,
+      "simRefLongMean": null,
+      "session2": {
+        "n": 0,
+        "simRefMean": null,
+        "simSession1Mean": null,
+        "pass": {
+          "pass": 0,
+          "of": 0
+        }
+      },
+      "determinism": {
+        "n": 5,
+        "identical": 0,
+        "simSession1Mean": null
+      },
+      "duration": {
+        "n": 30,
+        "meanAbsErrorPct": 0.1,
+        "maxAbsErrorPct": 0.5,
+        "via": "speed"
+      },
+      "latency": {
+        "msMedian": 2807,
+        "rtfMedian": 0.7974121996303142
+      },
+      "peakVramMb": null,
+      "flagged": 0,
+      "model": "IndexTTS-2.5",
+      "engineVersion": "indextts 2.0.0; repo v2.5.0; model IndexTTS-2.5; torch 2.8.0+cu128"
+    },
+    "voxcpm2": {
+      "attempts": 140,
+      "requestFailures": 0,
+      "firstAttemptPass": {
+        "pass": 0,
+        "of": 0
+      },
+      "firstAttemptClean": {
+        "clean": 0,
+        "of": 0
+      },
+      "short": {
+        "pass": 0,
+        "of": 0,
+        "clean": 0
+      },
+      "long": {
+        "pass": 0,
+        "of": 0,
+        "coverageMean": null
+      },
+      "numbersNames": {
+        "pass": 0,
+        "of": 0
+      },
+      "emotion": {
+        "pass": 0,
+        "of": 0
+      },
+      "werFoldedMean": null,
+      "cerMean": null,
+      "simRefMean": null,
+      "simRefMedian": null,
+      "simHeldOutMean": null,
+      "simRefShortMean": null,
+      "simRefLongMean": null,
+      "session2": {
+        "n": 0,
+        "simRefMean": null,
+        "simSession1Mean": null,
+        "pass": {
+          "pass": 0,
+          "of": 0
+        }
+      },
+      "determinism": {
+        "n": 5,
+        "identical": 0,
+        "simSession1Mean": null
+      },
+      "duration": {
+        "n": 0,
+        "meanAbsErrorPct": null,
+        "maxAbsErrorPct": null,
+        "via": "none"
+      },
+      "latency": {
+        "msMedian": 2346,
+        "rtfMedian": 0.677445652173913
+      },
+      "peakVramMb": 7644,
+      "flagged": 0,
+      "model": "openbmb/VoxCPM2 (clone)",
+      "engineVersion": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128"
+    }
+  },
+  "listening": "PENDING — naturalness, emotion and same-voice need a human listener (index.html has the players)"
+}
