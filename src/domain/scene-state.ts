@@ -122,6 +122,14 @@ function mergeProps(base: SceneProp[], own: SceneProp[]): SceneProp[] {
 
 /** The scene state a shot is filmed in (see the module note). `previous` (the state computed for the previous shot)
  *  may be given to avoid recomputing the chain. */
+/** A prop's state carried into a later shot: a lasting state ("half-full", "broken", "on its side") is kept; an action
+ *  in progress ("pouring", "filling with amber liquid") is not — it was someone's action in that shot, and carried on
+ *  it made the next shot repeat it with nobody doing it (acceptance 2026-10-06, Tea 1.3: the samovar poured by itself
+ *  for seconds after the vendor's pouring shot). The shot's own props still say what happens in it. */
+export function carriedPropState(state: string | undefined): string | undefined {
+  return state && /^\s*\w+ing\b/i.test(state) ? undefined : state;
+}
+
 export function sceneStateFor(p: Production, sh: Shot, opts: { bible?: WorldBible; previous?: SceneState } = {}): SceneState {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const { relation, boundary, previous } = relationOf(p, sh);
@@ -135,7 +143,7 @@ export function sceneStateFor(p: Production, sh: Shot, opts: { bible?: WorldBibl
   let envSource: SceneStateSource; let propsSource: SceneStateSource;
   if (prevState) {
     ({ timeOfDay, weather, lighting, placeState } = prevState);
-    props = prevState.props.map((x) => ({ ...x }));
+    props = prevState.props.map((x) => ({ ...x, state: carriedPropState(x.state) }));
     envSource = { kind: 'PREVIOUS_SHOT', shotId: prevState.shotId }; propsSource = { kind: 'PREVIOUS_SHOT', shotId: prevState.shotId };
   } else {
     timeOfDay = scene?.timeOfDay;
@@ -144,7 +152,7 @@ export function sceneStateFor(p: Production, sh: Shot, opts: { bible?: WorldBibl
     const last = scene ? lastStateAt(p, scene, opts.bible) : undefined;
     if (last) {
       weather = clean(last.state.environment.weather); lighting = clean(last.state.environment.lighting); placeState = clean(last.state.environment.state) ?? clean(last.state.exitState);
-      props = last.state.props.filter((x) => clean(x.name)).map((x) => ({ name: clean(x.name)!, state: clean(x.state), position: clean(x.position), ownerCharacterId: x.ownerCharacterId }));
+      props = last.state.props.filter((x) => clean(x.name)).map((x) => ({ name: clean(x.name)!, state: carriedPropState(clean(x.state)), position: clean(x.position), ownerCharacterId: x.ownerCharacterId }));
       envSource = last.source; propsSource = last.source;
     }
   }

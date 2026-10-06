@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Production, Shot, StudioState } from '@/domain/types';
-import { lastStateAt, relationOf, sceneStateFor, sceneStateLine, wardrobeOfTheDay } from '@/domain/scene-state';
+import { carriedPropState, lastStateAt, relationOf, sceneStateFor, sceneStateLine, wardrobeOfTheDay } from '@/domain/scene-state';
 import { deriveWorld, worldScopeOf } from '@/domain/world';
 import { resolveShotPack, bindingOf } from '@/server/production/shot-pack';
 import { h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
@@ -108,5 +108,15 @@ describe('the scene state, shot to shot', () => {
     expect(sceneStateLine(cPack.sceneState, () => '<Subject 1>')).toMatch(/carried across the cut.*<Subject 1> holds the parcel/);
     // the plain prompt carries it too
     expect(takePrompt(p, shotOf(p, 's31'), cast, pharmacy, p.scenes[2], { sceneState: pack.sceneState })).toContain('weather: rain');
+  });
+});
+
+describe('a prop state carried to the next shot (Tea 1.3: the samovar poured by itself)', () => {
+  it('keeps a lasting state, drops an action in progress', () => {
+    expect(carriedPropState('half-full')).toBe('half-full');
+    expect(carriedPropState('broken')).toBe('broken');
+    expect(carriedPropState('pouring')).toBeUndefined();
+    expect(carriedPropState('filling with amber liquid')).toBeUndefined();
+    expect(carriedPropState(undefined)).toBeUndefined();
   });
 });
