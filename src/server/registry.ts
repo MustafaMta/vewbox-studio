@@ -39,6 +39,9 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     { name: 'qwen-image.secondary-portrait', graph: qwenSecondary({ canonical: 'a.png', kind: 'PORTRAIT', prompt: '', crop: { x: 0, y: 0, width: 512, height: 640 } }) },
     { name: 'minimax-h3.fl2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png' }) },
     { name: 'minimax-h3.ref2va', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'] }) },
+    // the explicit draft tier (turbo LoRAs): versioned and node-checked beside the final tier the other templates use
+    { name: 'minimax-h3.ref2va-draft', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png'], referenceAudio: ['a.wav'], quality: 'draft' }) },
+    { name: 'minimax-h3.fl2va-draft', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, firstFrame: 'a.png', lastFrame: 'b.png', quality: 'draft' }) },
     // a reference shot with its opening frame anchored at 0 and the recorded line at frame 0 (CUT / STORY_TRANSITION)
     { name: 'minimax-h3.ref2va-opening', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png', 'b.png'], firstFrame: 'c.png', guides: [{ frameIdx: 0, audio: 'a.wav' }] }) },
     // a continuation: the previous take's tail, frames AND sound, at 0; the recorded line at the first new frame

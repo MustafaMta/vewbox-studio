@@ -1,5 +1,5 @@
 {
-  "comment": "Pinned model weights for the local RTX 5090 stack. Folders are relative to the models volume and mirror ComfyUI's models/ layout; the voice and transcription services read their own folders. Sizes and sha256 values come from the Hugging Face file listings (LFS oids). No LTX, Wan or other non-MiniMax video model is listed, by policy.",
+  "comment": "Pinned model weights for the local RTX 5090 stack. Folders are relative to the models volume and mirror ComfyUI's models/ layout; the voice and transcription services read their own folders. Sizes and sha256 values come from the Hugging Face file listings (LFS oids). No LTX, Wan or other non-MiniMax video model is listed, by policy (the Wan2.1 VAE of eval-joyai-image-edit is an image latent codec only, not a video generator).",
   "groups": [
     {
       "name": "video-minimax-h3",
@@ -65,6 +65,22 @@
         { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "vae/qwen_image_2.1_vae_bf16.safetensors", "folder": "vae", "bytes": 675509688, "sha256": "bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9", "license": "Qwen Research Licence (non-commercial)" },
         { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 7256783064, "sha256": "cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d", "license": "Qwen Research Licence (non-commercial)" },
         { "repo": "Comfy-Org/Qwen-Image-2.1", "file": "text_encoders/qwen3vl_8b_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 9350798360, "sha256": "8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f", "license": "Qwen Research Licence (non-commercial)" }
+      ]
+    },
+    {
+      "name": "eval-joyai-image-edit",
+      "purpose": "CANDIDATE (docs/research/MODEL-EVAL-2026-10.md §7, model-upgrade directive 2026-10-06 §2): JoyAI-Image-Edit (JD, jdopensource/JoyAI-Image-Edit-Plus-ComfyUI repackaged by Comfy-Org), 16B MMDiT + Qwen3-VL-8B text encoder, Apache-2.0, up to 6 reference images (core node TextEncodeJoyImageEdit, ComfyUI 0.38.1). int8_convrot DiT + int8_convrot text encoder, 26.75 GB. The Wan2.1 VAE is used ONLY as JoyAI's image latent codec; no Wan video model is installed or used. Benchmarked against FLUX.2 klein 4B (reference identity) and Qwen-Image-Edit-2511 (placement, location views); not in the default MODEL_GROUPS until promoted: --groups eval-joyai-image-edit.",
+      "files": [
+        { "repo": "Comfy-Org/JoyAI-Image-Edit", "revision": "8010e7b4c2ac3f762d33775ac5d6a011eea4166c", "file": "vae/wan_2.1_vae.safetensors", "folder": "vae", "bytes": 253815318, "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b", "license": "Apache-2.0" },
+        { "repo": "Comfy-Org/JoyAI-Image-Edit", "revision": "8010e7b4c2ac3f762d33775ac5d6a011eea4166c", "file": "text_encoders/qwen3vl_8b_joyimage_edit_int8_convrot.safetensors", "folder": "text_encoders", "bytes": 10064089100, "sha256": "683de3ab15337afb9dcf19caaabb683a5ce53eb311eb302ff8eeaf4f553ad1a8", "license": "Apache-2.0" },
+        { "repo": "Comfy-Org/JoyAI-Image-Edit", "revision": "8010e7b4c2ac3f762d33775ac5d6a011eea4166c", "file": "diffusion_models/joyai_image_edit_int8_convrot.safetensors", "folder": "diffusion_models", "bytes": 16433221208, "sha256": "da8301c271764c63e018826f12c41c36d24c840c95c5385782bbf6a96268eeae", "license": "Apache-2.0" }
+      ]
+    },
+    {
+      "name": "eval-qwen-image-2512-bf16",
+      "purpose": "CANDIDATE (docs/research/MODEL-EVAL-2026-10.md §7): Qwen-Image-2512 at full precision (bf16, 40.86 GB) against the shipping fp8_e4m3fn cast; Apache-2.0. The DiT is larger than the 32 GB card, so ComfyUI loads it partially and streams the rest from host RAM. Not in the default MODEL_GROUPS until promoted: --groups eval-qwen-image-2512-bf16.",
+      "files": [
+        { "repo": "Comfy-Org/Qwen-Image_ComfyUI", "revision": "1f12b17be14c89b026c51a91d67c32f84bb047bc", "file": "split_files/diffusion_models/qwen_image_2512_bf16.safetensors", "folder": "diffusion_models", "bytes": 40861031488, "sha256": "cbf55390fff27dbc785046d7007b04e0c5dd7421e7ef128f2831eacb53a8e075", "license": "Apache-2.0" }
       ]
     },
     {

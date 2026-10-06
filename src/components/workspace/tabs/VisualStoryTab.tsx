@@ -1,5 +1,6 @@
 'use client';
 
+import { WorldBiblePanel } from '../WorldBible';
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
@@ -67,6 +68,7 @@ export function VisualStoryTab({ p, gate }: { p: Production; gate: StudioGate })
           )}
         </aside>
       </div>
+      <WorldBiblePanel p={p} />
     </div>
   );
 }

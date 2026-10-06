@@ -9,14 +9,14 @@
  *  rollback) 30.0–30.4 GB, FLUX.2 klein 4B 20.1 GB — one estimate for the family, the highest peak (was 24000). */
 export const IMAGE_VRAM_MB = 30400;
 
-/** VIDEO on ComfyUI: MiniMax H3 Ref2VA int8, 4-step turbo, 5 s at 1344×768 — 28.4–31.9 GB, the highest for a
- *  continuation (V4) (was 28000). */
+/** VIDEO on ComfyUI: MiniMax H3 Ref2VA int8, 5 s at 1344×768 — 28.4–31.9 GB, the highest for a continuation (V4)
+ *  (was 28000); the final tier (base model, 20 steps) peaks the same, 27.0–31.9 GB (MODEL-EVAL §8.4). */
 export const VIDEO_H3_VRAM_MB = 31900;
 
 /** HOST RAM while ComfyUI stages H3 (the 15.7 GB nvfp4 text encoder moved to RAM after encoding, plus the page cache
- *  of the 21 GB DiT): 40.8 GiB of the 46.8 GiB the Docker VM has without `.wslconfig` (§6, MODEL-EVAL §5) — ≈ 6 GiB
- *  of headroom, so H3 runs with every other family unloaded (the lease does that) and no idle speech service loaded.
- *  Not a lease figure (the lease counts VRAM); recorded here so the video handler can say what it needs. */
-export const VIDEO_H3_HOST_RAM_MB = Math.round(40.8 * 1024);
-/** The Docker VM's RAM as measured (`MemTotal 49,059,472 kB`) until `.wslconfig` raises it to 80 GB. */
-export const DOCKER_VM_RAM_MB = Math.round(49_059_472 / 1024);
+ *  of the 21 GB DiT): 46.0–46.5 GiB of the 78.5 GiB Docker VM, both tiers, 2026-10-06 (§6; 40.8 GiB of the old 46.8 GiB
+ *  VM on 2026-10-05 — the cache grows into the room). ≈ 32 GiB of headroom. Not a lease figure (the lease counts
+ *  VRAM); recorded here so the video handler can say what it needs. */
+export const VIDEO_H3_HOST_RAM_MB = Math.round(46.5 * 1024);
+/** The Docker VM's RAM as measured 2026-10-06 (`docker info` MemTotal 84,336,570,368 B, `.wslconfig` applied). */
+export const DOCKER_VM_RAM_MB = Math.round(84_336_570_368 / 1024 / 1024);

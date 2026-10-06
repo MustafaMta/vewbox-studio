@@ -12,6 +12,7 @@ import { Frame } from '@/components/media/Frame';
 import { displaySrc } from '@/components/home/model';
 import { IconCheck, IconFrame, IconProduce, IconTake, IconVoice } from '@/components/ui/icons';
 import { useGate } from '../Decide';
+import { ContinuityLogPanel } from '../ContinuityLog';
 import { GenButton, type StudioGate } from '../gate';
 import { canUseTake, frameRatioOf, orderedShots, shotState, vocab, workspaceHref } from '../model';
 
@@ -85,6 +86,7 @@ export function ProduceTab({ p, gate }: { p: Production; gate: StudioGate }) {
             })}
           </ol>
           {chosen === p.shots.length && p.stage === 'PRODUCE' && <div className="ws-gen-row"><Button onClick={() => { act('markStepDone', p.id, 'PRODUCE'); toast.ok('Saved.'); }}>Mark producing done</Button></div>}
+          <ContinuityLogPanel p={p} />
         </>
       )}
     </div>

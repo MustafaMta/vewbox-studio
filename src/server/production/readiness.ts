@@ -24,13 +24,15 @@ export function graphRequirements(graph: Record<string, { class_type: string; in
   return { nodes: [...nodes].sort(), models: [...models.values()] };
 }
 
-/** What every local H3 request may need: both graphs (reference and first/last frame), with a tail guide. */
+/** What every local H3 request may need: both graphs (reference and first/last frame), with a tail guide, in both
+ *  quality tiers (final: the base model; draft: the turbo LoRAs on request). */
 export function h3Requirements(): GraphRequirements {
-  const ref = minimaxH3Video({ prompt: 'x', width: 1280, height: 720, seconds: 5, referenceImages: ['a.png'], referenceAudio: ['a.wav'], guides: [{ frameIdx: 0, image: 'tail.mp4', imageIsVideo: true, audioFromVideo: true }] });
-  const fl = minimaxH3Video({ prompt: 'x', width: 1280, height: 720, seconds: 5, firstFrame: 'a.png', lastFrame: 'b.png' });
-  const a = graphRequirements(ref as never), b = graphRequirements(fl as never);
-  const models = new Map([...a.models, ...b.models].map((m) => [`${m.folder}/${m.file}`, m]));
-  return { nodes: [...new Set([...a.nodes, ...b.nodes])].sort(), models: [...models.values()] };
+  const graphs = (['final', 'draft'] as const).flatMap((quality) => [
+    minimaxH3Video({ prompt: 'x', width: 1280, height: 720, seconds: 5, referenceImages: ['a.png'], referenceAudio: ['a.wav'], guides: [{ frameIdx: 0, image: 'tail.mp4', imageIsVideo: true, audioFromVideo: true }], quality }),
+    minimaxH3Video({ prompt: 'x', width: 1280, height: 720, seconds: 5, firstFrame: 'a.png', lastFrame: 'b.png', quality }),
+  ]).map((g) => graphRequirements(g as never));
+  const models = new Map(graphs.flatMap((r) => r.models).map((m) => [`${m.folder}/${m.file}`, m]));
+  return { nodes: [...new Set(graphs.flatMap((r) => r.nodes))].sort(), models: [...models.values()] };
 }
 
 export interface Readiness { ok: boolean; offline?: boolean; missingNodes: string[]; missingModels: string[]; detail: string }

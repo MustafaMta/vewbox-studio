@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1.7
 # Audio analysis service: transcription with faster-whisper (CTranslate2) and stem separation with Demucs (htdemucs,
 # MIT), on CUDA 12.8 / cuDNN 9 — the wheel line that works on Blackwell. Whisper weights come from the shared models
-# volume (asr/faster-whisper-large-v3, fetched by docker/models); Demucs fetches htdemucs (~80 MB) into /models/demucs
+# volume (asr/faster-whisper-large-v3, fetched by docker/models); Demucs fetches htdemucs (~80 MB) into TORCH_HOME (/models/cache/torch, the store's cache)
 # on first use.
 # Script alignment (align.py: wav2vec2 CTC via transformers) and picture QA (qa.py: MediaPipe Face Landmarker, OpenCV
 # YuNet + SFace; CPU) run in the same service. Their weights come from the models volume (manifest groups qa-align and
 # qa-identity); the Face Landmarker bundle is fetched once by the service (pinned sha256) unless QA_AUTOFETCH=0.
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
-ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 PIP_BREAK_SYSTEM_PACKAGES=1 CUDA_CACHE_PATH=/cache/nv-jit HF_HUB_DISABLE_TELEMETRY=1 TORCH_HOME=/models/demucs
+ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1 PIP_BREAK_SYSTEM_PACKAGES=1 CUDA_CACHE_PATH=/cache/nv-jit HF_HUB_DISABLE_TELEMETRY=1 TORCH_HOME=/models/cache/torch
 RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::https::Timeout "300";\nAcquire::ForceIPv4 "true";\nAcquire::http::Pipeline-Depth "0";\n' > /etc/apt/apt.conf.d/80-retries \
  && for i in 1 2 3 4 5 6; do apt-get update && apt-cache policy curl | grep -q Candidate && break; echo "apt index incomplete, retry $i"; sleep 20; done \
  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv ffmpeg curl ca-certificates libegl1 libgles2 && rm -rf /var/lib/apt/lists/*

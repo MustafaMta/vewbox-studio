@@ -123,6 +123,16 @@ describe('the plate a shot is filmed against', () => {
     expect(choosePlate(loc(base), { timeOfDay: 'NIGHT' }, assets)?.plate.assetId).toBe('plate-master');
   });
 
+  it('an established frame is the place’s reference only for a shot that shows everyone in it (its people would be drawn again)', () => {
+    const w = est(base, 'take-y', 'est-dusk');
+    const people = () => ['char-a', 'char-b'];
+    expect(choosePlate(loc(w), { timeOfDay: 'DUSK', characterIds: ['char-a'] }, assets, people)?.plate.assetId).toBe('plate-dusk');
+    expect(choosePlate(loc(w), { timeOfDay: 'DUSK', characterIds: ['char-a', 'char-b'] }, assets, people)?.plate.assetId).toBe('est-dusk');
+    expect(choosePlate(loc(w), { timeOfDay: 'DUSK', characterIds: [] }, assets, () => [])?.plate.assetId).toBe('est-dusk');
+    // the source shot unknown: eligible as before
+    expect(choosePlate(loc(w), { timeOfDay: 'DUSK', characterIds: ['char-a'] }, assets, () => undefined)?.plate.assetId).toBe('est-dusk');
+  });
+
   it('an established frame of an approved take first — at this time of day before the drawn plate; at another, after it, before the master', () => {
     const w = est(est(base, 'take-x', 'est-morning', { timeOfDay: 'MORNING' }), 'take-y', 'est-dusk');
     expect(choosePlate(loc(w), { timeOfDay: 'DUSK' }, assets)?.plate.assetId).toBe('est-dusk');
@@ -144,11 +154,13 @@ describe('the plate a shot is filmed against', () => {
     const [a] = p.castIds;
     const w = est(base, 'take-y', 'est-dusk');
     const pinned = { ...w, characters: w.characters.map((c) => (c.characterId === a ? { ...c, canonical: { assetId: 'open-11', version: 1, status: 'APPROVED' as const } } : c)) };
-    const { state: s, read } = overlayWorld({ ...state, assets }, pinned, p, shotOf(p, 's13'), { id: 'wrev-1', number: 1, pinned: true });
-    const pack = resolveShotPack(s, p, shotOf(p, 's13'), { backend: 'local' });
+    // a shot that shows everyone the established frame shows (its source, s11, holds both)
+    const sh = { ...shotOf(p, 's13'), characterIds: shotOf(p, 's11').characterIds };
+    const { state: s, read } = overlayWorld({ ...state, assets }, pinned, p, sh, { id: 'wrev-1', number: 1, pinned: true });
+    const pack = resolveShotPack(s, p, sh, { backend: 'local' });
     expect(pack.location?.assetId).toBe('est-dusk');
     expect(pack.subjects[0]).toMatchObject({ characterId: a, assetId: 'open-11' });
-    expect(read).toMatchObject({ revisionNumber: 1, pinned: true, location: { assetId: 'est-dusk', role: 'ESTABLISHED', source: { kind: 'FROM_TAKE', takeId: 'take-y' } }, characters: [{ characterId: a, pinnedVersion: 1, currentVersion: 2, usedPinned: true }] });
+    expect(read).toMatchObject({ revisionNumber: 1, pinned: true, location: { assetId: 'est-dusk', role: 'ESTABLISHED', source: { kind: 'FROM_TAKE', takeId: 'take-y' } }, characters: expect.arrayContaining([expect.objectContaining({ characterId: a, pinnedVersion: 1, currentVersion: 2, usedPinned: true })]) });
     expect(read.conflicts.join(' ')).toMatch(/pinned to v1/);
     // the studio itself is untouched
     expect(state.locations.find((l) => l.id === 'loc-pharmacy')!.refs.some((r) => r.assetId === 'est-dusk')).toBe(false);

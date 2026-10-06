@@ -3,6 +3,8 @@
  *  workstation unchanged. Numbers are the workstation's measured needs (docs/research/GPU-STAGING-2026-10.md,
  *  docs/evidence/acceptance-v1/REPORT.md): H3 staging peaked at 45.1 of 46.8 GiB of host RAM and 31.6 of 32.6 GB VRAM. */
 
+import { physicalPath } from './models-store.mjs';
+
 export const NEEDS = {
   /** host RAM the Docker VM must have: H3 alone reached 41.8 GiB; the acceptance run peaked at 45.1 of 46.8 */
   dockerMemGiB: 46,
@@ -41,9 +43,11 @@ export function judgeGpu(gpus) {
   return { ok, problems: ok ? [] : [`${card.name} reports ${card.memMiB} MiB, under ${NEEDS.gpuMemMiB}`], detail: `${card.name}, ${card.memMiB} MiB, driver ${card.driver}` };
 }
 
-/** The models the gates need, against the fetcher's `.manifest-state.json` (docker/models/fetch.py) and the sizes on the
- *  volume (`path size` lines). A file is ready when the fetcher verified it AND it is on the volume at its size. */
-export function verifyModels(manifest, state, sizes, groups = NEEDS.modelGroups) {
+/** The models the gates need, against the fetcher's `.manifest-state.json` (docker/models/fetch.py) and the sizes in
+ *  the model store (`size path` lines, paths as they are in the store). A file is ready when the fetcher verified it
+ *  AND it is in the store at its size. `layout` (docker/models/layout.json) places a logical folder in the store
+ *  (ComfyUI's typed folders under comfyui/); without it the paths are taken as they are. */
+export function verifyModels(manifest, state, sizes, groups = NEEDS.modelGroups, layout = undefined) {
   const onDisk = new Map(sizes.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const i = l.indexOf(' '); return [l.slice(i + 1), Number(l.slice(0, i))]; }));
   const missing = []; let ready = 0;
   const unknownGroups = groups.filter((g) => !manifest.groups.some((x) => x.name === g));
@@ -52,8 +56,8 @@ export function verifyModels(manifest, state, sizes, groups = NEEDS.modelGroups)
       const name = f.as ?? f.file.split('/').pop();
       const key = `${f.folder}/${name}`;
       const rec = state[key];
-      const size = onDisk.get(key);
-      const why = !rec?.verified ? 'not verified by the fetcher' : size === undefined ? 'not on the volume' : f.bytes && size !== Number(f.bytes) ? `size ${size}, expected ${f.bytes}` : undefined;
+      const size = onDisk.get(layout ? physicalPath(key, layout) : key);
+      const why = !rec?.verified ? 'not verified by the fetcher' : size === undefined ? 'not in the model store' :f.bytes && size !== Number(f.bytes) ? `size ${size}, expected ${f.bytes}` : undefined;
       if (why) missing.push({ group: g.name, file: key, why }); else ready++;
     }
   }

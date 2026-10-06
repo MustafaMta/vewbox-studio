@@ -31,10 +31,11 @@ export interface AudioTrack {
   fadeOutCurve?: 'tri' | 'qsin';
   automation?: { rampSamples: number; spans: GainSpan[] };
   loop?: boolean;
+  loopSamples?: number;
 }
 export interface MixPlan { rate: number; tracks: AudioTrack[]; targetLufs: number; notes: string[] }
 
-const trackOf = (c: AudioCue): AudioTrack => ({ cueId: c.id, kind: c.kind, sourceAssetId: c.sourceAssetId, lineage: c.lineage, sourceOffsetSamples: c.sourceOffsetSamples, startSample: c.startSample, durationSamples: c.durationSamples, gain: c.muted ? 0 : c.gain, policy: c.policy, shotId: c.shotId, lineId: c.lineId, muted: c.muted, voice: c.voice, fadeInSamples: c.fadeInSamples, fadeOutSamples: c.fadeOutSamples, fadeInCurve: c.fadeInCurve, fadeOutCurve: c.fadeOutCurve, automation: c.automation, loop: c.loop });
+const trackOf = (c: AudioCue): AudioTrack => ({ cueId: c.id, kind: c.kind, sourceAssetId: c.sourceAssetId, lineage: c.lineage, sourceOffsetSamples: c.sourceOffsetSamples, startSample: c.startSample, durationSamples: c.durationSamples, gain: c.muted ? 0 : c.gain, policy: c.policy, shotId: c.shotId, lineId: c.lineId, muted: c.muted, voice: c.voice, fadeInSamples: c.fadeInSamples, fadeOutSamples: c.fadeOutSamples, fadeInCurve: c.fadeInCurve, fadeOutCurve: c.fadeOutCurve, automation: c.automation, loop: c.loop, ...(c.loopSamples ? { loopSamples: c.loopSamples } : {}) });
 
 /** The mix plan of a timeline: one track per cue, the loudness target (−23 LUFS films, −14 music videos). Throws
  *  (AUDIO_DUPLICATION) when the timeline would play a source twice, a song twice or two voices at once. */
@@ -66,7 +67,10 @@ export function gainExpression(a: NonNullable<AudioTrack['automation']>, rate: n
 /** The ffmpeg filter chain of one track: cut from the source by sample, gain (and automation), edge fades, placed
  *  at its start sample. `in`/`out` are the filtergraph labels. */
 export function trackFilter(t: AudioTrack, input: string, output: string, rate: number): string {
-  const parts = [`aformat=sample_rates=${rate}:channel_layouts=stereo`, `atrim=start_sample=${t.sourceOffsetSamples}:end_sample=${t.sourceOffsetSamples + t.durationSamples}`, 'asetpts=PTS-STARTPTS'];
+  const parts = t.loopSamples
+    // room tone: the stretch, looped to the cue's length
+    ? [`aformat=sample_rates=${rate}:channel_layouts=stereo`, `atrim=start_sample=${t.sourceOffsetSamples}:end_sample=${t.sourceOffsetSamples + t.loopSamples}`, 'asetpts=PTS-STARTPTS', `aloop=loop=-1:size=${t.loopSamples}`, `atrim=end_sample=${t.durationSamples}`, 'asetpts=PTS-STARTPTS']
+    : [`aformat=sample_rates=${rate}:channel_layouts=stereo`, `atrim=start_sample=${t.sourceOffsetSamples}:end_sample=${t.sourceOffsetSamples + t.durationSamples}`, 'asetpts=PTS-STARTPTS'];
   if (t.automation?.spans.length) parts.push('asetnsamples=n=240:p=0', `volume=volume=${gainExpression(t.automation, rate)}:eval=frame`);
   parts.push(`volume=${t.gain.toFixed(4)}`);
   if (t.fadeInSamples > 0) parts.push(`afade=t=in:ss=0:ns=${t.fadeInSamples}:curve=${t.fadeInCurve ?? 'tri'}`);

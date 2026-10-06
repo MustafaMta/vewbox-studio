@@ -9,6 +9,23 @@ x-logging: &logging
   driver: json-file
   options: { max-size: "20m", max-file: "5" }
 
+# THE MODEL STORE (docs/MODELS-STORAGE.md). Every weight lives in ONE ext4 VHDX on D: (VEWBOX_MODELS_VHDX, default
+# D:\models\vewbox-models.vhdx), attached to the WSL VM without admin rights: `wsl --mount --vhd <vhdx> --name models`
+# (scripts/resume-local.mjs and scripts/docker-watchdog.ts attach it). Docker's engine sees it at
+# /run/desktop/mnt/host/wsl/models — VEWBOX_MODELS_ROOT — NOT at /mnt/wsl/models (that path silently becomes an empty
+# directory on Docker Desktop's own disk). The `models` and `ollama` volumes below are binds of that root: every
+# service mounts `models:/models`, read-only unless it writes, plus read-write sub-folders where it must (the caches,
+# a service's own download folder). Not attached = the volume cannot be mounted and the service does not start, so
+# nothing ever runs without its weights. Weights are never baked into images.
+x-model-cache-env: &model-cache-env
+  # Hugging Face / Transformers / Torch caches inside the store (never in a container layer on C:)
+  HF_HOME: /models/cache/hf
+  HF_HUB_CACHE: /models/cache/hf/hub
+  TRANSFORMERS_CACHE: /models/cache/hf/hub
+  TORCH_HOME: /models/cache/torch
+x-cache-hf-rw: &cache-hf-rw { type: volume, source: models, target: /models/cache/hf, volume: { subpath: cache/hf } }
+x-cache-torch-rw: &cache-torch-rw { type: volume, source: models, target: /models/cache/torch, volume: { subpath: cache/torch } }
+
 x-app-env: &app-env
   DATABASE_URL: ${DATABASE_URL:-postgres://vewbox:${POSTGRES_PASSWORD:-change-me-please}@db:5432/vewbox}
   STUDIO_PASSWORD: ${STUDIO_PASSWORD:-}
@@ -130,11 +147,14 @@ services:
     image: vewbox/comfyui:${CODE_VERSION:-dev}
     restart: unless-stopped
     environment:
+      <<: *model-cache-env
       COMFY_RESERVE_VRAM: ${COMFY_RESERVE_VRAM:-1.0}
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: compute,utility,video
     volumes:
-      - models:/models
+      # the store read-only (its typed tree is /models/comfyui: extra_model_paths.yaml); only the HF cache is writable
+      - models:/models:ro
+      - *cache-hf-rw
       - comfyout:/opt/comfyui/output
       - comfyin:/opt/comfyui/input
       - ${LIBRARY_DIR:-./var/library}:/data/library:ro
@@ -165,11 +185,12 @@ services:
     image: vewbox/tts-indextts:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    # HF_HOME on the models volume: auxiliary downloads (vocoders, tokenizers) survive a container recreate
-    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}", HF_HOME: /models/hf-home }
+    # HF_HOME in the store (cache/hf): auxiliary downloads (vocoders, tokenizers) survive a container recreate
+    environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
     # the entrypoint and the small service app are mounted from the repo so a fix to either takes effect on restart
-    # without rebuilding the 12 GB images (the images still carry copies for a run without the repo)
-    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/index-tts/vewbox_app.py:ro" ]
+    # without rebuilding the 12 GB images (the images still carry copies for a run without the repo). The store is
+    # read-only; tts/ stays writable because the entrypoint downloads missing voice weights there on a fresh machine.
+    volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/tts, volume: { subpath: tts } }, *cache-hf-rw, "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/index-tts/vewbox_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_PORT:-8020}:8020" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8020/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
@@ -181,8 +202,8 @@ services:
     image: vewbox/tts-habibi:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}", HF_HOME: /models/hf-home }
-    volumes: [ "models:/models", "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/habibi/vewbox_app.py:ro" ]
+    environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, HF_TOKEN: "${HF_TOKEN:-}" }
+    volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/tts, volume: { subpath: tts } }, *cache-hf-rw, "./docker/tts/entrypoint.sh:/opt/entrypoint.sh:ro", "./docker/tts/app.py:/opt/habibi/vewbox_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_HABIBI_PORT:-8021}:8021" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8021/health"], interval: 30s, timeout: 10s, start_period: 600s, retries: 20 }
@@ -197,8 +218,8 @@ services:
     build: { context: ., dockerfile: docker/tts-design/Dockerfile, args: { BASE_IMAGE: "vewbox/tts-habibi:${CODE_VERSION:-dev}" } }
     image: vewbox/tts-design:${CODE_VERSION:-dev}
     restart: unless-stopped
-    environment: { NVIDIA_VISIBLE_DEVICES: all, HF_HOME: /models/hf-home, ECAPA_DEVICE: "${TTS_DESIGN_ECAPA_DEVICE:-cpu}" }
-    volumes: [ "models:/models", "./docker/tts/app.py:/opt/voxcpm/vewbox_tts_shared.py:ro", "./docker/tts-design/app.py:/opt/voxcpm/vewbox_design_app.py:ro" ]
+    environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, ECAPA_DEVICE: "${TTS_DESIGN_ECAPA_DEVICE:-cpu}" }
+    volumes: [ "models:/models:ro", *cache-hf-rw, "./docker/tts/app.py:/opt/voxcpm/vewbox_tts_shared.py:ro", "./docker/tts-design/app.py:/opt/voxcpm/vewbox_design_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_DESIGN_PORT:-8022}:8022" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8022/health"], interval: 30s, timeout: 10s, start_period: 60s, retries: 10 }
@@ -253,8 +274,10 @@ services:
     image: vewbox/asr:${CODE_VERSION:-dev}
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, ASR_MODEL_DIR_AR: "${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}" }
-    volumes: [ "models:/models", "nvjit:/cache/nv-jit", "./docker/asr/app.py:/app/app.py:ro", "./docker/asr/align.py:/app/align.py:ro", "./docker/asr/qa.py:/app/qa.py:ro" ]
+    # the store read-only; writable: qa/ (qa.py fetches the pinned Face Landmarker there once) and the caches (Demucs's
+    # htdemucs checkpoint under TORCH_HOME = cache/torch)
+    environment: { <<: *model-cache-env, NVIDIA_VISIBLE_DEVICES: all, ASR_MODEL_DIR_AR: "${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}" }
+    volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/qa, volume: { subpath: qa } }, *cache-hf-rw, *cache-torch-rw, "nvjit:/cache/nv-jit", "./docker/asr/app.py:/app/app.py:ro", "./docker/asr/align.py:/app/align.py:ro", "./docker/asr/qa.py:/app/qa.py:ro" ]
     ports: [ "127.0.0.1:${ASR_PORT:-8030}:8030" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8030/health"], interval: 20s, timeout: 10s, start_period: 60s, retries: 10 }
@@ -273,7 +296,8 @@ services:
       ASR_HF_DIR: ${ASR_HF_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-hf}
       ASR_CT2_DIR: ${ASR_MODEL_DIR_AR:-/models/asr/whisper-large-v3-arabic-dialectal-v2-ct2}
       ASR_BASE_DIR: ${ASR_MODEL_DIR:-/models/asr/faster-whisper-large-v3}
-    volumes: [ "models:/models" ]
+    # read-only store, writable asr/ (the converted copy is written there)
+    volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/asr, volume: { subpath: asr } } ]
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -315,6 +339,8 @@ services:
       # Ollama (Go) trusts the system bundle plus every PEM file in these directories: the extra root (EXTRA_CA_FILE,
       # secret extra_ca, empty by default) lets `ollama pull` through an antivirus that re-signs HTTPS; empty = no-op
       SSL_CERT_DIR: /etc/ssl/certs:/run/secrets
+      # the weights: <store>/llm/ollama/models (the `ollama` volume is <store>/llm/ollama, mounted as /root/.ollama)
+      OLLAMA_MODELS: /root/.ollama/models
     secrets: [extra_ca]
     volumes:
       - ollama:/root/.ollama
@@ -346,6 +372,7 @@ services:
       OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3:14b,gemma4:31b-it-qat}
       OLLAMA_HOST: 127.0.0.1:11435
       SSL_CERT_DIR: /etc/ssl/certs:/run/secrets # the extra root, as for `llm`
+      OLLAMA_MODELS: /root/.ollama/models
     secrets: [extra_ca]
     volumes:
       - ollama:/root/.ollama
@@ -372,8 +399,15 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
       # plain HTTPS range downloads (resumable) rather than xet chunking, which stalled on this network
       HF_HUB_DISABLE_XET: ${HF_HUB_DISABLE_XET:-1}
+      # refuse a root without the store's .vewbox-models marker (docs/MODELS-STORAGE.md)
+      MODELS_REQUIRE_MARKER: "1"
+      HF_HOME: /models/cache/hf
     volumes:
       - models:/models
+      # the fetcher, the manifest and the layout from the repo: a manifest or layout change needs no image rebuild
+      - ./docker/models/fetch.py:/app/fetch.py:ro
+      - ./docker/models/manifest.json:/app/manifest.json:ro
+      - ./docker/models/layout.json:/app/layout.json:ro
     command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design,images-flux2-klein}"]
 
 # An extra public root certificate the asr and models builds (and the llm / llm-pull containers, at run time) trust,
@@ -387,8 +421,17 @@ secrets:
 volumes:
   pgdata:
   workertmp:
+  # the model store (see the top of this file): binds of VEWBOX_MODELS_ROOT, under names of their own, so the old
+  # vewbox_models / vewbox_ollama volumes are never reused or "recreated" by compose. Removing these volumes (even
+  # `down -v`) removes only Docker's record of the bind, never the store's files (verified 2026-10-06).
   models:
+    name: vewbox_models_store
+    driver: local
+    driver_opts: { type: none, o: bind, device: "${VEWBOX_MODELS_ROOT:-/run/desktop/mnt/host/wsl/models}" }
   comfyout:
   comfyin:
   ollama:
+    name: vewbox_ollama_store
+    driver: local
+    driver_opts: { type: none, o: bind, device: "${VEWBOX_MODELS_ROOT:-/run/desktop/mnt/host/wsl/models}/llm/ollama" }
   nvjit:

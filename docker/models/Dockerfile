@@ -9,7 +9,7 @@ RUN --mount=type=secret,id=extra_ca,required=false if [ -s /run/secrets/extra_ca
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 RUN pip install "huggingface_hub[hf_xet]==1.1.4" "requests==2.32.4"
 WORKDIR /app
-COPY docker/models/manifest.json docker/models/fetch.py ./
+COPY docker/models/manifest.json docker/models/fetch.py docker/models/layout.json ./
 VOLUME ["/models"]
 ENTRYPOINT ["python", "fetch.py"]
 CMD ["--manifest", "manifest.json", "--root", "/models"]
