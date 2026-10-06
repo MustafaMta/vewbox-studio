@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LyricSection } from '@/domain/types';
-import { alignLyrics, type Word } from '@/server/media/lyrics';
+import { alignLyrics, linesFromForcedAlignment, type Word } from '@/server/media/lyrics';
+import { scriptWords } from '@/server/providers/qa-service';
 
 /** Words as Whisper returns them for a sung verse: a few mis-hearings, a sustained word, a pause. */
 const words: Word[] = [
@@ -36,5 +37,21 @@ describe('alignLyrics', () => {
     expect(out[1].method).toBe('ALIGNED');
     expect(out[1].from).toBeCloseTo(4, 1);
     expect(out[1].textAr).toContain('نستعيرها');
+  });
+});
+
+describe('linesFromForcedAlignment (asr /align on the vocal stem)', () => {
+  const w = (start: number | null, end: number | null, aligned = true) => ({ start, end, aligned });
+  it('each written line owns its words in order and is timed from its first to its last aligned word', () => {
+    const lines = ['Hold the light, Paul,', 'we are almost home —', 'la la'];
+    const words = [w(1.0, 1.3), w(1.3, 1.5), w(1.5, 1.9), w(1.9, 2.4), w(3.0, 3.2), w(3.2, 3.4), w(null, null, false), w(3.9, 4.6), w(5.0, 5.2), w(5.3, 5.6)];
+    const r = linesFromForcedAlignment(lines, words, scriptWords);
+    expect(r[0]).toEqual({ from: 1.0, to: 2.4, aligned: 4, total: 4 });
+    expect(r[1]).toEqual({ from: 3.0, to: 4.6, aligned: 3, total: 4 }); // the dash is not a word; one word unaligned
+    expect(r[2]).toEqual({ from: 5.0, to: 5.6, aligned: 2, total: 2 });
+  });
+  it('a line with fewer than half of its words aligned keeps no forced time', () => {
+    const r = linesFromForcedAlignment(['one two three four'], [w(1, 2), w(null, null, false), w(null, null, false), w(null, null, false)], scriptWords);
+    expect(r).toEqual([undefined]);
   });
 });

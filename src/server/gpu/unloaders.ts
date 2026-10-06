@@ -5,6 +5,7 @@ import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
 import { unloadDesign } from '../providers/voice-design';
 import { unloadLipsync } from '../providers/lipsync';
+import { unloadSfx } from '../providers/sfx';
 import type { GpuFamily } from './lease';
 
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
@@ -55,6 +56,8 @@ export function engines(): Engine[] {
     { name: 'ollama', serves: ['LLM'], unload: unloadOllama },
     // the lip-sync corrector (docker/lipsync); it also drops its weights after every request (LIPSYNC_KEEP_LOADED=0)
     { name: 'lipsync', serves: ['LIPSYNC'], unload: unloadLipsync },
+    // MOSS-SoundEffect (sfx-moss); lazy-loaded, so an idle service holds nothing
+    { name: 'sfx', serves: ['SFX'], unload: unloadSfx },
     ...extra,
   ];
 }

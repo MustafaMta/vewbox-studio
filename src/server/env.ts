@@ -57,7 +57,13 @@ const Schema = z.object({
    *  default (8045 on the host: 8040–8042 are the voice benches), like TTS_DESIGN_URL; compose passes http://lipsync:8040. Empty = not configured (correction offered as
    *  unavailable). It edits the mouth of an existing take on request only — it never generates video. */
   LIPSYNC_URL: z.string().default('http://127.0.0.1:8045'),
+  /** MOSS-SoundEffect (compose service sfx-moss, profile sfx): ambience and effects outside the song. Host port by
+   *  default; compose passes http://sfx-moss:8024. Empty = not configured. */
+  SFX_URL: z.string().default('http://127.0.0.1:8024'),
   MUSIC_ENGINE: z.enum(['auto', 'minimax-api', 'ace-step', 'minimax-music3']).default('auto'),
+  /** ACE-Step 1.5 XL variant: auto = XL-SFT + the 5Hz LM 4B when installed (the production song generator), else XL
+   *  turbo with a warning; xl-sft refuses without it; xl-turbo forces the fast draft. */
+  MUSIC_ACE_VARIANT: z.enum(['auto', 'xl-sft', 'xl-turbo']).default('auto'),
   VIDEO_BACKEND: z.enum(['auto', 'api', 'local']).default('auto'),
   /** Where the public web origin is, for callbacks and absolute media URLs handed to providers. */
   PUBLIC_BASE_URL: z.string().optional().default(''),

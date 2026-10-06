@@ -307,7 +307,7 @@ export interface LyricSection {
   backingIds?: string[];
   /** Where each written line is actually sung on the real vocal track (from alignment against the transcribed
    *  vocal stem); cues and shot windows use these instead of an even spread. */
-  lineTimes?: Array<{ index: number; from: number; to: number; method: 'ALIGNED' | 'SPREAD'; confidence: number }>;
+  lineTimes?: Array<{ index: number; from: number; to: number; method: 'ALIGNED' | 'SPREAD'; confidence: number; /** CTC: forced alignment of the known words (asr /align); TRANSCRIPT: the fuzzy match on the Whisper transcript */ source?: 'CTC' | 'TRANSCRIPT' }>;
 }
 
 export interface Song {

@@ -33,10 +33,15 @@ export const MODELS = {
   h3TurboFl2v8: 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors',
   h3TurboRef2v4: 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors',
   // music
+  /** ACE-Step 1.5 XL: SFT (the production song generator), turbo (a draft or a fallback), base (repaint/cover/extend) */
+  aceDitSft: 'acestep_v1.5_xl_sft_bf16.safetensors',
   aceDit: 'acestep_v1.5_xl_turbo_bf16.safetensors',
+  aceDitBase: 'acestep_v1.5_xl_base_bf16.safetensors',
   /** ACE-Step 1.5 loads two encoders: the 0.6B text encoder and the language model that writes the audio codes */
   aceTextEncoder: 'qwen_0.6b_ace15.safetensors',
   aceClip: 'qwen_1.7b_ace15.safetensors',
+  /** the ACE-Step 5Hz LM 4B (composition / audio codes), the production pairing with XL-SFT */
+  aceLm4b: 'qwen_4b_ace15.safetensors',
   aceVae: 'ace_1.5_vae.safetensors',
   music3Dit: 'minimax_music3_dit_int8_convrot.safetensors',
   music3Clip: 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors',

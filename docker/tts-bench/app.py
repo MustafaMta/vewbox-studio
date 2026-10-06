@@ -180,13 +180,53 @@ class MossEngine:
         return audio.detach().float().cpu().numpy().reshape(-1)
 
 
-ENGINES = {"voxcpm2": VoxEngine, "dots": DotsEngine, "moss": MossEngine}
+class SfxEngine:
+    """MOSS-SoundEffect (OpenMOSS, 8 B MossTTSDelay, Apache-2.0): ambience and sound effects from a text description,
+    same architecture, modelling code and audio tokenizer as MOSS-TTS v1.5 (the model card's usage: an
+    `ambient_sound` user message, ~12.5 tokens per second, audio_temperature 1.5 / top_p 0.6 / top_k 50 /
+    repetition_penalty 1.2). 24 kHz mono. Never speech or song: the studio's dialogue and songs have their own engines."""
+
+    name = "sfx"
+    model = "OpenMOSS-Team/MOSS-SoundEffect"
+    duration_control = "tokens"
+
+    def __init__(self) -> None:
+        import torch  # type: ignore
+        from transformers import AutoModel, AutoProcessor  # type: ignore
+
+        torch.backends.cuda.enable_cudnn_sdp(False)  # the model card: cuDNN SDPA is broken for this model
+        d = os.path.join(MODEL_ROOT, "sfx", "moss-soundeffect")
+        codec = os.path.join(MODEL_ROOT, "tts", "bench", "moss-audio-tokenizer")
+        self.proc = AutoProcessor.from_pretrained(d, trust_remote_code=True, codec_path=codec)
+        self.proc.audio_tokenizer = self.proc.audio_tokenizer.to("cuda")
+        self.net = AutoModel.from_pretrained(d, trust_remote_code=True, attn_implementation=os.environ.get("MOSS_ATTN", "sdpa"), torch_dtype=torch.bfloat16).to("cuda").eval()
+        self.sample_rate = int(self.proc.model_config.sampling_rate)
+        self.frame_rate = float(os.environ.get("MOSS_FRAME_RATE", "12.5"))
+        self.version = f"moss-soundeffect{_manifest_rev('sfx/moss-soundeffect/model-00001-of-00004.safetensors')}; transformers {_pkg_version('transformers')}; torch {_pkg_version('torch')}"
+
+    def effect(self, prompt: str, seconds: float | None, seed: int) -> np.ndarray:
+        import torch  # type: ignore
+
+        msg: dict[str, Any] = {"ambient_sound": prompt}
+        if seconds:
+            msg["tokens"] = max(4, int(round(seconds * self.frame_rate)))
+        batch = self.proc([[self.proc.build_user_message(**msg)]], mode="generation")
+        seed_everything(seed)
+        with torch.no_grad():
+            out = self.net.generate(input_ids=batch["input_ids"].to("cuda"), attention_mask=batch["attention_mask"].to("cuda"), max_new_tokens=4096,
+                                    audio_temperature=1.5, audio_top_p=0.6, audio_top_k=50, audio_repetition_penalty=1.2)
+        m = list(self.proc.decode(out))[0]
+        return m.audio_codes_list[0].detach().float().cpu().numpy().reshape(-1)
+
+
+ENGINES = {"voxcpm2": VoxEngine, "dots": DotsEngine, "moss": MossEngine, "sfx": SfxEngine}
 WEIGHTS = {
     "voxcpm2": ["tts/voxcpm2/model.safetensors", "tts/voxcpm2/audiovae.pth"],
     "dots": ["tts/bench/dots.tts-soar/model.safetensors", "tts/bench/dots.tts-soar/vocoder.safetensors"],
     "moss": ["tts/bench/moss-tts-v1.5/model-00004-of-00004.safetensors", "tts/bench/moss-audio-tokenizer/model-00002-of-00002.safetensors"],
+    "sfx": ["sfx/moss-soundeffect/model-00004-of-00004.safetensors", "tts/bench/moss-audio-tokenizer/model-00002-of-00002.safetensors"],
 }
-DEFAULTS = {"voxcpm2": {"cfg": 2.0, "steps": 10}, "dots": {"cfg": 1.2, "steps": 10}, "moss": {"cfg": 0.0, "steps": 0}}
+DEFAULTS = {"voxcpm2": {"cfg": 2.0, "steps": 10}, "dots": {"cfg": 1.2, "steps": 10}, "moss": {"cfg": 0.0, "steps": 0}, "sfx": {"cfg": 0.0, "steps": 0}}
 
 
 def weights_present() -> bool:
@@ -240,12 +280,52 @@ def unload():
     return {"ok": True, "gpu": gpu_mem(), "host": {"malloc_trim": trimmed, "rss_mb": rss_mb}}
 
 
+@app.post("/sfx")
+async def sfx(prompt: str = Form(...), duration: str = Form(""), seed: str = Form("")):
+    """BENCH_ENGINE=sfx only: an ambience or sound effect from a description -> audio/wav PCM-16 (true peak <= -1 dBTP),
+    headers x-duration, x-model, x-engine-version, x-seed, x-ms, x-peak-vram-mb."""
+    if ENGINE != "sfx":
+        raise HTTPException(status_code=404, detail="this service is not the sound-effect engine (BENCH_ENGINE=sfx)")
+    if not weights_present():
+        raise HTTPException(status_code=503, detail="MOSS-SoundEffect weights are not in the store (manifest group sfx-moss-soundeffect)")
+    prompt = prompt.strip()
+    if not prompt or len(prompt) > 600:
+        raise HTTPException(status_code=400, detail="the description must be 1-600 characters")
+    secs = _parse_number(duration, "duration", 0.5, 60.0, 0.0) if duration.strip() else None
+    sd = int(_parse_number(seed, "seed", 0, 2**31 - 1, random.randint(0, 2**31 - 1), integer=True))
+    e = engine()
+    t0 = time.time()
+    with _lock:
+        try:
+            wav = e.effect(prompt, secs, sd)
+        except Exception as ex:  # noqa: BLE001
+            raise HTTPException(status_code=500, detail=f"sfx failed: {type(ex).__name__}: {str(ex)[:300]}") from ex
+    ms = int((time.time() - t0) * 1000)
+    if wav.size == 0:
+        raise HTTPException(status_code=500, detail="the engine returned no audio")
+    sr = int(e.sample_rate)
+    wav, lim = limit_peaks(wav, sr)
+    buf = io.BytesIO()
+    with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="PCM_16", format="WAV") as out:
+        out.software = "vewbox-sfx moss-soundeffect"
+        out.comment = f"synthetic sound effect; engine=moss-soundeffect; seed={sd}"
+        out.write(wav)
+    dur = wav.shape[0] / sr
+    print(f"[sfx] {prompt[:60]!r} {secs}s seed {sd} -> {dur:.2f}s in {ms} ms; peak {torch_peak_mb()} MB", flush=True)
+    return Response(content=buf.getvalue(), media_type="audio/wav", headers={
+        "x-sample-rate": str(sr), "x-duration": f"{dur:.3f}", "x-engine": e.name, "x-model": e.model, "x-ms": str(ms), "x-engine-version": e.version,
+        "x-seed": str(sd), "x-true-peak": f"{lim['output_true_peak_db']:.2f}", "x-peak-vram-mb": str(torch_peak_mb() or ""),
+    })
+
+
 @app.post("/synthesize")
 async def synthesize(
     text: str = Form(...), language: str = Form("en"), reference: UploadFile = File(...), reference_text: str = Form(""),
     emotion: str = Form(""), seed: str = Form(""), speed: str = Form(""), duration: str = Form(""), mode: str = Form(""),
     cfg: str = Form(""), steps: str = Form(""),
 ):
+    if ENGINE == "sfx":
+        raise HTTPException(status_code=404, detail="the sound-effect engine does not speak: POST /sfx")
     if not weights_present():
         raise HTTPException(status_code=503, detail=f"{ENGINE} weights are not in the models volume (fetch the eval-voice-* group)")
     text = text.strip()
