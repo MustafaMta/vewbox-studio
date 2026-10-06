@@ -155,7 +155,7 @@
       "files": [
         { "repo": "ByteDance/LatentSync-1.6", "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353", "file": "latentsync_unet.pt", "folder": "lipsync/latentsync-1.6", "bytes": 5072222488, "sha256": "0a478e89eb660f82da4c35dbdde8a5adfb27f99d1b4e50edd03729e1e98316d3", "license": "CreativeML Open RAIL++-M (card: openrail++)" },
         { "repo": "ByteDance/LatentSync-1.6", "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353", "file": "whisper/tiny.pt", "folder": "lipsync/latentsync-1.6/whisper", "bytes": 75572083, "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9", "license": "MIT (OpenAI Whisper tiny, byte-identical to openai's release)" },
-        { "repo": "stabilityai/sd-vae-ft-mse", "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493", "file": "config.json", "folder": "lipsync/sd-vae-ft-mse", "bytes": 547, "license": "MIT" },
+        { "repo": "stabilityai/sd-vae-ft-mse", "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493", "file": "config.json", "folder": "lipsync/sd-vae-ft-mse", "bytes": 547, "sha256": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e", "license": "MIT" },
         { "repo": "stabilityai/sd-vae-ft-mse", "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493", "file": "diffusion_pytorch_model.safetensors", "folder": "lipsync/sd-vae-ft-mse", "bytes": 334643276, "sha256": "a1d993488569e928462932c8c38a0760b874d166399b14414135bd9c42df5815", "license": "MIT" }
       ]
     },

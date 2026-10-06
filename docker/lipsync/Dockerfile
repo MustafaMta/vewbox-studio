@@ -33,7 +33,8 @@ RUN pip install "numpy==2.5.3" "diffusers==0.32.2" "transformers==4.48.0" "huggi
  && pip install --no-deps "mediapipe==1.0.1"
 # LatentSync source at the pinned commit (Apache-2.0), verified by the archive's sha256; the demo assets are dropped.
 ARG LATENTSYNC_COMMIT=a229c3948406bc2cf6eaf4873e662e70c6a04746
-ARG LATENTSYNC_SHA256=
+# the codeload archive of that commit, measured on the first build (2026-10-06, 8 497 556 bytes)
+ARG LATENTSYNC_SHA256=49e285678f27b7ac84136f2e47887284c2572771a3ca29d64df003caeff8d956
 RUN python - <<'EOF'
 import hashlib, io, os, shutil, tarfile, urllib.request
 commit = os.environ.get("LATENTSYNC_COMMIT") or "a229c3948406bc2cf6eaf4873e662e70c6a04746"
