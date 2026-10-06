@@ -85,7 +85,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
   const opening = assetById(state, draft.openingFrameAssetId); const ending = assetById(state, draft.endingFrameAssetId);
   // "Repair lip-sync" (src/components/workspace/lipsync-repair.ts): asked for take by take, with a reason, in a dialog
   const [repairFor, setRepairFor] = useState<Take | null>(null);
-  const studioReason = gate.paused === null ? null : gate.blocked('video');
+  // the corrector is its own service, not the video engine: only the studio's pause and the terms hold the action
+  const studioReason = gate.paused === null ? null : gate.terms ?? (gate.paused ? 'Intake is paused; new work waits.' : null);
   const repairing = (t: Take) => jobsOf(p, jobs).find((j) => j.type === 'CORRECT_LIPSYNC' && (j.payload as { takeId?: string }).takeId === t.id && (j.status === 'QUEUED' || j.status === 'PREPARING' || j.status === 'GENERATING' || j.status === 'VALIDATING' || j.status === 'POSTPROCESSING' || j.status === 'DOWNLOADING'));
 
   // [ and ] move between shots (Frame.io), unless the producer is typing
