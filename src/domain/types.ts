@@ -842,6 +842,10 @@ export interface GenerationSettings {
    *  face close and the full-body picture leaves too few face pixels after the engine's reference scaling. AUTO: when
    *  that is so; ON: on every close framing; OFF (the default until the GPU validation G13 promotes it): never. */
   faceReference?: 'AUTO' | 'ON' | 'OFF';
+  /** THE OPENING FRAME OF A CLOSE SHOT (acceptance 2026-10-06, G13): a close framing (medium and closer) with no drawn
+   *  opening frame gets one drawn by the take before the engine runs — without it H3 opens on the plate's wide view
+   *  and pushes in. Default on; false leaves the shot as it is (the preflight still warns). */
+  autoOpeningFrame?: boolean;
 }
 
 /** Voice settings (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). */

@@ -5,7 +5,7 @@ import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/dom
 import { locationIdentity } from '@/domain/location';
 import { castOf, worldOf } from '@/studio/selectors';
 import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
-import type { H3Binding } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, type H3Binding } from '@/server/story/prompts';
 import { capabilityFor, resolveContinuation, type ContinuationSettings } from '@/domain/video-capability';
 import { productionContextFor, type ProductionContext } from '@/domain/production-context';
 import { canvasFor, derivedFaceReference, faceReferenceFor, faceReferenceMode, type FaceReferenceDecision } from '@/domain/face-reference';
@@ -324,4 +324,14 @@ export function plannedGuides(pack: ShotPack, opts: { soundtrack: boolean }): Pl
 /** Guides that would not fit the clip (the node refuses them), as readable problems. */
 export function guideProblems(guides: PlannedGuide[], frames: number): string[] {
   return guides.filter((g) => !h3GuideFits(g.frameIdx, g.frames, frames)).map((g) => `${g.kind.toLowerCase().replace('_', ' ')} (${g.frames} frame${g.frames > 1 ? 's' : ''} at ${g.frameIdx}) does not fit ${frames} frames`);
+}
+
+/** THE OPENING FRAME OF A CLOSE SHOT (acceptance 2026-10-06, G13: every close shot without a drawn opening frame
+ *  opened on the plate's wide view and pushed in for 2-3 s to reach its framing). True when the take should draw the
+ *  shot's opening frame before the engine runs: the local engine, a place to frame against, a framing closer than the
+ *  plate's (medium and closer), nothing the clip starts from (no drawn frame, no continuation tail), the producer's own
+ *  prompt absent, and the setting not off (settings.generation.autoOpeningFrame, default on). */
+export function needsOpeningFrame(pack: Pick<ShotPack, 'backend' | 'location' | 'opening'>, sh: Pick<Shot, 'framing'>, settings?: { generation?: { autoOpeningFrame?: boolean } }, opts: { customPrompt?: boolean } = {}): boolean {
+  if (settings?.generation?.autoOpeningFrame === false || opts.customPrompt) return false;
+  return pack.backend === 'local' && Boolean(pack.location) && pack.opening.kind === 'NONE' && !PLATE_WIDE_FRAMINGS.includes(sh.framing);
 }

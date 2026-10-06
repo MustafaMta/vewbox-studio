@@ -3,6 +3,7 @@ import { cueTextIn } from '@/server/media/assembly';
 import { hasVoice, speakingVoices } from '@/domain/voice-identity';
 import { frameCheckOf } from '@/domain/frames';
 import { preflightTake } from '@/server/org/preflight';
+import { needsOpeningFrame } from '@/server/production/shot-pack';
 import { takeGenerationMs } from '@/worker/handlers/take';
 import type { Character, StudioState } from '@/domain/types';
 import { fixture, shotOf } from './continuity-fixture';
@@ -81,5 +82,26 @@ describe('item 1 — a frame is drawn at the shot’s framing, not the plate’s
     const wide = framePrompt(p, { ...sh, framing: 'WIDE' as const }, state.characters, undefined, undefined);
     expect(wide).toMatch(/Camera: a wide shot/);
     expect(wide).not.toMatch(/not its framing/);
+  });
+});
+
+describe('a close shot without its opening frame (acceptance 2026-10-06, G13)', () => {
+  it('the preflight warns: draw the frames first (it would start from the wide plate and push in)', () => {
+    const { state, p } = fixture();
+    const sh = { ...shotOf(p, 's13'), openingFrameAssetId: undefined, endingFrameAssetId: undefined };
+    const close = preflightTake(state, p, { ...sh, framing: 'MEDIUM_CLOSE_UP' as const }, { backend: 'local', customPrompt: true });
+    // a producer's own prompt: not drawn by the take, so the warning says to draw it
+    expect(close.warnings.find((w) => w.name === 'opening-frame-missing')?.detail).toMatch(/medium close up with no opening frame .* draw the shot's frames first/);
+    // otherwise the take draws it first (settings.generation.autoOpeningFrame, default on); off: the warning again
+    const auto = preflightTake(state, p, { ...sh, framing: 'MEDIUM_CLOSE_UP' as const }, { backend: 'local' });
+    expect(auto.warnings.find((w) => w.name === 'opening-frame-missing')?.detail).toMatch(/the take draws it first/);
+    const off = preflightTake({ ...state, settings: { ...state.settings, generation: { ...state.settings.generation, autoOpeningFrame: false } } }, p, { ...sh, framing: 'MEDIUM_CLOSE_UP' as const }, { backend: 'local' });
+    expect(off.warnings.find((w) => w.name === 'opening-frame-missing')?.detail).toMatch(/draw the shot's frames first/);
+    expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' })).toBe(true);
+    expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' }, { generation: { autoOpeningFrame: false } })).toBe(false);
+    expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'WIDE' })).toBe(false);
+    expect(needsOpeningFrame({ backend: 'api', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' })).toBe(false);
+    expect(preflightTake(state, p, { ...sh, framing: 'WIDE' as const }, { backend: 'local', customPrompt: true }).warnings.some((w) => w.name === 'opening-frame-missing')).toBe(false);
+    expect(preflightTake(state, p, { ...shotOf(p, 's13'), framing: 'MEDIUM_CLOSE_UP' as const }, { backend: 'local', customPrompt: true }).warnings.some((w) => w.name === 'opening-frame-missing')).toBe(false);
   });
 });
