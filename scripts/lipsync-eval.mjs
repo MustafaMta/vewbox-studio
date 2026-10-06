@@ -22,7 +22,13 @@ const set = JSON.parse(fs.readFileSync(setFile, 'utf8'));
 const dir = path.join(outDir, variant);
 fs.mkdirSync(dir, { recursive: true });
 
+// the asr service is shared (the worker's takes use it too): a dropped connection is retried
 async function post(route, fields) {
+  for (let i = 1; ; i++) {
+    try { return await postOnce(route, fields); } catch (e) { if (i >= 4) throw e; console.log(`${route}: ${e.message} — retry ${i}`); await new Promise((r) => setTimeout(r, 15_000 * i)); }
+  }
+}
+async function postOnce(route, fields) {
   const fd = new FormData();
   for (const [k, v] of fields) {
     if (v && typeof v === 'object' && v.file) fd.append(k, new Blob([fs.readFileSync(v.file)]), path.basename(v.file));
@@ -46,17 +52,21 @@ function strip(video, box, out, { from = 0, n = 24, step = 1, fps = 24, cols = 8
 }
 
 for (const it of set.items) {
-  const video = variant === 'original' ? it.video : it.corrected?.[variant];
+  // a corrected clip: named in the set, else where docker/lipsync/eval_batch.py writes it (<outDir>/out/<variant>/<name>.mp4)
+  const video = variant === 'original' ? it.video : it.corrected?.[variant] ?? path.join(outDir, 'out', variant, `${it.name}.mp4`);
   if (!video || !fs.existsSync(video)) { console.log(`${it.name}: no ${variant} file`); continue; }
   const t0 = Date.now();
   const mouth = await post('/qa/mouth', [['video', { file: video }], ['audio', { file: it.audio }], ['audio_offset', it.audioOffset ?? 0], ['fps', 24], ['mode', 'speech'], ['speakers', 1], ['max_lag_ms', 250]]);
   const refs = it.refs ?? [];
   const identity = refs.length ? await post('/qa/identity', [['video', { file: video }], ...refs.map((r) => ['references', { file: r.image }]), ['characters', JSON.stringify(refs.map((r) => r.characterId))], ['sample_fps', 4]]) : null;
   // the corrected face against the original take's own face (same track): the frame of the original as a reference
+  // (the frame: the original take's first frame where the speaker was found, the same frame for every variant)
   let selfIdentity = null;
-  if (variant !== 'original' && it.speaker && identity?.characters?.[it.speaker]?.series?.length) {
+  const origJson = path.join(outDir, 'original', `${it.name}.json`);
+  const origId = variant === 'original' ? identity : (fs.existsSync(origJson) ? JSON.parse(fs.readFileSync(origJson, 'utf8')).raw?.identity : null);
+  if (it.speaker && origId?.characters?.[it.speaker]?.series?.length) {
     const ref = path.join(dir, `${it.name}-origframe.png`);
-    const s = identity.characters[it.speaker].series.find((x) => x.cosine !== null);
+    const s = origId.characters[it.speaker].series.find((x) => x.cosine !== null);
     if (s) {
       execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(s.t), '-i', it.video, '-frames:v', '1', ref]);
       selfIdentity = await post('/qa/identity', [['video', { file: video }], ['references', { file: ref }], ['characters', JSON.stringify(['original-frame'])], ['sample_fps', 4]]);
