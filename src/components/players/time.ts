@@ -19,6 +19,3 @@ export function runtime(seconds: number, words: { s: string; min: string } = { s
   if (!Number.isFinite(seconds) || seconds <= 0) return '';
   return seconds < 60 ? `${Math.round(seconds)} ${words.s}` : `${Math.round(seconds / 60)} ${words.min}`;
 }
-
-/** A range "0:12–0:46". */
-export const clockRange = (from: number, to: number, clock: (t: number) => string) => `${clock(from)}–${clock(to)}`;

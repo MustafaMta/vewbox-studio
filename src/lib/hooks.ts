@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type EngineStatus } from '@/studio/api';
 import { useConfirm } from '@/components/ui/kit/Overlay';
@@ -20,17 +20,6 @@ export function useEngineStatus(): { status: EngineStatus | null; loading: boole
     return () => { on = false; };
   }, [n]);
   return { status, loading, error, reload: () => setN((x) => x + 1) };
-}
-
-/** The current tab lives in the URL (`?tab=`), so a reload and the back button both work. */
-export function useTab<T extends string>(all: readonly T[], fallback: T): [T, (t: T) => void] {
-  const sp = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  const raw = sp.get('tab');
-  const tab = (all as readonly string[]).includes(raw ?? '') ? (raw as T) : fallback;
-  const set = useCallback((t: T) => { const q = new URLSearchParams(sp.toString()); q.set('tab', t); router.replace(`${pathname}?${q}`, { scroll: false }); }, [sp, router, pathname]);
-  return [tab, set];
 }
 
 /** Warn before leaving with unsaved edits: the browser's own prompt on close/reload (the only place a browser dialog

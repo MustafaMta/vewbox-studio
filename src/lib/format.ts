@@ -163,7 +163,6 @@ export function fmtBytes(b: number | null | undefined): string {
 }
 
 export function aspectLabel(a: Aspect): string { return ASPECT_INFO[a].label; }
-export function aspectShort(a: Aspect): string { return ASPECT_INFO[a].label.split(' · ')[0]; }
 /** The dialect's English name (the second argument is ignored, as fmtDate). */
 export function dialectLabel(d: Dialect | null | undefined): string { return d ? DIALECT_LABELS[d].en : '—'; }
 
@@ -176,7 +175,3 @@ export function words(v: string | null | undefined): string {
 /** Tailwind ratio class for an aspect. */
 /** The same, as a CSS aspect-ratio value. */
 export function ratioCss(a: Aspect): string { return a === 'VERTICAL_9_16' ? '9 / 16' : a === 'SQUARE_1_1' ? '1 / 1' : a === 'CINEMA_2_39' ? '2.39 / 1' : '16 / 9'; }
-
-export function ratioClass(a: Aspect): string {
-  return a === 'VERTICAL_9_16' ? 'aspect-[9/16]' : a === 'SQUARE_1_1' ? 'aspect-square' : a === 'CINEMA_2_39' ? 'aspect-[2.39/1]' : 'aspect-video';
-}

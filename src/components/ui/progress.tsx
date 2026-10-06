@@ -18,22 +18,6 @@ import type { Key } from '@/lib/copy';
 
 export interface Phase { id: string; name: ReactNode; status: ReactNode; tone?: Tone; time?: ReactNode; title?: string }
 
-/** Horizontal chips, min 7.5rem, a 3 px rule on the start edge in the state colour; only the chip waiting for a
- *  person gets the gold fill. */
-export function PhaseStrip({ phases, label, className = '' }: { phases: Phase[]; label: string; className?: string }) {
-  return (
-    <ol className={cls('phase-strip', className)} aria-label={label}>
-      {phases.map((p) => (
-        <li key={p.id} className="phase" data-tone={p.tone ?? 'neutral'} title={p.title}>
-          <span className="phase-name">{p.name}</span>
-          <span className={cls('status text-xs', `status-${p.tone ?? 'neutral'}`)}>{p.status}</span>
-          {p.time && <span className="num text-faint">{p.time}</span>}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 /* ---- error copy -------------------------------------------------------------------------------------------- */
 
 /** `consent`: the producer's consent statement for a recording (src/components/character/ConsentChoice.tsx) — a

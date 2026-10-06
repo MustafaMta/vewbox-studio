@@ -5,8 +5,6 @@ import type { Asset, Character } from '@/domain/types';
  *  picture is the look. The profile says "from the reference picture" for those fields until the producer writes
  *  them. Pure; unit-tested. */
 
-export const LOOK_KEYS = ['build', 'face', 'hair', 'eyes', 'skin', 'wardrobe'] as const satisfies ReadonlyArray<keyof Character>;
-
 /** The look comes from a picture: one is pending (the drawing has not replaced it yet), or the portrait was drawn
  *  from one (the CHARACTER_APPEARANCE provenance says `lookFrom: 'REFERENCE'`). */
 export function lookFromReference(c: Pick<Character, 'pendingReference' | 'portraitAssetId'> & Partial<Pick<Character, 'canonicalImage'>>, assets: Pick<Asset, 'id' | 'provenance'>[]): boolean {

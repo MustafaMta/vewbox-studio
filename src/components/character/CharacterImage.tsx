@@ -38,16 +38,3 @@ export function CharacterImage({ src, kind, name, ratio = 2 / 3, unavailable, al
     </div>
   );
 }
-
-/** A running job's phase set in the frame, on the one permitted scrim, so the eye waits where the picture lands. */
-export function FramePhase({ children, tone = 'busy' }: { children: ReactNode; tone?: 'busy' | 'bad' }) {
-  return (
-    <div className="absolute inset-x-0 bottom-0" role="status" aria-live="polite">
-      <span className="scrim" aria-hidden />
-      <p className={cls('relative flex items-center gap-2 px-3 pb-3 pt-8 text-[12.5px] font-medium', tone === 'bad' ? 'text-bad' : 'text-on-art')} dir="auto">
-        {tone === 'busy' && <span aria-hidden className="dot dot-live bg-accent" />}
-        <span className="min-w-0">{children}</span>
-      </p>
-    </div>
-  );
-}

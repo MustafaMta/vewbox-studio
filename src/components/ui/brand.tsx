@@ -9,18 +9,3 @@ export function VewboxGlyph({ size = 20, className = '' }: { size?: number; clas
     </svg>
   );
 }
-
-/** The mark in its 32 px box (the brand row, the phone bar). */
-export function BrandTile({ className = '' }: { className?: string }) {
-  return <span className={`brand-tile ${className}`} aria-hidden="true"><VewboxGlyph /></span>;
-}
-
-/** The mark and the wordmark. */
-export function VewboxLogo({ className = '' }: { className?: string }) {
-  return (
-    <span className={`brand-logo ${className}`}>
-      <BrandTile />
-      <span className="brand-wordmark">Vewbox Studio</span>
-    </span>
-  );
-}

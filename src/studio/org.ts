@@ -87,14 +87,6 @@ export function skillStatusOf(s: Pick<OrgSkill, 'status' | 'note'>): { key: 'VER
 /** The subset of JSON Schema the Technical details read (the API sends `z.toJSONSchema` output). */
 export interface JsonSchema { type?: string | string[]; description?: string; properties?: Record<string, JsonSchema>; required?: string[]; items?: JsonSchema | JsonSchema[]; enum?: unknown[]; const?: unknown; anyOf?: JsonSchema[]; oneOf?: JsonSchema[]; $ref?: string; $defs?: Record<string, JsonSchema>; additionalProperties?: boolean | JsonSchema }
 
-/** R4: a contract's top-level fields as rows (name, type, required, description). */
-export function schemaFields(raw: unknown): Array<{ name: string; type: string; required: boolean; description?: string }> {
-  const schema = raw as JsonSchema | null | undefined;
-  if (!schema || typeof schema !== 'object') return [];
-  const root = schema.$ref && schema.$defs ? schema.$defs[schema.$ref.replace(/^#\/\$defs\//, '')] ?? schema : schema;
-  const req = new Set(root.required ?? []);
-  return Object.entries(root.properties ?? {}).map(([name, p]) => ({ name, type: schemaType(p), required: req.has(name), description: p.description }));
-}
 export function schemaType(p: JsonSchema | undefined): string {
   if (!p || typeof p !== 'object') return 'any';
   if (p.enum) return p.enum.map((v) => JSON.stringify(v)).join(' | ');
@@ -107,6 +99,3 @@ export function schemaType(p: JsonSchema | undefined): string {
   if (t === 'object' && p.properties) { const k = Object.keys(p.properties); return `{ ${k.slice(0, 4).join(', ')}${k.length > 4 ? ', …' : ''} }`; }
   return t ?? 'any';
 }
-
-/** v5: a run performed as a delegated step inside another agent's job (it has a parent run). */
-export const isDelegated = (r: Pick<AgentRunRow, 'parentRunId'>) => Boolean(r.parentRunId);

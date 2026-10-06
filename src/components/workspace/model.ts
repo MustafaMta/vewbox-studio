@@ -221,8 +221,6 @@ export function orderedShots(p: Production): Shot[] {
   return [...p.shots].sort((a, b) => (sceneNo.get(a.sceneId) ?? 0) - (sceneNo.get(b.sceneId) ?? 0) || a.number - b.number);
 }
 
-export const shotName = (p: Production, sh: Shot) => `Shot ${shotLabel(p, sh)}`;
-
 /** Readable words for a closed vocabulary value: MEDIUM_CLOSE_UP → "Medium close-up". */
 export function vocab(v: string | undefined | null): string {
   if (!v) return '';
