@@ -10,6 +10,7 @@ import { hashState } from '@/domain/hash';
 import { StudioError, isStudioError } from '@/domain/errors';
 import { type Job, type JobPayload, type JobType, isActiveStatus } from '@/domain/jobs';
 import { isActivityNoise } from '@/domain/phases';
+import { TERMS_NEEDED, termsAccepted } from '@/domain/terms';
 import { api, type Capabilities, type StartedJob } from './api';
 import { JOB_LIST_LIMIT, applyJobEvent, jobEventNeedsReload, mergeJob, type JobEvent } from './job-list';
 import { saveStateOf, type SaveState } from './save-state';
@@ -261,6 +262,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const startEmpty = useCallback(async () => { pending.current = []; unsent.current = null; syncSaving(); await api.reset('empty'); await refresh(); await loadJobs(); }, [refresh, loadJobs, syncSaving]);
 
   const startJob = useCallback(async <T extends JobType>(type: T, payload: JobPayload<T>, opts: { idempotencyKey?: string; priority?: number } = {}): Promise<StartedJob> => {
+    // THE TERMS OF USE (src/domain/terms.ts): every page starts its work here, so new work waits until they are accepted
+    if (!termsAccepted(latest.current.settings)) throw new StudioError('CONSENT_REQUIRED', TERMS_NEEDED);
     const r = await api.startJob(type, payload, opts);
     setJobs((js) => mergeJob(js, r.job));
     // the preflight's warnings travel with the job to the page that started it

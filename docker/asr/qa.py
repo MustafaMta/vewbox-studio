@@ -653,6 +653,25 @@ def mouth_check(video_path: str, audio_path: str | None = None, windows: Any = N
     }
 
 
+def faces_in_image(path: str, max_side: int = 1600) -> dict[str, Any]:
+    """YuNet face boxes on one still picture, in the picture's OWN pixels (the detector runs on a copy scaled to
+    `max_side`; the boxes are scaled back). Used to cut a derived face reference from a canonical image
+    (src/domain/face-reference.ts). Largest face first."""
+    tools = identity_tools()
+    cv2 = tools.cv2
+    img = cv2.imread(path, cv2.IMREAD_COLOR)
+    if img is None:
+        raise QaInputError("the picture could not be decoded")
+    h, w = img.shape[:2]
+    s = min(1.0, max_side / max(h, w))
+    small = cv2.resize(img, (int(round(w * s)), int(round(h * s))), interpolation=cv2.INTER_AREA) if s < 1.0 else img
+    t0 = time.time()
+    faces = tools.faces(small)
+    out = [{"box": [round(float(f[0]) / s, 1), round(float(f[1]) / s, 1), round(float(f[2]) / s, 1), round(float(f[3]) / s, 1)], "score": round(float(f[14]), 3)} for f in faces]
+    out.sort(key=lambda x: -(x["box"][2] * x["box"][3]))
+    return {"available": True, "width": int(w), "height": int(h), "faces": out, "detector": "YuNet 2023mar", "ms": int((time.time() - t0) * 1000)}
+
+
 def identity_check(video_path: str, references: dict[str, str], sample_fps: float = 2.0, threshold: float = SFACE_COSINE_THRESHOLD_START) -> dict[str, Any]:
     """SFace cosine of each character's canonical face against the faces of frames sampled at `sample_fps`.
     `references` maps characterId → image path."""

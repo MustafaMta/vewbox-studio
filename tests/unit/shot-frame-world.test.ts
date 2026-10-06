@@ -18,7 +18,7 @@ import { fixture, shotOf } from './continuity-fixture';
 
 const NOW = '2026-10-03T00:00:00.000Z';
 const img = (id: string): Asset => ({ id, kind: 'IMAGE', src: `/api/media/${id}`, label: id, tags: [], sample: false, origin: 'DERIVED', mimeType: 'image/png', provenance: { path: `img/${id}.png` }, createdAt: NOW });
-const established = (bible: WorldBible, assetId: string, timeOfDay: 'DUSK' | 'MORNING') => withEstablished(bible, [{ candidate: { locationId: 'loc-pharmacy', sceneId: 'sc1', shotId: 's11', takeId: `take-${assetId}`, videoAssetId: 'vid-a', frame: 6, timeOfDay, framing: 'WIDE' }, imageAssetId: assetId, productionId: 'prod-cont', label: `established ${assetId}`, approvalId: 'appr-1', approvedAt: NOW }], NOW);
+const established = (bible: WorldBible, assetId: string, timeOfDay: 'DUSK' | 'MORNING') => withEstablished(bible, [{ candidate: { locationId: 'loc-pharmacy', sceneId: 'sc1', shotId: 's13', takeId: `take-${assetId}`, videoAssetId: 'vid-a', frame: 6, timeOfDay, framing: 'WIDE' }, imageAssetId: assetId, productionId: 'prod-cont', label: `established ${assetId}`, approvalId: 'appr-1', approvedAt: NOW }], NOW);
 const read = (state: StudioState, bible: WorldBible, shotId: string) => {
   const { p } = fixture();
   return overlayWorld(state, bible, p, shotOf(p, shotId), { id: 'rev-1', number: 1, pinned: true });

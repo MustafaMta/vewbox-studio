@@ -1,0 +1,54 @@
+# Licences — models, terms, obligations (single source of truth)
+
+Status 2026-10-06. The producer chose commercial use and is applying for MiniMax's territory licence. The same table is
+data in `src/domain/licences.ts` (Settings › Licences and terms, the film credits); the terms users accept are
+`src/domain/terms.ts` (page `/terms`). Where a licence text was not read directly by this checkout's authors the row says
+so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*, the image engineer's findings).
+
+## 1. Engines and their licences
+
+| Engine | Used for | Licence | Status | What it asks of the studio | Passes restrictions to users |
+|---|---|---|---|---|---|
+| MiniMax H3 (local open weights, ComfyUI) | every take, picture and sound | MiniMax H3 Community License | in use | display "MiniMax H3" prominently in the UI (§IV.2); commercial use below US$20M a year; users bound by its Acceptable Use Policy (§V.2, Exhibit A); outputs not displayed in the US, EU, UK or South Korea without MiniMax's territory licence | yes |
+| Qwen-Image-2512, Qwen-Image-Edit-2511 | canonical images, plates, frames | Apache-2.0 | in use | keep the licence and notices | no |
+| FLUX.2 [klein] 4B | canonical image from a picture | Apache-2.0 | in use | keep the licence and notices | no |
+| Qwen3.5-4B | reading the reference picture | Apache-2.0 | in use | keep the licence and notices | no |
+| MediaPipe (face detector, Face Landmarker) | face box, mouth activity | Apache-2.0 (model card terms ◐) | in use | keep the licence and notices | no |
+| IndexTTS 2.5 | the characters' lines | bilibili IndexTTS model licence (code Apache-2.0) ◐ | in use | its use restrictions bind users of its outputs (§3.4) | yes |
+| Habibi-TTS IRQ | Iraqi Arabic voices | Apache-2.0 | in use | keep the licence and notices | no |
+| VoxCPM2 | voice design | Apache-2.0 | in use | the card asks that AI audio be labelled and forbids impersonation | (card) |
+| faster-whisper large-v3 | transcription, subtitle timing | MIT | in use | keep the notice | no |
+| wav2vec2 aligners (EN, AR) | word timing | Apache-2.0 ◐ | in use | keep the licence and notices | no |
+| YuNet / SFace | face identity checks | MIT / Apache-2.0 | in use | keep the notices | no |
+| ECAPA-TDNN (SpeechBrain) | voice similarity | Apache-2.0 | in use | keep the licence and notices | no |
+| Demucs | stems | MIT | in use | keep the notice | no |
+| ACE-Step 1.5 | songs | MIT | in use | keep the notice | no |
+| MiniMax Music 3 (open weights) | songs (second engine) | MiniMax-Music3 Community License | in use | credit "MiniMax Music 3" where used; US$20M cap | ◐ |
+| Gemma 4 31B (Ollama) | story, scripts, shot plans | Gemma Terms of Use | in use | its Prohibited Use Policy binds users of its outputs | yes |
+| Qwen3 14B | story engine (selectable) | Apache-2.0 | in use | keep the licence and notices | no |
+| LatentSync | lip-sync correction | OpenRAIL++-M | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial) | yes |
+| Geist, Geist Mono | interface typefaces | SIL Open Font License 1.1 | in use | ship the licence with the files (`src/app/fonts/OFL-Geist.txt`) | no |
+
+Not used (licence): MMS forced-alignment weights and ctc-forced-aligner's default model (CC-BY-NC), InsightFace model
+packs (non-commercial), Wav2Lip, Diff2Lip, SyncNet weights (no stated licence; interface only, disabled).
+
+## 2. Obligations and where the studio meets them
+
+| Obligation | Source | Where it is met |
+|---|---|---|
+| "MiniMax H3" displayed prominently in the UI | H3 §IV.2 | sidebar footer on every page ("Video by MiniMax H3", the phone's More sheet), the engine room (Video · MiniMax H3), the shot workspace beside New take, Settings › Licences, the film page's credits |
+| Users bound to the use restrictions | H3 §V.2 + Exhibit A; LatentSync Attachment A; IndexTTS §3.4; Gemma Prohibited Use Policy | `/terms`, accepted once per studio (`settings.terms`, version `TERMS_VERSION`); until accepted, the pages start no new work (`src/studio/store.tsx` startJob; every generation button says why) and a line at the top of the content leads to the terms |
+| Disclose machine-generated content | H3 AUP; VoxCPM2 card | every cut and export carries the disclosure in its container metadata (`src/server/media/disclosure.ts`); an export can end on a credit card naming the engines (Final cut › Export › End credits, default on); the terms ask users to disclose when they post |
+| Territory restriction | H3 Community License | Settings › Licences shows the distribution note until the producer's territory licence is granted; the terms say it |
+| Revenue cap (US$20M a year) | H3, MiniMax Music 3 | the terms say it |
+| Keep licences and notices | Apache-2.0, MIT, OFL | this file; `src/app/fonts/OFL-Geist.txt`; the model registry (engine room › Models) lists each file's licence |
+
+## 3. Distribution note (until the territory licence is granted)
+
+Outputs of local MiniMax H3 may not be displayed in the United States, the European Union, the United Kingdom or South
+Korea without MiniMax's territory licence.
+
+## 4. Changing this
+
+A new engine, a promoted model or a changed licence: update this file, `src/domain/licences.ts` and, when the change
+alters what users must accept, `src/domain/terms.ts` with a new `TERMS_VERSION` (the studio then asks again).

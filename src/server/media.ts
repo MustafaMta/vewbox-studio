@@ -202,10 +202,23 @@ export async function adoptFile(assetId: string, srcAbs: string, opts: { expectK
   await fsp.mkdir(path.dirname(absPath), { recursive: true });
   const probe = kind === 'SUBTITLE' ? undefined : await ffprobe(srcAbs);
   if (kind !== 'IMAGE' && kind !== 'SUBTITLE') { const d = await decodeCheck(srcAbs); if (!d.ok) throw new StudioError('INVALID', `The file does not decode cleanly: ${d.error}`); }
-  try { await fsp.rename(srcAbs, absPath); } catch { await fsp.copyFile(srcAbs, absPath); await fsp.rm(srcAbs, { force: true }); }
+  // ATOMIC INTO THE LIBRARY: a rename on the same volume; across volumes (the work folder on C:, the library on D:) a
+  // copy to `<name>.part`, checked against the source's checksum, then a rename — a copy cut short (a killed worker, a
+  // full disk) never leaves a partial file under the final name, and the job GC removes the `.part`
+  const before = await sha256File(srcAbs);
+  try { await fsp.rename(srcAbs, absPath); } catch {
+    const part = `${absPath}.part`;
+    try {
+      await fsp.copyFile(srcAbs, part);
+      const copied = await sha256File(part);
+      if (copied !== before) throw new StudioError('UNAVAILABLE', `The copy into the library does not match its source (sha256 ${copied.slice(0, 12)} ≠ ${before.slice(0, 12)}).`, { failureClass: 'INFRASTRUCTURE' });
+      await fsp.rename(part, absPath);
+    } catch (e) { await fsp.rm(part, { force: true }).catch(() => {}); throw e; }
+    await fsp.rm(srcAbs, { force: true });
+  }
   const st = await fsp.stat(absPath);
   const presentation = await presentationAtIngest(kind, absPath, probe);
-  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: await sha256File(absPath), probe, ...presentation, ...await thumbAtIngest(kind, relPath, absPath, probe, presentation.presentation) };
+  return { relPath, absPath, bytes: st.size, mime, kind, ext, sha256: before, probe, ...presentation, ...await thumbAtIngest(kind, relPath, absPath, probe, presentation.presentation) };
 }
 
 export async function removeFile(rel: string): Promise<void> {

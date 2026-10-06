@@ -11,7 +11,7 @@ import { ScreeningSkeleton } from '@/components/screening/ScreeningSkeleton';
 import { CreateFlowSkeleton, CreateHubSkeleton } from '@/components/wizard/skeletons';
 import { AgentSkeleton, DepartmentSkeleton, StudioCompanySkeleton } from '@/components/studio/skeletons';
 import { ControlRoomSkeleton } from '@/components/production/skeletons';
-import { SettingsSkeleton } from '@/components/settings/SettingsSkeleton';
+import { SettingsSkeleton, TermsSkeleton } from '@/components/settings/SettingsSkeleton';
 import { FilesSkeleton } from '@/components/files/FilesSkeleton';
 import { CharacterSkeleton, CharactersSkeleton } from '@/components/character/skeletons';
 import { LocationSkeleton, LocationsSkeleton } from '@/components/location/skeletons';
@@ -61,6 +61,7 @@ export const ROUTE_SKELETONS: Entry[] = [
   { match: (p) => p.startsWith('/studio/agents/'), Skeleton: AgentSkeleton },
   { match: (p) => p === '/production', Skeleton: ControlRoomSkeleton },
   { match: (p) => p === '/settings', Skeleton: SettingsSkeleton },
+  { match: (p) => p === '/terms', Skeleton: TermsSkeleton },
   { match: (p) => p === '/assets', Skeleton: FilesSkeleton },
   // Characters and Locations (P-Cast): "new" is its own page (its skeleton reads `?start=` for its mode), and the
   // [id] patterns exclude it

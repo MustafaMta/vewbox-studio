@@ -199,6 +199,25 @@
   .ws-beat-n { padding-block-start: 10px; font-size: 12px; line-height: 16px; color: var(--text-3); }
   .ws-lines { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0 0 0 48px; list-style: none; }
   .ws-line { display: grid; grid-template-columns: 160px minmax(0, 1fr) auto; gap: 8px; align-items: start; }
+  /* the scene's story facts (QA Q5): their own rows — an event is its words and a remove; a change is a small block
+     (who or what · the change · from when and its key · ends-an-earlier-change and remove); a learning is who · what ·
+     from when · remove. Each stacks to one column on a phone. */
+  .ws-facts { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .ws-fact { display: grid; gap: 8px; align-items: center; min-inline-size: 0; }
+  .ws-fact > * { min-inline-size: 0; }
+  .ws-fact-event { grid-template-columns: minmax(0, 1fr) auto; }
+  .ws-fact-know { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .ws-fact-know > .ws-fact-who { grid-column: 1; grid-row: 1; }
+  .ws-fact-know > .ws-fact-when { grid-column: 2; grid-row: 1; }
+  .ws-fact-know > .ws-fact-x { grid-column: 3; grid-row: 1; }
+  .ws-fact-know > .ws-fact-text { grid-column: 1 / -1; grid-row: 2; }
+  .ws-fact-change { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px; border-radius: var(--r-sm); background: var(--surface-2); }
+  .ws-fact-change .ws-fact-who { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .ws-fact-change .ws-fact-who > :only-child { grid-column: 1 / -1; }
+  .ws-fact-change .ws-fact-text { grid-column: 1 / -1; }
+  .ws-fact-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; grid-column: 1 / -1; }
+  .ws-fact-foot .ws-fact-x { margin-inline-start: auto; }
+  .ws-fact-note { grid-column: 1 / -1; }
   .ws-line-texts { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
   .ws-line-ar { text-align: right; font-size: 15px; }
   .ws-beat-foot { padding-inline-start: 48px; }
@@ -234,6 +253,7 @@
   /* music: lyrics, performers, plates */
   .ws-song { margin-block-start: 16px; }
   .ws-badge-gap { margin-inline-start: 8px; vertical-align: middle; }
+  .ws-badge-lead { margin-inline-end: 6px; vertical-align: middle; }
   .ws-lyrics { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .ws-lyric-btn { display: block; inline-size: 100%; padding: 14px 56px 14px 16px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
   .ws-lyric-btn:focus-visible { outline-offset: -2px; }
@@ -296,6 +316,19 @@
   .ws-take[data-selected] .ws-take-frame { outline: 2px solid var(--text-1); outline-offset: 2px; }
   .ws-take[data-rejected] .ws-take-frame { opacity: .5; }
   .ws-take-name { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-1); }
+  /* a verdict and its checks line never run past the card: one line each, the rest in the title and Details */
+  .ws-take-verdict { max-inline-size: 100%; min-inline-size: 0; }
+  .ws-take-verdict-words { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
+  .ws-checks-line { display: -webkit-box; max-inline-size: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+  .ws-checks-line[data-tone='waiting'], .ws-checks-line[data-tone='failed'] { color: var(--text-1); }
+  .ws-att-list > li[data-review] .ws-att-d { color: var(--text-1); }
+  .ws-line-audio { margin: 0; }
+  .ws-line-audio-word { white-space: normal; align-items: flex-start; }
+  .ws-line-audio-word > .state-dot { margin-block-start: 5px; flex: none; }
+  .ws-ready { display: flex; flex-direction: column; gap: 8px; }
+  .ws-ready-head { margin: 0; }
+  .ws-ready-note { margin: 0; }
+  .ws-checks .ws-files > li[data-outcome='PASSED'] .ws-file-name { color: var(--text-2); }
   .ws-take-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-block-start: 6px; }
   .ws-compare-tick { display: inline-flex; align-items: center; gap: 6px; min-block-size: 32px; padding-inline: 6px; font-size: 13px; line-height: 18px; color: var(--text-2); cursor: pointer; }
   .ws-attempts { margin-block-start: 16px; }
@@ -429,6 +462,12 @@
     .ws-prod-acts { justify-content: flex-start; }
     .ws-line { grid-template-columns: minmax(0, 1fr) auto; }
     .ws-line > :first-child { grid-column: 1 / -1; }
+    .ws-fact-know { grid-template-columns: minmax(0, 1fr) auto; }
+    .ws-fact-know > .ws-fact-who { grid-column: 1; grid-row: 1; }
+    .ws-fact-know > .ws-fact-x { grid-column: 2; grid-row: 1; }
+    .ws-fact-know > .ws-fact-text { grid-column: 1 / -1; grid-row: 2; }
+    .ws-fact-know > .ws-fact-when { grid-column: 1 / -1; grid-row: 3; }
+    .ws-fact-change, .ws-fact-change .ws-fact-who { grid-template-columns: minmax(0, 1fr); }
     .ws-lines, .ws-beat-foot { padding-inline-start: 0; }
     .ws-beat-head { grid-template-columns: 32px minmax(0, 1fr) auto; }
     .ws-att-list > li { grid-template-columns: minmax(0, 1fr) auto; }

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Production, Shot } from '@/domain/types';
-import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
+import { CAMERA_MOVES, FRAMINGS, type CameraMove, type Framing } from '@/domain/vocabulary';
 import { nid } from '@/domain/actions';
 import { castOf } from '@/studio/selectors';
 import { useStudio } from '@/studio/store';
@@ -52,7 +52,6 @@ export function ShotFields({ p, draft, onChange, showScene }: { p: Production; d
       </fieldset>
       <Details summary={'Advanced'}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={'Begins with'}><Select value={draft.transition} onChange={(e) => onChange({ transition: e.target.value as Transition })} options={TRANSITIONS.map((t) => ({ value: t, label: words(t) }))} /></Field>
           {p.kind === 'MUSIC_VIDEO' && <Field label={`${'Song window'} (${'seconds'})`}><div className="flex items-center gap-2"><Input type="number" min={0} value={draft.songWindow?.from ?? 0} aria-label="from" onChange={(e) => onChange({ songWindow: { from: Number(e.target.value), to: draft.songWindow?.to ?? Number(e.target.value) + draft.durationSeconds } })} /><span className="t-meta">to</span><Input type="number" min={0} value={draft.songWindow?.to ?? draft.durationSeconds} aria-label="to" onChange={(e) => onChange({ songWindow: { from: draft.songWindow?.from ?? 0, to: Number(e.target.value) } })} /></div></Field>}
           <Field label={'Notes'} className="sm:col-span-2"><Textarea value={draft.notes ?? ''} onChange={(e) => onChange({ notes: e.target.value })} rows={2} /></Field>
           <Field label={'Prompt for this shot'} help={'Written by the studio from the shot; edit it and the next take uses your words.'} className="sm:col-span-2"><Textarea value={draft.prompt ?? ''} onChange={(e) => onChange({ prompt: e.target.value || undefined })} rows={5} dir="ltr" placeholder="Written automatically from the setting, the people and the action when empty." /></Field>

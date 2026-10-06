@@ -4,6 +4,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { StudioError } from '@/domain/errors';
 import type { QaCheck, QaReport } from '@/domain/types';
+import { JOIN_SPEECH } from '@/domain/timeline';
 import { ffprobe, type Probe } from '../media';
 import { execFileP } from './exec';
 import { log } from '../log';
@@ -117,10 +118,17 @@ export async function trimAudio(input: string, out: string, from: number, to: nu
   return out;
 }
 
+/** The audio padded with silence (or cut) to exactly `seconds`, mono 48 kHz PCM. */
+export async function padAudio(input: string, out: string, seconds: number): Promise<string> {
+  await ffmpeg(['-y', '-v', 'error', '-i', input, '-vn', '-af', `aformat=sample_rates=48000:channel_layouts=mono,apad=whole_dur=${seconds.toFixed(3)},atrim=0:${seconds.toFixed(3)}`, '-ac', '1', '-ar', '48000', '-c:a', 'pcm_s16le', out]);
+  return out;
+}
+
 /** Join spoken lines into one soundtrack with silence between them: a lead-in, a gap after every line, a tail. Mono
  *  48 kHz PCM. Returns each line's window inside the track (exact, from the measured durations). */
 export async function joinSpeech(lines: Array<{ file: string; durationSeconds: number }>, out: string, opts: { leadIn?: number; gap?: number; tail?: number } = {}): Promise<{ file: string; durationSeconds: number; windows: Array<{ from: number; to: number }> }> {
-  const leadIn = opts.leadIn ?? 0.4, gap = opts.gap ?? 0.35, tail = opts.tail ?? 0.3;
+  // the cut reads the same rule back to place each recording where the take was anchored on it (anchoredLineStarts)
+  const leadIn = opts.leadIn ?? JOIN_SPEECH.leadIn, gap = opts.gap ?? JOIN_SPEECH.gap, tail = opts.tail ?? JOIN_SPEECH.tail;
   const args: string[] = ['-y', '-v', 'error'];
   const parts: string[] = [];
   const windows: Array<{ from: number; to: number }> = [];

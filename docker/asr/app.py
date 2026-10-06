@@ -431,6 +431,28 @@ async def qa_mouth(video: UploadFile = File(...), audio: UploadFile | None = Fil
         shutil.rmtree(work, ignore_errors=True)
 
 
+@app.post("/qa/faces")
+async def qa_faces(image: UploadFile = File(...)):
+    """YuNet face boxes on one picture, in its own pixels (a derived face reference is cut from them)."""
+    if qa_mod is None:
+        raise HTTPException(status_code=503, detail=f"face detection unavailable: qa.py could not be imported ({_qa_import_error})")
+    st = qa_mod.status()["identity"]
+    if not st["available"]:
+        raise HTTPException(status_code=503, detail=f"face detection unavailable: {st['reason']}")
+    work = tempfile.mkdtemp(prefix="qa-faces-")
+    try:
+        path = await _save(image, work, "image")
+        try:
+            out = await run_in_threadpool(qa_mod.faces_in_image, path)
+        except qa_mod.QaUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"face detection unavailable: {e}") from e
+        except qa_mod.QaInputError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        return JSONResponse(out)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 @app.post("/qa/identity")
 async def qa_identity(video: UploadFile = File(...), references: list[UploadFile] = File(...), characters: str = Form(...), sample_fps: float = Form(2.0)):
     """SFace cosine of each character's canonical face against the faces of sampled frames."""

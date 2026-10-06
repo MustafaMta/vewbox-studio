@@ -55,6 +55,8 @@ export function useUnsavedGuard(dirty: boolean, message: string) {
     document.addEventListener('click', onClick, true);
     return () => { window.removeEventListener('beforeunload', onUnload); document.removeEventListener('click', onClick, true); };
   }, [dirty, message, confirm, router, discard]);
+  /** a navigation the page makes itself (a keyboard shortcut, a select of shots): asked the same question */
+  return useCallback(async (to: string) => { if (!dirty || (await confirm({ title: message, confirmLabel: discard, tone: 'danger' }))) router.push(to); }, [dirty, message, confirm, router, discard]);
 }
 
 export { useSessionDraft, readSession, writeSession } from '@/components/ui/kit/session';

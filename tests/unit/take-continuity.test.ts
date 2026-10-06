@@ -51,6 +51,7 @@ vi.mock('@/server/media/ffmpeg', async (orig) => ({
   thumbnail: async (_v: string, out: string) => out,
   webReady: async (_i: string, out: string) => out,
   trimAudio: async (_i: string, out: string) => out,
+  padAudio: async (_i: string, out: string) => out,
   tmpDir: async (prefix: string) => fs.mkdtemp(path.join(fake.tmp, `${prefix}-`)),
 }));
 vi.mock('@/server/media/guide-head', async (orig) => ({
@@ -80,6 +81,12 @@ vi.mock('@/server/media/plate-drift', async (orig) => {
 // the picture-QA service is offline in these tests: every check it runs is recorded as "not measured"
 vi.mock('@/server/providers/qa-service', async (orig) => ({ ...(await orig<typeof import('@/server/providers/qa-service')>()), alignScript: async () => ({ available: false, reason: 'offline (test)' }), mouthActivity: async () => fake.mouth ?? { available: false, reason: 'offline (test)' }, faceIdentity: async () => ({ available: false, reason: 'offline (test)' }) }));
 vi.mock('@/server/world/store', () => ({ insertWorldRead: async (_tx: unknown, r: Record<string, unknown>) => { fake.reads.push(r); } }));
+// the fixture's assets have no files: the on-disk reference check is tested in tests/unit/reference-files.test.ts and
+// tests/worker/failure-recovery.test.ts; here every named file "exists"
+vi.mock('@/server/production/readiness', async (orig) => {
+  const real = await orig<typeof import('@/server/production/readiness')>();
+  return { ...real, referenceFilesReadiness: (needs: Parameters<typeof real.referenceFilesReadiness>[0], fileOf: Parameters<typeof real.referenceFilesReadiness>[1]) => real.referenceFilesReadiness(needs, fileOf, async () => true) };
+});
 
 import { generateTake } from '@/worker/handlers/take';
 import { takeIdOf } from '@/worker/handlers/take-commit';
@@ -111,7 +118,7 @@ describe('GENERATE_TAKE by relation', () => {
     expect(fake.tails[0]).toEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/tail\.mp4$/), 22]);
     const req = fake.requests[0] as { guides: unknown[]; referenceImages: Array<{ file: string }>; firstFrame?: unknown; seconds: number; prompt: string; lowering?: string };
     expect(VideoGenerateInput.safeParse(req).error?.issues ?? []).toEqual([]); // what the tool runner validates
-    expect(req.guides).toEqual([{ frameIdx: 0, imageFile: '/tmp/tail.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audioFile: expect.stringMatching(/dialogue\.wav$/) }]);
+    expect(req.guides).toEqual([{ frameIdx: 0, imageFile: '/tmp/tail.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audioFile: expect.stringMatching(/dialogue-guide\.wav$/) }]); // padded to the clip's end (the short-line repeat fix)
     expect(req.referenceImages.map((r) => r.file)).toEqual(['/lib/img/canon-a.png', '/lib/img/canon-b.png', '/lib/img/plate-dusk.png']);
     expect(req.firstFrame).toBeUndefined();
     expect(req.seconds).toBeCloseTo(5 + 22 / 24, 3);
@@ -172,7 +179,7 @@ describe('GENERATE_TAKE by relation', () => {
     fake.dialogueSeconds = 14.2; // need = 15 s = 360 new frames > 340
     await generateTake(ctx(p.id, 's12'));
     const req = fake.requests[0] as { guides: Array<Record<string, unknown>>; seconds: number; prompt: string; lowering?: string };
-    expect(req.guides).toEqual([{ frameIdx: 0, audioFile: expect.stringMatching(/dialogue\.wav$/) }]);
+    expect(req.guides).toEqual([{ frameIdx: 0, audioFile: expect.stringMatching(/dialogue-guide\.wav$/) }]);
     expect(req.seconds).toBe(15);
     expect(req.lowering).toMatch(/360 new frames needed, 340 fit after a 22-frame guide — a hard cut without the guide/);
     expect(req.prompt).not.toContain('continues the previous shot');
@@ -353,6 +360,18 @@ describe('GENERATE_TAKE by relation', () => {
     expect(t).toMatchObject({ status: 'READY', params: { drift: { location: { meanDiff: 60, matches: false } } } });
     expect((t.qa as { ok: boolean; checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'location-matches-plate')).toMatchObject({ ok: false, detail: expect.stringMatching(/differs from the plate plate-dusk by 60\.00 luma levels after exposure .*over the provisional 36.*review, not rejected/) });
     expect(fake.qa.find((r) => (r.checks as Array<{ name: string }>).some((c) => c.name === 'location-matches-plate'))).toMatchObject({ decision: 'REVIEW', failureClass: 'ENVIRONMENT_INCONSISTENCY' });
+    // QA Q6: a flagged take is REVIEW, carries its flags, and is never chosen by the studio on its own
+    expect(t.params).toMatchObject({ verdict: { decision: 'REVIEW', autoChoose: false, flags: ['location-matches-plate'] } });
+    expect(t).not.toHaveProperty('select');
+    expect((t.qa as { ok: boolean }).ok).toBe(true); // report.ok keeps its meaning: the gate passed
+  });
+
+  it('QA Q6: a clean take is ACCEPT and chosen when the shot has no choice yet (IF_UNCHOSEN)', async () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's12' ? { ...s, framing: 'WIDE' as const } : s)) }); fake.state = state;
+    await generateTake(ctx(p.id, 's12'));
+    const t = addTake();
+    expect(t.params).toMatchObject({ verdict: { decision: 'ACCEPT', autoChoose: true, flags: [] } });
+    expect(t.select).toBe('IF_UNCHOSEN');
   });
 
   it('a closer framing is NOT compared with the wide plate: recorded as not comparable, never as a drift (acceptance item 6)', async () => {
