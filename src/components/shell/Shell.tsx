@@ -17,6 +17,7 @@ import { RouteSkeleton } from './route-skeletons';
 import { usePathname } from 'next/navigation';
 import { isCuttingRoute } from '@/app/boot';
 import { ServerBar } from './ServerBar';
+import { TermsBar } from './TermsBar';
 import { CommandPalette } from './CommandPalette';
 import { ShortcutSheet } from './ShortcutSheet';
 
@@ -160,6 +161,7 @@ export function Shell({ children }: { children: ReactNode }) {
           {/* inside the column, so the phone's bar stands on the room's own ground */}
           <PhoneBar />
           {serverDown && <ServerBar onHeight={setServerBarH} />}
+          <TermsBar />
           <main id="main" tabIndex={-1} className="shell-main">
             {ready ? children : <RouteSkeleton pathname={pathname} />}
           </main>

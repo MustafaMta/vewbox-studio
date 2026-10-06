@@ -233,17 +233,22 @@ export async function reapStale(now = new Date()): Promise<{ cancelled: string[]
   const nowIso = now.toISOString();
   const staleBefore = new Date(now.getTime() - leaseSeconds() * 1000).toISOString();
   const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)));
-  const cancelled = await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'cancelled', message: 'cancelled; its worker had stopped' } })
+  // ONE TRANSACTION: the job is settled and the attempt its lost worker never finished is closed together (step 15) —
+  // a reaper that stopped between the two left the attempt "running" forever under a settled job (found by the
+  // failure-injection harness, tests/worker/failure-recovery.test.ts)
+  const { cancelled, failed } = await db().transaction(async (tx) => {
+  const cancelled = await tx.update(schema.jobs).set({ status: 'CANCELLED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'cancelled', message: 'cancelled; its worker had stopped' } })
     .where(and(stale, eq(schema.jobs.cancelRequested, true))).returning({ id: schema.jobs.id });
-  const failed = await db().update(schema.jobs).set({
+  const failed = await tx.update(schema.jobs).set({
     status: 'FAILED', finishedAt: nowIso, lockedBy: null, updatedAt: nowIso, progress: { phase: 'failed', message: 'its worker stopped on every attempt' },
     error: dsql`jsonb_build_object('code', 'UNAVAILABLE', 'message', 'The worker running this job stopped responding on each of its ' || ${schema.jobs.attempts} || ' attempts (it may crash the worker: out of memory, a runaway process). It was not retried again.', 'retryable', false, 'details', jsonb_build_object('failureClass', 'INFRASTRUCTURE', 'reason', 'WORKER_LOST', 'previousError', ${schema.jobs.error}))`,
   }).where(and(stale, eq(schema.jobs.cancelRequested, false), dsql`${schema.jobs.attempts} >= ${schema.jobs.maxAttempts}`)).returning({ id: schema.jobs.id, lockedBy: schema.jobs.lockedBy });
+  const settled = [...cancelled, ...failed].map((r) => r.id);
+  if (settled.length) await tx.execute(dsql`update job_attempts a set finished_at = ${nowIso}, outcome = case when j.status = 'CANCELLED' then 'CANCELLED' else 'FAILED' end, failure_class = case when j.status = 'CANCELLED' then 'CANCELLED' else 'INFRASTRUCTURE' end, failure_message = 'its worker stopped responding (WORKER_LOST)' from jobs j where a.job_id = j.id and a.attempt = j.attempts and a.outcome is null and j.id in (${dsql.join(settled.map((x) => dsql`${x}`), dsql`, `)})`);
+  return { cancelled, failed };
+  });
   for (const r of cancelled) { await addEvent(r.id, 'info', 'cancelled: its worker had stopped before reaching a checkpoint').catch(() => undefined); await notifyJobs(r.id, 'CANCELLED').catch(() => undefined); }
   for (const r of failed) { log.warn({ jobId: r.id }, 'job failed: its worker was lost on every attempt'); await addEvent(r.id, 'error', 'failed: its worker was lost on every attempt', { failureClass: 'INFRASTRUCTURE', reason: 'WORKER_LOST' }).catch(() => undefined); await notifyJobs(r.id, 'FAILED').catch(() => undefined); }
-  // the attempt the lost worker never finished is closed on its row (step 15)
-  const settledIds = [...cancelled, ...failed].map((r) => r.id);
-  if (settledIds.length) await db().execute(dsql`update job_attempts a set finished_at = ${nowIso}, outcome = case when j.status = 'CANCELLED' then 'CANCELLED' else 'FAILED' end, failure_class = case when j.status = 'CANCELLED' then 'CANCELLED' else 'INFRASTRUCTURE' end, failure_message = 'its worker stopped responding (WORKER_LOST)' from jobs j where a.job_id = j.id and a.attempt = j.attempts and a.outcome is null and j.id in (${dsql.join(settledIds.map((x) => dsql`${x}`), dsql`, `)})`).catch((e) => log.warn({ err: (e as Error).message }, 'could not close the attempts of reaped jobs'));
   // their parents may be waiting for them; and a parent whose wake-up was missed is woken here (the backstop)
   const woken = [...await wakeParents([...cancelled, ...failed].map((r) => r.id)), ...await wakeReady()];
   return { cancelled: cancelled.map((r) => r.id), failed: failed.map((r) => r.id), ...(woken.length ? { woken } : {}) };

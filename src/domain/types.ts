@@ -859,6 +859,9 @@ export interface Settings {
   /** Trend research for Auto Idea (docs/CONTRACTS-AUTO-IDEA.md). Credentials never live here: they are server
    *  environment variables; this only switches research and individual platforms on or off. */
   research?: ResearchSettings;
+  /** THE STUDIO'S TERMS OF USE (src/domain/terms.ts): accepted once per studio, for the version shown; a new version
+   *  asks again. Making new work through the pages waits until they are accepted. */
+  terms?: { version: string; acceptedAt: string; by?: string };
 }
 
 export interface ResearchSettings {

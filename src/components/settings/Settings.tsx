@@ -15,6 +15,9 @@ import type { HonouredSettingKey, SettingsHonoured } from '@/domain/settings';
 import { MINIMAX_H3_LOCAL, type ContinuationChoice } from '@/domain/video-capability';
 import { REANCHOR } from '@/domain/production-context';
 import { designedIraqiAllowed } from '@/components/character/contract';
+import { ENGINE_LICENCES, DISTRIBUTION_NOTE } from '@/domain/licences';
+import { TERMS_VERSION, termsAccepted } from '@/domain/terms';
+import { fmtDate } from '@/lib/format';
 
 /** SETTINGS (docs/DESIGN-SYSTEM-V5.md §8.13) — how the studio makes new work, in plain words: the engines it runs on
  *  (said, not offered: the server configures them; MiniMax H3 on this machine is the only video engine); continuity
@@ -72,10 +75,15 @@ export function SettingsPage() {
       <Section id="continuity" title="Continuity" description="How a continuous shot carries on from the shot before it. A shot can choose its own on its page.">
         <div className="card st-panel">
           <SettingRow label="Guide from the shot before" hint={`The frames of the shot before that a continuous take starts from. Longer carries more motion and leaves less new picture. MiniMax H3 keeps ${g.continuationChoices.join(', ')} frames; it uses ${g.defaultContinuationFrames} unless you choose.`}>
-            {() => <Segmented label="Guide from the shot before" value={cont.guideFrames && g.continuationChoices.includes(cont.guideFrames) ? String(cont.guideFrames) : ''} onChange={(v) => setCont({ guideFrames: v ? Number(v) : undefined })} options={[{ value: '', label: `Engine (${g.defaultContinuationFrames})` }, ...g.continuationChoices.map((n) => ({ value: String(n), label: `${n} frames` }))]} />}
+            {() => <Segmented label="Guide from the shot before, in frames" value={cont.guideFrames && g.continuationChoices.includes(cont.guideFrames) ? String(cont.guideFrames) : ''} onChange={(v) => setCont({ guideFrames: v ? Number(v) : undefined })} options={[{ value: '', label: `Default · ${g.defaultContinuationFrames}` }, ...g.continuationChoices.map((n) => ({ value: String(n), label: `${n}` }))]} />}
           </SettingRow>
           <SettingRow label="Sound of the guide" hint="Whether a continuous take hears the end of the shot before. Automatic leaves it out when the shot before speaks and the new one has no lines.">
             {() => <Segmented label="Sound of the guide" value={cont.guideAudio ?? 'AUTO'} onChange={(v) => setCont({ guideAudio: v === 'AUTO' ? undefined : v })} options={[{ value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }, { value: 'OFF', label: 'Never' }]} />}
+          </SettingRow>
+          {/* the derived face reference (src/domain/face-reference.ts): a crop of the canonical image's face sent beside it on
+              close framings; OFF until the A/B on real takes decides (research G13) */}
+          <SettingRow label={<>Face close-up reference <StateWord tone="waiting" className="st-src">Under evaluation</StateWord></>} hint="On close framings the studio can also send a close crop of each character’s face, cut from their canonical image and stored as a production-only reference (never a new identity). Automatic: only when the canonical image holds too few face pixels for the framing. Off until the comparison on real takes is done.">
+            {() => <Segmented label="Face close-up reference" value={gen.faceReference ?? 'OFF'} onChange={(v) => setGen({ faceReference: v as 'OFF' | 'AUTO' | 'ON' })} options={[{ value: 'OFF', label: 'Off' }, { value: 'AUTO', label: 'Automatic' }, { value: 'ON', label: 'Always' }]} />}
           </SettingRow>
           <SettingRow label="Re-anchor after" hint="After this many continuous shots in a row, the next one leans on the characters’ canonical images (the shortest guide) so faces do not drift along the chain.">
             {(id) => <Select id={id} value={String(cont.reanchorAfter ?? REANCHOR.after)} onChange={(e) => setCont({ reanchorAfter: Number(e.target.value) === REANCHOR.after ? undefined : Number(e.target.value) })} options={[2, 3, 4, 5, 6, 8, 10].map((n) => ({ value: String(n), label: `${n} shots${n === REANCHOR.after ? ' (default)' : ''}` }))} />}
@@ -130,9 +138,24 @@ export function SettingsPage() {
         </div>
       </Section>
 
+      <Section id="licences" title="Licences and terms" description="What the engines’ licences allow, and what they ask of the studio and of you. The full record: docs/LICENSES.md.">
+        <div className="card st-panel">
+          <div className="st-row"><span className="st-row-words"><span className="st-label">Terms of use</span><span className="t-meta">{termsAccepted(s) ? `Accepted${s.terms?.acceptedAt ? ` on ${fmtDate(s.terms.acceptedAt)}` : ''} (version ${TERMS_VERSION}).` : 'Not accepted yet: the studio makes nothing new until they are.'}</span></span><Link href="/terms" className={termsAccepted(s) ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}>{termsAccepted(s) ? 'Read the terms' : 'Read and accept'}</Link></div>
+          <InfoRow label="Where films may be shown" hint={DISTRIBUTION_NOTE} value={<StateWord tone="waiting">Territory licence pending</StateWord>} />
+          <InfoRow label="AI disclosure" hint="Every cut and export says in its file’s metadata that it is AI-generated with MiniMax H3; an export can also end on a card naming the engines." value="Always on" />
+        </div>
+        <ul className="card st-panel st-credits" role="list" aria-label="The engines and their licences">
+          {ENGINE_LICENCES.map((l) => (
+            <li key={l.id} className="st-row">
+              <span className="st-row-words"><span className="st-label">{l.engine}{l.status === 'EVALUATING' ? <StateWord tone="waiting" className="st-src">Under evaluation</StateWord> : null}</span><span className="t-meta">{l.role}. {l.obligations.join(' ')}</span></span>
+              <span className="st-control st-value">{l.licence}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
       <Section id="elsewhere" title="Elsewhere">
         <div className="card st-panel">
-          <div className="st-row"><span className="st-row-words"><span className="st-label">Engines, models and reliability</span><span className="t-meta">What the studio runs on and how it ran.</span></span><Link href="/production#engine-room" className="btn btn-secondary btn-sm">Open the engine room</Link></div>
           <div className="st-row"><span className="st-row-words"><span className="st-label">The studio holds</span><span className="t-meta">{state.productions.length} {state.productions.length === 1 ? 'production' : 'productions'} · {state.characters.length} {state.characters.length === 1 ? 'character' : 'characters'} · {state.locations.length} {state.locations.length === 1 ? 'location' : 'locations'} · {state.assets.length} files</span></span><Link href="/assets" className="btn btn-secondary btn-sm">Open Files</Link></div>
         </div>
       </Section>

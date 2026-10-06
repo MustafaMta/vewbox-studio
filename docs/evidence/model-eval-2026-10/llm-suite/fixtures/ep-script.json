@@ -1,0 +1,335 @@
+{
+  "frozenFrom": "gemma4:31b-it-qat",
+  "at": "2026-10-05T22:43:54.307Z",
+  "answer": {
+    "scenes": [
+      {
+        "sceneId": "scene-bench-1",
+        "beats": [
+          {
+            "action": "Wide shot: The salt-worn harbour office clings to the cliff edge. A cold wind whips Elias's yellow raincoat, making it flare out like a skirt as he and Najm walk up the wooden wharf.",
+            "lines": []
+          },
+          {
+            "action": "Mid shot: Elias walks with a slight stoop, his left hand bandaged and tucked into his pocket. He looks at the office with a mixture of dread and longing.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "It's been too long since I stepped foot in there.",
+                "delivery": "whispering, voice trembling"
+              }
+            ]
+          },
+          {
+            "action": "Najm walks beside him, his movements measured. He adjusts his glasses, his eyes scanning the horizon before fixing on the destination.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "The truth doesn't age, Elias. It only gathers dust.",
+                "delivery": "calm, reassuring"
+              }
+            ]
+          },
+          {
+            "action": "Close-up on the heavy wooden door of the office. The paint is peeling, and a brass knocker shaped like an anchor hangs crookedly.",
+            "lines": []
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-2",
+        "beats": [
+          {
+            "action": "Interior: Ingrid Dahl is a rigid silhouette behind the massive oak desk. She brings a mechanical date-stamper down with a thunderous THUMP on a document.",
+            "lines": []
+          },
+          {
+            "action": "Elias and Najm enter. Elias removes his navy cap, clutching it to his chest. Ingrid looks up, her steel-blue eyes piercing and cold.",
+            "lines": [
+              {
+                "characterName": "Ingrid Dahl",
+                "text": "Office hours begin at eight. It is currently eight-oh-two. State your business.",
+                "delivery": "brisk, no-nonsense"
+              }
+            ]
+          },
+          {
+            "action": "Elias steps forward, his voice cracking slightly. He gestures with his bandaged hand toward the shelves of archival boxes.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "I need to see the 1987 logs. The Mariner's final entries.",
+                "delivery": "urgent, pleading"
+              }
+            ]
+          },
+          {
+            "action": "Ingrid doesn't move a muscle, her posture like a plumb line. She points a sharp finger toward a framed set of regulations on the wall.",
+            "lines": [
+              {
+                "characterName": "Ingrid Dahl",
+                "text": "The 1987 logs were sealed by order of the official inquiry. They are not for public consumption.",
+                "delivery": "final, clipped"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-3",
+        "beats": [
+          {
+            "action": "Elias begins to pace the small room, his rubber boots squeaking on the floor. He throws his arms up in a gesture of frustration.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "It was my wife! My wife was on that ship!",
+                "delivery": "loud, emotional"
+              }
+            ]
+          },
+          {
+            "action": "Najm gently places a hand on Elias's shoulder to still him. He steps forward, leaning in toward Ingrid with a soft, scholarly smile.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Of course, the seal is paramount. But as a fellow keeper of records, I worry... is the ink fading on that specific vellum?",
+                "delivery": "quietly, conspiratorial"
+              }
+            ]
+          },
+          {
+            "action": "Close-up on Ingrid. Her brow furrows. The mention of 'ink fading' and 'vellum' catches her professional interest. Her rigid shoulders drop a fraction of an inch.",
+            "lines": [
+              {
+                "characterName": "Ingrid Dahl",
+                "text": "The 1987 ledger is leather-bound. Standard maritime grade.",
+                "delivery": "defensive, but engaged"
+              }
+            ]
+          },
+          {
+            "action": "Najm nods slowly, scratching his beard, playing the part of the concerned academic.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Still, the humidity in these stone walls can be treacherous for gold-embossed spines.",
+                "delivery": "measured, persuasive"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-4",
+        "beats": [
+          {
+            "action": "Ingrid lets out a long, defeated sigh. She turns and walks toward the heavy iron safe embedded in the stone wall, the silver whistle on her chest glinting.",
+            "lines": [
+              {
+                "characterName": "Ingrid Dahl",
+                "text": "Five minutes. Under my direct supervision.",
+                "delivery": "reluctant"
+              }
+            ]
+          },
+          {
+            "action": "Close-up: Ingrid inserts a heavy brass key. We hear the metallic CLICK-CLACK of the tumblers shifting. The sound is magnified and heavy.",
+            "lines": []
+          },
+          {
+            "action": "The safe door swings open with a low, metallic groan, sending a small puff of archival dust into the air. Elias leans in, breathless.",
+            "lines": []
+          },
+          {
+            "action": "Ingrid reaches into the dark interior and pulls out a thick, leather-bound book with '1987' embossed in fading gold on the cover.",
+            "lines": []
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-5",
+        "beats": [
+          {
+            "action": "Najm takes the book with trembling reverence. He lays it open on the scarred oak desk. The pages are yellowed and smell of brine.",
+            "lines": []
+          },
+          {
+            "action": "Najm's finger slides rapidly down the columns of dates and weather reports, then stops abruptly on the final entry.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Here. The final transmission log.",
+                "delivery": "breathless"
+              }
+            ]
+          },
+          {
+            "action": "Extreme close-up: The handwritten ink is shaky. We see the words: '11:42 PM - Radio Officer Moore reports engine failure. Turning back toward the point.'",
+            "lines": []
+          },
+          {
+            "action": "Elias's face enters the frame, his hazel eyes widening. He reads the line, his breath hitching in his chest.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "Turning back... they were coming home.",
+                "delivery": "a broken whisper"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-6",
+        "beats": [
+          {
+            "action": "Elias stares at the page, his bandaged left hand trembling violently. He doesn't look up at Ingrid, only at the ink.",
+            "lines": []
+          },
+          {
+            "action": "Najm closes the book gently and slides it back toward Ingrid. He looks at her, not with triumph, but with a heavy, quiet sadness.",
+            "lines": []
+          },
+          {
+            "action": "Elias and Najm turn and walk out of the office in a stunned, heavy silence. Their footsteps echo on the wharf.",
+            "lines": []
+          },
+          {
+            "action": "Shot of Ingrid standing alone by her desk. She watches them leave through the window, her rigid expression softening into one of deep conflict.",
+            "lines": []
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-7",
+        "beats": [
+          {
+            "action": "Wide shot: The two small figures are silhouetted against a deep purple and orange sky. They walk slowly back toward the village, the sea crashing against the cliffs below.",
+            "lines": []
+          },
+          {
+            "action": "Tracking shot: The wind has died down. Elias's yellow raincoat is still, his shoulders slumped. Najm walks in step with him, a silent companion.",
+            "lines": []
+          },
+          {
+            "action": "They reach the wooden door of Elias's workshop. The first few stars are beginning to blink awake in the twilight.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Tonight is the peak of the shower.",
+                "delivery": "softly"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-8",
+        "beats": [
+          {
+            "action": "Interior: The workshop is dim, lit only by the green-shaded lamp. Elias sits on a stool, his eyes locked on the dial of the valve radio.",
+            "lines": []
+          },
+          {
+            "action": "Najm stands by the window, meticulously cleaning his glasses with a soft cloth. He looks up at the black void of the sky.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Any moment now.",
+                "delivery": "hopeful"
+              }
+            ]
+          },
+          {
+            "action": "Close-up on the radio dial. The needle is perfectly still. The silence of the room is heavy.",
+            "lines": []
+          },
+          {
+            "action": "Suddenly, a single, brilliant streak of a meteor flashes across the window glass, casting a momentary white light over the room.",
+            "lines": []
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-9",
+        "beats": [
+          {
+            "action": "Wide shot through the workshop window: The sky suddenly erupts. Dozens of meteors streak downward in a flurry of white and gold light.",
+            "lines": []
+          },
+          {
+            "action": "The valve radio begins to hum. Inside the chassis, the glass valves start to glow a warm, pulsing orange, mirroring the stars outside.",
+            "lines": []
+          },
+          {
+            "action": "Elias leans in, his face bathed in the orange glow. The hum grows into a vibration that rattles the glass jar of screws on the workbench.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "She's here. She's actually here.",
+                "delivery": "breathless, eyes wide"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-10",
+        "beats": [
+          {
+            "action": "The radio erupts in a scream of static. Elias frantically turns the tuning knob, his bandaged hand gripping the plastic dial.",
+            "lines": []
+          },
+          {
+            "action": "The static snaps clear. A feminine voice—soft, distorted, but unmistakably Ruth's—cuts through the noise.",
+            "lines": [
+              {
+                "characterName": "Ruth Moore",
+                "text": "Bearing... zero-four-two... repeat... zero-four-two...",
+                "delivery": "ethereal, echoing"
+              }
+            ]
+          },
+          {
+            "action": "Najm quickly grabs a pencil, scribbling the numbers onto a scrap of paper as Elias freezes, a tear tracking through the lines of his weathered cheek.",
+            "lines": []
+          },
+          {
+            "action": "The last meteor fades from the sky. The orange glow in the valves vanishes instantly, and the radio collapses back into a hollow hiss of static.",
+            "lines": []
+          }
+        ]
+      },
+      {
+        "sceneId": "scene-bench-11",
+        "beats": [
+          {
+            "action": "Elias stands up and walks to the window. He stares out at the black horizon in the direction of the bearing, his reflection ghost-like in the glass.",
+            "lines": [
+              {
+                "characterName": "Elias Moore",
+                "text": "I can't go back out there, Najm. I can't.",
+                "delivery": "hollow, haunted"
+              }
+            ]
+          },
+          {
+            "action": "Cut to the workbench. Najm ignores the sadness and focuses on the task. He unrolls a large, weathered nautical chart with a sharp snap.",
+            "lines": []
+          },
+          {
+            "action": "Close-up: Najm places the pencil on the chart, carefully plotting the bearing from Kerran Point. He circles a specific coordinate near the coast with a determined look.",
+            "lines": [
+              {
+                "characterName": "Najm",
+                "text": "Then I will go for both of us.",
+                "delivery": "firm, quiet"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

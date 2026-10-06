@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { frameCheckOf } from '@/domain/frames';
 import type { Job } from '@/domain/jobs';
 import type { Production, Shot, ShotBoundary, ShotDialogue, Take } from '@/domain/types';
-import { CAMERA_MOVES, FRAMINGS, TRANSITIONS, type CameraMove, type Framing, type Transition } from '@/domain/vocabulary';
+import { CAMERA_MOVES, FRAMINGS, type CameraMove, type Framing } from '@/domain/vocabulary';
 import { nid } from '@/domain/actions';
 import { useStudio } from '@/studio/store';
 import { useShell } from '@/components/shell/context';
@@ -32,7 +32,7 @@ import { ShotLocationRefusal, StaleNotice } from './Continuity';
 import { WorkspaceShell } from './WorkspaceShell';
 import { ShotContext } from './ShotContext';
 import { Readiness } from './Readiness';
-import { lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf, type TakeCheck } from './checks';
+import { lineAudioOf, lineAudioWords, lipSyncWords, takeChecksOf, takeVerdictOf, type TakeCheck } from './checks';
 import { lineRecordingCurrent } from '@/domain/voice-identity';
 import { MINIMAX_H3_LOCAL, type ContinuationChoice, type GuideAudioMode } from '@/domain/video-capability';
 import { FramingDraw, MoveDraw, Picks } from '@/components/edit';
@@ -47,7 +47,7 @@ import { BOUNDARY_WORDS, boundaryOf, driftOf, sceneStateOfTake, activeShotJob, c
  *  settings, notes and details. Never a node editor, never engine internals. `[` and `]` move between shots. */
 
 type View = 'take' | 'opening' | 'ending';
-type Draft = Pick<Shot, 'purpose' | 'action' | 'framing' | 'cameraMove' | 'durationSeconds' | 'characterIds' | 'dialogue' | 'transition' | 'openingFrameAssetId' | 'endingFrameAssetId' | 'notes' | 'boundary' | 'continuation'>;
+type Draft = Pick<Shot, 'purpose' | 'action' | 'framing' | 'cameraMove' | 'durationSeconds' | 'characterIds' | 'dialogue' | 'openingFrameAssetId' | 'endingFrameAssetId' | 'notes' | 'boundary' | 'continuation'>;
 const LENGTHS = [4, 5, 6, 7, 8, 10];
 
 export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
@@ -62,8 +62,10 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
   const running = activeShotJob(p, shot.id, jobs);
   const toHear = linesToHear(p, decisions.items, shot.id);
 
-  const { draft, patch, dirty, reset } = useDraft<Draft>({ boundary: shot.boundary, continuation: shot.continuation, purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, transition: shot.transition, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, notes: shot.notes });
-  useUnsavedGuard(dirty, 'This shot has unsaved changes. Leave anyway?');
+  const { draft, patch, dirty, reset } = useDraft<Draft>({ boundary: shot.boundary, continuation: shot.continuation, purpose: shot.purpose, action: shot.action, framing: shot.framing, cameraMove: shot.cameraMove, durationSeconds: shot.durationSeconds, characterIds: shot.characterIds, dialogue: shot.dialogue, openingFrameAssetId: shot.openingFrameAssetId, endingFrameAssetId: shot.endingFrameAssetId, notes: shot.notes });
+  // the people's state (People and story state) is edited apart and saved by its own button: its unsaved edits count
+  const [contextDirty, setContextDirty] = useState(false);
+  const leave = useUnsavedGuard(dirty || contextDirty, 'This shot has unsaved changes. Leave anyway?');
   // a removed frame is sent as null: the command travels as JSON, which drops undefined
   const save = () => { act('updateShot', p.id, shot.id, { ...draft, openingFrameAssetId: draft.openingFrameAssetId ?? null, endingFrameAssetId: draft.endingFrameAssetId ?? null }); toast.ok('Shot saved.'); };
 
@@ -81,12 +83,12 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (e.ctrlKey || e.metaKey || e.altKey || t?.closest('input, textarea, select, [contenteditable="true"]')) return;
-      if (e.key === '[' && prev) { e.preventDefault(); router.push(shotHref(p, prev.id)); }
-      if (e.key === ']' && next) { e.preventDefault(); router.push(shotHref(p, next.id)); }
+      if (e.key === '[' && prev) { e.preventDefault(); void leave(shotHref(p, prev.id)); }
+      if (e.key === ']' && next) { e.preventDefault(); void leave(shotHref(p, next.id)); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [p, prev, next, router]);
+  }, [p, prev, next, leave]);
 
   const takeNo = (t: Take) => shot.takes.indexOf(t) + 1;
   const use = (t: Take) => { try { act('selectTake', p.id, shot.id, t.id); toast.ok(`Take ${takeNo(t)} is in the cut.`); } catch (e) { toast.bad((e as Error).message); } };
@@ -116,7 +118,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
     <WorkspaceShell p={p} tab="produce" shotId={shot.id} gate={gate} view="shot">
       <section className="ws-stage" aria-labelledby="ws-shot-h">
         <h1 id="ws-shot-h" className="sr-only">Shot {shotLabel(p, shot)} of {p.title}</h1>
-        <ShotSwitcher p={p} shot={shot} prev={prev} next={next} />
+        <ShotSwitcher p={p} shot={shot} prev={prev} next={next} leave={leave} />
         <div className="ws-stage-head">
           <span className="ws-stage-title">{canvasTitle}</span>
           {readout && <span className="ws-ro ws-stage-ro">{readout}</span>}
@@ -213,7 +215,8 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
             <Field label="Camera"><Picks<CameraMove> label="Camera move" value={draft.cameraMove} options={CAMERA_MOVES.map((v) => ({ value: v, label: vocab(v) }))} onChange={(v) => patch({ cameraMove: v })} draw={(v) => <MoveDraw m={v} />} /></Field>
             <Field label="Length"><Segmented<string> label="Length in seconds" size="sm" value={String(draft.durationSeconds)} onChange={(v) => patch({ durationSeconds: Number(v) })} options={[...new Set([...LENGTHS, draft.durationSeconds])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: `${n} s` }))} /></Field>
             <Boundary p={p} shot={shot} value={draft.boundary} onChange={(b) => patch({ boundary: b })} continuation={draft.continuation} onContinuation={(c) => patch({ continuation: c })} />
-            <Field label="Editorial transition" help="What the viewer sees at the join."><Segmented<Transition> label="Editorial transition" size="sm" value={draft.transition} onChange={(v) => patch({ transition: v })} options={TRANSITIONS.map((t) => ({ value: t, label: t === 'EXTEND' ? 'Continues' : vocab(t) }))} /></Field>
+            {/* the editorial join is derived from the boundary (src/domain/editorial.ts): a continuous shot extends the one before, a cut or a transition cuts — never a fade or a dissolve over a continuity problem */}
+            <p className="t-meta ws-join-note">At the join the viewer sees {(draft.boundary ?? boundaryOf(p, shot)) === 'continuous' ? 'one continuous action, no cut' : 'a straight cut'}. Fades and dissolves are not used to hide a join.</p>
           </div>
         </details>
 
@@ -236,7 +239,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
 
         <details className="ws-disc">
           <summary className="ws-disc-sum">People and story state</summary>
-          <div className="ws-disc-body"><ShotContext key={`${shot.id}:${shot.continuity?.version ?? 0}`} p={p} shot={shot} /></div>
+          <div className="ws-disc-body"><ShotContext key={`${shot.id}:${shot.continuity?.version ?? 0}`} p={p} shot={shot} onDirty={setContextDirty} /></div>
         </details>
 
         <details className="ws-disc">
@@ -252,7 +255,7 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </details>
 
         <div className="ws-insp-foot" data-dirty={dirty || undefined}>
-          {dirty ? <span className="t-meta" id={`ws-save-state-${shot.id}`}>Unsaved changes</span> : <span className="t-meta" id={`ws-save-state-${shot.id}`}>Saved</span>}
+          <span className="t-meta" id={`ws-save-state-${shot.id}`}>{dirty ? 'Unsaved changes' : contextDirty ? 'The people’s state is not saved' : 'Saved'}</span>
           <span className="ws-actions">
             {dirty && <Button size="sm" variant="quiet" onClick={reset}>Discard</Button>}
             {/* disabled until something changes; the state beside it is its reason */}
@@ -270,12 +273,11 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
 }
 
 /** Under 1280 the outline folds into this bar: the scene and shot as a menu of every shot, and ‹ › for the neighbours. */
-function ShotSwitcher({ p, shot, prev, next }: { p: Production; shot: Shot; prev?: Shot; next?: Shot }) {
-  const router = useRouter();
+function ShotSwitcher({ p, shot, prev, next, leave }: { p: Production; shot: Shot; prev?: Shot; next?: Shot; leave: (to: string) => Promise<void> }) {
   return (
     <div className="ws-switcher">
       <Link className={cls('btn btn-secondary btn-sm btn-icon', !prev && 'is-disabled')} href={prev ? shotHref(p, prev.id) : '#'} aria-disabled={!prev || undefined} tabIndex={prev ? undefined : -1} aria-label={prev ? `Previous shot, ${shotLabel(p, prev)}` : 'No previous shot'}><IconChevronLeft aria-hidden /></Link>
-      <select className="select ws-switcher-select" aria-label="Go to a shot" value={shot.id} onChange={(e) => router.push(shotHref(p, e.target.value))}>
+      <select className="select ws-switcher-select" aria-label="Go to a shot" value={shot.id} onChange={(e) => void leave(shotHref(p, e.target.value))}>
         {orderedShots(p).map((sh) => { const sc = p.scenes.find((x) => x.id === sh.sceneId); return <option key={sh.id} value={sh.id}>{`Scene ${sc?.number ?? '?'} · Shot ${shotLabel(p, sh)} · ${vocab(sh.framing)}`}</option>; })}
       </select>
       <Link className={cls('btn btn-secondary btn-sm btn-icon', !next && 'is-disabled')} href={next ? shotHref(p, next.id) : '#'} aria-disabled={!next || undefined} tabIndex={next ? undefined : -1} aria-label={next ? `Next shot, ${shotLabel(p, next)}` : 'No next shot'}><IconChevronRight aria-hidden /></Link>
@@ -350,6 +352,8 @@ function Generate({ p, shot, gate, dirty }: { p: Production; shot: Shot; gate: R
     <div className="ws-gen-block">
       <Segmented<'draft' | 'final'> label="Quality" size="sm" value={quality} onChange={setQuality} options={[{ value: 'draft', label: 'Draft · faster' }, { value: 'final', label: 'Final' }]} />
       {quality === 'draft' && <p className="t-meta">Today every take is made at final quality; a draft request is recorded with the take.</p>}
+      {/* the MiniMax H3 Community License §IV.2: the engine is named where video is made */}
+      <p className="t-meta ws-engine-credit">Video by MiniMax H3, on this machine</p>
       <GenButton gate={gate} engine="video" type="GENERATE_TAKE" variant="primary" icon={<IconTake aria-hidden />} target={{ productionId: p.id, shotId: shot.id }}
         payload={{ productionId: p.id, shotId: shot.id, quality, ...(select ? { select: true } : {}), ...(seed === 'reuse' && last?.seed !== undefined ? { seed: last.seed } : {}) }}
         disabled={dirty} reason="Save the shot first: the new take is made from the saved shot.">{shot.takes.length ? 'New take' : 'Make the first take'}</GenButton>
@@ -521,6 +525,11 @@ function Provenance({ take, shot }: { take?: Take; shot: Shot }) {
 function Boundary({ p, shot, value, onChange, continuation, onContinuation }: { p: Production; shot: Shot; value?: ShotBoundary; onChange: (b: ShotBoundary) => void; continuation?: ContinuationChoice; onContinuation: (c: ContinuationChoice) => void }) {
   const { state } = useStudio();
   const shown = value ?? boundaryOf(p, shot);
+  // the first shot of a scene has no shot before it in the scene: only a transition can be made (the preflight
+  // refuses a continuous or a cut join there), so the other two are offered disabled, with the reason (QA m2)
+  const order = orderedShots(p); const i = order.findIndex((s) => s.id === shot.id);
+  const first = i <= 0 || order[i - 1].sceneId !== shot.sceneId;
+  const firstWhy = i <= 0 ? 'The film’s first shot has no shot before it: it starts fresh.' : 'The first shot of a scene has no shot before it in the scene: it starts fresh.';
   const studio = state.settings.generation?.continuation;
   const g = MINIMAX_H3_LOCAL.guides!;
   const studioFrames = studio?.guideFrames && g.continuationChoices.includes(studio.guideFrames) ? studio.guideFrames : g.defaultContinuationFrames;
@@ -529,9 +538,9 @@ function Boundary({ p, shot, value, onChange, continuation, onContinuation }: { 
     <>
       <Field label="Join with the shot before" help={<>{BOUNDARY_WORDS[shown].line}{value ? '' : ' (planned from the scene order; choose to set it)'}</>}>
         <Segmented<ShotBoundary> label="Join with the shot before" size="sm" value={shown} onChange={onChange}
-          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label }))} />
+          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label, disabled: first && b !== 'transition', reason: first && b !== 'transition' ? firstWhy : undefined }))} />
       </Field>
-      {shown === 'continuous' && (
+      {shown === 'continuous' && !first && (
         <>
           {/* the engine's capability record (src/domain/video-capability.ts): only the lengths the guide node keeps */}
           <Field label="Guide from the shot before" help={`How much of the shot before the take starts from. Longer carries more motion and less new picture. Studio setting: ${studioFrames} frames.`}>
@@ -587,7 +596,8 @@ function DriftLine({ take }: { take: Take }) {
     d.place ? (d.place.measured ? `place ${d.place.value!.toFixed(2)} of ${d.place.threshold?.toFixed(2) ?? '—'}` : 'place not measured') : null,
     d.identity && d.identity.of !== undefined ? `faces ${d.identity.applied ?? 0} of ${d.identity.of}` : null,
   ].filter(Boolean).join(' · ');
-  return <span className="ws-drift-line t-meta">{d.review && <span className="badge badge-wait">Review</span>}<span>{parts}</span></span>;
+  // the Review badge is the verdict's, on the checks line above (one badge per card)
+  return <span className="ws-drift-line t-meta"><span>{parts}</span></span>;
 }
 
 /** One line on the take card under its verdict: what its checks found (a failure named, every flag to review named,
@@ -595,7 +605,14 @@ function DriftLine({ take }: { take: Take }) {
 function ChecksLine({ take }: { take: Take }) {
   const ch = takeChecksOf(take);
   if (!ch) return <span className="ws-checks-line t-meta">Not checked</span>;
-  return <span className="ws-checks-line t-meta" data-tone={ch.tone} title={ch.summary}>{ch.summary}</span>;
+  // the take's verdict (src/domain/take-checks.ts, the worker's own rule): a REVIEW take is never chosen by itself —
+  // the badge says why it waits for the producer's eye (QA Q6)
+  const v = takeVerdictOf(take);
+  return (
+    <span className="ws-checks-line t-meta" data-tone={ch.tone} title={ch.summary}>
+      {v.decision === 'REVIEW' && <span className="badge badge-wait ws-badge-lead" title="A flag to look at: this take is not chosen by itself.">Review</span>}{ch.summary}
+    </span>
+  );
 }
 
 const OUTCOME: Record<TakeCheck['outcome'], { word: string; tone: 'done' | 'waiting' | 'failed' | 'idle' }> = {

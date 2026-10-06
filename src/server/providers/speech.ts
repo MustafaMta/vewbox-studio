@@ -4,7 +4,7 @@ import { StudioError } from '@/domain/errors';
 import type { Dialect, Language } from '@/domain/vocabulary';
 import { env } from '../env';
 import { log } from '../log';
-import { followJobSignal, stopReasonOf } from '../jobs/context';
+import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
@@ -35,6 +35,24 @@ const asr = () => env().ASR_URL.replace(/\/$/, '');
  *  restarts or dies while sending it (the connection reset mid-body: "terminated") is UNAVAILABLE — a retryable
  *  infrastructure failure — never an unclassified error, and a stalled body cannot hang the job past its timeout. */
 async function post(url: string, fd: FormData, timeoutMs: number): Promise<{ res: Response; body: Buffer }> {
+  // A RESTARTING CONTAINER refuses connections for a while: the request never reached it, so it is sent again every
+  // 3 s for up to SPEECH_START_WAIT_MS (default 90 s) before the attempt fails — a docker restart of tts/asr does not
+  // cost an attempt. Anything else (a reset mid-answer, a timeout) is not resent here: the job's retry decides.
+  // (inside a job only: a page asking a service that is simply not started gets its answer at once)
+  const waitMs = jobSignal() ? Number(process.env.SPEECH_START_WAIT_MS ?? 90_000) : 0;
+  const t0 = Date.now();
+  for (;;) {
+    try { return await postOnce(url, fd, timeoutMs); } catch (e) {
+      const refused = e instanceof StudioError && e.details?.refused === true;
+      if (!refused || Date.now() - t0 >= waitMs) throw e;
+      log.warn({ url: url.replace(/^https?:\/\/[^/]+/, ''), waitedMs: Date.now() - t0 }, 'speech service refuses connections (restarting?); sending again shortly');
+      await new Promise<void>((r) => { const s = jobSignal(); const tm = setTimeout(r, 3000); s?.addEventListener('abort', () => { clearTimeout(tm); r(); }, { once: true }); });
+      const s = jobSignal(); if (s?.aborted) throw s.reason;
+    }
+  }
+}
+
+async function postOnce(url: string, fd: FormData, timeoutMs: number): Promise<{ res: Response; body: Buffer }> {
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
   const unlink = followJobSignal(ctrl); // a stopped job aborts the request (src/server/jobs/context.ts)
   try {
@@ -48,7 +66,7 @@ async function post(url: string, fd: FormData, timeoutMs: number): Promise<{ res
     const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
     const why = cause?.code ?? cause?.message ?? (e as Error).message;
     const timedOut = (e as Error).name === 'AbortError' || /TIMEOUT/i.test(why);
-    throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`);
+    throw new StudioError('UNAVAILABLE', timedOut ? `${url.replace(/^https?:\/\/[^/]+/, '')} did not answer in time (${why}); the service may be busy loading or downloading a model.` : `${url.replace(/^https?:\/\/[^/]+/, '')} is not reachable (${why}). Start the service.`, { refused: cause?.code === 'ECONNREFUSED' });
   } finally { clearTimeout(t); unlink(); }
 }
 

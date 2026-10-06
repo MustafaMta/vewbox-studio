@@ -11,10 +11,12 @@ import { bootstrap } from '@/server/bootstrap';
 import { closeDb } from '@/server/db/client';
 import { ORCHESTRATION_LANE, addEvent, cancelled, claim, complete, fail, heartbeat, heartbeatIntervalMs, laneOf, reapStale, releaseForRestart, setProgress, suspend, type Lane } from '@/server/jobs/queue';
 import { releaseProcessGpuLeases } from '@/server/gpu/lease';
+import { tmpRoot } from '@/server/media/ffmpeg';
 import { waitRequestOf } from './handlers/wait';
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
 import { jobDeadline } from '@/server/jobs/deadlines';
+import { workDeadlineMs } from '@/server/jobs/work-deadline';
 import { isFencedWrite } from '@/server/jobs/fence';
 import { sweepJobFiles } from '@/server/jobs/outputs';
 import { settleDialogueReviews } from '@/server/jobs/reviews';
@@ -74,7 +76,8 @@ async function run(job: Job, lane: Lane) {
   // task (a ComfyUI prompt) the next attempt is meant to adopt; the attempt freezes at its next checkpoint instead
   const stop = (reason: unknown) => { if (handedBack.has(job.id)) return; if (!jobCtrl.signal.aborted) jobCtrl.abort(reason); };
   const frozen = () => new Promise<never>(() => {});
-  const deadline = jobDeadline(job.type);
+  // the flat deadline, or longer when the job's own work asks for it (PLAN_SHOTS: its scenes at the model's speed)
+  const deadline = jobDeadline(job.type, process.env, await workDeadlineMs(job));
   const deadlineTimer = deadline.mode === 'off' ? undefined : setTimeout(() => {
     jl.warn({ deadlineMs: deadline.ms, mode: deadline.mode }, 'job passed its deadline');
     void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms }).catch(() => undefined);
@@ -217,6 +220,20 @@ async function run(job: Job, lane: Lane) {
   }
 }
 
+/** Remove entries of the work folder untouched for `maxAgeMs` (default 12 h). */
+async function sweepStaleTmp(maxAgeMs = 12 * 3600_000): Promise<void> {
+  const root = tmpRoot();
+  const entries = await fsp.readdir(root, { withFileTypes: true }).catch(() => []);
+  let removed = 0;
+  for (const e of entries) {
+    const abs = path.join(root, e.name);
+    const st = await fsp.stat(abs).catch(() => null);
+    if (!st || Date.now() - st.mtimeMs < maxAgeMs) continue;
+    await fsp.rm(abs, { recursive: true, force: true }).then(() => { removed++; }, () => undefined);
+  }
+  if (removed) log.info({ root, removed }, 'removed old work folders (left by stopped or killed workers)');
+}
+
 let lastReap = 0;
 async function tick() {
   await touchAlive();
@@ -241,6 +258,9 @@ async function main() {
   // bootstrap() migrates, seeds an empty database and syncs the organisation (once: audit B5 measured a second sync
   // here, 106–211 ms per start)
   await bootstrap();
+  // work folders a killed worker left behind (an export's conformed parts, a take's downloads: gigabytes) are removed
+  // once they are older than any job may run (the longest deadline is 3 h; an orchestrator's work folders are small)
+  void sweepStaleTmp().catch((e: Error) => log.warn({ err: e.message }, 'could not sweep old work folders'));
   syncRegistry().catch((e) => log.warn({ err: (e as Error).message }, 'registry sync failed'));
   const loop = setInterval(() => { void tick(); }, 1500);
   void tick();

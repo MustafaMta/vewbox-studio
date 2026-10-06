@@ -56,6 +56,22 @@ describe('unloaders', () => {
     expect(engines().map((e) => e.name)).toContain('lipsync');
     expect(GPU_FAMILIES).toContain('LIPSYNC');
   });
+  it('a background LIPSYNC hold (an evaluation) waits behind the films; a worker CORRECT_LIPSYNC request is a normal one', () => {
+    const t = new Date(Date.now() - 60_000).toISOString();
+    const rows = [
+      { holder: 'bg:eval:1', ticket: 1, family: 'LIPSYNC', state: 'WAITING', jobId: null, requestedAt: t },
+      { holder: 'worker:2', ticket: 2, family: 'VIDEO', state: 'WAITING', jobId: 'job-take', requestedAt: t },
+    ];
+    // the older background hold does not pass the worker's VIDEO request
+    expect(admits(rows, { holder: 'bg:eval:1', family: 'LIPSYNC', jobId: null })).toBe(false);
+    expect(admits(rows, { holder: 'worker:2', family: 'VIDEO', jobId: 'job-take' })).toBe(true);
+    // alone, it still waits while a worker GPU job is queued; it goes when none is
+    const alone = [rows[0]];
+    expect(admits(alone, { holder: 'bg:eval:1', family: 'LIPSYNC', jobId: null }, Date.now(), { gpuJobsWaiting: true })).toBe(false);
+    expect(admits(alone, { holder: 'bg:eval:1', family: 'LIPSYNC', jobId: null }, Date.now(), { gpuJobsWaiting: false })).toBe(true);
+    // the worker's own correction (normal) takes a free card at once
+    expect(admits([{ holder: 'worker:3', ticket: 3, family: 'LIPSYNC', state: 'WAITING', jobId: 'job-fix' }], { holder: 'worker:3', family: 'LIPSYNC', jobId: 'job-fix' }, Date.now(), { gpuJobsWaiting: true })).toBe(true);
+  });
 });
 
 describe('the in-process lease (GPU_LEASE=memory rollback)', () => {
