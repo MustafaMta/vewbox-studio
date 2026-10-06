@@ -42,9 +42,17 @@ export function disclosureOf(p: Production, assets: Asset[], sourceAssetIds: str
   return { comment: AI_DISCLOSURE, description, engines: engines.length ? engines : ['MiniMax H3'] };
 }
 
-/** The end-credit card's lines. */
+/** An engine's public name for the credit card: no checkpoint, precision or tier tags, no hub owner ("MiniMax-H3 (local,
+ *  pruned int8, base 20 steps)" → "MiniMax H3", "IndexTTS-2.5" → "IndexTTS 2.5", "OpenMOSS-Team/MOSS-TTS-v1.5" →
+ *  "MOSS-TTS v1.5"). QA 2026-10-06: the Tea card listed one engine twice under two internal tags. */
+export function publicEngineName(name: string): string {
+  const base = name.replace(/\s*\(.*?\)\s*/g, ' ').trim().split('/').pop()!.trim();
+  return base.replace(/^MiniMax[- ]?H3\b.*/i, 'MiniMax H3').replace(/[- ]v?(\d+(?:\.\d+)*)$/i, (_m, v: string) => ` ${/v\d/i.test(_m) ? 'v' : ''}${v}`).trim();
+}
+
+/** The end-credit card's lines: each engine once, by its public name. */
 export function creditLines(p: Pick<Production, 'title'>, d: Disclosure): string[] {
-  return [p.title, '', 'AI-generated with Vewbox Studio', 'Video: MiniMax H3', '', 'Engines', ...d.engines];
+  return [p.title, '', 'AI-generated with Vewbox Studio', 'Video: MiniMax H3', '', 'Engines', ...Array.from(new Set(d.engines.map(publicEngineName)))];
 }
 
 /** The ffmpeg `-metadata` arguments that carry the disclosure (standard keys every MP4/MOV reader shows). */

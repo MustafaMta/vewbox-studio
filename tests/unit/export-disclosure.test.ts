@@ -26,7 +26,8 @@ describe('AI disclosure (licence compliance)', () => {
     expect(d.engines).toEqual(['MiniMax-H3 (local, pruned int8)', 'IndexTTS-2.5', 'ACE-Step 1.5']);
     expect(d.description).toBe(`${AI_DISCLOSURE}. Engines: MiniMax-H3 (local, pruned int8); IndexTTS-2.5; ACE-Step 1.5.`);
     expect(disclosureMetadataArgs(d, 'T')).toEqual(['-metadata', `comment=${AI_DISCLOSURE}`, '-metadata', `description=${d.description}`, '-metadata', 'title=T']);
-    expect(creditLines(p, d)).toEqual(['The Night Shift', '', 'AI-generated with Vewbox Studio', 'Video: MiniMax H3', '', 'Engines', ...d.engines]);
+    // the card names each engine once, by its public name (QA 2026-10-06: two internal tags of one H3)
+    expect(creditLines(p, { ...d, engines: [...d.engines, 'MiniMax-H3 (local, pruned int8, base 20 steps)', 'OpenMOSS-Team/MOSS-TTS-v1.5'] })).toEqual(['The Night Shift', '', 'AI-generated with Vewbox Studio', 'Video: MiniMax H3', '', 'Engines', 'MiniMax H3', 'IndexTTS 2.5', 'ACE-Step 1.5', 'MOSS-TTS v1.5']);
   });
   it('a film with nothing identifiable still discloses MiniMax H3', () => {
     expect(disclosureOf({ ...p, shots: [], song: undefined } as Production, []).engines).toEqual(['MiniMax H3']);
