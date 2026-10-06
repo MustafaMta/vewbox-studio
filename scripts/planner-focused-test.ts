@@ -1,5 +1,5 @@
 /* PLANNER FOCUSED TEST (producer Phase 1; docs/research/MODEL-EVAL-2026-10.md §12): the production planner
- * (Qwen3.8-27B-FP8 on vLLM, compose service llm-vllm) through the studio's OWN planning code paths
+ * (Qwen3.8-27B-NVFP4 on vLLM, compose service llm-vllm) through the studio's OWN planning code paths
  * (src/server/story/engine.ts → src/server/providers/llm.ts: the app's request, schemas, repairs, truncation handling,
  * the GPU lease), on real Vewbox tasks, in one chain so continuity can be read across the outputs:
  *   1 concept      proposeIdea SHORT, with the studio's Elias Moore and Najm and Elias's workshop required
@@ -29,7 +29,7 @@ process.env.GPU_LEASE_DATABASE_URL = live; // the machine's one lease
 process.env.LLM_PROVIDER = 'openai-compatible';
 process.env.OPENAI_COMPATIBLE_BASE_URL = BASE;
 process.env.OPENAI_COMPATIBLE_RUNTIME = 'vllm';
-process.env.OPENAI_COMPATIBLE_MODEL = opt('model', 'Qwen3.8-27B-FP8');
+process.env.OPENAI_COMPATIBLE_MODEL = opt('model', 'Qwen3.8-27B-NVFP4');
 process.env.LLM_CONTEXT_LENGTH = opt('ctx', '16384');
 process.env.MINIMAX_API_KEY = ''; process.env.ANTHROPIC_API_KEY = '';
 const MODEL = process.env.OPENAI_COMPATIBLE_MODEL;

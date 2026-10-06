@@ -16,13 +16,13 @@ async function llmWith(vars: Record<string, string | undefined>) {
 }
 
 describe('the local story model', () => {
-  it('is Qwen3.8-27B-FP8 (vLLM) when OPENAI_COMPATIBLE_MODEL is unset or empty; Qwen3.6 is the rollback', async () => {
+  it('is Qwen3.8-27B-NVFP4 (vLLM) when OPENAI_COMPATIBLE_MODEL is unset or empty; Qwen3.6 is the rollback', async () => {
     for (const value of [undefined, '']) {
       const llm = await llmWith({ OPENAI_COMPATIBLE_MODEL: value });
       const cfg = llm.resolveProvider();
       expect(cfg.provider).toBe('openai-compatible');
-      expect(cfg.model).toBe('Qwen3.8-27B-FP8');
-      expect(llm.DEFAULT_LOCAL_LLM).toBe('Qwen3.8-27B-FP8');
+      expect(cfg.model).toBe('Qwen3.8-27B-NVFP4');
+      expect(llm.DEFAULT_LOCAL_LLM).toBe('Qwen3.8-27B-NVFP4');
       expect(llm.FALLBACK_LOCAL_LLM).toBe('qwen3.6:27b-q8_0');
     }
   });

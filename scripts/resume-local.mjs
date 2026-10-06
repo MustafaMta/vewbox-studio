@@ -147,7 +147,7 @@ const STEPS = [
       try { const j = JSON.parse(asr.body); caps = j.capabilities ? `; asr capabilities: ${Object.entries(j.capabilities).map(([k, v]) => `${k}=${capability(v)}`).join(', ')}` : ''; } catch { /* older service */ }
       return { ok: true, detail: out.join('; ') + caps };
     } },
-  { id: 'planner', name: 'The planner (vLLM, Qwen3.8-27B-FP8) loads from the store, answers /v1/models, then sleeps (the GPU lease wakes it)', cmd: `docker compose -p ${PROJECT} up -d llm-vllm; GET http://127.0.0.1:8050/v1/models; POST /sleep?level=2`,
+  { id: 'planner', name: 'The planner (vLLM, Qwen3.8-27B-NVFP4) loads from the store, answers /v1/models, then sleeps (the GPU lease wakes it)', cmd: `docker compose -p ${PROJECT} up -d llm-vllm; GET http://127.0.0.1:8050/v1/models; POST /sleep?level=2`,
     go: async () => {
       // Ollama's `llm` (the Qwen3.6 rollback) stays stopped: two LLM servers would fight for the card
       run('docker', compose('stop', 'llm'));

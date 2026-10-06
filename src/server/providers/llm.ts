@@ -71,13 +71,13 @@ const isLocalLlm = (baseUrl: string) => llmRuntime(baseUrl) !== 'remote';
 /** The local model's context window, prompt and answer together (vLLM --max-model-len / Ollama num_ctx). */
 export const localContextLength = (): number => env().LLM_CONTEXT_LENGTH ?? env().OLLAMA_CONTEXT_LENGTH;
 
-/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.8-27B-FP8 — the official fine-grained FP8
- *  checkpoint Qwen/Qwen3.8-27B-FP8 (Apache-2.0, revision 017b9c7a, manifest group llm-qwen3.8-27b-fp8) served by vLLM
- *  (compose service llm-vllm) under this id (`--served-model-name`); the producer's Phase 1 planner, 2026-10-06
- *  (promotion record docs/research/MODEL-EVAL-2026-10.md §12). The previous planner, Qwen3.6-27B Q8_0 on Ollama
+/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.8-27B-NVFP4 — Inferact/Qwen3.8-27B-NVFP4
+ *  (ModelOpt NVFP4 of Qwen/Qwen3.8-27B, Apache-2.0, revision 6128240e, manifest group llm-qwen3.8-27b-nvfp4) served by
+ *  vLLM (compose service llm-vllm) under this id (`--served-model-name`); the producer's production planner runtime on
+ *  the single RTX 5090 (model-stack correction 2026-10-07; the FP8 checkpoint stays installed, inactive). The previous planner, Qwen3.6-27B Q8_0 on Ollama
  *  (`qwen3.6:27b-q8_0`, weights kept in the store), is the rollback only: OPENAI_COMPATIBLE_BASE_URL=http://…:11434/v1 +
  *  OPENAI_COMPATIBLE_MODEL=qwen3.6:27b-q8_0 — never an automatic fallback. */
-export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-FP8';
+export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-NVFP4';
 /** The rollback when the production model cannot run (an explicit switch of base URL and model). */
 export const FALLBACK_LOCAL_LLM = 'qwen3.6:27b-q8_0';
 
@@ -143,7 +143,7 @@ export function localModelRequest(_model: string, reasoning = false, runtime: Lo
   return reasoning ? { think: true, reasoning_effort: 'high' } : { think: false, reasoning_effort: 'none' };
 }
 
-/** vLLM (Qwen3.8-27B-FP8): thinking through the chat template (`chat_template_kwargs.enable_thinking`, the model card's
+/** vLLM (Qwen3.8-27B-NVFP4): thinking through the chat template (`chat_template_kwargs.enable_thinking`, the model card's
  *  switch; the server's default is off too) and the card's sampling — non-thinking: top_p 0.8, top_k 20, presence 1.5
  *  at the stage's own temperature (the card's 0.7 when the stage names none); thinking: temperature 1.0, top_p 0.95,
  *  top_k 20, presence 0. Pure (tested). */

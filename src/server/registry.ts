@@ -90,7 +90,7 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
   }
   // local story model
   const planner = llmDisplayName(e.OPENAI_COMPATIBLE_MODEL) === PLANNER_MODEL;
-  rows.push({ name: 'llm/openai-compatible', version: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL), source: e.OPENAI_COMPATIBLE_BASE_URL, license: planner ? 'Apache-2.0 (Qwen/Qwen3.8-27B-FP8)' : 'per model (Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: planner ? { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto', checkpoint: 'Qwen/Qwen3.8-27B-FP8@017b9c7af6b5689d5dd426a76e0bc077eb5ca20a', path: 'llm/qwen3.8-27b-fp8' } : { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto' }, updatedAt: now });
+  rows.push({ name: 'llm/openai-compatible', version: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL), source: e.OPENAI_COMPATIBLE_BASE_URL, license: planner ? 'Apache-2.0 (Inferact/Qwen3.8-27B-NVFP4 of Qwen/Qwen3.8-27B)' : 'per model (Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: planner ? { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto', checkpoint: 'Inferact/Qwen3.8-27B-NVFP4@6128240ebaf4eaa7bad2b3d1c72c37d677c5f462', path: 'llm/qwen3.8-27b-nvfp4' } : { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto' }, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

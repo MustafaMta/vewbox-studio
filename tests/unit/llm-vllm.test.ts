@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { llmDisplayName, PLANNER_MODEL } from '@/domain/llm-names';
 
-/** THE PRODUCTION PLANNER ON vLLM (docs/research/MODEL-EVAL-2026-10.md §12): Qwen3.8-27B-FP8 served by vLLM (compose
+/** THE PRODUCTION PLANNER ON vLLM (docs/research/MODEL-EVAL-2026-10.md §12): Qwen3.8-27B-NVFP4 served by vLLM (compose
  *  service llm-vllm). The request carries the model card's thinking switch (chat_template_kwargs.enable_thinking,
  *  off unless a stage asks) and its sampling, never Ollama's fields; max_tokens never passes the context's room (vLLM
  *  refuses that request); the GPU lease puts vLLM to sleep (level 2) and the next call wakes it (weights reloaded from
@@ -34,12 +34,12 @@ describe('which server the base URL is', () => {
     expect(llm.llmRuntime('https://api.example.com/v1', '')).toBe('remote');
     expect(llm.llmRuntime('http://127.0.0.1:8050/v1', 'ollama')).toBe('ollama');
   });
-  it('the default local model is Qwen3.8-27B-FP8; Qwen3.6 is the rollback, only when named', async () => {
+  it('the default local model is Qwen3.8-27B-NVFP4; Qwen3.6 is the rollback, only when named', async () => {
     const { llm } = await withVllm();
-    expect(llm.resolveProvider().model).toBe('Qwen3.8-27B-FP8');
+    expect(llm.resolveProvider().model).toBe('Qwen3.8-27B-NVFP4');
     expect(llm.DEFAULT_LOCAL_LLM).toBe(PLANNER_MODEL);
     expect(llm.FALLBACK_LOCAL_LLM).toBe('qwen3.6:27b-q8_0');
-    expect(llmDisplayName('')).toBe('Qwen3.8-27B-FP8');
+    expect(llmDisplayName('')).toBe('Qwen3.8-27B-NVFP4');
     expect(llmDisplayName('qwen3.6:27b-q8_0')).toMatch(/rollback/);
   });
 });
@@ -54,11 +54,11 @@ describe('the vLLM request', () => {
     });
     const r = await llm.chat([{ role: 'user', content: 'plan' }], { maxTokens: 2000, temperature: 0.6 });
     expect(r.text).toBe('{"ok":true}');
-    expect(sent[0]).toMatchObject({ model: 'Qwen3.8-27B-FP8', stream: true, max_tokens: 2000, temperature: 0.6, top_p: 0.8, top_k: 20, presence_penalty: 1.5, chat_template_kwargs: { enable_thinking: false } });
+    expect(sent[0]).toMatchObject({ model: 'Qwen3.8-27B-NVFP4', stream: true, max_tokens: 2000, temperature: 0.6, top_p: 0.8, top_k: 20, presence_penalty: 1.5, chat_template_kwargs: { enable_thinking: false } });
     expect(sent[0]).not.toHaveProperty('options');
     expect(sent[0]).not.toHaveProperty('keep_alive');
     expect(sent[0]).not.toHaveProperty('think');
-    expect(leases).toEqual([{ family: 'LLM', mb: llm.llmLeaseMb('Qwen3.8-27B-FP8') }]);
+    expect(leases).toEqual([{ family: 'LLM', mb: llm.llmLeaseMb('Qwen3.8-27B-NVFP4') }]);
   });
   it('reasoning, when a stage asks: enable_thinking with the card\'s thinking sampling and its own budget', async () => {
     const { llm } = await withVllm();

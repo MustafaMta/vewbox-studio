@@ -41,14 +41,14 @@ x-app-env: &app-env
   LLM_PROVIDER: ${LLM_PROVIDER:-auto}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
-  # the local story model: Qwen3.8-27B-FP8 on vLLM (service llm-vllm) since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md
+  # the local story model: Qwen3.8-27B-NVFP4 on vLLM (service llm-vllm) since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md
   # §12). Rollback only (Qwen3.6-27B Q8_0 on Ollama): OPENAI_COMPATIBLE_BASE_URL=http://llm:11434/v1,
   # OPENAI_COMPATIBLE_RUNTIME=ollama, OPENAI_COMPATIBLE_MODEL=qwen3.6:27b-q8_0 (and stop `llm-vllm`, start `llm` under profile fallback)
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm-vllm:8000/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-local}
-  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-Qwen3.8-27B-FP8}
+  OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-Qwen3.8-27B-NVFP4}
   OPENAI_COMPATIBLE_RUNTIME: ${OPENAI_COMPATIBLE_RUNTIME:-vllm}
-  LLM_CONTEXT_LENGTH: ${LLM_CONTEXT_LENGTH:-16384}
+  LLM_CONTEXT_LENGTH: ${LLM_CONTEXT_LENGTH:-32768}
   # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
   OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
@@ -437,13 +437,14 @@ services:
       start_period: 20s
       retries: 5
 
-  # THE PRODUCTION PLANNER (docs/research/MODEL-EVAL-2026-10.md §12): the official Qwen/Qwen3.8-27B-FP8 (Apache-2.0,
-  # manifest group llm-qwen3.8-27b-fp8 → <store>/llm/qwen3.8-27b-fp8, read-only) on vLLM's OpenAI server. 28.8 GB of FP8
-  # weights on the 32.6 GB card: eager mode (no CUDA graphs — they do not fit, per vLLM's RTX 5090 recipe), an FP8 KV
-  # cache, LLM_CONTEXT_LENGTH tokens of context, one sequence at a time. Thinking is off unless a request asks
-  # (chat_template_kwargs.enable_thinking). The GPU lease frees the card with vLLM's sleep mode (level 2: weights and
-  # cache dropped; /wake_up + reload_weights on the next request), which needs the dev endpoints (VLLM_SERVER_DEV_MODE=1,
-  # reachable on 127.0.0.1 only). Ollama's `llm` stays stopped (the Gemma emergency fallback only).
+  # THE PRODUCTION PLANNER (producer model-stack correction 2026-10-07): Inferact/Qwen3.8-27B-NVFP4 (ModelOpt NVFP4 of
+  # Qwen/Qwen3.8-27B, Apache-2.0; manifest group llm-qwen3.8-27b-nvfp4 → <store>/llm/qwen3.8-27b-nvfp4, read-only) on
+  # vLLM's OpenAI server, configured as vLLM's single-RTX-5090 recipe: TP 1, 32K context, FP8 KV cache, eager mode (CUDA
+  # graph capture runs out of memory on one 5090), the qwen3 reasoning parser; at most 2 sequences. Thinking is off unless
+  # a request asks (chat_template_kwargs.enable_thinking). The GPU lease frees the card with vLLM's sleep mode (level 2:
+  # weights and cache dropped; /wake_up + reload_weights on the next request), which needs the dev endpoints
+  # (VLLM_SERVER_DEV_MODE=1, reachable on 127.0.0.1 only). The FP8 checkpoint (llm/qwen3.8-27b-fp8) stays installed and
+  # inactive until NVFP4 is proven. Ollama's `llm` stays stopped (the Qwen3.6 rollback only).
   llm-vllm:
     logging: *logging
     # pinned by digest (v0.31.0, 2026-10-04; Qwen3.5/3.8 hybrid attention needs ≥ 0.17)
@@ -468,10 +469,11 @@ services:
     volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/cache/vllm, volume: { subpath: cache/vllm } } ]
     ports: [ "127.0.0.1:${VLLM_PORT:-8050}:8000" ]
     command:
-      - --model=/models/llm/qwen3.8-27b-fp8
-      - --served-model-name=Qwen3.8-27B-FP8
-      - --max-model-len=${LLM_CONTEXT_LENGTH:-16384}
-      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.96}
+      - --model=/models/llm/qwen3.8-27b-nvfp4
+      - --served-model-name=Qwen3.8-27B-NVFP4
+      - --tensor-parallel-size=1
+      - --max-model-len=${LLM_CONTEXT_LENGTH:-32768}
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.90}
       - --kv-cache-dtype=fp8
       - --enforce-eager
       - --max-num-seqs=2

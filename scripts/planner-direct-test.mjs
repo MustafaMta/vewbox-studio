@@ -4,14 +4,14 @@
  * schema, a long answer (truncation), strict instruction following, recall from a ≈ 12K-token prompt, a request past
  * --max-model-len (must be refused cleanly, not crash the server), and /health afterwards.
  *
- *   node scripts/planner-direct-test.mjs [--base http://127.0.0.1:8050] [--model Qwen3.8-27B-FP8] [--out <file.json>]
+ *   node scripts/planner-direct-test.mjs [--base http://127.0.0.1:8050] [--model Qwen3.8-27B-NVFP4] [--out <file.json>]
  */
 import fs from 'node:fs';
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 && argv[i + 1] ? argv[i + 1] : d; };
 const BASE = opt('base', 'http://127.0.0.1:8050');
-const MODEL = opt('model', 'Qwen3.8-27B-FP8');
+const MODEL = opt('model', 'Qwen3.8-27B-NVFP4');
 const OUT = opt('out', '');
 // the model card's non-thinking sampling (what the studio sends: src/server/providers/llm.ts vllmRequest)
 const SAMPLING = { temperature: 0.7, top_p: 0.8, top_k: 20, presence_penalty: 1.5, chat_template_kwargs: { enable_thinking: false } };
