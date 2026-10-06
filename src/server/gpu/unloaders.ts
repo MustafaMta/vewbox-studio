@@ -20,12 +20,21 @@ export const localOllamaBase = (): string | undefined => {
   return url && /:11434(\/|$)/.test(url) ? url.replace(/\/v1\/?$/, '').replace(/\/$/, '') : undefined;
 };
 
-/** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. */
+/** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. EVERY loaded model is unloaded (Ollama's
+ *  /api/ps), not only the studio's configured one: a benchmark or a second model left resident kept ~20–30 GB of
+ *  VRAM and host RAM under the next family (2026-10-06: a Qwen-Image frame job choked ComfyUI after an LLM batch). */
 export async function unloadOllama(): Promise<void> {
   const base = localOllamaBase();
-  const model = env().OPENAI_COMPATIBLE_MODEL;
-  if (!base || !model) return;
-  try { await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ }
+  if (!base) return;
+  let loaded: string[] = [];
+  try {
+    const r = await fetch(`${base}/api/ps`, { signal: AbortSignal.timeout(5_000) });
+    if (r.ok) loaded = ((await r.json()) as { models?: Array<{ name?: string; model?: string }> }).models?.map((m) => m.name ?? m.model ?? '').filter(Boolean) ?? [];
+  } catch { /* not running, or an older Ollama: fall back to the configured model */ }
+  const models = new Set([...loaded, env().OPENAI_COMPATIBLE_MODEL].filter((m): m is string => Boolean(m)));
+  for (const model of models) {
+    try { await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ }
+  }
 }
 
 const extra: Engine[] = [];
