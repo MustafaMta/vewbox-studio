@@ -25,8 +25,13 @@ export const CONTINUITY_QA = {
   blackLuma: 16,
   /** a ramp is a fade when the luma climbs (or falls) from black over at least this many frames, monotonically */
   fadeMinFrames: 6,
-  /** two consecutive frames whose mean absolute difference is under this are duplicates */
+  /** two consecutive frames whose mean absolute difference is under this are duplicates — or, in a still shot, under
+   *  `duplicateRelative` × the take's own median frame change (never under `duplicateFloor`): a locked-off camera on a
+   *  still subject changes by 0.1–0.3 luma a frame, which is motion, not a repeated frame (Arthur 1.1, 2026-10-06: 49 %
+   *  flagged, 0 identical frames) */
   duplicateDiff: 0.35,
+  duplicateRelative: 0.15,
+  duplicateFloor: 0.02,
   /** duplicates allowed (an engine may hold a frame on a still subject): more than this fraction of frames, or a run
    *  longer than `duplicateRun`, is flagged */
   duplicateFraction: 0.05,
@@ -88,8 +93,9 @@ export function judgeFades(s: FrameSeries, head = 0): QaCheck {
 /** Identical consecutive frames: their count and the longest run. */
 export function judgeDuplicates(s: FrameSeries, head = 0): QaCheck {
   const d = s.diffs.slice(head + 1);
+  const limit = Math.min(CONTINUITY_QA.duplicateDiff, Math.max(CONTINUITY_QA.duplicateFloor, CONTINUITY_QA.duplicateRelative * median(d)));
   let dup = 0, run = 0, longest = 0, at = -1, longestAt = -1;
-  d.forEach((x, i) => { if (x < CONTINUITY_QA.duplicateDiff) { dup++; run++; if (run === 1) at = i; if (run > longest) { longest = run; longestAt = at; } } else run = 0; });
+  d.forEach((x, i) => { if (x < limit) { dup++; run++; if (run === 1) at = i; if (run > longest) { longest = run; longestAt = at; } } else run = 0; });
   const fraction = d.length ? dup / d.length : 0;
   const ok = fraction <= CONTINUITY_QA.duplicateFraction && longest <= CONTINUITY_QA.duplicateRun;
   return { name: 'no-duplicate-frames', ok, value: dup, threshold: `≤ ${Math.round(CONTINUITY_QA.duplicateFraction * 100)} % of frames, runs ≤ ${CONTINUITY_QA.duplicateRun}`, detail: ok ? `${dup} repeated frame(s) of ${d.length}` : `${dup} repeated frame(s) of ${d.length} (${(fraction * 100).toFixed(1)} %), longest run ${longest} at ${((longestAt + head + 1) / s.fps).toFixed(2)} s (review)` };
