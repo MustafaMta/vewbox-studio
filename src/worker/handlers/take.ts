@@ -6,6 +6,7 @@ import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, sho
 import { StudioError } from '@/domain/errors';
 import type { Asset, QaCheck, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
+import { capabilityFor, type VideoQualityTier } from '@/domain/video-capability';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe, libraryRoot } from '@/server/media';
@@ -50,9 +51,13 @@ import { recordProducedTake } from '@/server/studio/notes';
  *  never replaces an existing one. If the worker restarts mid-way, the hosted task id is reused, not resubmitted. */
 
 /** `params.quality` as recorded on every take (docs/CONTRACTS-REDESIGN-BACKEND.md B6): the tier it was made at,
- *  and the tier asked for when that differs. Pure, so the rule is tested. */
-export function takeQuality(requested: 'draft' | 'final' | undefined): { quality: 'final'; qualityRequested?: 'draft' } {
-  return requested === 'draft' ? { quality: 'final', qualityRequested: 'draft' } : { quality: 'final' };
+ *  and the tier asked for when that differs. The local engine has two tiers (capability `tiers`,
+ *  docs/research/MODEL-EVAL-2026-10.md §8.4): `final` (the default: the base model, 20 steps) and `draft` (the turbo LoRA,
+ *  only when asked for). The hosted API has one tier, so a draft request there is made at final and recorded as asked.
+ *  Pure, so the rule is tested. */
+export function takeQuality(requested: 'draft' | 'final' | undefined, backend: 'local' | 'api' = 'local'): { quality: VideoQualityTier; qualityRequested?: 'draft' } {
+  if (requested !== 'draft') return { quality: 'final' };
+  return capabilityFor(backend).tiers?.draft ? { quality: 'draft' } : { quality: 'final', qualityRequested: 'draft' };
 }
 
 export const generateTake: Handler = async (ctx) => {
@@ -393,13 +398,15 @@ export const generateTake: Handler = async (ctx) => {
   let lastStatus = '';
   // the local engine runs under the GPU lease (one model family on the card at a time; other services unload
   // first); the hosted API needs no card and runs in the hosted lane's concurrency. The estimate is H3's measured peak;
-  // it also needs ≈ 40.8 GiB of the Docker VM's host RAM while staging (gpu/estimates.ts VIDEO_H3_HOST_RAM_MB)
+  // it also needs ≈ 46.5 GiB of the Docker VM's host RAM while staging, in either quality tier (gpu/estimates.ts
+  // VIDEO_H3_HOST_RAM_MB); the final tier holds the card about 3.2× as long as the draft (MODEL-EVAL §8.4)
   const run = <T>(fn: () => Promise<T>) => (backend === 'local' ? ctx.gpu('VIDEO', VIDEO_H3_VRAM_MB, fn, { jobId: ctx.job.id }) : fn());
   // the request as the contract sees it (the callbacks below are the job's own plumbing)
   const request = {
     prompt, seconds: clip.seconds, width: info.width, height: info.height, aspect: p.aspect, firstFrame, lastFrame, referenceImages: referenceImages.length ? referenceImages : undefined, referenceAudio: referenceAudio.length ? referenceAudio : undefined, guides: guides.length ? guides : undefined,
     lowering,
     seed, model: payload.model, resolution: payload.resolution,
+    quality: takeQuality(payload.quality, backend).quality,
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
   };
   const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
@@ -653,12 +660,13 @@ export const generateTake: Handler = async (ctx) => {
   const headKept = Boolean(guideRecord?.head && !guideRecord.head.repeats);
   const takeTimeline = { newFrames: headKept ? clip.frames : Math.max(1, Math.min(Math.round(seconds * H3_FPS), backend === 'local' ? clip.frames - trimStartFrames : Math.round(seconds * H3_FPS))), headFrames: trimStartFrames, clipFrames: clip.frames, basis: soundtrack?.kind ?? 'PLAN' };
   const takeWorld = { revisionId: world.read.revisionId, revision: world.read.revisionNumber, pinned: world.read.pinned, plate: world.read.location?.assetId ? { assetId: world.read.location.assetId, role: world.read.location.role } : undefined, location: loc ? { locationId: loc.id, identityVersion: pack.location?.identity.version ?? pack.establishing?.identity.version, establishedHere: Boolean(established) } : undefined, characters: world.read.characters.map((c) => ({ characterId: c.characterId, version: c.usedPinned ? c.pinnedVersion : c.currentVersion })) };
-  // THE QUALITY TIER (B6): what the take was really made at. The local MiniMax H3 path has one tier today (the
-  // official template: turbo LoRA, 4 or 8 steps — the standard, not a draft) and the hosted API has none, so every
-  // take is `final`; a `draft` request is kept as asked so the page can say it was not honoured. No second path is
-  // invented here.
-  const quality = takeQuality(payload.quality);
-  if (payload.quality === 'draft') await ctx.event('info', 'a draft take was asked for; local MiniMax H3 has one path, so it was made at final quality', { quality });
+  // THE QUALITY TIER (B6): what the take was really made at (the same rule chose the request's tier above). Local H3:
+  // `final` = the base model at 20 steps (the official templates' default); `draft` = the turbo LoRA, 4 or 8 steps,
+  // made only when the producer asked for it and recorded so. The hosted API has one tier: a draft request there is
+  // made at final and recorded as asked.
+  const quality = takeQuality(payload.quality, backend);
+  if (quality.qualityRequested === 'draft') await ctx.event('info', 'a draft take was asked for; the hosted MiniMax API has one tier, so it was made at final quality', { quality });
+  else if (quality.quality === 'draft') await ctx.event('info', 'made at the DRAFT tier as asked: the MiniMax H3 turbo LoRA (faster, less stable framing and identity than final)', { quality });
   const drift = { identity: { ok: applied.ok, characters: applied.characters }, location: plateDrift ? { plateAssetId: plateDrift.plateAssetId, frame: plateDrift.frame, meanDiff: plateDrift.meanDiff, rawMeanDiff: plateDrift.rawMeanDiff, threshold: plateDrift.threshold, matches: plateDrift.matches, measure: plateDrift.measure, basis: plateDrift.basis } : plateDriftNote ? { plateAssetId: pack.location?.assetId, measured: false, note: plateDriftNote } : undefined };
   const params = { ...(result.params ?? {}), ...quality, verdict, timeline: takeTimeline, world: takeWorld, sceneState: pack.sceneState, context: contextRecord(pack.context), attempt: attemptRecord(ctx.job.attempts, sh.takes.length), ...(guideSilence ? { dialogueGuide: guideSilence } : {}), ...(lipSyncRecord ? { lipSync: lipSyncRecord } : {}), ...(identityRecord ? { identityCheck: identityRecord } : {}), drift, ...(guideRecord ? { guide: guideRecord } : {}), identity: { rule: identityRule.rule, ok: identityRule.ok, lowered: identityRule.lowered, characters: identityRule.characters.map((c) => ({ characterId: c.characterId, assetId: c.assetId, picture: c.picture, source: c.source })), location: identityRule.location ? { locationId: identityRule.location.locationId, assetId: identityRule.location.assetId, picture: identityRule.location.picture } : undefined } };
   const provenance = { provider: 'MINIMAX', backend: result.backend, model: result.model, requestId: result.requestId, prompt, references, seed, params, workflowVersion: result.workflowVersion, codeVersion: env().CODE_VERSION, jobId: ctx.job.id, productionId: p.id, shotId: sh.id, relation, plannedRelation: pack.plannedRelation, graph: pack.graph, continuesTakeId, lowering, frames: clip.frames, lint: lint.checks.filter((c) => !c.ok), world: takeWorld };

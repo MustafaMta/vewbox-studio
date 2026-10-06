@@ -30,12 +30,12 @@ describe('lease estimates for ComfyUI image and H3 video', () => {
     expect(VIDEO_H3_VRAM_MB).toBeLessThanOrEqual(32607);
   });
 
-  it('H3 host RAM: 40.8 GiB of the 46.8 GiB Docker VM — the headroom the note records (≈ 6 GiB)', () => {
-    expect(section6).toMatch(/40\.2–40\.8 GiB of 46\.8/);
-    expect(VIDEO_H3_HOST_RAM_MB).toBe(Math.round(40.8 * 1024));
+  it('H3 host RAM: 46.5 GiB of the 78.5 GiB Docker VM (2026-10-06, both tiers) — ≈ 32 GiB of headroom', () => {
+    expect(section6).toMatch(/46\.0–46\.5 GiB of 78\.5/);
+    expect(VIDEO_H3_HOST_RAM_MB).toBe(Math.round(46.5 * 1024));
     const headroomGiB = (DOCKER_VM_RAM_MB - VIDEO_H3_HOST_RAM_MB) / 1024;
-    expect(headroomGiB).toBeGreaterThan(5.5);
-    expect(headroomGiB).toBeLessThan(6.5);
+    expect(headroomGiB).toBeGreaterThan(31);
+    expect(headroomGiB).toBeLessThan(33);
   });
 
   it('the handlers lease with these estimates (no literal left behind)', () => {
