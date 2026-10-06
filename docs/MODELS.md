@@ -11,6 +11,16 @@ inside the store ComfyUI's typed folders sit under `comfyui/` and the caches und
 weights running in ComfyUI. No LTX, Wan, Hunyuan, CogVideo, Mochi, Kling or Seedance model, weight or workflow exists
 in the tree or the manifest; adding one is out of policy.
 
+**Model-size and promotion policy (producer, 2026-10-06).** General-purpose production models (planning, story,
+screenplay, agents, World Bible and continuity reasoning, multimodal reasoning, image generation/editing) target the
+27B–30B class; no 122B-class models. 7–14B general models stay development, preview or emergency fallbacks only.
+Specialists (ASR, alignment, lip-sync, face detection/embeddings, VAEs, audio encoders, upscalers, QA models) are exempt:
+the strongest proven one regardless of size. Licences: commercial-safe only ([LICENSES.md](LICENSES.md) §0). Promotion:
+candidate → controlled benchmark → real UI test → compare → promote; keep the working model until the replacement is
+proven, and remove an obsolete model only after that. The promotion record is
+[research/MODEL-EVAL-2026-10.md](research/MODEL-EVAL-2026-10.md); the frozen stack is
+[directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md](directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md).
+
 ## Video
 
 | Engine | Where | Model / files | Licence | Notes |
