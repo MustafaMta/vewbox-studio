@@ -67,6 +67,22 @@ describe('local stream', () => {
     void p.catch(() => {});
   });
 
+  it('reasoning is off unless asked; asked, it gets its own budget inside the context', async () => {
+    const llm = await local();
+    const sent: Array<Record<string, unknown>> = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_u, init) => { sent.push(JSON.parse(String((init as RequestInit).body))); return sse(['{"ok":true}']); });
+    await llm.chat([{ role: 'user', content: 'x' }], { maxTokens: 2000 });
+    await llm.chat([{ role: 'user', content: 'x' }], { maxTokens: 2000, reasoning: true, reasoningTokens: 3000 });
+    await llm.chat([{ role: 'user', content: 'x'.repeat(30_000) }], { maxTokens: 2000, reasoning: true, reasoningTokens: 8000 });
+    expect(sent[0]).toMatchObject({ think: false, reasoning_effort: 'none', max_tokens: 2000 });
+    expect(sent[1]).toMatchObject({ think: true, reasoning_effort: 'high', max_tokens: 5000 });
+    // a 10K-token prompt in a 16K context: the thinking budget is cut to what the context has left
+    expect(sent[2].max_tokens).toBe(16384 - Math.ceil(30_000 / 3) - 8 - 384);
+    process.env.LLM_LOCAL_REASONING = 'on';
+    expect(llm.reasoningOf({})).toBe(true);
+    expect(llm.reasoningOf({ reasoning: false })).toBe(false);
+  });
+
   it('the local deadline grows with the output budget', async () => {
     const llm = await local();
     expect(llm.localDeadlineMs(0)).toBe(300_000);

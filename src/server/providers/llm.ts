@@ -16,7 +16,11 @@ import { followJobSignal, stopReasonOf } from '../jobs/context';
 export type LlmProvider = 'minimax' | 'anthropic' | 'openai-compatible';
 
 export interface LlmMessage { role: 'system' | 'user' | 'assistant'; content: string }
-export interface LlmOptions { maxTokens?: number; temperature?: number; provider?: LlmProvider; timeoutMs?: number; jobId?: string }
+/** `reasoning`: let the local model think before it answers, with at most `reasoningTokens` of thinking added to the
+ *  answer's budget (the context permitting). Off unless asked: explicit, never an accident (MODEL-EVAL-2026-10 §7). */
+export interface LlmOptions { maxTokens?: number; temperature?: number; provider?: LlmProvider; timeoutMs?: number; jobId?: string; reasoning?: boolean; reasoningTokens?: number }
+/** The thinking budget a reasoning call gets on top of its answer budget, when it names none. */
+export const DEFAULT_REASONING_TOKENS = 4096;
 /** `truncated`: the answer stopped at the output limit (OpenAI/Ollama `finish_reason: "length"`, Anthropic/MiniMax
  *  `stop_reason: "max_tokens"`) — on the local Ollama also when the prompt and the answer filled num_ctx. */
 export interface LlmResult { text: string; provider: LlmProvider; model: string; inputTokens?: number; outputTokens?: number; ms: number; finishReason?: string; truncated?: boolean; maxTokens?: number }
@@ -116,9 +120,12 @@ export const LOCAL_STALL_MS = 240_000;
  *  for a 120-token JSON; Gemma's answers ran 0.6–2 characters per token where JSON runs 3–4) — the hidden cause of
  *  budgets running out. `reasoning_effort: "none"` is the switch that endpoint maps to think=false (0 reasoning
  *  characters, 114 tokens, 3.6 s instead of 71 s); `think: false` stays for servers that read it. */
-export function localModelRequest(_model: string): Record<string, unknown> {
-  return { think: false, reasoning_effort: 'none' };
+export function localModelRequest(_model: string, reasoning = false): Record<string, unknown> {
+  return reasoning ? { think: true, reasoning_effort: 'high' } : { think: false, reasoning_effort: 'none' };
 }
+
+/** Whether a local call reasons: the call's own choice, else LLM_LOCAL_REASONING=on (an evaluation switch; default off). */
+export const reasoningOf = (opts: Pick<LlmOptions, 'reasoning'>, e: Record<string, string | undefined> = process.env): boolean => opts.reasoning ?? e.LLM_LOCAL_REASONING === 'on';
 
 type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
 
@@ -179,7 +186,7 @@ export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promi
 
 async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMessage[], opts: LlmOptions): Promise<LlmResult> {
   const t0 = Date.now();
-  const timeoutMs = opts.timeoutMs ?? (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl) ? localDeadlineMs(opts.maxTokens ?? 8000) : 300_000);
+  const timeoutMs = opts.timeoutMs ?? (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl) ? localDeadlineMs((opts.maxTokens ?? 8000) + (reasoningOf(opts) ? opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS : 0)) : 300_000);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   // a stopped job (cancel, deadline, lost lease) aborts the request with its own reason (src/server/jobs/context.ts)
@@ -198,9 +205,11 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     }
     // OpenAI-compatible. The local Ollama answers as a STREAM: a long answer from a large (partly CPU-offloaded) model
     // can take longer than Node's fetch waits for response headers (300 s), and a stream shows a stalled engine early
-    const maxTokens = opts.maxTokens ?? 8000;
     const local = isLocalOllama(cfg.baseUrl);
-    const res = await withTimeout(fetch(`${guardedEngineUrl(cfg.baseUrl, 'the local story model')}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    // an explicit reasoning call gets its thinking budget on top of the answer's, inside the context's room
+    const think = local && reasoningOf(opts);
+    const maxTokens = think ? Math.min((opts.maxTokens ?? 8000) + (opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS), Math.max(opts.maxTokens ?? 8000, env().OLLAMA_CONTEXT_LENGTH - estimateTokens(messages) - CONTEXT_MARGIN_TOKENS)) : opts.maxTokens ?? 8000;
+    const res = await withTimeout(fetch(`${guardedEngineUrl(cfg.baseUrl, 'the local story model')}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model, think) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
     const json = /text\/event-stream/i.test(res.headers.get('content-type') ?? '') && res.ok
       ? await withTimeout(readChatStream(res, ctrl, LOCAL_STALL_MS), timeoutMs, `${cfg.provider} ${cfg.model}`)
       : await res.json().catch(() => ({})) as ChatAnswer;
@@ -209,7 +218,7 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     const finishReason = json.choices?.[0]?.finish_reason;
     // reasoning the studio asked to be off still spends the answer's budget: say so (a server that ignores the switch)
     const reasoning = json.choices?.[0]?.message?.reasoning ?? '';
-    if (reasoning) log.warn({ model: cfg.model, reasoningChars: reasoning.length, outputTokens: json.usage?.completion_tokens }, 'the local model reasoned although thinking is off');
+    if (reasoning && !think) log.warn({ model: cfg.model, reasoningChars: reasoning.length, outputTokens: json.usage?.completion_tokens }, 'the local model reasoned although thinking is off');
     return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0, finishReason, truncated: finishReason === 'length', maxTokens };
   } catch (e) {
     if (stopReasonOf(ctrl.signal)) throw stopReasonOf(ctrl.signal);

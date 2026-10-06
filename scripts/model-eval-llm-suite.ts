@@ -10,6 +10,7 @@
  *     [--scenes 1-4]      ep-plan: only these scenes of the fixed episode (resumes from the saved earlier scenes)
  *     [--freeze]          write a missing fixture from this run's answer (done once, from the incumbent's run 1)
  *     [--out <sub>]       evidence under llm-suite/<model>/<sub>/
+ *     [--reasoning]       the reasoning-ON arm (thinking on, DEFAULT_REASONING_TOKENS on top of each budget)
  *
  * THE INPUTS (fixed, identical per model):
  *  - a synthetic SHOW built in memory around the copy database's "The Static Sky" (its cast and workshop): season 1,
@@ -56,6 +57,8 @@ process.env.DATABASE_URL = live.replace(/\/vewbox(\?|$)/, '/vewbox_llm$1');
 process.env.LLM_PROVIDER = 'openai-compatible';
 process.env.OPENAI_COMPATIBLE_MODEL = MODEL;
 process.env.MINIMAX_API_KEY = ''; process.env.ANTHROPIC_API_KEY = '';
+// --reasoning: every call thinks first (the reasoning-ON arm; LLM_LOCAL_REASONING, src/server/providers/llm.ts)
+if (flag('reasoning')) process.env.LLM_LOCAL_REASONING = 'on';
 
 const ROOT = process.cwd();
 const BASE = path.join(ROOT, 'docs/evidence/model-eval-2026-10/llm-suite');
