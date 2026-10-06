@@ -21,9 +21,6 @@ export const locationById = (s: StudioState, id: string | undefined | null): Loc
 export const showById = (s: StudioState, id: string | undefined | null): Show | undefined => (id ? s.shows.find((x) => x.id === id) : undefined);
 export const seasonById = (s: StudioState, id: string | undefined | null): Season | undefined => (id ? s.seasons.find((x) => x.id === id) : undefined);
 
-export const seasonsOf = (s: StudioState, showId: string): Season[] => s.seasons.filter((x) => x.showId === showId).sort((a, b) => a.number - b.number);
-export const episodesOf = (s: StudioState, seasonId: string): Production[] => s.productions.filter((p) => p.seasonId === seasonId).sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0));
-export const episodesOfShow = (s: StudioState, showId: string): Production[] => s.productions.filter((p) => p.showId === showId);
 export const shorts = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'SHORT');
 export const musicVideos = (s: StudioState): Production[] => s.productions.filter((p) => p.kind === 'MUSIC_VIDEO');
 

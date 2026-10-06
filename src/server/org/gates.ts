@@ -40,10 +40,6 @@ export async function approvalHolds(productionId: string, stage: PipelineStage):
   return approvalSubjectHash(p, stage) === a.subjectHash ? { ok: true, approvalId: a.id } : { ok: false, reason: 'CHANGED', approvalId: a.id };
 }
 
-export async function isApproved(productionId: string, stage: PipelineStage): Promise<boolean> {
-  return (await approvalHolds(productionId, stage)).ok;
-}
-
 /** Throw unless the gate is open. The error is non-retryable: a person has to act. */
 export async function requireApproval(productionId: string, stage: PipelineStage): Promise<void> {
   const r = await approvalHolds(productionId, stage);

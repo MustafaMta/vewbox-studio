@@ -1,7 +1,7 @@
 # Testing — the commands, the one regression suite, and when to run what
 
 The rule: **focused tests while you work, the full suite at every integration checkpoint** (before a merge into
-`main`, after a step of docs/IMPLEMENTATION-CHECKLIST.md lands, before an acceptance walk). Nothing here ever touches
+`main`, after a step of the current work plan lands, before an acceptance walk). Nothing here ever touches
 the producer's studio: not its database `vewbox`, not its library, not the server on :4200 (src/server/test-guard.ts
 refuses all three; docs/BACKEND-AUDIT-2026-10.md C3).
 

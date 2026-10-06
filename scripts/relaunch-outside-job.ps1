@@ -20,15 +20,17 @@
   Usage (from any shell; the script launches everything through WMI, so where it runs from does not matter):
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\relaunch-outside-job.ps1 -DryRun
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\relaunch-outside-job.ps1
-  -Repo defaults to the main checkout D:\volexar-studio\volexar-studio. Never resets Docker, never restarts a container.
+  -Repo defaults to the checkout this script lives in (the main checkout D:\vewbox). Never resets Docker, never
+  restarts a container.
 #>
 param(
-  [string]$Repo = 'D:\volexar-studio\volexar-studio',
+  [string]$Repo = (Split-Path -Parent $PSScriptRoot),
   [switch]$DryRun,
   [switch]$Force,
   [int]$WebPort = 4200
 )
 $ErrorActionPreference = 'Stop'
+$Repo = $Repo.TrimEnd('\', '/')
 function Say($m) { Write-Host ("[relaunch {0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $m) }
 function Fail($m) { Write-Host ("[relaunch] STOPPED: {0}" -f $m) -ForegroundColor Red; exit 1 }
 
@@ -65,7 +67,7 @@ function RootsOf([string]$like) {
     for ($i = 0; $i -lt 6; $i++) {
       $parent = $all | Where-Object { $_.ProcessId -eq $x.ParentProcessId } | Select-Object -First 1
       if (-not $parent -or $parent.Name -notin 'node.exe','powershell.exe','cmd.exe') { break }
-      if ($parent.Name -eq 'powershell.exe' -and $parent.CommandLine -notlike '*volexar-studio*') { break }
+      if ($parent.Name -eq 'powershell.exe' -and $parent.CommandLine -notlike "*$Repo*") { break }
       $x = $parent
     }
     # only the main checkout's processes: never an agent's worktree worker or server

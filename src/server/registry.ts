@@ -5,7 +5,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, kleinReferenceCanonical, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -32,9 +32,7 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2) and its optional secondary material
     { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
     { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
-    // the non-default klein redraw (CANONICAL_REFERENCE_ENGINE=klein) until the Qwen route is proven in the UI
-    { name: 'flux2-klein.canonical-reference', graph: kleinReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
-    // the Image Reference redraw (character from a picture): Qwen-Image-Edit-2511, the default since 2026-10-06
+    // the Image Reference redraw (character from a picture): Qwen-Image-Edit-2511, the only engine since 2026-10-06
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },
@@ -90,7 +88,7 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model
-  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.6 / Qwen3: Apache-2.0; Gemma 4: Apache-2.0 with the Gemma Terms of Use linked)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.8-27B-FP8, the production brain, and Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

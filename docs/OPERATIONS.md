@@ -11,8 +11,12 @@
 | `tts` | vewbox/tts-indextts | 8020 | GPU: IndexTTS 2.5 voices (English, Arabic) |
 | `tts-habibi` | vewbox/tts-habibi | 8021 | GPU: Habibi-TTS IRQ voices (Iraqi Arabic) |
 | `tts-design` | vewbox/tts-design | 8022 | GPU: VoxCPM2 voice design from a description (EN, MSA); CPU: ECAPA speaker embeddings |
-| `asr` | vewbox/asr | 8030 | GPU: faster-whisper large-v3 transcription |
-| `llm` | ollama/ollama | 11434 | GPU: local story engine (qwen3:14b) when no hosted key is set |
+| `tts-moss` (profile `moss`) | vewbox/tts-moss | 8023 | GPU: MOSS-TTS v1.5, the English voice engine for new voices (`VOICE_ENGINE_EN=moss`) |
+| `sfx-moss` (profile `sfx`) | vewbox/tts-moss | 8024 | GPU: MOSS-SoundEffect, effects and ambience outside the song |
+| `asr` | vewbox/asr | 8030 | GPU: faster-whisper large-v3 transcription, wav2vec2 CTC forced alignment, picture QA |
+| `lipsync` (profile `lipsync`) | vewbox/lipsync | 8045 | GPU: LatentSync 1.6 targeted repair of a failing realistic speaking shot (opt-in) |
+| `tts-bench-*` (profile `bench`) | — | 8040–8042 | voice benchmark arms (docs/research/VOICE-BENCH-2026-10.md); not production |
+| `llm` | ollama/ollama | 11434 | GPU: local story engine (qwen3.6:27b-q8_0; gemma4:31b-it-qat fallback) |
 | `models` (profile) | vewbox/models | — | one-shot weight fetcher |
 
 Only `web` is published beyond the loopback interface. Everything else is reachable from the host for debugging and
@@ -34,8 +38,8 @@ from the other services by name.
 ### Voice design service (`tts-design`, :8022)
 
 VoxCPM2 (OpenBMB, Apache-2.0) designs a *synthetic* voice from a text description, with no audio input; ECAPA-TDNN
-(SpeechBrain, Apache-2.0) embeds a recording as a 192-d speaker vector. Contract and rules:
-`docs/research/VOICE-IDENTITY-V2.md` §2.2, §2.3 (Rule V-DESIGN), §3.3, §5.1. Client: `src/server/providers/voice-design.ts`.
+(SpeechBrain, Apache-2.0) embeds a recording as a 192-d speaker vector. Contract and rules (origins, Rule V-DESIGN):
+`docs/CONTRACTS-VOICE-IDENTITY-V2.md`. Client: `src/server/providers/voice-design.ts`.
 
 | | |
 |---|---|
@@ -141,9 +145,11 @@ One model family holds the card at a time (image, video, voice, transcription, m
 the other services to unload before switching; ComfyUI is asked to free its models, the voice and transcription
 services unload on request. `GPU_VRAM_BUDGET_MB` (default 30000 on a 32 GB card) bounds what the worker will schedule.
 Watch the card with `nvidia-smi -l 2` on the host. Measured holds and waits are recorded as metrics
-(`gpu.wait_ms`, `gpu.hold_ms`, labelled by model family).
+(`gpu.wait_ms`, `gpu.hold_ms`, labelled by model family). GPU work started outside the worker (benchmarks, evaluation
+scripts) runs under the same lease: `scripts/gpu-hold.ts <FAMILY> <estimateMb> -- <command>` (estimates: the measured
+peaks in docs/research/GPU-STAGING-2026-10.md). One GPU-heavy inference at a time; film jobs before benchmarks.
 
-Image models, whole card measured with `nvidia-smi` during the 2026-10-03 comparison (docs/research/FLUX-VS-QWEN.md):
+Image models, whole card measured with `nvidia-smi` during the 2026-10-03 FLUX-vs-Qwen comparison (archived):
 
 | Use | Engine | Card while drawing | Time per image |
 |---|---|---|---|
@@ -165,6 +171,28 @@ removed from the models volume.
 | `ollama` volume | the local story model | not needed |
 
 Restore: `scripts/restore.ts` into a new database, verified against the library copy (docs/OPERATIONS-BACKUP.md).
+
+## Repository and what lives where
+
+The code lives in the private GitHub repository `MustafaMta/vewbox-studio` (default branch `main`); generation runs only
+on the workstation.
+
+| Where | What |
+|---|---|
+| Git | source, migrations, docs, test fixtures, app samples (`public/sample`) |
+| Workstation only | `.env`/`.env.local` (secrets), model weights (the D:\models store, docs/MODELS-STORAGE.md), the database (`vewbox_pgdata`), the media library and backups (`var/`), every generated image/voice/video (git-ignored) |
+
+Generated media never enters Git. The original unfiltered history (with the old evidence media) is kept on the
+workstation: branch `archive/main-before-media-filter` and `var/backups/git-original-history-20261005.bundle`; tag
+`pre-cloud-acceptance-2026-10-05` marks the state before the cloud session. Documentation removed from `docs/` on
+2026-10-06 is in `D:\vewbox-data\archive\repo-docs-2026-10-06\` and in git history.
+
+Bringing the workstation up after time away: `node scripts/resume-local.mjs` prints the plan; `--go` checks the
+repository, `.env` files, Docker/WSL memory, the GPU on the host and in a container, backs up the database, applies
+migrations, verifies the model files, starts ComfyUI (nodes and models checked) and the voice/ASR services, waits for
+health and reads the acceptance checkpoint. It stops at the first failed step (`--from <step>` resumes), keeps job
+intake paused unless `--resume-intake`, starts web and worker only with `--start-app`, and writes
+`var/resume/resume-<time>.json`.
 
 ## Resetting
 

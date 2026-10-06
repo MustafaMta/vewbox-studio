@@ -26,7 +26,7 @@ if (!/\/vewbox(\?|$)/.test(live)) { console.error('DATABASE_URL does not name th
 process.env.DATABASE_URL = live.replace(/\/vewbox(\?|$)/, `/${process.env.EVAL_DB ?? 'vewbox_modeleval'}$1`);
 
 // the library is the MAIN checkout's (LIBRARY_ROOT in .env.local is relative to it, not to this worktree): read only
-const MAIN_ROOT = process.env.EVAL_MAIN_ROOT ?? 'D:/volexar-studio/volexar-studio';
+const MAIN_ROOT = process.env.EVAL_MAIN_ROOT ?? 'D:/vewbox';
 process.env.LIBRARY_ROOT = path.resolve(MAIN_ROOT, process.env.LIBRARY_ROOT ?? 'var/library');
 
 const run = promisify(execFile);

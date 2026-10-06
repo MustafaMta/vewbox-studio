@@ -1,7 +1,7 @@
 import type { Settings } from './types';
 
 /** THE STUDIO'S TERMS OF USE (licence compliance: MiniMax H3 Community License §V.2 and its Acceptable Use Policy,
- *  Exhibit A; LatentSync OpenRAIL++-M Attachment A; the IndexTTS model licence §3.4; the Gemma Prohibited Use Policy —
+ *  Exhibit A; LatentSync OpenRAIL++-M Attachment A; the IndexTTS model licence §3.4 —
  *  each asks that the restrictions on its outputs bind the people who use them). Accepted once per studio, for this
  *  version (`settings.terms`); a new version asks again. The full sources: docs/LICENSES.md. Pure. */
 

@@ -67,6 +67,8 @@ studio's framing check on every canonical-frame picture, card peak from nvidia-s
 order in `sheets.json`, every graph). Arms: **2512q** (shipping canonical: no LoRA, 30 steps, cfg 4), **2512d**
 (Lightning 8-step draft), **klein** (FLUX.2 klein 4B from text, 4 steps), **qi21** (Qwen-Image-2.1, evaluation),
 **edit-q/edit-d** (Edit-2511 quality 24 steps / Lightning 4), **edit-ref** (Edit-2511 Image Reference rollback).
+Script removed 2026-10-06 (`scripts/model-eval-images.ts`, also the §7.3 harness; the image stack is frozen, §9);
+recoverable from git history at `df74b50c`.
 
 **Harness errors, not attempts.** Pass 1 drew 12 E1 edits before their plate and canonical image existed (the ids were
 sorted alphabetically) and looked for three A/B uploads in the wrong folder: 24 items failed with ENOENT before any
@@ -162,7 +164,7 @@ reference klein 10/10, E1 placement 8/12, views 0/6.
 ## 3. Language model: qwen3:14b vs gemma4:31b-it-qat
 
 `llm` service alone (ComfyUI freed): Ollama 0.35.1, both models present (gemma4 QAT Q4_0 17.56 GB, qwen3:14b Q4_K_M
-8.64 GB on disk), idle 0.65 GB RAM. Harness `scripts/model-eval-llm.ts`: the story engine's own calls
+8.64 GB on disk), idle 0.65 GB RAM. Harness `scripts/model-eval-llm.ts` (script removed 2026-10-06; recoverable from git history at `df74b50c`): the story engine's own calls
 (`developStory`, `writeScript`, `planShotsDraft` with the shaping and the cast-vs-actions check, an Iraqi `writeScript`
 + `planShotsDraft` of the same scene with the cast speaking Baghdadi, `designCharacter` in Arabic) on The Static Sky
 read from the **copy** database `vewbox_modeleval` (the local path takes the GPU lease, which writes
@@ -240,7 +242,7 @@ not fold numbers). **Real failures 2/20: both one-word lines** — «Nothing.» 
 (IndexTTS appends a garbled syllable to a one-word line). Mean −18.3 LUFS, peak ≤ −0.99 dBTP, median 2.1 s per line
 (RTF 0.65). Emotion (calm vs angry E1/E2) is a listening item.
 
-**ASR A/B for Arabic** (`scripts/asr-ab-iraqi.py` + `scripts/asr-ab-score.ts`, `…/2026-10-run1/asr-ab/`): the same
+**ASR A/B for Arabic** (`scripts/asr-ab-iraqi.py` + `scripts/asr-ab-score.ts`, `…/2026-10-run1/asr-ab/`; scripts removed 2026-10-06, recoverable from git history at `df74b50c`): the same
 107 Habibi WAVs transcribed by large-v3 and by the dialect fine-tune (faster-whisper, `language=ar`, beam 5, one-off
 container of the `asr` image; 37 s / 40 s for all 107), scored with the studio's own fold and take-gate verdict:
 
@@ -367,7 +369,7 @@ word loses its final intonation).
 **Fix:** `prepareLineText` (IndexTTS, one Latin word) prepends "That is all I have to say."; `speakLine` transcribes
 the take, finds the line's word as the last thing heard, cuts at the latest quiet 10 ms before it (keeping 40 ms of the
 pause and the WAV's provenance chunk, 12 ms fade-in); a take whose word is not found is spoken again alone (and judged
-by the line check). Evidence `docs/evidence/model-eval-2026-10/voice-en/one-word/` (`scripts/one-word-eval.ts`,
+by the line check). Evidence `docs/evidence/model-eval-2026-10/voice-en/one-word/` (`scripts/one-word-eval.ts`, script removed 2026-10-06 and recoverable from git history at `df74b50c`;
 large-v3):
 
 | | Nothing. | Now? | Yes. | Run! | Why? | Okay. | Clean |
@@ -443,6 +445,7 @@ realistic person C4 placed together in the realistic plate) — SFace cosine per
 START threshold 0.363) and the comfyui container's RAM (docker stats) beside the card's VRAM. Every GPU batch ran
 under `scripts/gpu-hold.ts IMAGE 30400`, ≤ 18 min per hold. The incumbents were re-run on this machine (the first run's
 originals are not on this workstation), so every arm is measured on the same day, install and inputs.
+Script removed 2026-10-06; recoverable from git history at `df74b50c`.
 
 ## 8. MiniMax H3 local: configuration and licence audit (2026-10-06, research only, no GPU)
 
@@ -599,6 +602,10 @@ Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; C
 | Quality | likeness good on all five uploads (one rounder new face, ic4 s1); quality mode can drop the person or replace the plate in placement (Lightning was steadier there, 5/6) |
 | Why it holds the role | the strongest commercially usable open editor on the arena (1021; HunyuanImage 3.0 Instruct and Qwen-2.1 above it are territory-limited or NC); replaces FLUX.2 [klein] 4B for the character from a picture by the producer's directive (one engine family for generation and editing; FLUX no longer a production dependency). Promotion proof owed: one real-UI "from a picture" character (acceptance engineer) |
 
+The close-shot opening-frame proof (`scripts/frame-close-eval.ts`, results `docs/evidence/model-eval-2026-10/frame-close/results.json`):
+script removed 2026-10-06; recoverable from git history at `df74b50c`. The `CANONICAL_REFERENCE_ENGINE=klein` route
+(FLUX.2 [klein] 4B) was removed from the code the same day; Edit-2511 is the only engine for the character from a picture.
+
 ### 10.3 Qwen-Image-2512 bf16 — candidate final image tier
 
 40 861 031 488 B, sha256 `cbf55390…e075`, Apache-2.0, fetching into the store (group `eval-qwen-image-2512-bf16`). Rule: a
@@ -628,7 +635,8 @@ Planning-LLM engineer, 2026-10-06. Every GPU call ran under the studio's lease (
 priority after the lease change), with the `llm` service started only for a batch and the model unloaded (`keep_alive 0`)
 at the end of each batch. The engine's own calls ran against the copy database `vewbox_llm`, never `vewbox`. Evidence:
 `docs/evidence/model-eval-2026-10/llm-suite/` (requests, answers, per-attempt tokens/stop reasons/reasoning, card and RAM
-peaks); harness `scripts/model-eval-llm-suite.ts`, comparison `scripts/model-eval-llm-report.ts`.
+peaks); harness `scripts/model-eval-llm-suite.ts`, comparison `scripts/model-eval-llm-report.ts`. Both scripts removed
+2026-10-06; recoverable from git history at `df74b50c`.
 
 ### 11.1 Promotion record — `qwen3.6:27b-q8_0` is the local story model
 

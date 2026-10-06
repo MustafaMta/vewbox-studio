@@ -1,5 +1,5 @@
 import { H3_FPS, h3GuideClipFrames } from '@/server/workflows/minimax-h3';
-import { MINIMAX_H3_LOCAL, continuationBudget, guideLengths, type VideoCapability } from '@/domain/video-capability';
+import { MINIMAX_H3_LOCAL, continuationBudget, type VideoCapability } from '@/domain/video-capability';
 import type { GuideHeadRecord, GuideJoin } from '@/server/media/guide-head';
 
 /** THE CONTINUATION GUIDE, VALIDATED (docs/research/STORYBUILDER-INTEGRATION.md §f.1, gap V1). `MiniMaxH3AddGuide`
@@ -9,9 +9,6 @@ import type { GuideHeadRecord, GuideJoin } from '@/server/media/guide-head';
  *  node's real guide lengths before the engine is touched, and the length the node WILL keep is what the take
  *  records and what the trim reads. Pure, so the rule is tested. */
 
-/** The guide lengths the installed node keeps at 24 fps (5, 22, 39 …); the audio latent runs at 40 Hz, so no guide
- *  length lands on an audio-latent step (22 frames = 36.67 steps) — the reason the join cross-fades. */
-export const H3_GUIDE_LENGTHS = guideLengths(MINIMAX_H3_LOCAL, 39);
 export const H3_AUDIO_LATENT_HZ = MINIMAX_H3_LOCAL.guides!.audioLatentHz;
 
 export interface GuideClipFacts { frames: number; hasAudio: boolean; audioSeconds?: number }

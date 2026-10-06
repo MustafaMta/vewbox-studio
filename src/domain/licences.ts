@@ -18,7 +18,6 @@ export const ENGINE_LICENCES: readonly EngineLicence[] = [
   { id: 'minimax-h3', engine: 'MiniMax H3 (local, open weights)', role: 'Films every take: picture and sound', licence: 'MiniMax H3 Community License', status: 'IN_USE', passesRestrictions: true,
     obligations: ['“MiniMax H3” is shown prominently in the interface (§IV.2).', 'Commercial use only below US$20M a year.', 'Users are bound by its Acceptable Use Policy (§V.2, Exhibit A).', 'Outputs may not be displayed in the US, the EU, the UK or South Korea without MiniMax’s territory licence.'] },
   { id: 'qwen-image', engine: 'Qwen-Image-2512 and Qwen-Image-Edit-2511', role: 'Canonical character images, location plates, frames', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
-  { id: 'flux2-klein', engine: 'FLUX.2 [klein] 4B', role: 'Optional fallback for a canonical image from your picture (CANONICAL_REFERENCE_ENGINE=klein); not used by default', licence: 'Apache-2.0', status: 'EVALUATING', obligations: ['Keep the licence and notices.'] },
   { id: 'qwen35-4b', engine: 'Qwen3.5-4B', role: 'Reads your reference picture', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
   { id: 'mediapipe', engine: 'MediaPipe face models', role: 'Face boxes and mouth movement (checks)', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
   { id: 'indextts', engine: 'IndexTTS 2.5', role: 'Speaks the characters’ lines', licence: 'bilibili IndexTTS model licence (code Apache-2.0)', status: 'IN_USE', passesRestrictions: true, obligations: ['Its use restrictions bind the users of what it makes (§3.4).'] },
@@ -31,8 +30,7 @@ export const ENGINE_LICENCES: readonly EngineLicence[] = [
   { id: 'demucs', engine: 'Demucs', role: 'Separates a song’s voice and music', licence: 'MIT', status: 'IN_USE', obligations: ['Keep the licence notice.'] },
   { id: 'ace-step', engine: 'ACE-Step 1.5', role: 'Makes songs', licence: 'MIT', status: 'IN_USE', obligations: ['Keep the licence notice.'] },
   { id: 'minimax-music3', engine: 'MiniMax Music 3 (open weights)', role: 'Makes songs (second engine)', licence: 'MiniMax-Music3 Community License', status: 'IN_USE', obligations: ['“MiniMax Music 3” is credited where it is used.', 'Commercial use only below US$20M a year.'] },
-  { id: 'gemma', engine: 'Gemma 4 31B', role: 'Writes ideas, stories, scripts and shot plans', licence: 'Gemma Terms of Use', status: 'IN_USE', passesRestrictions: true, obligations: ['Its Prohibited Use Policy binds the users of what it writes.'] },
-  { id: 'qwen3', engine: 'Qwen3 14B', role: 'Story engine (selectable)', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
+  { id: 'qwen38-27b', engine: 'Qwen3.8-27B-FP8', role: 'The studio’s brain: writes ideas, stories, scripts and shot plans', licence: 'Apache-2.0', status: 'IN_USE', obligations: ['Keep the licence and notices.'] },
   { id: 'latentsync', engine: 'LatentSync', role: 'Lip-sync correction', licence: 'OpenRAIL++-M', status: 'EVALUATING', passesRestrictions: true, obligations: ['Its use restrictions (Attachment A) bind the users of what it makes.'] },
   { id: 'geist', engine: 'Geist and Geist Mono', role: 'The interface’s typefaces', licence: 'SIL Open Font License 1.1', status: 'FONT', obligations: ['Ship the licence with the font files.'] },
 ] as const;

@@ -3,6 +3,10 @@
 Binding with the earlier directives (FINAL-LOCAL, MODEL-UPGRADE, CLOUD-SESSION). It FREEZES the production model
 stack and puts film production first. Coordinator's notes are marked ▸.
 
+▸ This is the current directive. The earlier three were archived on 2026-10-06 (`D:\vewbox-data\archive\repo-docs-2026-10-06\directives\`,
+and git history); their still-binding decisions live in docs/LICENSES.md §0 (commercial-safe only), docs/MODELS.md
+(27B–30B size policy, promotion rule) and docs/OPERATIONS.md (GPU work through `scripts/gpu-hold.ts`).
+
 ## 1. Frozen production stack
 
 | Role | Model | Notes |

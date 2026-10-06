@@ -261,9 +261,6 @@ export const waitingCharacters = (items: Decision[]): Set<string> => new Set(ite
 
 // ------------------------------------------------------------------------------------------- the featured row
 
-/** The shelf cards' ratio (3:2, the reference's media cards); posters keep 2:3, sleeves 1:1, figures their own. */
-export const SHELF_RATIO = 3 / 2;
-
 export interface FeaturedThumb { id: string; href: string; label: string; src: string; asset: Asset; position?: string }
 export interface Featured {
   kind: 'decisions' | 'continue' | 'start';

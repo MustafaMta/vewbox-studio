@@ -26,7 +26,7 @@ const run = promisify(execFile);
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'var/model-eval/h3');
 const EVID = path.join(ROOT, 'docs/evidence/model-eval-2026-10/h3');
-const LIBRARY = process.env.LIBRARY_ROOT ?? 'D:/volexar-studio/volexar-studio/var/library';
+const LIBRARY = process.env.LIBRARY_ROOT ?? 'D:/vewbox/var/library';
 const SEED = 970007;
 
 class VramMeter {

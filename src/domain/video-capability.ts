@@ -143,8 +143,6 @@ export const MINIMAX_H3_API: VideoCapability = {
   inTakeCuts: false, nativeAudio: true,
 };
 
-export const VIDEO_CAPABILITIES: Record<VideoEngineId, VideoCapability> = { 'minimax-h3-local': MINIMAX_H3_LOCAL, 'minimax-h3-api': MINIMAX_H3_API };
-
 export const capabilityFor = (backend: 'local' | 'api'): VideoCapability => (backend === 'local' ? MINIMAX_H3_LOCAL : MINIMAX_H3_API);
 
 const onGrid = (n: number, g: FrameGrid) => g.step <= 1 || (((n - g.base) % g.step) + g.step) % g.step === 0;

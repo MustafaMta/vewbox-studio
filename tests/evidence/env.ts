@@ -3,7 +3,7 @@ import path from 'node:path';
 
 /** The evidence runs' environment: the main checkout's env files (service URLs on the host ports), without overriding
  *  what the shell already set; the library is a scratch folder (EVIDENCE_LIBRARY) so nothing lands in the studio's. */
-const files = (process.env.VEWBOX_ENV_FILES ?? 'D:/volexar-studio/volexar-studio/.env;D:/volexar-studio/volexar-studio/.env.local').split(';').filter(Boolean);
+const files = (process.env.VEWBOX_ENV_FILES ?? 'D:/vewbox/.env;D:/vewbox/.env.local').split(';').filter(Boolean);
 const fromFiles: Record<string, string> = {};
 for (const f of files) {
   if (!fs.existsSync(f)) continue;
