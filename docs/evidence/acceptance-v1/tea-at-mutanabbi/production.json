@@ -23,7 +23,7 @@
  ],
  "genre": "Slice of Life",
  "mood": "Warm, sunny, and welcoming",
- "cutAssetId": "gen-b0c2a3db715ae05bc65e",
+ "cutAssetId": "gen-0cb0ff13b48aa2048c5f",
  "exports": [
   {
    "id": "export-41d2d6f28b14485fc891",
@@ -35,10 +35,32 @@
    "subtitles": "en",
    "resolution": "1080",
    "durationSeconds": 19
+  },
+  {
+   "id": "export-bfaf3457a9454f0edaf0",
+   "bytes": 14768002,
+   "jobId": "job-9ab2799dc9",
+   "format": "mp4-h264",
+   "assetId": "gen-bfaf3457a9455d36de6d",
+   "createdAt": "2026-10-06T11:20:44.657Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 23
+  },
+  {
+   "id": "export-e36c2b4dbe3dfa72f1f6",
+   "bytes": 14802785,
+   "jobId": "job-e0d6aad63f",
+   "format": "mp4-h264",
+   "assetId": "gen-e36c2b4dbe3d319e1f5e",
+   "createdAt": "2026-10-06T11:24:55.769Z",
+   "subtitles": "en",
+   "resolution": "1080",
+   "durationSeconds": 23
   }
  ],
  "createdAt": "2026-10-05 17:09:54.758+00",
- "updatedAt": "2026-10-05 23:23:32.05+00",
+ "updatedAt": "2026-10-06 11:24:55.769+00",
  "scenes": [
   {
    "id": "scene-420beb3158",
@@ -383,7 +405,8 @@
     "take-66dfa20e3cbbee6ea159",
     "take-57fe000bbef99adca983",
     "take-e9834af668f3c525e575",
-    "take-34af7614550bf525df9f"
+    "take-34af7614550bf525df9f",
+    "take-ba8f80a2c9d2a055bdcc"
    ]
   }
  ]

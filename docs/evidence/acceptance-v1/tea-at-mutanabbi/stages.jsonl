@@ -1,3 +1,4 @@
 {"at":"2026-10-05T18:50:05.333Z","stage":"after-shot3-take8","takes":10,"jobs":30,"newAttemptLines":40,"cut":"gen-78805929befec4c31b62"}
 {"at":"2026-10-05T19:03:51.621Z","stage":"power-off checkpoint: cut 4 assembled (take 9 selected), gate in progress","takes":12,"jobs":32,"newAttemptLines":6,"cut":"gen-c7cd61bebcf4e6c3b58d"}
 {"at":"2026-10-05T23:30:37.484Z","stage":"2026-10-06 audio-first re-assembly (cut 5), cut approved, export 1080p H.264 + en subtitles","takes":12,"jobs":35,"newAttemptLines":3,"cut":"gen-b0c2a3db715ae05bc65e"}
+{"at":"2026-10-06T11:29:06.030Z","stage":"2026-10-06 room-tone re-assembly (UI Cut 6), re-approved, export 3 with fixed credit card; take 10 rejected (plate defect)","takes":13,"jobs":39,"newAttemptLines":5,"cut":"gen-0cb0ff13b48aa2048c5f"}
