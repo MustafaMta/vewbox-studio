@@ -190,9 +190,23 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
     expect(img.identityLine).toBe(first);
     expect(img.check!.notes!.join(' ')).toMatch(/already read/);
   });
-  it('with FLUX.2 [klein] 4B in ComfyUI the picture is redrawn by klein (its own prompt, no negative); the retry leaves the face out; CANONICAL_REFERENCE_ENGINE=qwen rolls back', async () => {
+  it('Qwen-Image-Edit-2511 redraws the picture by default, also with klein in ComfyUI (stack directive 2026-10-06)', async () => {
     upload();
     fake.klein = true;
+    fake.text = { bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408}]]', vlm_describe: '{"sex": "male", "ageRange": "25-35", "clothing": [{"item": "shirt", "colour": "blue"}]}' };
+    await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
+    const g = fake.runs.at(-1)!.graph;
+    expect(g['1'].inputs.unet_name).toBe('qwen_image_edit_2511_fp8mixed.safetensors');
+    expect(g['9'].inputs).toMatchObject({ steps: 24, cfg: 4 });
+    const img = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!;
+    expect(img.engine).toBe('Qwen-Image-Edit-2511 (24 steps, cfg 4)');
+    expect(asset(img.assetId).provenance).toMatchObject({ model: 'Qwen-Image-Edit-2511' });
+    expect(img.check!.notes!.join(' ')).not.toMatch(/klein/);
+  });
+  it('CANONICAL_REFERENCE_ENGINE=klein (non-default) redraws with FLUX.2 [klein] 4B (its own prompt, no negative); the retry leaves the face out; without klein in ComfyUI it falls back to Qwen with the reason', async () => {
+    upload();
+    fake.klein = true;
+    process.env.CANONICAL_REFERENCE_ENGINE = 'klein';
     fake.text = { bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408}]]', vlm_describe: '{"sex": "male", "ageRange": "25-35", "glasses": "none", "facialHair": "none", "clothing": [{"item": "shirt", "colour": "blue"}]}' };
     fake.framing = ['head-cut', 'ok'];
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
@@ -209,13 +223,14 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
     expect(img.engine).toBe('FLUX.2 [klein] 4B (4 steps, cfg 1)');
     expect(asset(img.assetId).provenance).toMatchObject({ model: 'FLUX.2-klein-4B', faceCropGiven: false });
     expect(asset(img.assetId).provenance!.negative).toBeUndefined();
-    // the rollback switch
-    process.env.CANONICAL_REFERENCE_ENGINE = 'qwen';
+    expect(img.check!.notes!.join(' ')).toMatch(/CANONICAL_REFERENCE_ENGINE=klein/);
+    // asked for klein, but its weights are not in ComfyUI: Qwen, with the reason
+    fake.klein = false;
     fake.state = setPendingReference(fake.state, 'nour', 'up-face', { ok: true, width: 1024, height: 1280, faces: 1, reasons: [] });
     fake.runs = []; fake.framing = [];
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
     expect(fake.runs.at(-1)!.graph['1'].inputs.unet_name).toBe('qwen_image_edit_2511_fp8mixed.safetensors');
-    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.check!.notes!.join(' ')).toMatch(/CANONICAL_REFERENCE_ENGINE=qwen/);
+    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.check!.notes!.join(' ')).toMatch(/CANONICAL_REFERENCE_ENGINE=klein, but FLUX.2 \[klein\] 4B is not available/);
   });
   it('a redraw after a framing failure leaves the face crop out (it pulled the shot in to three-quarter length)', async () => {
     upload();
