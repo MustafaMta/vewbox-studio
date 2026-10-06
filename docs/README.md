@@ -4,6 +4,7 @@ One line per document; what it is for. Start with the handoff (`NEW-SESSION-HAND
 
 ## Current direction and system
 
+- [NEW-SESSION-HANDOFF-2026-10-06.md](NEW-SESSION-HANDOFF-2026-10-06.md) — read first: where everything is, current state, frozen stack, open defects, phases 1–6.
 - [directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md](directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md) — the current producer directive: frozen model stack, priorities, acceptance gates.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the system is built: command engine, jobs and lanes, GPU lease, video/story/sound pipelines, where code lives.
 - [BACKEND-AUDIT-2026-10.md](BACKEND-AUDIT-2026-10.md) — the backend design record whose finding ids (C3, H9, …) and steps code comments cite.
