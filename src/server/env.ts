@@ -40,6 +40,14 @@ const Schema = z.object({
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),
   TTS_HABIBI_URL: z.string().default('http://tts-habibi:8021'),
+  /** Candidate voice engines (docker/tts-bench, compose profile `bench`; src/server/providers/voice-engines.ts). Used
+   *  only by an identity that pins them, or for new English identities when VOICE_ENGINE_EN names one. */
+  TTS_VOXCPM2_URL: z.string().default('http://tts-bench-voxcpm2:8040'),
+  TTS_DOTS_URL: z.string().default('http://tts-bench-dots:8041'),
+  TTS_MOSS_URL: z.string().default('http://tts-bench-moss:8042'),
+  /** The engine NEW English voices are built with (indextts | voxcpm2 | dots | moss). Default IndexTTS 2.5 until a
+   *  candidate is promoted after the real-UI test (FINAL-LOCAL-DIRECTIVE §25); pinned identities keep their engine. */
+  VOICE_ENGINE_EN: z.string().default('indextts'),
   /** Voice design + speaker embeddings (VoxCPM2, ECAPA). The default is the host port, so a host worker without the
    *  variable still reaches it; compose passes http://tts-design:8022 to the containers. Empty = not configured. */
   TTS_DESIGN_URL: z.string().default('http://127.0.0.1:8022'),

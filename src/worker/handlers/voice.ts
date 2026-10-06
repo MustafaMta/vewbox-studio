@@ -16,6 +16,7 @@ import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
+import { VOICE_ENGINES, pinnable, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -54,9 +55,9 @@ export interface LineRoute { engine: Exclude<TtsEngine, 'auto'>; language: Langu
 
 /** The engine a character's identity pins, when it is a local engine built for the language the character speaks
  *  now (a STALE identity of another language does not decide). */
-const pinnedEngine = (c: Pick<Character, 'language' | 'voice'>): 'habibi' | 'indextts' | undefined => {
+const pinnedEngine = (c: Pick<Character, 'language' | 'voice'>): LocalTtsEngine | undefined => {
   const id = c.voice.identity;
-  return id?.provider === 'LOCAL_TTS' && id.language === c.language && (id.model === 'habibi' || id.model === 'indextts') ? id.model : undefined;
+  return id?.provider === 'LOCAL_TTS' && id.language === c.language ? pinnable(id.model, c.language) : undefined;
 };
 
 /** ROUTING PARITY — a thin adapter over THE routing rule (`routeLine` in src/server/providers/speech.ts, which the
@@ -201,7 +202,8 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   }
   if (!ref) throw missingReference(`${c.name} has no uploaded recording to speak with.`, { characterId: c.id });
   if (route.fallback) await ctx.event('info', `engine fallback for “${text.slice(0, 40)}”: ${route.fallback}`, { characterId: c.id, engine: route.engine, pinned: identity?.model, script: route.script });
-  const refText = route.engine === 'habibi' ? await referenceText(ctx, c, ref) : undefined;
+  // engines that condition on the reference transcript (Habibi; dots.tts) get it, stored once on the sample
+  const refText = VOICE_ENGINES[route.engine].usesReferenceText ? await referenceText(ctx, c, ref) : undefined;
   const params = identity?.params ?? { speed: speedForPace(c.voice.pace), emotionAlpha: 1 };
   // what the engine hears (src/server/providers/iraqi-text.ts): digits as Baghdadi (or MSA) number words, no tatweel
   // or invisible marks, line breaks as sentence ends — the script stays as written and is what the line is verified

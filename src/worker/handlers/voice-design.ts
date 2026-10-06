@@ -13,6 +13,7 @@ import { adoptFile, assetFromStored, removeFile } from '@/server/media';
 import { tmpDir } from '@/server/media/ffmpeg';
 import { letterCoverage } from '@/server/media/arabic-align';
 import { pickEngine, synthesize, transcribe } from '@/server/providers/speech';
+import { VOICE_ENGINES } from '@/server/providers/voice-engines';
 import { cosine, designVoice, unloadDesign } from '@/server/providers/voice-design';
 import { ASR_VRAM, DESIGN_VRAM, TTS_VRAM, heardMetrics, levelOf, round, speakerEmbedding, speedForPace } from './voice-measure';
 
@@ -144,7 +145,7 @@ export async function designAndMeasure(ctx: HandlerContext, c: Character, o: Des
       for (const [k, sentence] of sentences.entries()) {
         await ctx.checkpoint();
         await ctx.progress('GENERATING', { phase: 'speaking', message: `Candidate ${x.index}: preview ${k + 1} of ${sentences.length} through ${lineEngine}` });
-        const local = { text: sentence, language: c.language, dialect: c.dialect, referenceWav: files.get(x.index)!, referenceText: lineEngine === 'habibi' ? designed.text : undefined, speed: o.speech.speed, emotionAlpha: o.speech.emotionAlpha, seed: o.speech.seed, engine: lineEngine };
+        const local = { text: sentence, language: c.language, dialect: c.dialect, referenceWav: files.get(x.index)!, referenceText: VOICE_ENGINES[lineEngine].usesReferenceText ? designed.text : undefined, speed: o.speech.speed, emotionAlpha: o.speech.emotionAlpha, seed: o.speech.seed, engine: lineEngine };
         const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: `${lineEngine} preview`, input: local }), { jobId: ctx.job.id });
         const e = seedEmbedding ? await speakerEmbedding(ctx, r.file) : null;
         list.push({ text: sentence, engine: r.engine, file: r.file, durationSeconds: round(r.durationSeconds, 3), ...(seedEmbedding && e ? { cosine: round(cosine(seedEmbedding, e.embedding)) } : {}) });

@@ -33,7 +33,8 @@ import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
  *  Diacritics written by hand are KEPT (the vocabulary has them; research §2.5: no automatic diacritisation).
  *  گ چ are never mapped to ق ج for synthesis: that fold is for evaluation only. */
 
-export type PrepareEngine = 'habibi' | 'indextts';
+/** The engine the line goes to (src/server/providers/voice-engines.ts ids); only IndexTTS gets the one-word lead-in. */
+export type PrepareEngine = 'habibi' | 'indextts' | 'voxcpm2' | 'dots' | 'moss';
 export interface PrepareOptions { engine: PrepareEngine; language: Language; dialect?: Dialect }
 /** `leadIn`: the sentence spoken before a one-word IndexTTS line (src/server/media/lead-in.ts) — the handler cuts it off
  *  after synthesis at the silence before the word. */
