@@ -11,7 +11,7 @@
 ARG DESIGN_IMAGE=vewbox/tts-design:dev
 FROM ${DESIGN_IMAGE} AS dots
 RUN --mount=type=secret,id=extra_ca,required=false if [ -s /run/secrets/extra_ca ]; then cp /run/secrets/extra_ca /usr/local/share/ca-certificates/extra-ca.crt && update-ca-certificates; fi
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1 UV_NO_CACHE=1
 # dots.tts without its demo extras (gradio): the runtime imports librosa, torch, huggingface_hub, loguru, langcodes,
 # lingua, torchdiffeq and WeTextProcessing (`tn`, imported at module level even with normalize_text=False). transformers
 # stays at the venv's 4.57.6 (dots asks >= 4.57.0). The last line fails the build if torch moved off cu128.
@@ -33,7 +33,7 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::http
  && for i in 1 2 3 4 5 6; do apt-get update && apt-cache policy curl | grep -q Candidate && break; echo "apt index incomplete, retry $i"; sleep 20; done \
  && apt-get install -y --no-install-recommends curl ca-certificates ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=secret,id=extra_ca,required=false if [ -s /run/secrets/extra_ca ]; then cp /run/secrets/extra_ca /usr/local/share/ca-certificates/extra-ca.crt && update-ca-certificates; fi
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1 UV_NO_CACHE=1
 RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
 ENV PATH=/root/.local/bin:$PATH
 RUN uv python install 3.12 && uv venv --python 3.12 /opt/venv
