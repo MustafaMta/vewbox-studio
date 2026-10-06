@@ -8,11 +8,12 @@ Read this first. It replaces the history of the 2026-10-02..06 session; details 
 | What | Where |
 |---|---|
 | Code (canonical) | `D:\vewbox`, branch `main` (base `3dad9376` + this handoff commit), GitHub private `MustafaMta/vewbox-studio` |
-| Studio library (productions, uploads, exports; DB rows hold paths relative to it) | `D:\vewbox-data\library` (`LIBRARY_DIR` / `LIBRARY_ROOT`) — 400 library assets, all present |
+| Studio library (productions, uploads, exports; DB rows hold paths relative to it) | `D:\vewbox-data\library` (`LIBRARY_DIR` / `LIBRARY_ROOT`) — empty: the studio was reset to fresh on 2026-10-06 |
+| Previous studio (before the fresh reset; restorable) | DB dump `D:\vewbox-data\backups\vewbox-db-before-fresh-2026-10-06.dump` (pg_dump -Fc, test-restored: 6 productions, 39 takes, 400 assets, 167 jobs, 11 characters; SHA-256 `DB8C1601…F1247B`) + its library `D:\vewbox-data\archive\library-before-fresh-2026-10-06\` (538 files, 687 MB). Restore: recreate DB `vewbox`, `pg_restore -U vewbox -d vewbox --no-owner <dump>`, move the library folder back |
 | Archived docs and evidence (818 files) | `D:\vewbox-data\archive\repo-docs-2026-10-06\` (also in git history) |
 | Old checkout (read-only archive: old worktrees, evidence media, `var/backups`, unfiltered-history bundle) | `D:\volexar-studio\volexar-studio` — nothing runs from it; remove only on the producer's word |
 | Model weights (all of them) | `D:\models\vewbox-models.vhdx` (ext4), attached by `wsl --mount --vhd … --name models`; Docker sees `/run/desktop/mnt/host/wsl/models` (`VEWBOX_MODELS_ROOT`) — docs/MODELS-STORAGE.md |
-| Database | PostgreSQL 17, container `vewbox-db-1`, volume `vewbox_pgdata`, 127.0.0.1:5432, DB `vewbox` (6 productions, 39 takes, 400 assets) |
+| Database | PostgreSQL 17, container `vewbox-db-1`, volume `vewbox_pgdata`, 127.0.0.1:5432, DB `vewbox` — FRESH, empty studio (migrated and seeded 2026-10-06). Test DBs kept: `vewbox_e2e`, `vewbox_test`, `vewbox_test_backend` (suites reset them) |
 | Web / worker | :4200 and the host worker, started by the watchdog outside the Claude app's job; logs `var/web-detached.log`, `var/worker-detached.log`, `var/docker-watchdog.log` |
 | Sign-in task | "Vewbox watchdog" → `cmd.exe /c "D:\vewbox\scripts\watchdog-at-logon.cmd"` (start in `D:\vewbox`) |
 | Secrets | `.env` / `.env.local` (git-ignored; HF_TOKEN etc. — never print or commit) |
@@ -28,9 +29,12 @@ were deleted after verification and Docker's disk compacted (C: free 532 GB). Ol
 
 ## 2. State right now
 
-- Intake is **paused** ("Phase 1: planner migration to Qwen3.8-27B-FP8"). No job is queued or running; every inference
-  container is stopped; GPU idle. `scripts/studio-intake.ts status|resume`.
-- Health: `/api/health` ok, provider `openai-compatible`, video `MiniMax-H3` (local only; no hosted keys in `.env`).
+- The studio is **fresh and empty** (no productions, characters, takes or jobs). Intake is **paused** ("Fresh studio
+  2026-10-06; waiting for Phase 1"). `scripts/studio-intake.ts status|resume`.
+- Everything is stopped except the database container: no web server, no worker, no inference container; GPU idle.
+  The "Vewbox watchdog" sign-in task starts Docker, worker and web from `D:\vewbox` at the next sign-in, or now with
+  `pnpm exec tsx scripts/docker-watchdog.ts --fix --worker --web`.
+- Configuration: provider `openai-compatible`, video `MiniMax-H3` (local only; no hosted keys in `.env`).
 - The model registry reports 0 models present while ComfyUI is stopped (it reads ComfyUI's listings; 42 when it runs).
 
 ## 3. Frozen model stack
@@ -55,7 +59,9 @@ removed (its manifest group `images-flux2-klein` is unreferenced; weights await 
 - **/production layout shift 0.055 (limit 0.02):** the skeleton reserves one row of decision cards; the page has two.
   Minor: /assets at 390 shifts 0.035; several 390 controls are 20 px high; shot page 0.0175; the first shot's
   disabled-option reason printed twice. The 1920 page sweep stopped at 44/53 pages.
-- **Tea at Mutanabbi** (export `gen-c4161f13c5bf330c7a21`, PASS WITH OPEN DEFECTS): blink pop at the continuous join;
+- Film findings below come from the previous studio (now in the backup/archive above); they describe pipeline behaviour
+  to re-check in Phase 6, not data in the fresh studio.
+- **Tea at Mutanabbi** (export `gen-c4161f13c5bf330c7a21`, in the archived library; PASS WITH OPEN DEFECTS): blink pop at the continuous join;
   ~1.5 s push-in in shot 1.2; the vendor missing in 1.3; background level drops ~18 dB at the 1.2→1.3 cut; the room
   bed's 1.5 s loop needs a listen.
 - Gwenllian ("The Last Ferry") cheek artifact; her framing fix (crop clamp, `c3f003b0`) is unproven on a real take.
