@@ -158,7 +158,8 @@ async function synth() {
       const key = `${engine}|${sp.id}|${line.id}|s${session}|${p.variant}|${p.mult ?? ''}|${p.seed}`;
       if (have.has(key)) continue;
       const t: Take = { key, engine, speaker: sp.id, line: line.id, session, seed: p.seed, variant: p.variant, ok: false };
-      const extra: Record<string, string> = {};
+      // --form k=v,k=v: fixed extra fields for every request of this run (e.g. mode=continue for VoxCPM2's transcript mode)
+      const extra: Record<string, string> = Object.fromEntries(opt('form').split(',').filter(Boolean).map((kv) => kv.split('=') as [string, string]));
       if (p.mult) {
         const nat = have.get(`${engine}|${sp.id}|${line.id}|s1|natural||7`);
         if (!nat?.ok || !nat.seconds) continue;
