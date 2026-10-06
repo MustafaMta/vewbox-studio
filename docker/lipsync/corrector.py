@@ -44,6 +44,10 @@ MASK_PATH = os.path.join(LATENTSYNC_DIR, "latentsync", "utils", "mask.png")
 YUNET_PATH = os.environ.get("LIPSYNC_YUNET_PATH", "/models/identity/face_detection_yunet_2023mar.onnx")
 SFACE_PATH = os.environ.get("LIPSYNC_SFACE_PATH", "/models/identity/face_recognition_sface_2021dec.onnx")
 LANDMARKER_PATH = os.environ.get("LIPSYNC_FACE_LANDMARKER_PATH", "/models/qa/face_landmarker.task")
+# the occlusion gate's hand detector (MediaPipe Hand Landmarker, float16/1); optional: without it only the pixel
+# signals guard against occluders (the report says which gate ran)
+HAND_LANDMARKER_PATH = os.environ.get("LIPSYNC_HAND_LANDMARKER_PATH", "/models/qa/hand_landmarker.task")
+HAND_CROP_SCALE = 3.2  # the hand search area: this × the face box's larger side, centred a little below the face
 RESOLUTION = 512
 NUM_FRAMES = 16  # stage2_512.yaml data.num_frames
 MAX_SECONDS = float(os.environ.get("LIPSYNC_MAX_SECONDS", "30"))
@@ -140,12 +144,37 @@ class FaceTracker:
         opts = vision.FaceLandmarkerOptions(base_options=base_options.BaseOptions(model_asset_path=LANDMARKER_PATH), running_mode=vision.RunningMode.IMAGE, num_faces=2, min_face_detection_confidence=0.3, min_face_presence_confidence=0.3)
         self.lm = vision.FaceLandmarker.create_from_options(opts)
         self.vision = vision
+        self.hands = None
+        if os.path.isfile(HAND_LANDMARKER_PATH):
+            hopts = vision.HandLandmarkerOptions(base_options=base_options.BaseOptions(model_asset_path=HAND_LANDMARKER_PATH), running_mode=vision.RunningMode.IMAGE, num_hands=2, min_hand_detection_confidence=0.4, min_hand_presence_confidence=0.4)
+            self.hands = vision.HandLandmarker.create_from_options(hopts)
 
     def close(self) -> None:
-        try:
-            self.lm.close()
-        except Exception:  # noqa: BLE001
-            pass
+        for x in (self.lm, self.hands):
+            try:
+                if x is not None:
+                    x.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+    def hand_points(self, rgb: np.ndarray, box: ft.Box) -> list[np.ndarray] | None:
+        """The 21 landmarks of each hand near the face, in frame pixels; None when no hand detector is installed."""
+        if self.hands is None:
+            return None
+        import mediapipe as mp  # type: ignore
+
+        h, w = rgb.shape[:2]
+        fh = box[3] - box[1]
+        x0, y0, side = ft.crop_square((box[0], box[1] + 0.6 * fh, box[2], box[3] + 0.6 * fh), HAND_CROP_SCALE, w, h)
+        crop = np.full((side, side, 3), 127, dtype=np.uint8)
+        sx0, sy0, sx1, sy1 = max(0, x0), max(0, y0), min(w, x0 + side), min(h, y0 + side)
+        if sx1 <= sx0 or sy1 <= sy0:
+            return []
+        crop[sy0 - y0: sy1 - y0, sx0 - x0: sx1 - x0] = rgb[sy0:sy1, sx0:sx1]
+        px = 512
+        small = self.cv2.resize(crop, (px, px), interpolation=self.cv2.INTER_AREA if side > px else self.cv2.INTER_CUBIC)
+        res = self.hands.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=np.ascontiguousarray(small)))
+        return [np.asarray([(p.x * px, p.y * px) for p in hand], dtype=np.float64) * (side / px) + np.asarray([x0, y0], dtype=np.float64) for hand in (res.hand_landmarks or [])]
 
     def detect(self, bgr: np.ndarray) -> np.ndarray:
         h, w = bgr.shape[:2]
@@ -205,6 +234,7 @@ class Track:
     report: ft.TrackReport
     frontal: list[float | None]
     strength: np.ndarray
+    hands: list[list[np.ndarray] | None]  # per frame (None: no hand detector, or no face found)
 
 
 def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray | None, hint: ft.Box | None, others: Sequence[np.ndarray] = ()) -> Track:
@@ -220,6 +250,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
     pts: list[np.ndarray | None] = []
     boxes: list[ft.Box | None] = []
     frontal: list[float | None] = []
+    hands: list[list[np.ndarray] | None] = []
     for rgb in frames:
         bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
         faces = tracker.detect(bgr)
@@ -239,6 +270,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
             pts.append(None)
             boxes.append(None)
             frontal.append(None)
+            hands.append(None)
             lost += 1
             if lost > ft.MAX_GAP_FRAMES:
                 smoother.reset()
@@ -250,6 +282,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
         pts.append(ft.align_points3(lm68))
         boxes.append(dets[i].box)
         frontal.append(round(ft.frontalness(m), 3))
+        hands.append(tracker.hand_points(rgb, dets[i].box))
         rep.face_height_px.append(dets[i].box[3] - dets[i].box[1])
         if dets[i].identity is not None:
             rep.identity.append(dets[i].identity)  # type: ignore[arg-type]
@@ -264,7 +297,7 @@ def track_speaker(tracker: FaceTracker, frames: np.ndarray, ref_vec: np.ndarray 
     rep.full_strength = int((strength >= 0.999).sum())
     if rep.found == 0:
         raise InputError("the speaker's face was not found in any frame")
-    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep, frontal=frontal, strength=strength)  # type: ignore[misc]
+    return Track(points3=[p for p in filled], edit=edit, boxes=boxes, report=rep, frontal=frontal, strength=strength, hands=hands)  # type: ignore[misc]
 
 
 def align_crops(frames: np.ndarray, track: Track) -> tuple[list[np.ndarray], np.ndarray, tuple[int, int]]:
@@ -305,8 +338,14 @@ def track_only(video: str, debug_dir: str, reference: str | None = None, hint: f
     _aff, crops, _ = align_crops(frames, track)
     write_debug(debug_dir, frames, frames, crops, list(crops), track, float(info["fps"] or 24))
     mask = cv2.imread(MASK_PATH, cv2.IMREAD_GRAYSCALE) if os.path.isfile(MASK_PATH) else None
-    if mask is not None:  # the regenerated region drawn on a few aligned crops
+    if mask is not None:  # the regenerated region drawn on a few aligned crops; the occlusion signal of the original
         m = cv2.resize(mask, (RESOLUTION, RESOLUTION)) < 128
+        pre = ft.region_deviation(crops, m)
+        valid = np.asarray(track.strength) > 0
+        tpl, size = ft.template(RESOLUTION)
+        hand_cov = [ft.hand_overlap(track.hands[i] or [], _aff[i], m, size, RESOLUTION) for i in range(len(frames))]
+        with open(os.path.join(debug_dir, "occlusion.json"), "w") as f:
+            json.dump({"by_original": [int(i) for i in np.flatnonzero(ft.outliers(pre, valid=valid))], "by_hand": [i for i, c in enumerate(hand_cov) if c >= ft.HAND_OVERLAP_MIN], "hand_detector": any(h is not None for h in track.hands), "pre": [round(float(x), 2) for x in pre], "hand": [round(c, 3) for c in hand_cov]}, f)
         for i in range(0, len(frames), max(1, len(frames) // 8)):
             c = crops[i].copy()
             c[m] = (0.5 * c[m] + 0.5 * np.array([255, 0, 255])).astype(np.uint8)
@@ -507,6 +546,25 @@ class Corrector:
             vram_reserved = int(torch.cuda.max_memory_reserved() / 1048576)
             t_infer = time.time()
 
+        # THE OCCLUSION GATE (face_track.py): frames where a hand, a cup or a glass covers the mouth are not corrected
+        region = mask_image[0].numpy() < 0.5  # the regenerated lower face in the aligned 512² crop
+        valid = np.asarray(track.strength) > 0
+        pre = ft.region_deviation(crops, region)
+        post = np.asarray([float(np.abs(out_crops[i].astype(np.float32) - crops[i].astype(np.float32)).mean(axis=2)[region].mean()) for i in range(n)])
+        occ_pre, occ_post = ft.outliers(pre, valid=valid), ft.outliers(post, valid=valid)
+        hand_cov = np.asarray([ft.hand_overlap(track.hands[i] or [], affines[i], region, (face_w, face_h), RESOLUTION) for i in range(n)])
+        occ_hand = hand_cov >= ft.HAND_OVERLAP_MIN
+        occluded = ft.dilate(occ_pre | occ_post | occ_hand)
+        track.strength = ft.suppress(track.strength, occluded & valid)
+        occlusion = {"frames": [int(i) for i in np.flatnonzero(occluded & valid)], "by_original": [int(i) for i in np.flatnonzero(occ_pre)], "by_change": [int(i) for i in np.flatnonzero(occ_post)], "by_hand": [int(i) for i in np.flatnonzero(occ_hand)], "hand_detector": any(h is not None for h in track.hands),
+                     "pre_median": round(float(np.median(pre[valid])), 2) if valid.any() else None, "post_median": round(float(np.median(post[valid])), 2) if valid.any() else None,
+                     "factor": ft.OCCLUSION_FACTOR, "floor": ft.OCCLUSION_FLOOR}
+        track.report.full_strength = int((track.strength >= 0.999).sum())
+        track.report.strength_mean = round(float(track.strength.mean()), 3)
+        if debug_dir:
+            os.makedirs(debug_dir, exist_ok=True)
+            with open(os.path.join(debug_dir, "occlusion.json"), "w") as f:
+                json.dump({**occlusion, "pre": [round(float(x), 2) for x in pre], "post": [round(float(x), 2) for x in post], "hand": [round(float(x), 3) for x in hand_cov]}, f)
         keep = cv2.resize(mask_image[0].numpy().astype(np.float32), (face_w, face_h), interpolation=cv2.INTER_LINEAR)
         weight = ft.face_weight(keep, feather, erode)
         result = frames.copy()
@@ -528,7 +586,7 @@ class Corrector:
         t_end = time.time()
         return {
             "frames": n, "fps": round(fps, 3), "size": [info["width"], info["height"]], "out_frames": probe(out_path)["frames"],
-            "track": track.report.summary(),
+            "track": track.report.summary(), "occlusion": occlusion,
             "params": {"steps": steps, "guidance": guidance, "seed": seed, "feather": feather, "erode": erode, "crf": crf, "audio_offset": audio_offset, "num_frames": NUM_FRAMES, "resolution": RESOLUTION},
             "mouth_change_mad": round(float(np.mean(inside)), 3) if inside else None,
             "timing_s": {"decode": round(t_decode - t0, 2), "track": round(t_track - t_decode, 2), "model": round(t_infer - t_model, 2), "composite_encode": round(t_end - t_infer, 2), "total": round(t_end - t0, 2)},

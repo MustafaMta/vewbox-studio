@@ -194,6 +194,40 @@ def test_similarity_maps_points_onto_the_template():
     assert np.allclose(b3, 0.8 * b2)
 
 
+def test_occlusion_gate_hand_over_the_mouth():
+    region = np.zeros((512, 512), bool)
+    region[300:480, 100:412] = True  # the regenerated lower face
+    ident = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])  # frame == aligned crop
+    hand_on_mouth = np.array([[150 + 10 * (k % 5), 320 + 25 * (k // 5)] for k in range(21)], dtype=float)
+    hand_on_table = hand_on_mouth + np.array([0.0, 400.0])
+    assert ft.hand_overlap([hand_on_mouth], ident, region, (512, 512), 512) > ft.HAND_OVERLAP_MIN
+    assert ft.hand_overlap([hand_on_table], ident, region, (512, 512), 512) == 0.0
+    assert ft.hand_overlap([], ident, region, (512, 512), 512) == 0.0
+    # the crop of size (256, 256) resized to 512: a hand at half the coordinates covers the same place
+    assert abs(ft.hand_overlap([hand_on_mouth / 2], ident, region, (256, 256), 512) - ft.hand_overlap([hand_on_mouth], ident, region, (512, 512), 512)) < 0.01
+
+
+def test_occlusion_outliers_and_suppression():
+    speech = np.array([20, 22, 25, 21, 23, 24, 22, 60, 64, 63, 22, 21], dtype=float)  # a cup at 7–9
+    flags = ft.outliers(speech)
+    assert list(np.flatnonzero(flags)) == [7, 8, 9]
+    # a clip that is all speech (no outlier) flags nothing; invalid frames do not set the median
+    assert not ft.outliers(np.array([20, 30, 25, 28, 22.0])).any()
+    d = ft.dilate(flags, 1)
+    assert list(np.flatnonzero(d)) == [6, 7, 8, 9, 10]
+    s = ft.suppress(np.ones(12), d, ramp=2)
+    assert np.all(s[6:11] == 0.0) and s[0] == 1.0 and 0 < s[11] < 1  # frame 11 is 1 frame after the run
+    assert 0 < s[4] < 1 and s[4] < s[3]  # fades out before the occluder
+    import cv2  # noqa: F401
+
+    crops = np.full((6, 64, 64, 3), 120, np.uint8)
+    crops[3, 32:, :] = 250  # a hand fills the lower half in frame 3
+    region = np.zeros((64, 64), bool)
+    region[32:, :] = True
+    dev = ft.region_deviation(crops, region, size=32)
+    assert np.argmax(dev) == 3 and dev[3] > 100 and dev[0] == 0
+
+
 def test_track_report_summary():
     r = ft.TrackReport(frames=10, found=8, bridged=1, edited=9, face_height_px=[130, 150, 140], identity=[0.6, 0.7], lost_runs=[(3, 4)])
     s = r.summary()

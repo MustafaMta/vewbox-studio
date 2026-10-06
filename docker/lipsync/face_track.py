@@ -223,6 +223,93 @@ def edit_strength(edit: Sequence[bool], frontal: Sequence[float | None], lo: flo
     return np.clip(s, 0.0, 1.0)
 
 
+# ------------------------------------------------------------------------------------------------ occlusion gate
+# A hand, a cup or a glass in front of the mouth: LatentSync paints a mouth over it (seen on the acceptance take where
+# Clara sips her tea). Two signals, both robust to speech (the lips move every frame, an occluder changes far more):
+# (1) BEFORE generation, on the original aligned crops: how far each frame's lower face departs from the clip's own
+#     per-pixel median lower face; (2) AFTER generation: how much the model changed the region in that frame. A frame
+#     is OCCLUDED when either is an outlier against the clip's own median. START values, calibrated 2026-10-06.
+OCCLUSION_FACTOR = 2.2  # an outlier is above FACTOR × the clip's median …
+OCCLUSION_FLOOR = 10.0  # … and above median + FLOOR (luma-ish units, 0–255)
+OCCLUSION_DILATE = 2  # frames either side of an occluded run are also left alone (the occluder enters and leaves)
+
+
+def region_deviation(crops: np.ndarray, region: np.ndarray, size: int = 128) -> np.ndarray:
+    """Per frame, the mean absolute difference (0–255, over the colour channels) between the frame's `region` and the
+    clip's per-pixel median of that region. `crops`: (n, H, W, 3) uint8 aligned faces; `region`: (H, W) bool."""
+    import cv2  # type: ignore
+
+    n = len(crops)
+    if n == 0:
+        return np.zeros(0)
+    small = np.stack([cv2.resize(c, (size, size), interpolation=cv2.INTER_AREA) for c in crops]).astype(np.float32)
+    reg = cv2.resize(region.astype(np.uint8), (size, size), interpolation=cv2.INTER_NEAREST).astype(bool)
+    if not reg.any():
+        return np.zeros(n)
+    med = np.median(small, axis=0)
+    d = np.abs(small - med[None]).mean(axis=3)
+    return d[:, reg].mean(axis=1)
+
+
+def outliers(scores: np.ndarray, factor: float = OCCLUSION_FACTOR, floor: float = OCCLUSION_FLOOR, valid: np.ndarray | None = None) -> np.ndarray:
+    """Frames whose score is above max(factor × median, median + floor); the median over `valid` frames only."""
+    s = np.asarray(scores, dtype=np.float64)
+    v = np.ones(len(s), dtype=bool) if valid is None else np.asarray(valid, dtype=bool)
+    if not v.any():
+        return np.zeros(len(s), dtype=bool)
+    med = float(np.median(s[v]))
+    return v & (s > max(factor * med, med + floor))
+
+
+HAND_OVERLAP_MIN = 0.04  # a hand whose outline covers this share of the regenerated region occludes the mouth
+
+
+def hand_overlap(hands: Sequence[np.ndarray], affine: np.ndarray, region: np.ndarray, crop_size: tuple[int, int], resolution: int) -> float:
+    """The share of the regenerated region (`region`, resolution² bool, in the aligned crop) covered by the convex
+    outline of any hand. `hands`: (21, 2) landmark arrays in FRAME pixels; `affine`: 2×3 frame → aligned crop of size
+    `crop_size` (w, h), which is then resized to resolution². A held cup sits inside the hand's outline, so a hand
+    landmarker catches the common occluders (MediaPipe Hand Landmarker, Apache-2.0)."""
+    import cv2  # type: ignore
+
+    if not hands or not region.any():
+        return 0.0
+    sx, sy = resolution / crop_size[0], resolution / crop_size[1]
+    canvas = np.zeros((resolution, resolution), np.uint8)
+    a = np.asarray(affine, dtype=np.float64)
+    for h in hands:
+        p = np.asarray(h, dtype=np.float64)[:, :2]
+        q = p @ a[:, :2].T + a[:, 2]
+        q[:, 0] *= sx
+        q[:, 1] *= sy
+        hull = cv2.convexHull(np.round(q).astype(np.int32))
+        cv2.fillConvexPoly(canvas, hull, 1)
+    return float((canvas.astype(bool) & region).sum() / region.sum())
+
+
+def dilate(flags: np.ndarray, k: int = OCCLUSION_DILATE) -> np.ndarray:
+    f = np.asarray(flags, dtype=bool)
+    out = f.copy()
+    for i in np.flatnonzero(f):
+        out[max(0, i - k): i + k + 1] = True
+    return out
+
+
+def suppress(strength: np.ndarray, flags: np.ndarray, ramp: int = STRENGTH_RAMP) -> np.ndarray:
+    """Strength 0 on the flagged frames, faded back in over `ramp` frames either side (the edit never pops)."""
+    s = np.asarray(strength, dtype=np.float64).copy()
+    f = np.asarray(flags, dtype=bool)
+    s[f] = 0.0
+    if ramp > 0:
+        out = s.copy()
+        zero = np.flatnonzero(f)
+        for i in range(len(s)):
+            if zero.size:
+                dist = int(np.min(np.abs(zero - i)))
+                out[i] = min(out[i], dist / (ramp + 1))
+        s = out
+    return np.clip(s, 0.0, 1.0)
+
+
 def fill_gaps(points: Sequence[np.ndarray | None], max_gap: int = MAX_GAP_FRAMES) -> tuple[list[np.ndarray | None], list[bool]]:
     """Alignment points per frame with short gaps (≤ `max_gap` frames between two found faces) bridged by linear
     interpolation. Returns (points, found): `found` is False for every frame that had no face of its own — bridged
