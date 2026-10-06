@@ -28,10 +28,10 @@ import { env } from '@/server/env';
 
 type Measured = { mouth: QaAnswer<MouthResult>; identity: QaAnswer<IdentityResult> | null; self: QaAnswer<IdentityResult> | null };
 
-const speakerCorr = (m: QaAnswer<MouthResult>): { corr: number | null; faceHeightPx: number | null; track: number | null } => {
-  if (isQaUnavailable(m)) return { corr: null, faceHeightPx: null, track: null };
+const speakerCorr = (m: QaAnswer<MouthResult>): { corr: number | null; activityInside: number | null; faceHeightPx: number | null; track: number | null } => {
+  if (isQaUnavailable(m)) return { corr: null, activityInside: null, faceHeightPx: null, track: null };
   const sp = m.tracks.find((t) => t.isSpeaker) ?? null;
-  return { corr: sp?.corrBest ?? null, faceHeightPx: sp?.faceHeightPx ?? null, track: sp?.id ?? null };
+  return { corr: sp?.corrBest ?? null, activityInside: sp?.activityInside ?? null, faceHeightPx: sp?.faceHeightPx ?? null, track: sp?.id ?? null };
 };
 const medianOf = (r: QaAnswer<IdentityResult> | null, id: string): number | null => (r && !isQaUnavailable(r) ? r.characters[id]?.summary?.median ?? null : null);
 
@@ -104,6 +104,7 @@ export const correctLipsync: Handler = async (ctx) => {
   const measures: CorrectionMeasures = {
     frames: { original: res.report.frames, corrected: res.report.outFrames },
     corr: { before: b.corr, after: a.corr },
+    activityInside: { before: b.activityInside, after: a.activityInside },
     canonical: { before: medianOf(before.identity, plan.speakerId!), after: medianOf(after.identity, plan.speakerId!) },
     selfIdentity: { before: medianOf(before.self, 'original-take'), after: medianOf(after.self, 'original-take') },
     fullStrengthShare: res.report.frames ? res.report.track.framesFullStrength / res.report.frames : 0,
@@ -116,6 +117,7 @@ export const correctLipsync: Handler = async (ctx) => {
     { name: 'mouth-follows-audio', ok: !(measures.corr.before !== null && measures.corr.after !== null && measures.corr.after < measures.corr.before), value: measures.corr.after ?? undefined, threshold: measures.corr.before === null ? undefined : `≥ ${measures.corr.before.toFixed(2)} (before)`, detail: `Tier-1 after: ${lipAfter.verdict.toLowerCase()}${lipAfter.detail.length ? ` — ${lipAfter.detail.join('; ')}` : ''}` },
     { name: 'same-face-as-original', ok: !verdict.problems.some((x) => x.startsWith('the face changed') || x.includes('could not be compared')), value: measures.selfIdentity.after ?? undefined, threshold: measures.selfIdentity.before === null ? undefined : `≥ ${(measures.selfIdentity.before - cap.accept.selfIdentityDropMax).toFixed(2)}` },
     { name: 'identity-to-canonical', ok: !verdict.problems.some((x) => x.startsWith('identity to the canonical')), value: measures.canonical.after ?? undefined, threshold: measures.canonical.before === null ? undefined : `≥ ${(measures.canonical.before - cap.accept.canonicalDropMax).toFixed(2)}` },
+    { name: 'performance-kept', ok: !verdict.problems.some((x) => x.startsWith('the mouth performance')), value: measures.activityInside?.after ?? undefined, threshold: measures.activityInside?.before == null ? undefined : `≥ ${(measures.activityInside.before * (1 - cap.accept.performanceDropMax)).toFixed(2)}`, detail: 'mouth activity while speaking, after vs before' },
     { name: 'corrected-at-full-strength', ok: measures.fullStrengthShare >= cap.minFullStrengthShare, value: Number(measures.fullStrengthShare.toFixed(2)), threshold: cap.minFullStrengthShare, detail: `${res.report.track.framesProfile} profile frame(s), ${res.report.track.lostRuns.length} lost run(s)` },
     judgeContainer(probe, { fps: take.fps ?? H3_FPS, expectAudio: Boolean(take.soundtrack) }),
   ];

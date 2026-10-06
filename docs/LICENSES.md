@@ -13,7 +13,7 @@ so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*,
 | Qwen-Image-2512, Qwen-Image-Edit-2511 | canonical images, plates, frames | Apache-2.0 | in use | keep the licence and notices | no |
 | FLUX.2 [klein] 4B | canonical image from a picture | Apache-2.0 | in use | keep the licence and notices | no |
 | Qwen3.5-4B | reading the reference picture | Apache-2.0 | in use | keep the licence and notices | no |
-| MediaPipe (face detector, Face Landmarker) | face box, mouth activity | Apache-2.0 (model card terms ◐) | in use | keep the licence and notices | no |
+| MediaPipe (face detector, Face Landmarker, Hand Landmarker) | face box, mouth activity, the lip-sync corrector's face alignment and occlusion gate | Apache-2.0 ✔ — code (google-ai-edge/mediapipe LICENSE) and the model cards, each stating "LICENSED UNDER Apache License, Version 2.0": Face Mesh V2, Blendshape V2, BlazeFace short-range, Hand Tracking Lite/Full (Oct 2021) — read 2026-10-06 from storage.googleapis.com/mediapipe-assets | in use | keep the licence and notices | no |
 | IndexTTS 2.5 | the characters' lines | bilibili IndexTTS model licence (code Apache-2.0) ◐ | in use | its use restrictions bind users of its outputs (§3.4) | yes |
 | Habibi-TTS IRQ | Iraqi Arabic voices | Apache-2.0 | in use | keep the licence and notices | no |
 | VoxCPM2 | voice design | Apache-2.0 | in use | the card asks that AI audio be labelled and forbids impersonation | (card) |
@@ -26,7 +26,7 @@ so (◐) and names where the finding came from (docs/MODELS.md, docs/research/*,
 | MiniMax Music 3 (open weights) | songs (second engine) | MiniMax-Music3 Community License | in use | credit "MiniMax Music 3" where used; US$20M cap | ◐ |
 | Gemma 4 31B (Ollama) | story, scripts, shot plans | Gemma Terms of Use | in use | its Prohibited Use Policy binds users of its outputs | yes |
 | Qwen3 14B | story engine (selectable) | Apache-2.0 | in use | keep the licence and notices | no |
-| LatentSync | lip-sync correction | OpenRAIL++-M | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial) | yes |
+| LatentSync 1.6 (+ Whisper tiny MIT, SD VAE ft-MSE MIT) | lip-sync correction of a confirmed take (opt-in service) | weights CreativeML OpenRAIL++-M ✔ (model card), code Apache-2.0 ✔ | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial); the repo's auxiliary weights (S3FD, syncnet_v2, VGG, I3D, KonIQ, ViT-g) are not fetched | yes |
 | Geist, Geist Mono | interface typefaces | SIL Open Font License 1.1 | in use | ship the licence with the files (`src/app/fonts/OFL-Geist.txt`) | no |
 
 Not used (licence): MMS forced-alignment weights and ctc-forced-aligner's default model (CC-BY-NC), InsightFace model
