@@ -16,8 +16,20 @@ const get = async (u) => (await fetch(BASE + u)).json();
 const setFace = (mode) => post('/api/commands', { clientId: 'acceptance-g13', batchId: `g13-${crypto.randomUUID()}`, commands: [{ name: 'updateSettings', args: [{ generation: { faceReference: mode } }], seed: crypto.randomUUID(), at: new Date().toISOString() }] });
 const log = (o) => fs.appendFile(out, JSON.stringify({ at: new Date().toISOString(), ...o }) + '\n');
 
+const TERMINAL = ['COMPLETED', 'FAILED', 'CANCELLED', 'DEAD', 'AWAITING_REVIEW'];
+// resume: an arm already enqueued (by an earlier run of this script) is waited for, never enqueued again
+const earlier = await fs.readFile(out, 'utf8').then((t) => t.split('\n').filter(Boolean).map((l) => JSON.parse(l))).catch(() => []);
 for (const shotId of shots) {
   for (const [arm, mode] of [['A', 'OFF'], ['B', 'AUTO']]) {
+    const prior = earlier.find((l) => l.shotId === shotId && l.arm === arm && l.jobId);
+    if (prior) {
+      if (earlier.some((l) => l.jobId === prior.jobId && TERMINAL.includes(l.state))) { console.log(shotId, arm, 'done earlier', prior.jobId); continue; }
+      let j;
+      for (;;) { j = (await get(`/api/jobs/${prior.jobId}`)).job; if (TERMINAL.includes(j.status)) break; await new Promise((res) => setTimeout(res, 15000)); }
+      console.log(shotId, arm, 'resumed', j.status);
+      await log({ shotId, arm, mode, seed, jobId: prior.jobId, state: j.status, result: j.result, error: j.error });
+      continue;
+    }
     await setFace(mode);
     const settings = (await get('/api/studio/settings')).settings?.generation?.faceReference;
     const r = await post('/api/jobs', { type: 'GENERATE_TAKE', payload: { productionId: pid, shotId, quality: 'final', seed } });
@@ -25,7 +37,7 @@ for (const shotId of shots) {
     console.log(shotId, arm, mode, 'setting now', settings, 'job', jobId);
     await log({ shotId, arm, mode, settingRead: settings, seed, jobId, state: 'enqueued' });
     let j;
-    for (;;) { await new Promise((res) => setTimeout(res, 15000)); j = (await get(`/api/jobs/${jobId}`)).job; if (['COMPLETED', 'FAILED', 'CANCELLED', 'DEAD'].includes(j.status)) break; }
+    for (;;) { await new Promise((res) => setTimeout(res, 15000)); j = (await get(`/api/jobs/${jobId}`)).job; if (TERMINAL.includes(j.status)) break; }
     console.log(shotId, arm, j.status, JSON.stringify(j.result ?? j.error).slice(0, 300));
     await log({ shotId, arm, mode, seed, jobId, state: j.status, result: j.result, error: j.error });
   }
