@@ -65,6 +65,16 @@ describe('voice engines', () => {
     expect(synthesisFields(line, 'dots').reference_text).toBe(line.referenceText);
   });
 
+  it('budgets a one-word line on a token-controlled engine, never on the others, and never over a caller’s target', async () => {
+    const { durationFor } = await import('@/server/providers/voice-engines');
+    expect(durationFor('moss', 'Nothing.')).toBe(0.9);
+    expect(durationFor('moss', 'Now?')).toBe(0.9);
+    expect(durationFor('moss', 'Did your father teach you this?')).toBeUndefined();
+    expect(durationFor('moss', 'Nothing.', 1.4)).toBe(1.4);
+    expect(durationFor('indextts', 'Nothing.')).toBeUndefined(); // IndexTTS keeps the lead-in + cut
+    expect(durationFor('dots', 'Nothing.')).toBeUndefined();
+  });
+
   it('lists only commercial-safe engines (producer’s rule 2026-10-06)', () => {
     for (const e of Object.values(VOICE_ENGINES)) expect(e.licence).not.toMatch(/non-commercial|NC\b|research/i);
   });

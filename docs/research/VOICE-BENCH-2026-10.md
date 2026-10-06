@@ -58,7 +58,37 @@ Set `tests/fixtures/voice/acceptance-clara-2026-10.json` (Clara's two lines as w
 realistic-take lines of g13, three one-word lines); reference = Clara's pinned designed seed (`gen-b23150ec5e`, 8.8 s);
 sessions 1 and 2 (unload between), seed-7 repeat, duration targets ×0.8 / ×1.25 on Clara's lines (MOSS: token budget;
 IndexTTS: `duration_factor`). Evidence `docs/evidence/voice-eval-2026-10/moss-vs-indextts/` (report.json, index.html,
-review-blind.html). Results: (filled when the run completes).
+review-blind.html; WAV/PNG under `media/`, git-ignored). Run 2026-10-06 18:26–18:46 (MOSS at background priority after
+a 30-min wait, IndexTTS and the scoring at normal priority on the producer's instruction). Attempt #1 only.
+
+| | IndexTTS 2.5 | MOSS-TTS v1.5 |
+|---|---|---|
+| Full lines (5): coverage / CER | 5/5 coverage ≥ 0.83, CER ≤ 0.05 — every word heard; `g13-1` REVIEW on both is the ASR writing "wood smoke" for "woodsmoke" | same: 5/5, every word heard |
+| **ECAPA to Clara's reference, full lines** | **0.44–0.67** (mean 0.52) | **0.67–0.86** (mean 0.80); duration-controlled takes 0.78–0.84 |
+| Session 2 (unload, reload, seed 11): ECAPA to ref / to the session-1 take | 0.49–0.67 / 0.47–0.86 (`g13-2` fell to 0.47) | 0.69–0.86 / 0.81–0.89 |
+| Same seed after a reload | bit-identical | bit-identical |
+| Duration control (Clara's lines ×0.8 and ×1.25) | `duration_factor`: within 0.3 % of the target on 4/4, words intact, ECAPA 0.50–0.62 | token budget (12.5 tokens/s): within 2 % on 4/4 (80 ms grid), words intact, ECAPA 0.78–0.84 |
+| One-word lines, sent bare (3) | «Nothing.» OK 1.56 s; «Now?» → "No!" (FAIL); «Thanks.» OK — the known defect, cured in production by the lead-in + cut | «Now?» OK 0.72 s; «Thanks.» OK 0.80 s; **«Nothing.» ran on to 5.68 s: "Nothing. Toe. Nothing."** (word, 1.1 s gap, a sung syllable, 2.2 s of near-silence, the word again) |
+| Latency, RTF (median) | 2.2 s per line, 1.0 | 2.4 s per line, 1.2; first line 6.6 s |
+| Card while loaded | ≈ 6 GB | torch peak 23,986 MB (bf16, SDPA); card total peaked 31.3 GB with other services resident |
+| Output | 22.05 kHz | 24 kHz |
+
+**What I could judge from the files:** every full line is spoken completely and in Clara's timbre far more closely on
+MOSS (ECAPA +0.28 on average, and higher than IndexTTS's best on every line); MOSS's spectrograms show continuous voiced
+phrases with the harmonics intact up to the top of its band, no clicks, no gaps inside a line; loudness and true peak
+within the studio's gates on both. **What I could not judge:** naturalness, emotional delivery ("curious", "happy",
+"warm") and whether the voice *sounds* like Clara to a person — machine scores only; the blind page
+(`review-blind.html`, 8 rows, A/B shuffled, key in `blind-key.json`) is for a listener, and the acceptance engineer's
+real-UI proof is the acceptance.
+
+**One-word lines on MOSS:** the fix is the engine's own duration control, not IndexTTS's lead-in: a one-word line is
+asked for a 0.9 s budget (`oneWordBudgetSeconds`, `durationFor` in voice-engines.ts; the lead-in stays IndexTTS-only).
+Check on the three one-word lines with `duration=0.9`: (filled below).
+
+**Verdict: MOSS-TTS v1.5 is at least as good on pronunciation and duration control and clearly better on persistent
+identity and cross-session consistency; it becomes the engine for NEW English voices (`VOICE_ENGINE_EN=moss`).**
+IndexTTS 2.5 stays installed (Arabic MSA, mixed lines, the Iraqi phase's code-switched lines) and off the English
+default route; Clara's pinned identity keeps IndexTTS until it is rebuilt.
 
 ## 4. Integration (in the code, default unchanged)
 
