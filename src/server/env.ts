@@ -36,6 +36,12 @@ const Schema = z.object({
    *  (keep_alive; the lease unloads it earlier with keep_alive 0 when another family takes the card). */
   OLLAMA_CONTEXT_LENGTH: z.coerce.number().int().positive().default(16384),
   OLLAMA_KEEP_ALIVE: z.string().default('2m'),
+  /** Which kind of server OPENAI_COMPATIBLE_BASE_URL is: `vllm` (the production planner, Qwen3.8-27B-FP8, compose
+   *  service llm-vllm), `ollama` (the Gemma emergency fallback), `remote` (a hosted OpenAI-compatible API). Empty =
+   *  decided from the URL (:11434 → ollama; a local engine address → vllm; anything else → remote). */
+  OPENAI_COMPATIBLE_RUNTIME: z.enum(['', 'vllm', 'ollama', 'remote']).default(''),
+  /** The local model's context window (prompt + answer), the vLLM server's --max-model-len; empty = OLLAMA_CONTEXT_LENGTH. */
+  LLM_CONTEXT_LENGTH: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().positive().optional()),
   /** Local GPU services. */
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),

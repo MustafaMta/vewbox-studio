@@ -432,6 +432,52 @@ services:
       start_period: 20s
       retries: 5
 
+  # THE PRODUCTION PLANNER (docs/research/MODEL-EVAL-2026-10.md §10): the official Qwen/Qwen3.8-27B-FP8 (Apache-2.0,
+  # manifest group llm-qwen3.8-27b-fp8 → <store>/llm/qwen3.8-27b-fp8, read-only) on vLLM's OpenAI server. 28.8 GB of FP8
+  # weights on the 32.6 GB card: eager mode (no CUDA graphs — they do not fit, per vLLM's RTX 5090 recipe), an FP8 KV
+  # cache, LLM_CONTEXT_LENGTH tokens of context, one sequence at a time. Thinking is off unless a request asks
+  # (chat_template_kwargs.enable_thinking). The GPU lease frees the card with vLLM's sleep mode (level 2: weights and
+  # cache dropped; /wake_up + reload_weights on the next request), which needs the dev endpoints (VLLM_SERVER_DEV_MODE=1,
+  # reachable on 127.0.0.1 only). Ollama's `llm` stays stopped (the Gemma emergency fallback only).
+  llm-vllm:
+    logging: *logging
+    image: vllm/vllm-openai:${VLLM_IMAGE_TAG:-v0.31.0}
+    dns: *dns
+    restart: unless-stopped
+    ipc: host
+    environment:
+      <<: *model-cache-env
+      NVIDIA_VISIBLE_DEVICES: all
+      # never a download at run time, never a token: the weights are the store's pinned files
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_SERVER_DEV_MODE: "1"
+      # vLLM's / FlashInfer's / Triton's compiled kernels: the store's cache/vllm (kept across restarts, never a layer on C:)
+      VLLM_CACHE_ROOT: /models/cache/vllm
+      XDG_CACHE_HOME: /models/cache/vllm/xdg
+      TRITON_CACHE_DIR: /models/cache/vllm/triton
+      FLASHINFER_WORKSPACE_BASE: /models/cache/vllm/flashinfer
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+    volumes: [ "models:/models:ro", { type: volume, source: models, target: /models/cache/vllm, volume: { subpath: cache/vllm } } ]
+    ports: [ "127.0.0.1:${VLLM_PORT:-8050}:8000" ]
+    command:
+      - --model=/models/llm/qwen3.8-27b-fp8
+      - --served-model-name=Qwen3.8-27B-FP8
+      - --max-model-len=${LLM_CONTEXT_LENGTH:-16384}
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.96}
+      - --kv-cache-dtype=fp8
+      - --enforce-eager
+      - --max-num-seqs=2
+      - --reasoning-parser=qwen3
+      - --enable-sleep-mode
+      - --limit-mm-per-prompt={"image":2,"video":0}
+      - --default-chat-template-kwargs={"enable_thinking":false}
+      - --generation-config=vllm
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"], interval: 20s, timeout: 10s, start_period: 600s, retries: 10 }
+    stop_grace_period: 30s
+
   # One-shot: pull the story/vision models into the ollama volume (Ollama's own registry, not the fetcher; resumable).
   # `docker compose --profile models run --rm llm-pull`. Runs its own short-lived server on the CPU (a pull loads nothing
   # on the card), so the `llm` service need not be up; with `llm` up, `docker compose exec llm ollama pull <tag>` is the same.
