@@ -216,6 +216,25 @@ describe('invalid input and missing reference (§26) — the REAL take handler, 
     expect((r.error as { message: string }).message).toMatch(/Shot not found/);
   }, 120_000);
 
+  it('a job queued before the terms of use changed fails at claim as INVALID_INPUT naming /terms — no retry, no engine call', async () => {
+    const { TERMS_VERSION } = await import('@/domain/terms');
+    const job = await takeJob('shot-that-does-not-exist-either');
+    await command('updateSettings', [{ terms: { version: '2000-01-01', acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    try {
+      const w = startWorker('fault-terms', { FIXTURE_TAKE: '0' });
+      const r = await settled(job.id);
+      await stop(w);
+      expect(r.status).toBe('FAILED');
+      expect(r.attempts).toBe(1);
+      expect((await attempts(job.id)).map((x) => [x.outcome, x.failureClass])).toEqual([['FAILED', 'INVALID_INPUT']]);
+      expect(r.error as { code: string; message: string }).toMatchObject({ code: 'CONSENT_REQUIRED' });
+      expect((r.error as { message: string }).message).toMatch(/\/terms/);
+      expect(submissions(job.id)).toBe(0);
+    } finally {
+      await command('updateSettings', [{ terms: { version: TERMS_VERSION, acceptedAt: new Date().toISOString(), by: 'worker test' } }]);
+    }
+  }, 120_000);
+
   it('a character whose canonical picture file is gone: refused as MISSING_REFERENCE naming the picture — once, before any voice or video inference', async () => {
     const { character: c } = await command('addCharacter', [{ name: `Ref Missing ${Date.now().toString(36)}`, style: 'ANIME', sex: 'FEMALE', ageYears: 30, language: 'EN', role: '', build: '', face: '', hair: '', skin: '', eyes: '', wardrobe: '', personality: '', distinguishing: [] }]);
     const png = execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=256x256', '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'png', '-']);
