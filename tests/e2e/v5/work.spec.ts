@@ -380,6 +380,36 @@ test('people and story state: unsaved edits are guarded like the shot’s own (Q
   await expect(page).toHaveURL(new RegExp(`${SHOT}$`));
 });
 
+test('Repair lip-sync: off with the reason on a cartoon take; on a realistic take the dialog asks why and queues CORRECT_LIPSYNC', async ({ page }) => {
+  await open(page, `/shorts/${FILM}/shots/${SHOT}`, { health: READY });
+  const first = page.locator('.ws-take').first();
+  const off = first.getByRole('button', { name: /^Repair lip-sync/ });
+  await expect(off).toBeDisabled();
+  await expect(first.locator('.ws-repair-why')).toContainText('not enabled for cartoon faces');
+  // the same film as a realistic production (the snapshot answered here; nothing is written)
+  const jobs: Array<Record<string, unknown>> = [];
+  await page.route('**/api/studio', async (route: Route) => { const res = await route.fetch(); const body = await res.json(); body.state.productions = body.state.productions.map((x: { id: string }) => (x.id === FILM ? { ...x, style: 'REALISTIC' } : x)); await route.fulfill({ response: res, json: body }); });
+  await page.route('**/api/jobs', async (route: Route) => { if (route.request().method() !== 'POST') return route.continue(); const b = route.request().postDataJSON(); jobs.push(b); await route.fulfill({ status: 201, json: { job: { id: 'job-e2e-repair', type: b.type, status: 'QUEUED', priority: 0, payload: b.payload, attempts: 0, maxAttempts: 1, cancelRequested: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, created: true } }); });
+  await page.goto(`/shorts/${FILM}/shots/${SHOT}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.ws:not(.ws-skeleton) .ws-stage .ws-take', { timeout: 90_000 });
+  const on = page.locator('.ws-take').first().getByRole('button', { name: /^Repair lip-sync/ });
+  await expect(on).toBeEnabled();
+  await on.click();
+  const dlg = page.getByRole('dialog', { name: /Repair the lip-sync of take 1/ });
+  await expect(dlg).toBeVisible();
+  await expect(dlg).toContainText('original take is kept');
+  const go = dlg.getByRole('button', { name: 'Repair the lip-sync' });
+  await expect(go).toBeDisabled();
+  await dlg.getByLabel(/What’s wrong with the lip-sync/).fill('ab');
+  await expect(go).toBeDisabled();
+  await dlg.getByLabel(/What’s wrong with the lip-sync/).fill('the mouth opens a beat late');
+  await dlg.getByRole('checkbox', { name: /Use the repaired take if it passes/ }).check();
+  await go.click();
+  await expect.poll(() => jobs.length).toBe(1);
+  expect(jobs[0]).toMatchObject({ type: 'CORRECT_LIPSYNC', payload: { productionId: FILM, shotId: SHOT, takeId: 'take-a3740bd0a6', confirm: true, reason: 'the mouth opens a beat late', select: true } });
+  await expect(dlg).toBeHidden();
+});
+
 test('what a scene changes: a persistent change and what someone learns, saved on the scene (routed)', async ({ page }) => {
   await open(page, `${MAP}?tab=story`);
   await page.waitForSelector('.ws-scene-card', { timeout: 90_000 });
