@@ -102,6 +102,29 @@ folder `X` is `comfyui/X`, `hf-home` is `cache/hf`, `demucs` is `cache/torch`, a
      `mkfs.ext4 -L vewbox-models -m 0`.
   4. Detach it, attach it as `models`, and write the marker.
 
+## Retiring the old copies and reclaiming C:
+
+- **What to run.** `scripts/models-store-retire.ps1` deletes model folders from the old volumes `vewbox_models` and
+  `vewbox_ollama`. The producer runs it; the default is a dry run.
+- **Checks before each folder:**
+  - every file is in the store at its size, and its sha256 was checked at copy time (`/models/.migration/copy-log.jsonl`);
+  - no running container still reads that folder from the old volume.
+- **Removing the volumes:** `-DropVolumes` removes both volumes once no container references them.
+- **No space back yet.** Deleting inside a volume does not shrink Docker's `docker_data.vhdx` on C:. That file is not
+  sparse, and its ext4 is mounted without `discard`. The script ends with `fstrim` on Docker's data disk (no downtime),
+  which marks the freed blocks unused.
+- **Getting the space back takes an offline compaction** (Hyper-V's `Optimize-VHD` is not installed here, so it is
+  diskpart, in an admin shell):
+  1. Quit Docker Desktop gracefully.
+  2. Run `wsl --shutdown`. This also detaches the model store.
+  3. In an admin `diskpart`, run `select vdisk file="%LOCALAPPDATA%\Docker\wsl\disk\docker_data.vhdx"`, then
+     `attach vdisk readonly`, `compact vdisk` and `detach vdisk`.
+  4. Start again with `docker-watchdog --start-docker`, which attaches the store first.
+- **Downtime:** all of Docker, about 20–40 min for a 430 GB file.
+- **Do not use instead:**
+  - Docker Desktop's "Clean / Purge data" (it wipes the volumes);
+  - making the VHDX sparse (WSL documents sparse VHDs as experimental; the disk also holds pgdata).
+
 ## Migration record (2026-10-06)
 
 See the inventory table below: the old path, the new path, the size, the checksum status, the service using the model
