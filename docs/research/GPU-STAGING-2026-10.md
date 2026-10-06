@@ -124,6 +124,7 @@ host RAM idle. Every speech service and Ollama load lazily: up and idle they hol
 | IMAGE — FLUX.2 klein 4B (+ Qwen3-4B TE) | **20.1 GB** | — | 30400 | yes (over-estimates by ≈ 10 GB) |
 | IMAGE — Qwen-Image-2.1 int8 (evaluation only) | 17.0–22.4 GB | — | — | — |
 | VIDEO — MiniMax H3 Ref2VA int8, 4-step turbo, 5 s at 1344×768 | **28.4–31.9 GB** | **40.2–40.8 GiB of 46.8** | `VIDEO_H3_VRAM_MB` **31900** (was 28000); host RAM `VIDEO_H3_HOST_RAM_MB` 40.8 GiB recorded | yes |
+| VIDEO — MiniMax H3 Ref2VA int8, final tier (base, 20 steps) and draft (turbo), 5 s at 1344×768, 2026-10-06 (MODEL-EVAL §8.4) | **27.0–31.9 GB** | **46.0–46.5 GiB of 78.5** (VM raised by `.wslconfig`) | 31900; host RAM 46.5 GiB recorded; engine final ≈ 350 s vs draft 85–123 s | yes |
 | LLM — gemma4:31b-it-qat, 16K q8_0 | **21.4 GB** (19.1 GB model) | ≤ 11.9 GB | 21500 (new) | yes |
 | LLM — qwen3:14b, 16K q8_0 | **11.5 GB** (10.6 GB model) | ≤ 5.9 GB | 12000 | yes |
 | TTS + ASR — IndexTTS + Habibi IRQ + Whisper (dialect or large-v3), all loaded | **13.5 GB** together | tts 2.5, habibi 2.5, asr 1.0 GB | 8000 / 4000 | — |
@@ -135,6 +136,10 @@ host RAM idle. Every speech service and Ollama load lazily: up and idle they hol
 - **Gemma + voice/ASR: no** (21.4 + 12.7 ≈ 34 GB). **Gemma + any image engine: no.** **klein + voice: no** (≈ 32.8 GB).
 - **H3: alone** — 31.9 GB of the card and 40.8 GiB of the VM's 46.8 GiB host RAM: with the speech services merely idle
   (≈ 6 GB RAM loaded) the VM is at its limit; `.wslconfig` (`memory=80GB`) is still the producer action.
+
+**2026-10-06:** the Docker VM now has 78.5 GiB (`docker info` MemTotal 84,336,570,368 B); H3 measured 46.0–46.5 GiB of it in
+both tiers (the page cache of the DiT and the encoder grow into the room), so `VIDEO_H3_HOST_RAM_MB` is 46.5 GiB and
+`DOCKER_VM_RAM_MB` the new VM size. The final tier's card peak is the turbo tier's (same model and activations).
 
 **The code follows the measured peaks (2026-10-05, `src/server/gpu/estimates.ts`, test `tests/unit/gpu-estimates.test.ts`,
 which reads this table):** `IMAGE_VRAM_MB` 30400 (was 24000) and `VIDEO_H3_VRAM_MB` 31900 (was 28000); H3's host RAM

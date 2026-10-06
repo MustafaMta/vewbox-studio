@@ -1,0 +1,20 @@
+{
+  "comment": "Where a manifest folder lives inside the model store (VEWBOX_MODELS_ROOT; docs/MODELS-STORAGE.md). The manifest and the fetcher's .manifest-state.json keep LOGICAL folders (ComfyUI's type names, `asr/...`, `tts/...`); on disk ComfyUI's typed folders sit together under comfyui/ (extra_model_paths base_path /models/comfyui) and the caches under cache/. Every other folder keeps its name. Read by docker/models/fetch.py and scripts/lib/models-store.mjs: change both sides through this file only.",
+  "comfyui": {
+    "dir": "comfyui",
+    "folders": ["checkpoints", "diffusion_models", "unet", "text_encoders", "clip", "vae", "loras", "model_patches", "embeddings", "upscale_models", "detection", "clip_vision", "controlnet", "style_models", "background_removal"]
+  },
+  "renamed": { "hf-home": "cache/hf", "demucs": "cache/torch" },
+  "categories": {
+    "comfyui": "ComfyUI's typed tree: video (MiniMax H3), images (Qwen-Image, FLUX.2 klein, JoyAI), music (ACE-Step, MiniMax Music 3), their text encoders, VAEs and LoRAs, the MediaPipe face detector",
+    "asr": "Whisper large-v3 (CTranslate2) and the Arabic-dialect fine-tune (transformers + CTranslate2)",
+    "align": "wav2vec2 CTC models for forced alignment",
+    "tts": "voices: IndexTTS 2.5, Habibi IRQ, VoxCPM2, the voice-bench engines",
+    "lipsync": "LatentSync 1.6",
+    "identity": "face detection/recognition ONNX (YuNet, SFace, CCIP, DINOv2-small)",
+    "qa": "MediaPipe face landmarker, SyncNet",
+    "eval": "ECAPA speaker encoder",
+    "llm": "llm/ollama is Ollama's /root/.ollama (models/blobs + manifests)",
+    "cache": "cache/hf = HF_HOME, cache/torch = TORCH_HOME (Demucs)"
+  }
+}

@@ -351,7 +351,7 @@ function Generate({ p, shot, gate, dirty }: { p: Production; shot: Shot; gate: R
   return (
     <div className="ws-gen-block">
       <Segmented<'draft' | 'final'> label="Quality" size="sm" value={quality} onChange={setQuality} options={[{ value: 'draft', label: 'Draft · faster' }, { value: 'final', label: 'Final' }]} />
-      {quality === 'draft' && <p className="t-meta">Today every take is made at final quality; a draft request is recorded with the take.</p>}
+      {quality === 'draft' && <p className="t-meta">Draft uses MiniMax H3's fast path: about 3× quicker, with less stable framing and identity. The take is marked Draft.</p>}
       {/* the MiniMax H3 Community License §IV.2: the engine is named where video is made */}
       <p className="t-meta ws-engine-credit">Video by MiniMax H3, on this machine</p>
       <GenButton gate={gate} engine="video" type="GENERATE_TAKE" variant="primary" icon={<IconTake aria-hidden />} target={{ productionId: p.id, shotId: shot.id }}

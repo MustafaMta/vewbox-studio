@@ -75,10 +75,13 @@ describe('rateTake (B5)', () => {
 });
 
 describe('quality tier (B6)', () => {
-  it('every take the worker makes records params.quality: final; a draft request is kept as asked, not honoured', () => {
+  it('final unless a draft is asked for; local H3 honours a draft (turbo), the hosted API records it as asked', () => {
     expect(takeQuality(undefined)).toEqual({ quality: 'final' });
     expect(takeQuality('final')).toEqual({ quality: 'final' });
-    expect(takeQuality('draft')).toEqual({ quality: 'final', qualityRequested: 'draft' });
+    expect(takeQuality('draft')).toEqual({ quality: 'draft' });
+    expect(takeQuality('draft', 'local')).toEqual({ quality: 'draft' });
+    expect(takeQuality('draft', 'api')).toEqual({ quality: 'final', qualityRequested: 'draft' });
+    expect(takeQuality(undefined, 'api')).toEqual({ quality: 'final' });
   });
   it('GENERATE_TAKE accepts the tier in its payload and nothing else', () => {
     expect(JOB_PAYLOADS.GENERATE_TAKE.safeParse({ productionId: 'p', shotId: 's', quality: 'draft' }).success).toBe(true);

@@ -62,6 +62,23 @@ export interface VideoCapability {
   inTakeCuts: boolean;
   /** native audio (speech, sound) generated with the picture */
   nativeAudio: boolean;
+  /** QUALITY TIERS of the local engine (docs/research/MODEL-EVAL-2026-10.md §8.4): `final` is what every take is made at
+   *  unless the producer explicitly asks for a draft; `draft` is the fast path, recorded as such on the take — never
+   *  used silently. `engineFactor`: the tier's engine time against the turbo draft, for deadlines and estimates. */
+  tiers?: Record<VideoQualityTier, VideoTierConfig>;
+}
+
+export type VideoQualityTier = 'draft' | 'final';
+export interface VideoTierConfig {
+  /** the distillation (turbo) LoRA on, with its step count; off = the base model at `steps` */
+  turbo: boolean;
+  steps: number;
+  scheduler: 'simple' | 'beta' | 'normal';
+  refImageSize: 'match' | 'max';
+  /** engine time relative to the draft tier (measured) */
+  engineFactor: number;
+  /** what the producer is told about the tier */
+  label: string;
 }
 
 export const MINIMAX_H3_LOCAL: VideoCapability = {
@@ -85,7 +102,38 @@ export const MINIMAX_H3_LOCAL: VideoCapability = {
     headIsReRender: true, audioIsConditioning: true,
   },
   inTakeCuts: true, nativeAudio: true,
+  // MODEL-EVAL-2026-10.md §8.4 (2026-10-06, The Static Sky scene 1 shots 1–2, seed 970007, first attempts): the base
+  // model at 20 steps (the official templates' default; the checkpoints are CFG-distilled, so no CFG) held the planned
+  // MEDIUM_CLOSE_UP as one continuous shot with SFace median 0.69 (0 frames below 0.363) where the Ref2VA turbo LoRA
+  // cut three times inside the take and drifted to 0.33 (55 % below); engine 350 s vs 110 s (×3.2) at the same
+  // 31.7–31.9 GB card and 46 GiB host RAM. Turbo stays as the explicit draft tier.
+  tiers: {
+    final: { turbo: false, steps: 20, scheduler: 'simple', refImageSize: 'match', engineFactor: 3.2, label: 'Final: MiniMax H3 base model, 20 steps' },
+    draft: { turbo: true, steps: 0, scheduler: 'simple', refImageSize: 'match', engineFactor: 1, label: 'Draft: MiniMax H3 turbo LoRA (4 steps reference / 8 steps frames), about 3× faster, less stable framing and identity' },
+  },
 };
+
+/** The draft tier's measured engine time for a 124-frame (5 s) Ref2VA clip at 1344×768 with its references, the
+ *  checkpoint warm (MODEL-EVAL §8.4: 110 s; §5 V1 119 s with the cold load). */
+export const H3_DRAFT_ENGINE_MS_AT_124 = 110_000;
+/** Expected engine time of a local H3 clip: the tier's factor × the measured draft time, scaled by frames^1.5 (between
+ *  the linear MLP cost and the quadratic attention cost of the video tokens; an estimate until long final clips are
+ *  measured). */
+export function h3EngineEstimateMs(frames: number, tier: VideoQualityTier, cap: VideoCapability = MINIMAX_H3_LOCAL): number {
+  const factor = cap.tiers?.[tier]?.engineFactor ?? 1;
+  return Math.round(factor * H3_DRAFT_ENGINE_MS_AT_124 * Math.pow(Math.max(1, frames) / 124, 1.5));
+}
+/** How long the worker waits for one local H3 run before failing it: 4× the estimate (a cold load, a busy card),
+ *  never below the old fixed 90 min and never above 3 h. A final 15-s clip (362 frames) gets ≈ 117 min. */
+export const H3_RUN_TIMEOUT_MIN_MS = 90 * 60_000;
+export const H3_RUN_TIMEOUT_MAX_MS = 180 * 60_000;
+export function h3RunTimeoutMs(frames: number, tier: VideoQualityTier, cap: VideoCapability = MINIMAX_H3_LOCAL): number {
+  return Math.min(H3_RUN_TIMEOUT_MAX_MS, Math.max(H3_RUN_TIMEOUT_MIN_MS, 4 * h3EngineEstimateMs(frames, tier, cap)));
+}
+
+/** The tier a take is made at: `final` unless `draft` is asked explicitly. */
+export const videoTier = (cap: VideoCapability, requested?: VideoQualityTier): { tier: VideoQualityTier; config?: VideoTierConfig } =>
+  cap.tiers ? { tier: requested === 'draft' ? 'draft' : 'final', config: cap.tiers[requested === 'draft' ? 'draft' : 'final'] } : { tier: 'final' };
 
 export const MINIMAX_H3_API: VideoCapability = {
   id: 'minimax-h3-api', family: 'MINIMAX', fps: 24,

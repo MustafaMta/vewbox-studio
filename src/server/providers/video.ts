@@ -7,6 +7,7 @@ import * as minimax from './minimax';
 import * as comfy from './comfy';
 import { H3_FPS, h3FrameCount, h3GraphKind, minimaxH3Video } from '../workflows';
 import { tmpDir } from '../media/ffmpeg';
+import { MINIMAX_H3_LOCAL, h3RunTimeoutMs, videoTier, type VideoQualityTier } from '@/domain/video-capability';
 import { libraryRoot } from '../media';
 import { cachedEngineReadiness, graphRequirements, storageReadiness } from '../production/readiness';
 import { jobScope } from '../jobs/context';
@@ -35,6 +36,8 @@ export interface VideoRequest {
   lowering?: string;
   seed?: number;
   model?: string; resolution?: string;
+  /** the local engine's quality tier (capability `tiers`): `final` unless `draft` is asked for explicitly; the hosted API has one tier */
+  quality?: VideoQualityTier;
   /** Called with provider status while waiting. */
   onStatus?: (s: { status: string; queue?: number; detail?: string }) => Promise<void> | void;
   shouldStop?: () => Promise<boolean> | boolean;
@@ -147,7 +150,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const refs = req.referenceImages?.length ? await Promise.all(req.referenceImages.map((r) => comfy.uploadInput(r.file))) : undefined;
   const audio = req.referenceAudio?.length ? await Promise.all(req.referenceAudio.map((a) => comfy.uploadInput(a.file))) : undefined;
   const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined, audioFromVideo: gd.audioFromVideo }))) : undefined;
-  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, filenamePrefix: 'vewbox/h3' });
+  const tier = videoTier(MINIMAX_H3_LOCAL, req.quality);
+  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, quality: tier.tier, filenamePrefix: 'vewbox/h3' });
   const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
   // FIRST-ATTEMPT RELIABILITY (src/server/production/readiness.ts): the node classes and model files THIS graph names
   // are present, and the library has room for the take — before the engine is asked (not when adopting a run)
@@ -167,7 +171,8 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   await req.onStatus?.({ status: 'queued' });
   // the prompt id is recorded on the job as soon as it exists: a worker that restarts mid-generation waits for the
   // same prompt instead of asking the engine for a second one
-  const run = await comfy.run(graph, { timeoutMs: 90 * 60_000, shouldStop: req.shouldStop, resumePromptId: resumeId, rejectPromptIds: rejected, onSubmitted: req.onTaskCreated, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
+  // the deadline follows the tier and the clip length (a final 15-s clip runs about half an hour)
+  const run = await comfy.run(graph, { timeoutMs: h3RunTimeoutMs(h3FrameCount(req.seconds), tier.tier), shouldStop: req.shouldStop, resumePromptId: resumeId, rejectPromptIds: rejected, onSubmitted: req.onTaskCreated, onProgress: (p) => req.onStatus?.({ status: p.queue && p.queue > 0 ? 'queued' : 'generating', queue: p.queue }) });
   const out = comfy.firstOutput(run.outputs, 'video') ?? comfy.firstOutput(run.outputs, 'gifs') ?? comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no video output for the MiniMax H3 workflow.');
   const dir = await tmpDir('h3');
@@ -175,7 +180,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const fetchOut = async () => { await fsp.writeFile(file, await comfy.view(out)); };
   await fetchOut();
   await acceptOutput(file, run.promptId, path.basename(file), fetchOut, 'local MiniMax H3');
-  return { file, backend, model: 'MiniMax-H3 (local, pruned int8)', requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, resumed: run.resumed, params: { graph: graphKind, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
+  return { file, backend, model: `MiniMax-H3 (local, pruned int8, ${tier.tier === 'draft' ? 'turbo draft' : `base ${tier.config?.steps ?? 20} steps`})`, requestId: run.promptId, resolution: `${req.width}x${req.height}`, seconds: h3FrameCount(req.seconds) / H3_FPS, ms: Date.now() - t0, engineMs: run.engineMs, workflowVersion: run.workflowVersion, resumed: run.resumed, params: { graph: graphKind, tier: tier.tier, turbo: Boolean(graph['5']), steps: graph['10']?.inputs?.steps, frames: h3FrameCount(req.seconds), graphNodes: Object.keys(graph).length, first: Boolean(first), last: Boolean(last), refs: refs?.length ?? 0, audioRefs: audio?.length ?? 0, guides: (guides ?? []).map((gd) => ({ frameIdx: gd.frameIdx, image: Boolean(gd.image), video: Boolean(gd.imageIsVideo), audio: Boolean(gd.audio || (gd.imageIsVideo && gd.audioFromVideo)) })), engineMs: run.engineMs, ...(req.lowering ? { lowering: req.lowering } : {}) } };
 }
 
 export async function videoBackendStatus(): Promise<{ backend: VideoBackend | null; ready: boolean; detail: string }> {
