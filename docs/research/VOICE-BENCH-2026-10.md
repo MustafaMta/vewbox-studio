@@ -83,7 +83,9 @@ real-UI proof is the acceptance.
 
 **One-word lines on MOSS:** the fix is the engine's own duration control, not IndexTTS's lead-in: a one-word line is
 asked for a 0.9 s budget (`oneWordBudgetSeconds`, `durationFor` in voice-engines.ts; the lead-in stays IndexTTS-only).
-Check on the three one-word lines with `duration=0.9`: (filled below).
+Check on the three one-word lines with `duration=0.9` (`takes/moss-budget.json`, 19:00): **3/3 clean** — «Nothing.»
+→ "Nothing." 1.12 s, «Now?» → "Now?" 1.12 s, «Thanks.» → "Thanks." 1.04 s (asked 0.88 s = 11 tokens; the engine pads
+≈ 0.2 s). The lead-in sentence and the cut are not needed on MOSS.
 
 **Verdict: MOSS-TTS v1.5 is at least as good on pronunciation and duration control and clearly better on persistent
 identity and cross-session consistency; it becomes the engine for NEW English voices (`VOICE_ENGINE_EN=moss`).**

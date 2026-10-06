@@ -52,9 +52,10 @@ x-app-env: &app-env
   TTS_URL: ${TTS_URL:-http://tts:8020}
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
   TTS_DESIGN_URL: ${TTS_DESIGN_URL:-http://tts-design:8022}
-  # the English voice engine for NEW voices (src/server/providers/voice-engines.ts): indextts until MOSS-TTS is promoted
-  # by the real-UI test; then VOICE_ENGINE_EN=moss and the tts-moss service runs (profile moss)
-  VOICE_ENGINE_EN: ${VOICE_ENGINE_EN:-indextts}
+  # the English voice engine for NEW voices (src/server/providers/voice-engines.ts): MOSS-TTS v1.5 since 2026-10-06
+  # (docs/research/VOICE-BENCH-2026-10.md §3.2); the tts-moss service runs under profile `moss`
+  # (`docker compose --profile moss up -d tts-moss`); VOICE_ENGINE_EN=indextts returns to the old route
+  VOICE_ENGINE_EN: ${VOICE_ENGINE_EN:-moss}
   TTS_MOSS_URL: ${TTS_MOSS_URL:-http://tts-moss:8023}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   LIPSYNC_URL: ${LIPSYNC_URL:-http://lipsync:8040}

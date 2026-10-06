@@ -17,6 +17,13 @@ describe('voice engines', () => {
     expect(isLocalTtsEngine('minimax')).toBe(false);
   });
 
+  it('MOSS-TTS is the default engine for new English voices since 2026-10-06; indextts stays selectable', async () => {
+    const { env } = await import('@/server/env');
+    const configured = process.env.VOICE_ENGINE_EN; // a local .env may override; the CODE default is what is tested
+    expect(configured ? englishEngine(configured) : englishEngine(env().VOICE_ENGINE_EN)).toBe(configured ? englishEngine(configured) : 'moss');
+    expect(englishEngine('indextts')).toBe('indextts');
+  });
+
   it('picks the configured English engine only for NEW English voices; a pinned engine always wins', () => {
     expect(pickEngine('EN', undefined, undefined, 'indextts')).toBe('indextts');
     expect(pickEngine('EN', undefined, undefined, 'voxcpm2')).toBe('voxcpm2');

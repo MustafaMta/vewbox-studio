@@ -96,16 +96,21 @@ describe('lineScript / routeLine (routing parity)', () => {
     const latin = routeLine('Hello there.', 'AR', 'IRAQI_BAGHDADI');
     expect(latin.engine).toBe('indextts'); expect(latin.asrLanguage).toBe('en'); expect(latin.fallback).toBeDefined();
     // an English character with an Arabic line: its own engine, Arabic ASR, no fallback
-    expect(routeLine('شكراً', 'EN')).toEqual({ script: 'AR', engine: 'indextts', asrLanguage: 'ar' });
-    expect(routeLine('Hello.', 'EN').fallback).toBeUndefined();
+    expect(routeLine('شكراً', 'EN', undefined, undefined, 'indextts')).toEqual({ script: 'AR', engine: 'indextts', asrLanguage: 'ar' });
+    expect(routeLine('Hello.', 'EN', undefined, undefined, 'indextts').fallback).toBeUndefined();
+    // the MOSS route (the default since 2026-10-06): English lines on MOSS; an Arabic-script line of an English voice
+    // goes to IndexTTS until MOSS is proven on Arabic (the Iraqi phase), and the switch is named
+    expect(routeLine('Hello.', 'EN', undefined, undefined, 'moss')).toEqual({ script: 'LATIN', engine: 'moss', asrLanguage: 'en' });
+    expect(routeLine('شكراً', 'EN', undefined, undefined, 'moss')).toMatchObject({ script: 'AR', engine: 'indextts', asrLanguage: 'ar', fallback: expect.stringContaining('moss') });
     // the pinned model is respected for Arabic script
     expect(routeLine('هلا', 'AR', 'IRAQI_BAGHDADI', 'indextts').engine).toBe('indextts');
   });
   it('punctuation and digits are not script: an Arabic comma does not flip an English line; a mixed line is heard in its main language', () => {
     expect(lineScript('Hello، world')).toBe('LATIN');
-    expect(routeLine('Hello، world', 'EN')).toEqual({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('Hello، world', 'EN', undefined, undefined, 'indextts')).toEqual({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('Hello، world', 'EN', undefined, undefined, 'moss')).toMatchObject({ script: 'LATIN', engine: 'moss', asrLanguage: 'en' });
     expect(routeLine('Meet me at ٢٥:٣٠، OK?', 'AR', 'IRAQI_BAGHDADI')).toMatchObject({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
-    expect(routeLine('I said مرحبا to her twice', 'EN')).toMatchObject({ script: 'MIXED', engine: 'indextts', asrLanguage: 'en' });
+    expect(routeLine('I said مرحبا to her twice', 'EN')).toMatchObject({ script: 'MIXED', engine: 'indextts', asrLanguage: 'en' }); // mixed lines stay on IndexTTS whatever the English engine
     expect(routeLine('OK سمير، هسه نسوي test للخيط', 'AR', 'IRAQI_BAGHDADI').asrLanguage).toBe('ar');
   });
 });
