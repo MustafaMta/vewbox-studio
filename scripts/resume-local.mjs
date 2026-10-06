@@ -122,7 +122,7 @@ const STEPS = [
     go: async () => {
       const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'docker', 'models', 'manifest.json'), 'utf8'));
       const st = run('docker', ['run', '--rm', '-v', `${STORE.root}:/models:ro`, 'alpine', 'cat', '/models/.manifest-state.json']);
-      const sz = run('docker', ['run', '--rm', '-v', `${STORE.root}:/models:ro`, 'alpine', 'sh', '-c', 'cd /models && find . -type f ! -path "*/.hf/*" ! -path "./llm/*" -exec stat -c "%s %n" {} + | sed "s# \\./# #"'], { timeoutMs: 5 * 60_000 });
+      const sz = run('docker', ['run', '--rm', '-v', `${STORE.root}:/models:ro`, 'alpine', 'sh', '-c', 'cd /models && find . -type f ! -path "*/.hf/*" ! -path "./llm/ollama/*" -exec stat -c "%s %n" {} + | sed "s# \\./# #"'], { timeoutMs: 5 * 60_000 });
       if (!st.ok) return { ok: false, detail: `no fetcher state in the model store (${st.err.split('\n')[0]}): docker compose -p ${PROJECT} --profile models run --rm models` };
       const v = verifyModels(manifest, JSON.parse(st.out), sz.out, NEEDS.modelGroups, loadLayout(ROOT));
       return { ok: v.ok, detail: v.ok ? `${v.ready} files verified (${NEEDS.modelGroups.join(', ')})` : `missing: ${v.missing.slice(0, 8).map((m) => `${m.file} (${m.why})`).join('; ')}${v.missing.length > 8 ? ` … ${v.missing.length} in all` : ''}${v.unknownGroups.length ? `; unknown groups ${v.unknownGroups.join(', ')}` : ''} — docker compose -p ${PROJECT} --profile models run --rm models` };
@@ -146,6 +146,20 @@ const STEPS = [
       let caps = '';
       try { const j = JSON.parse(asr.body); caps = j.capabilities ? `; asr capabilities: ${Object.entries(j.capabilities).map(([k, v]) => `${k}=${capability(v)}`).join(', ')}` : ''; } catch { /* older service */ }
       return { ok: true, detail: out.join('; ') + caps };
+    } },
+  { id: 'planner', name: 'The planner (vLLM, Qwen3.8-27B-FP8) loads from the store, answers /v1/models, then sleeps (the GPU lease wakes it)', cmd: `docker compose -p ${PROJECT} up -d llm-vllm; GET http://127.0.0.1:8050/v1/models; POST /sleep?level=2`,
+    go: async () => {
+      // Ollama's `llm` (the Qwen3.6 rollback) stays stopped: two LLM servers would fight for the card
+      run('docker', compose('stop', 'llm'));
+      const up = run('docker', compose('up', '-d', 'llm-vllm')); if (!up.ok) return { ok: false, detail: up.err };
+      const h = await waitHealthy('llm-vllm', 60); if (!h.ok) return h;
+      const m = await http('http://127.0.0.1:8050/v1/models');
+      let ids = [];
+      try { ids = JSON.parse(m.body).data.map((x) => x.id); } catch { /* not json */ }
+      if (!ids.includes(NEEDS.plannerModel)) return { ok: false, detail: `/v1/models lists ${ids.join(', ') || m.body.slice(0, 120)}, not ${NEEDS.plannerModel}` };
+      // asleep until the first LLM job: the card is free for H3 (level 2: weights out of VRAM, not parked in RAM)
+      const s = await fetch('http://127.0.0.1:8050/sleep?level=2', { method: 'POST' }).then((r) => r.ok, () => false);
+      return { ok: true, detail: `${NEEDS.plannerModel} served; ${s ? 'asleep (level 2)' : 'could not be put to sleep — the GPU lease will do it on the first family switch'}` };
     } },
   { id: 'mounts', name: 'Every container (running or stopped) loads its weights from the store: no retired or other named model volume, nothing on C:', cmd: 'docker inspect <every container> + docker volume inspect <their volumes>',
     go: async () => {

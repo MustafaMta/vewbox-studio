@@ -713,3 +713,43 @@ directive; the real-UI planning run is the proof.
 purpose, dialogue), World Bible fidelity (the planted facts), shot-plan craft (timed beats, motivated framing, concrete
 name-free prompts, the prefix not repeated), continuity across scenes (names, wardrobe, props, 180°, time of day),
 Arabic (dialect, spelling) — plus the mechanical counts the report prints.
+
+## 12. Qwen3.8-27B-FP8 as the production planner (Phase 1, 2026-10-06) — WIP, integration moved to a new session
+
+**Status when this session stopped (producer order):** the pinned weights were downloading; no image pulled, no server
+started, no GPU used, nothing measured. Everything below is code and configuration, unit-tested, not yet run against a
+real vLLM server.
+
+- **Weights:** manifest group `llm-qwen3.8-27b-fp8` (docker/models/manifest.json): `Qwen/Qwen3.8-27B-FP8` @
+  `017b9c7af6b5689d5dd426a76e0bc077eb5ca20a`, 79 files, 30,890,048,027 bytes, sha256 per file (LFS oids from the HF API;
+  the small files hashed after a download at that revision), folder `llm/qwen3.8-27b-fp8` on the store. Apache-2.0 (card
+  and LICENSE), not gated. `mtp.safetensors` is the multi-token-prediction head.
+- **Runtime (not yet run):** compose service `llm-vllm`, `vllm/vllm-openai:v0.31.0` (to be pinned by digest after the
+  pull), the store mounted read-only, `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1`, kernel caches on the store
+  (`cache/vllm`, a subpath that must exist before the first start), `--max-model-len 16384 --gpu-memory-utilization 0.96
+  --kv-cache-dtype fp8 --enforce-eager --max-num-seqs 2 --reasoning-parser qwen3 --enable-sleep-mode
+  --default-chat-template-kwargs {"enable_thinking":false}`, vision kept (`--limit-mm-per-prompt {"image":2,"video":0}`),
+  port 127.0.0.1:8050. The vLLM recipe says a single RTX 5090 needs `--enforce-eager` (CUDA graphs OOM) and FP8 skips
+  DeepGemm on sm_120. **Fit is unmeasured**: 28.8 GiB of weights on a 31.4 GiB usable card leaves ≈ 2.5 GiB for the FP8 KV
+  cache (≈ 32 KB/token: 16 attention layers × 4 KV heads × 256 × 2) and activations — 16K context should fit; if not,
+  try `--language-model-only`, a lower max-model-len, then stop and report before any 4-bit build.
+- **Provider:** `OPENAI_COMPATIBLE_RUNTIME` vllm|ollama|remote (empty = from the URL), `LLM_CONTEXT_LENGTH`; on vLLM the
+  request sends `chat_template_kwargs.enable_thinking` (false unless a stage asks; the per-stage reasoning option maps to
+  true with its token budget) and the card's sampling (non-thinking top_p 0.8, top_k 20, presence 1.5 at the stage's
+  temperature; thinking 1.0/0.95/20/0), never Ollama's fields; `max_tokens` is capped at the context's room (vLLM refuses
+  past --max-model-len); `reasoning_content` is read; streaming and stall detection unchanged.
+- **GPU lease:** the `vllm` unloader sleeps the server at level 2 (weights and cache out of VRAM, nothing parked in host
+  RAM); `chat()` wakes it inside its lease (`/wake_up?tags=weights` → `/collective_rpc reload_weights` →
+  `/wake_up?tags=kv_cache`), a failed wake = retryable INFRASTRUCTURE. Wake time and the VRAM left after sleep (CUDA
+  context) are unmeasured: if H3 does not fit beside a sleeping vLLM, stop/start the container instead.
+- **Defaults:** `DEFAULT_LOCAL_LLM = Qwen3.8-27B-FP8`, compose app env → `http://llm-vllm:8000/v1`, runtime vllm; the
+  host `.env.local` needs `OPENAI_COMPATIBLE_BASE_URL=http://127.0.0.1:8050/v1`. Ollama `llm` moved under profile
+  `fallback` (Gemma 4 31B emergency fallback only, explicit switch). Lease estimate and speed for `qwen3.8-27b` are
+  placeholders (31500 MB, 25 tok/s) until measured.
+- **UI/records:** Settings › Engines and the engine room show "Qwen3.8-27B-FP8" (and "asleep" when it sleeps);
+  licences: Qwen3.8 in use (Apache-2.0), Gemma fallback; registry row with the checkpoint; resume-local: the store size
+  check now covers `llm/qwen3.8-27b-fp8`, a `planner` step starts llm-vllm, checks `/v1/models`, sleeps it.
+- **Still to do:** pull and pin the image; create `cache/vllm` on the store; start, measure fit/VRAM/RAM/load time/wake
+  time; set the real lease estimate and speed; run `scripts/planner-focused-test.ts` (concept → outline → scene → 3 shots
+  through the engine, plus one image+text request with `--image var/library/image/2026/10/gen-f90820998a.png`, Najm);
+  the GPU-STAGING row; the promotion record; the real-UI test.

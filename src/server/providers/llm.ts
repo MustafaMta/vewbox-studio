@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
-import { guardedEngineUrl } from '../gpu/lease-db';
+import { guardedEngineUrl, isLocalEngine } from '../gpu/lease-db';
 import { log } from '../log';
 import { dropNulls } from '../story/lenient';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
@@ -53,28 +53,40 @@ export function outputRoom(messages: LlmMessage[], opts: { provider?: LlmProvide
   let cfg: ReturnType<typeof resolveProvider>;
   try { cfg = resolveProvider(opts.provider); } catch { return 8000; } // nothing configured: the call itself says so
   if (cfg.provider !== 'openai-compatible') return HOSTED_OUTPUT_CAP;
-  if (!isLocalOllama(cfg.baseUrl)) return 8000;
+  if (!isLocalLlm(cfg.baseUrl)) return 8000;
   const prompt = opts.promptTokens ?? estimateTokens(messages);
-  return Math.max(512, env().OLLAMA_CONTEXT_LENGTH - prompt - CONTEXT_MARGIN_TOKENS);
+  return Math.max(512, localContextLength() - prompt - CONTEXT_MARGIN_TOKENS);
 }
-const isLocalOllama = (baseUrl: string) => /:11434(\/|$)/.test(baseUrl);
 
-/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.6-27B dense, Q8_0 (Ollama
- *  `qwen3.6:27b-q8_0`, Apache-2.0) — the production brain by the producer's directive of 2026-10-06
- *  (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md; promotion record docs/research/MODEL-EVAL-2026-10.md §9).
- *  It fills the card (≈ 31.5 GB at num_ctx 16384): a stall there fails fast (LocalModelStalled) and the documented
- *  fallback is a Q6_K build of the same model (a Hugging Face GGUF: Ollama's library has no q6_K tag; §9.1). Gemma 4 31B (`gemma4:31b-it-qat`) stays installed as the emergency
- *  fallback, qwen3:14b as a preview model — both through OPENAI_COMPATIBLE_MODEL. */
-export const DEFAULT_LOCAL_LLM = 'qwen3.6:27b-q8_0';
-/** The emergency fallback when the production model cannot run (selected by setting OPENAI_COMPATIBLE_MODEL to it). */
-export const FALLBACK_LOCAL_LLM = 'gemma4:31b-it-qat';
+/** THE LOCAL SERVER behind OPENAI_COMPATIBLE_BASE_URL: `vllm` (the production planner on llm-vllm), `ollama` (the
+ *  Qwen3.6 rollback on :11434) or `remote` (a hosted API: no card, no lease). OPENAI_COMPATIBLE_RUNTIME names it;
+ *  empty = from the URL. Pure in its arguments (tested). */
+export type LocalRuntime = 'vllm' | 'ollama' | 'remote';
+export function llmRuntime(baseUrl: string, named: string = env().OPENAI_COMPATIBLE_RUNTIME): LocalRuntime {
+  if (named === 'vllm' || named === 'ollama' || named === 'remote') return named;
+  if (/:11434(\/|$)/.test(baseUrl)) return 'ollama';
+  return isLocalEngine(baseUrl) ? 'vllm' : 'remote';
+}
+const isLocalLlm = (baseUrl: string) => llmRuntime(baseUrl) !== 'remote';
+/** The local model's context window, prompt and answer together (vLLM --max-model-len / Ollama num_ctx). */
+export const localContextLength = (): number => env().LLM_CONTEXT_LENGTH ?? env().OLLAMA_CONTEXT_LENGTH;
+
+/** The local story model when OPENAI_COMPATIBLE_MODEL names none: Qwen3.8-27B-FP8 — the official fine-grained FP8
+ *  checkpoint Qwen/Qwen3.8-27B-FP8 (Apache-2.0, revision 017b9c7a, manifest group llm-qwen3.8-27b-fp8) served by vLLM
+ *  (compose service llm-vllm) under this id (`--served-model-name`); the producer's Phase 1 planner, 2026-10-06
+ *  (promotion record docs/research/MODEL-EVAL-2026-10.md §12). The previous planner, Qwen3.6-27B Q8_0 on Ollama
+ *  (`qwen3.6:27b-q8_0`, weights kept in the store), is the rollback only: OPENAI_COMPATIBLE_BASE_URL=http://…:11434/v1 +
+ *  OPENAI_COMPATIBLE_MODEL=qwen3.6:27b-q8_0 — never an automatic fallback. */
+export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-FP8';
+/** The rollback when the production model cannot run (an explicit switch of base URL and model). */
+export const FALLBACK_LOCAL_LLM = 'qwen3.6:27b-q8_0';
 
 /** What a local model holds on the card while it answers, in MB — the LLM family's GPU lease estimate. Measured on the
  *  RTX 5090 with num_ctx 16384 and a q8_0 KV cache (MODEL-EVAL-2026-10 §3, nvidia-smi peak incl. ≈ 0.8 GB of idle
  *  contexts): qwen3.6:27b-q8_0 31,499 MiB loaded, 31,708 writing (Ollama: 28.4 GB, 66/66 layers, 100 % GPU; §9 — the
  *  whole card), gemma4:31b-it-qat 21,405 MiB (Ollama: 19.1 GB, 100 % GPU), qwen3:14b 11,489 MiB (10.57 GB). A model
  *  that was never measured keeps the earlier 12000 and should be measured before it is relied on. */
-export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.6:27b', 31500], ['gemma4:31b', 21500], ['qwen3:14b', 12000]];
+export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.8-27b', 31500], ['qwen3.6:27b', 31500], ['gemma4:31b', 21500], ['qwen3:14b', 12000]];
 export const UNMEASURED_LLM_VRAM_MB = 12000;
 export function llmLeaseMb(model: string): number {
   const m = model.trim().toLowerCase();
@@ -85,12 +97,12 @@ export function llmLeaseMb(model: string): number {
  *  prompt reading included; seconds to read one ≈ 4K-token shot-plan prompt): qwen3.6:27b-q8_0 25 tok/s (MODEL-EVAL-2026-10
  *  §9: 3,402 answer tokens in 138 s, thinking off), gemma4:31b-it-qat 52 tok/s (§9, shot plans), qwen3:14b ≈ 100 (§3). The shot planner's deadline is computed from it (src/server/jobs/work-deadline.ts).
  *  A model never measured is assumed slow (8 tok/s, a large model with experts on the CPU) so its jobs are not cut short. */
-export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.6:27b', 25, 15], ['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
+export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.8-27b', 25, 15], ['qwen3.6:27b', 25, 15], ['gemma4:31b', 52, 10], ['qwen3:14b', 100, 5]];
 export const UNMEASURED_LLM_SPEED = { tokensPerSecond: 8, promptSecondsPerPart: 90 };
 /** A hosted engine's speed for the same purpose (fast; its deadline stays near the flat value). */
 export const HOSTED_LLM_SPEED = { tokensPerSecond: 40, promptSecondsPerPart: 10 };
 export function llmSpeed(model: string, provider: LlmProvider = 'openai-compatible', baseUrl = ''): { tokensPerSecond: number; promptSecondsPerPart: number } {
-  if (provider !== 'openai-compatible' || (baseUrl && !isLocalOllama(baseUrl))) return HOSTED_LLM_SPEED;
+  if (provider !== 'openai-compatible' || (baseUrl && !isLocalLlm(baseUrl))) return HOSTED_LLM_SPEED;
   const m = model.trim().toLowerCase();
   const hit = LOCAL_LLM_SPEED.find(([prefix]) => m.startsWith(prefix));
   return hit ? { tokensPerSecond: hit[1], promptSecondsPerPart: hit[2] } : UNMEASURED_LLM_SPEED;
@@ -126,14 +138,25 @@ export const LOCAL_STALL_MS = 240_000;
  *  for a 120-token JSON; Gemma's answers ran 0.6–2 characters per token where JSON runs 3–4) — the hidden cause of
  *  budgets running out. `reasoning_effort: "none"` is the switch that endpoint maps to think=false (0 reasoning
  *  characters, 114 tokens, 3.6 s instead of 71 s); `think: false` stays for servers that read it. */
-export function localModelRequest(_model: string, reasoning = false): Record<string, unknown> {
+export function localModelRequest(_model: string, reasoning = false, runtime: LocalRuntime = 'ollama', temperature?: number): Record<string, unknown> {
+  if (runtime === 'vllm') return vllmRequest(reasoning, temperature);
   return reasoning ? { think: true, reasoning_effort: 'high' } : { think: false, reasoning_effort: 'none' };
+}
+
+/** vLLM (Qwen3.8-27B-FP8): thinking through the chat template (`chat_template_kwargs.enable_thinking`, the model card's
+ *  switch; the server's default is off too) and the card's sampling — non-thinking: top_p 0.8, top_k 20, presence 1.5
+ *  at the stage's own temperature (the card's 0.7 when the stage names none); thinking: temperature 1.0, top_p 0.95,
+ *  top_k 20, presence 0. Pure (tested). */
+export function vllmRequest(reasoning: boolean, temperature?: number): Record<string, unknown> {
+  return reasoning
+    ? { chat_template_kwargs: { enable_thinking: true }, temperature: 1.0, top_p: 0.95, top_k: 20, presence_penalty: 0 }
+    : { chat_template_kwargs: { enable_thinking: false }, temperature: temperature ?? 0.7, top_p: 0.8, top_k: 20, presence_penalty: Number(process.env.LLM_PRESENCE_PENALTY || 1.5) };
 }
 
 /** Whether a local call reasons: the call's own choice, else LLM_LOCAL_REASONING=on (an evaluation switch; default off). */
 export const reasoningOf = (opts: Pick<LlmOptions, 'reasoning'>, e: Record<string, string | undefined> = process.env): boolean => opts.reasoning ?? e.LLM_LOCAL_REASONING === 'on';
 
-type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
+type ChatAnswer = { choices?: Array<{ message?: { content?: string; reasoning?: string; reasoning_content?: string }; finish_reason?: string }>; usage?: { prompt_tokens?: number; completion_tokens?: number }; error?: { message?: string } };
 
 /** THE LOCAL MODEL STALLED: no first token within LOCAL_STALL_MS, or, once it writes, fewer than
  *  LOCAL_MIN_TOKENS_PER_WINDOW tokens in a LOCAL_SLOW_WINDOW_MS window. Seen on the RTX 5090 with qwen3.6:27b-q8_0 at
@@ -172,13 +195,15 @@ export async function readChatStream(res: Response, ctrl: AbortController, stall
   const take = (line: string) => {
     const data = line.replace(/^data:\s?/, '').trim();
     if (!data || data === '[DONE]') return;
-    let j: { choices?: Array<{ delta?: { content?: string; reasoning?: string }; finish_reason?: string | null }>; usage?: ChatAnswer['usage']; error?: ChatAnswer['error'] };
+    let j: { choices?: Array<{ delta?: { content?: string; reasoning?: string; reasoning_content?: string }; finish_reason?: string | null }>; usage?: ChatAnswer['usage']; error?: ChatAnswer['error'] };
     try { j = JSON.parse(data); } catch { return; }
     if (j.error) error = j.error;
     const c = j.choices?.[0];
-    if (c?.delta?.content || c?.delta?.reasoning) { deltas++; windowDeltas++; if (!windowStart) windowStart = Date.now(); }
+    // reasoning arrives as `reasoning` (Ollama, newer vLLM) or `reasoning_content` (vLLM's reasoning parser)
+    const thought = c?.delta?.reasoning ?? c?.delta?.reasoning_content;
+    if (c?.delta?.content || thought) { deltas++; windowDeltas++; if (!windowStart) windowStart = Date.now(); }
     if (c?.delta?.content) content += c.delta.content;
-    if (c?.delta?.reasoning) reasoning += c.delta.reasoning;
+    if (thought) reasoning += thought;
     if (c?.finish_reason) finish = c.finish_reason;
     if (j.usage) usage = j.usage;
   };
@@ -203,22 +228,25 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
   try { return await Promise.race([p, timeout]); } finally { if (t) clearTimeout(t); }
 }
 
-/** A chat with the story model. The LOCAL model (Ollama on this machine's GPU) runs under the shared GPU lease as the
- *  LLM family (docs/BACKEND-AUDIT-2026-10.md H7, step 8): it waits its turn for the card, and the engines of other
- *  families unload first; when another family takes the card, Ollama is told to unload (`keep_alive: 0`). A hosted
- *  model needs no card. */
+/** A chat with the story model. The LOCAL model (vLLM or Ollama on this machine's GPU) runs under the shared GPU lease
+ *  as the LLM family (docs/BACKEND-AUDIT-2026-10.md H7, step 8): it waits its turn for the card, and the engines of
+ *  other families unload first; when another family takes the card, the LLM lets go (vLLM: sleep level 2; Ollama:
+ *  `keep_alive: 0`) and vLLM is woken here, inside the lease, before it answers. A hosted model needs no card. */
 export async function chat(messages: LlmMessage[], opts: LlmOptions = {}): Promise<LlmResult> {
   const cfg = resolveProvider(opts.provider);
-  if (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl)) {
+  if (cfg.provider === 'openai-compatible' && isLocalLlm(cfg.baseUrl)) {
     const { gpuLease } = await import('../gpu/lease');
-    return gpuLease('LLM', llmLeaseMb(cfg.model), () => chatWith(cfg, messages, opts), { jobId: opts.jobId });
+    return gpuLease('LLM', llmLeaseMb(cfg.model), async () => {
+      if (llmRuntime(cfg.baseUrl) === 'vllm') await (await import('./vllm')).wakeVllm(guardedEngineUrl(cfg.baseUrl, 'the local story model').replace(/\/v1\/?$/, ''));
+      return chatWith(cfg, messages, opts);
+    }, { jobId: opts.jobId });
   }
   return chatWith(cfg, messages, opts);
 }
 
 async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMessage[], opts: LlmOptions): Promise<LlmResult> {
   const t0 = Date.now();
-  const timeoutMs = opts.timeoutMs ?? (cfg.provider === 'openai-compatible' && isLocalOllama(cfg.baseUrl) ? localDeadlineMs((opts.maxTokens ?? 8000) + (reasoningOf(opts) ? opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS : 0)) : 300_000);
+  const timeoutMs = opts.timeoutMs ?? (cfg.provider === 'openai-compatible' && isLocalLlm(cfg.baseUrl) ? localDeadlineMs((opts.maxTokens ?? 8000) + (reasoningOf(opts) ? opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS : 0)) : 300_000);
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   // a stopped job (cancel, deadline, lost lease) aborts the request with its own reason (src/server/jobs/context.ts)
@@ -237,11 +265,20 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     }
     // OpenAI-compatible. The local Ollama answers as a STREAM: a long answer from a large (partly CPU-offloaded) model
     // can take longer than Node's fetch waits for response headers (300 s), and a stream shows a stalled engine early
-    const local = isLocalOllama(cfg.baseUrl);
+    const runtime = llmRuntime(cfg.baseUrl);
+    const local = runtime !== 'remote';
     // an explicit reasoning call gets its thinking budget on top of the answer's, inside the context's room
     const think = local && reasoningOf(opts);
-    const maxTokens = think ? Math.min((opts.maxTokens ?? 8000) + (opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS), Math.max(opts.maxTokens ?? 8000, env().OLLAMA_CONTEXT_LENGTH - estimateTokens(messages) - CONTEXT_MARGIN_TOKENS)) : opts.maxTokens ?? 8000;
-    const res = await withTimeout(fetch(`${guardedEngineUrl(cfg.baseUrl, 'the local story model')}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...(local ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: env().OLLAMA_CONTEXT_LENGTH }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model, think) } : { stream: false }) }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
+    const room = localContextLength() - estimateTokens(messages) - CONTEXT_MARGIN_TOKENS;
+    const asked = think ? Math.min((opts.maxTokens ?? 8000) + (opts.reasoningTokens ?? DEFAULT_REASONING_TOKENS), Math.max(opts.maxTokens ?? 8000, room)) : opts.maxTokens ?? 8000;
+    // vLLM refuses a request whose prompt plus max_tokens passes --max-model-len (Ollama silently cuts): never ask past the room
+    const maxTokens = runtime === 'vllm' ? Math.max(256, Math.min(asked, room)) : asked;
+    const runtimeFields = runtime === 'vllm'
+      ? { stream: true, stream_options: { include_usage: true }, ...localModelRequest(cfg.model, think, 'vllm', opts.temperature) }
+      : runtime === 'ollama'
+        ? { stream: true, stream_options: { include_usage: true }, options: { num_ctx: localContextLength() }, keep_alive: env().OLLAMA_KEEP_ALIVE, ...localModelRequest(cfg.model, think, 'ollama') }
+        : { stream: false };
+    const res = await withTimeout(fetch(`${local ? guardedEngineUrl(cfg.baseUrl, 'the local story model') : cfg.baseUrl}/chat/completions`, { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` }, body: JSON.stringify({ model: cfg.model, messages, temperature: opts.temperature ?? 0.7, max_tokens: maxTokens, ...runtimeFields }) }), timeoutMs, `${cfg.provider} ${cfg.model}`);
     const json = /text\/event-stream/i.test(res.headers.get('content-type') ?? '') && res.ok
       ? await withTimeout(readChatStream(res, ctrl, LOCAL_STALL_MS), timeoutMs, `${cfg.provider} ${cfg.model}`)
       : await res.json().catch(() => ({})) as ChatAnswer;
@@ -249,7 +286,7 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     const text = json.choices?.[0]?.message?.content ?? '';
     const finishReason = json.choices?.[0]?.finish_reason;
     // reasoning the studio asked to be off still spends the answer's budget: say so (a server that ignores the switch)
-    const reasoning = json.choices?.[0]?.message?.reasoning ?? '';
+    const reasoning = json.choices?.[0]?.message?.reasoning ?? json.choices?.[0]?.message?.reasoning_content ?? '';
     if (reasoning && !think) log.warn({ model: cfg.model, reasoningChars: reasoning.length, outputTokens: json.usage?.completion_tokens }, 'the local model reasoned although thinking is off');
     return { text, provider: cfg.provider, model: cfg.model, inputTokens: json.usage?.prompt_tokens, outputTokens: json.usage?.completion_tokens, ms: Date.now() - t0, finishReason, truncated: finishReason === 'length', maxTokens };
   } catch (e) {
@@ -257,7 +294,9 @@ async function chatWith(cfg: ReturnType<typeof resolveProvider>, messages: LlmMe
     // a stalled model is unloaded so the retry loads it again onto a card with room (never left crawling)
     if (reason instanceof LocalModelStalled) {
       log.warn({ model: cfg.model, err: reason.message }, 'local model stalled: unloading it');
-      await fetch(`${cfg.baseUrl.replace(/\/v1\/?$/, '')}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }).catch(() => undefined);
+      const base = cfg.baseUrl.replace(/\/v1\/?$/, '');
+      if (llmRuntime(cfg.baseUrl) === 'vllm') await (await import('./vllm')).sleepVllm(base).catch(() => undefined);
+      else await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: cfg.model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }).catch(() => undefined);
     }
     if (reason) throw reason;
     if ((e as Error).name === 'AbortError') throw new StudioError('PROVIDER', `${cfg.provider} ${cfg.model} timed out after ${Math.round(timeoutMs / 1000)} s`);

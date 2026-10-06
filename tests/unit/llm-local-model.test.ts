@@ -16,14 +16,14 @@ async function llmWith(vars: Record<string, string | undefined>) {
 }
 
 describe('the local story model', () => {
-  it('is Qwen3.6-27B Q8_0 when OPENAI_COMPATIBLE_MODEL is unset or empty; Gemma is the fallback', async () => {
+  it('is Qwen3.8-27B-FP8 (vLLM) when OPENAI_COMPATIBLE_MODEL is unset or empty; Qwen3.6 is the rollback', async () => {
     for (const value of [undefined, '']) {
       const llm = await llmWith({ OPENAI_COMPATIBLE_MODEL: value });
       const cfg = llm.resolveProvider();
       expect(cfg.provider).toBe('openai-compatible');
-      expect(cfg.model).toBe('qwen3.6:27b-q8_0');
-      expect(llm.DEFAULT_LOCAL_LLM).toBe('qwen3.6:27b-q8_0');
-      expect(llm.FALLBACK_LOCAL_LLM).toBe('gemma4:31b-it-qat');
+      expect(cfg.model).toBe('Qwen3.8-27B-FP8');
+      expect(llm.DEFAULT_LOCAL_LLM).toBe('Qwen3.8-27B-FP8');
+      expect(llm.FALLBACK_LOCAL_LLM).toBe('qwen3.6:27b-q8_0');
     }
   });
 
@@ -51,15 +51,15 @@ describe('the LLM lease estimate follows the model', () => {
     expect(UNMEASURED_LLM_VRAM_MB).toBe(12000);
   });
 
-  it('chat takes the LLM lease with the model\'s estimate on the local Ollama', async () => {
+  it('chat takes the LLM lease with the model\'s estimate on the local Ollama (the Gemma fallback)', async () => {
     const leases: Array<{ family: string; mb: number }> = [];
     vi.doMock('@/server/gpu/lease', () => ({ gpuLease: async (family: string, mb: number, fn: () => Promise<unknown>) => { leases.push({ family, mb }); return fn(); } }));
-    const llm = await llmWith({ OPENAI_COMPATIBLE_MODEL: undefined });
+    const llm = await llmWith({ OPENAI_COMPATIBLE_MODEL: 'gemma4:31b-it-qat' });
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200, headers: { 'content-type': 'application/json' } }));
     await llm.chat([{ role: 'user', content: 'hi' }]);
-    expect(leases).toEqual([{ family: 'LLM', mb: 31500 }]);
+    expect(leases).toEqual([{ family: 'LLM', mb: 21500 }]);
     const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
-    expect(body.model).toBe('qwen3.6:27b-q8_0');
+    expect(body.model).toBe('gemma4:31b-it-qat');
     fetchMock.mockRestore();
     vi.doUnmock('@/server/gpu/lease');
   });

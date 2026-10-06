@@ -1,3 +1,4 @@
+import { llmDisplayName, PLANNER_MODEL } from '@/domain/llm-names';
 import fsp from 'node:fs/promises';
 import { englishEngine } from './providers/voice-engines';
 import path from 'node:path';
@@ -88,7 +89,8 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model
-  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.8-27B-FP8, the production brain, and Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  const planner = llmDisplayName(e.OPENAI_COMPATIBLE_MODEL) === PLANNER_MODEL;
+  rows.push({ name: 'llm/openai-compatible', version: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL), source: e.OPENAI_COMPATIBLE_BASE_URL, license: planner ? 'Apache-2.0 (Qwen/Qwen3.8-27B-FP8)' : 'per model (Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: planner ? { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto', checkpoint: 'Qwen/Qwen3.8-27B-FP8@017b9c7af6b5689d5dd426a76e0bc077eb5ca20a', path: 'llm/qwen3.8-27b-fp8' } : { runtime: e.OPENAI_COMPATIBLE_RUNTIME || 'auto' }, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

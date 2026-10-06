@@ -11,7 +11,8 @@ import type { GpuFamily } from './lease';
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
  *  to another model family, every engine that does not serve the new family drops its weights first — ComfyUI
  *  (`/free`: unload models, free memory), the speech services (`/unload`, which also hands the freed host RAM back to
- *  the system: docs/research/MODEL-STACK-2026-10.md §1.2, docker/*\/app.py `malloc_trim`), Ollama (`keep_alive: 0`).
+ *  the system: docs/research/MODEL-STACK-2026-10.md §1.2, docker/*\/app.py `malloc_trim`), Ollama (`keep_alive: 0`),
+ *  vLLM (sleep level 2, src/server/providers/vllm.ts).
  *  ComfyUI serves three families with different checkpoints, so a switch between two of them frees it too. Every
  *  unload is best effort and bounded: an engine that is not running has nothing on the card. */
 
@@ -54,6 +55,8 @@ export function engines(): Engine[] {
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
     { name: 'ollama', serves: ['LLM'], unload: unloadOllama },
+    // the production planner on vLLM: sleep level 2 (weights and cache out of VRAM; woken by the next LLM call)
+    { name: 'vllm', serves: ['LLM'], unload: async () => { await (await import('../providers/vllm')).sleepVllm(); } },
     // the lip-sync corrector (docker/lipsync); it also drops its weights after every request (LIPSYNC_KEEP_LOADED=0)
     { name: 'lipsync', serves: ['LIPSYNC'], unload: unloadLipsync },
     // MOSS-SoundEffect (sfx-moss); lazy-loaded, so an idle service holds nothing
