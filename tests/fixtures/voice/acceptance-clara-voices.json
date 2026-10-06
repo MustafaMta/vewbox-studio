@@ -1,0 +1,6 @@
+{
+  "note": "Clara Hughes's pinned voice reference in the acceptance run: her designed VoxCPM2 seed (library asset gen-b23150ec5e, sha256 72ee6112…3076, 8.8 s, 24 kHz). The path is the main checkout's library (var/, never in Git). A designed seed, not a recording: it is the reference the studio itself clones Clara from.",
+  "voices": [
+    { "id": "clara", "sex": "F", "age": "adult (designed)", "file": "../../../var/library/audio/2026/10/gen-b23150ec5e.wav", "text": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?", "label": "Clara Hughes (designed seed, the acceptance identity's reference)", "origin": "DESIGNED" }
+  ]
+}

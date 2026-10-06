@@ -16,7 +16,7 @@ import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
-import { VOICE_ENGINES, pinnable, type LocalTtsEngine } from '@/server/providers/voice-engines';
+import { VOICE_ENGINES, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -26,7 +26,7 @@ import { designChoiceProblem } from '@/server/org/preflight';
 import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
 import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
 import type { VoiceIdentityInput } from '@/domain/actions';
-import { TTS_VRAM, assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
+import { assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
 import { designAndMeasure, designSummary } from './voice-design';
 
 /** VOICES — one persistent identity per character (which engine, which reference, which revision), a preview line,
@@ -185,7 +185,7 @@ export interface SpokenLine { file: string; engine: string; model: string; ms: n
 
 /** Speak one line as the character: the engine and language follow the line's script (routeLine); the speech
  *  parameters are the identity's (speed from the pace, the seed), so every line of a voice sounds like its proof. */
-export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string } = {}): Promise<SpokenLine> {
+export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string; /** a target length (s), honoured by an engine with token-level duration control (MOSS) */ targetSeconds?: number } = {}): Promise<SpokenLine> {
   const identity = c.voice.identity;
   // LINE PREPARATION (the Iraqi Arabic Language Specialist's step, for an Iraqi character): the engine and the
   // verification language follow the line's script (a fallback off the Iraqi engine is named below)
@@ -210,8 +210,10 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   // against (the dialect fold reads spelled numbers back to digits)
   const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect });
   if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
-  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine };
-  const r = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
+  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine, ...(opts.targetSeconds ? { durationSeconds: opts.targetSeconds } : {}) };
+  // the lease estimate follows the engine (MOSS-TTS 8B needs far more of the card than IndexTTS)
+  const vram = ttsVramFor(route.engine);
+  const r = await ctx.gpu('TTS', vram, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
   if (prepared.leadIn) {
     // a one-word line was spoken after a lead-in sentence (lead-in.ts): cut at the silence before the word, found by
     // the transcript's word timings; a take whose word cannot be located is spoken again without the lead-in (and
@@ -220,7 +222,7 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
     if (cut) { await ctx.event('info', `one-word line cut after its lead-in at ${cut.from.toFixed(2)} s`, { characterId: c.id, heard: cut.heard }); return { file: cut.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: cut.durationSeconds, fallback: route.fallback }; }
     await ctx.event('warn', `one-word line: the word was not found after the lead-in; spoken alone instead`, { characterId: c.id });
     const alone = { ...local, text: prepared.text.slice(prepared.leadIn.length).trim() };
-    const r2 = await ctx.gpu('TTS', TTS_VRAM, () => ctx.tool('speech.synthesize', () => synthesize(alone, dir), { label: route.engine, input: alone }), { jobId: ctx.job.id });
+    const r2 = await ctx.gpu('TTS', vram, () => ctx.tool('speech.synthesize', () => synthesize(alone, dir), { label: route.engine, input: alone }), { jobId: ctx.job.id });
     return { file: r2.file, engine: r2.engine, model: r2.model, ms: r2.ms, language: route.language, durationSeconds: r2.durationSeconds, fallback: route.fallback };
   }
   return { file: r.file, engine: r.engine, model: r.model, ms: r.ms, language: route.language, durationSeconds: r.durationSeconds, fallback: route.fallback };

@@ -153,7 +153,7 @@ async function synth() {
     if (lineSex && lineSex !== 'ANY' && lineSex !== sp.sex) continue; // a line written for one sex (the Iraqi set's film lines)
     const plan: Array<{ seed: number; variant: Take['variant']; mult?: number }> = [];
     if (session === 1) { plan.push({ seed: 7, variant: 'natural' }); for (const m of line.durationTargets ?? []) if (durVia !== 'none') plan.push({ seed: 7, variant: 'duration', mult: m }); }
-    else { if (line.session2) plan.push({ seed: 11, variant: 'natural' }); if (line.id === 'en-e1-calm') plan.push({ seed: 7, variant: 'repeat' }); }
+    else { if (line.session2) plan.push({ seed: 11, variant: 'natural' }); if (line.id === 'en-e1-calm' || (line as BenchLine & { repeat?: boolean }).repeat) plan.push({ seed: 7, variant: 'repeat' }); }
     for (const p of plan) {
       const key = `${engine}|${sp.id}|${line.id}|s${session}|${p.variant}|${p.mult ?? ''}|${p.seed}`;
       if (have.has(key)) continue;

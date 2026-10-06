@@ -52,6 +52,10 @@ x-app-env: &app-env
   TTS_URL: ${TTS_URL:-http://tts:8020}
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
   TTS_DESIGN_URL: ${TTS_DESIGN_URL:-http://tts-design:8022}
+  # the English voice engine for NEW voices (src/server/providers/voice-engines.ts): indextts until MOSS-TTS is promoted
+  # by the real-UI test; then VOICE_ENGINE_EN=moss and the tts-moss service runs (profile moss)
+  VOICE_ENGINE_EN: ${VOICE_ENGINE_EN:-indextts}
+  TTS_MOSS_URL: ${TTS_MOSS_URL:-http://tts-bench-moss:8042}
   ASR_URL: ${ASR_URL:-http://asr:8030}
   LIPSYNC_URL: ${LIPSYNC_URL:-http://lipsync:8040}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}

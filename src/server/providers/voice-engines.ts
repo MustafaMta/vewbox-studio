@@ -45,5 +45,10 @@ export function englishEngine(configured: string | undefined): LocalTtsEngine {
   return isLocalTtsEngine(configured) && VOICE_ENGINES[configured].languages.includes('EN') ? configured : 'indextts';
 }
 
+/** The GPU lease estimate for a line on `engine` (MB): the voice services' shared floor (voice-measure TTS_VRAM 8000)
+ *  or the engine's own measured peak, whichever is larger. */
+export const TTS_VRAM_FLOOR_MB = 8000;
+export const ttsVramFor = (engine: LocalTtsEngine): number => Math.max(TTS_VRAM_FLOOR_MB, VOICE_ENGINES[engine].vramMb);
+
 /** An engine an identity may pin for a character speaking `language`. */
 export const pinnable = (model: string | undefined, language: Language): LocalTtsEngine | undefined => (isLocalTtsEngine(model) && VOICE_ENGINES[model].languages.includes(language) ? model : undefined);

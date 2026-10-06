@@ -49,6 +49,12 @@ describe('voice engines', () => {
     expect(enginesToUnloadForTts('moss')).toEqual(['indextts', 'habibi', 'moss']);
   });
 
+  it('sizes the GPU lease by the engine (MOSS-TTS 8B far above the shared floor)', async () => {
+    const { ttsVramFor, TTS_VRAM_FLOOR_MB } = await import('@/server/providers/voice-engines');
+    expect(ttsVramFor('indextts')).toBe(TTS_VRAM_FLOOR_MB);
+    expect(ttsVramFor('moss')).toBeGreaterThanOrEqual(16000);
+  });
+
   it('lists only commercial-safe engines (producer’s rule 2026-10-06)', () => {
     for (const e of Object.values(VOICE_ENGINES)) expect(e.licence).not.toMatch(/non-commercial|NC\b|research/i);
   });
