@@ -44,6 +44,10 @@ const Schema = z.object({
    *  variable still reaches it; compose passes http://tts-design:8022 to the containers. Empty = not configured. */
   TTS_DESIGN_URL: z.string().default('http://127.0.0.1:8022'),
   ASR_URL: z.string().default('http://asr:8030'),
+  /** The lip-sync corrector (docker/lipsync: LatentSync 1.6 with a YuNet + MediaPipe face tracker). Host port by
+   *  default, like TTS_DESIGN_URL; compose passes http://lipsync:8040. Empty = not configured (correction offered as
+   *  unavailable). It edits the mouth of an existing take on request only — it never generates video. */
+  LIPSYNC_URL: z.string().default('http://127.0.0.1:8040'),
   MUSIC_ENGINE: z.enum(['auto', 'minimax-api', 'ace-step', 'minimax-music3']).default('auto'),
   VIDEO_BACKEND: z.enum(['auto', 'api', 'local']).default('auto'),
   /** Where the public web origin is, for callbacks and absolute media URLs handed to providers. */

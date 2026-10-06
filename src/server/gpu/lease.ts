@@ -24,7 +24,10 @@ import { JOB_RESOURCE, JOB_TYPES } from '@/domain/jobs';
  *    removed by the next admission, so a crash never blocks the card.
  *  Rollback: GPU_LEASE=memory restores the in-process lease of each process. */
 
-export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM';
+/** LIPSYNC: the lip-sync corrector (docker/lipsync, LatentSync 1.6) — its own family so that taking the card for it
+ *  unloads ComfyUI (H3 may still be resident after a VIDEO job; a VIDEO→VIDEO hand-over unloads nothing). */
+export type GpuFamily = 'IMAGE' | 'VIDEO' | 'TTS' | 'ASR' | 'MUSIC' | 'LLM' | 'LIPSYNC';
+export const GPU_FAMILIES: readonly GpuFamily[] = ['IMAGE', 'VIDEO', 'TTS', 'ASR', 'MUSIC', 'LLM', 'LIPSYNC'];
 
 /** 'normal': the studio's own work (worker jobs, the web). 'background': benchmarks and evaluations through
  *  scripts/gpu-hold.ts — admitted only when no normal request waits (the films first), never preempting a holder,

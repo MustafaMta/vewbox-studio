@@ -156,6 +156,14 @@ export const VideoGenerateOutput = z.looseObject({
   params: z.record(z.string(), z.unknown()),
 });
 
+/** correctLipSync(): one take's mouth redrawn to its authoritative audio (src/server/providers/lipsync.ts). The output
+ *  is the corrected file with the service's report, or `{ available: false, reason }` (the service is away or refused). */
+export const LipsyncCorrectInput = z.object({ takeId: z.string().min(1), audioOffset: z.number().min(-600).max(600) });
+export const LipsyncCorrectOutput = z.union([
+  z.looseObject({ available: z.literal(true), file, bytes: z.number().int().positive(), report: z.looseObject({ frames: z.number().int().positive(), outFrames: z.number().int().min(0), model: z.string().min(1), track: z.looseObject({ framesEdited: z.number().int().min(0) }) }) }),
+  z.looseObject({ available: z.literal(false), reason: z.string() }),
+]);
+
 // ---------------------------------------------------------------------------------------------------- speech
 
 /** Local engines (IndexTTS 2.5, Habibi-TTS IRQ) speak from a reference recording; the hosted path from a voice id. */
@@ -257,7 +265,7 @@ export interface ToolContract {
 
 /** The named schemas, so a ToolDef's `inputSchema`/`outputSchema` names a real schema (a test checks it). */
 export const SCHEMAS: Record<string, z.ZodType> = {
-  StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, SynthesizeInput, SynthesizeOutput,
+  StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, LipsyncCorrectInput, LipsyncCorrectOutput, SynthesizeInput, SynthesizeOutput,
   CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
@@ -270,6 +278,7 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'image.edit_with_references': { input: ComfyGraphInput, output: ComfyRunOutput },
   'image.describe_reference': { input: ComfyGraphInput, output: ComfyRunOutput },
   'video.minimax_generate': { input: VideoGenerateInput, output: VideoGenerateOutput },
+  'video.lipsync_correct': { input: LipsyncCorrectInput, output: LipsyncCorrectOutput },
   'speech.synthesize': { input: SynthesizeInput, output: SynthesizeOutput },
   'speech.clone_voice': { input: CloneVoiceInput, output: CloneVoiceOutput },
   'speech.transcribe': { input: TranscribeInput, output: TranscribeOutput },
