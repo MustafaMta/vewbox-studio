@@ -1,0 +1,54 @@
+[
+ {
+  "id": "loc-c4fdd93fc5",
+  "name": "Harbour quay",
+  "kind": "EXTERIOR",
+  "style": "REALISTIC",
+  "description": "A small stone quay in a Welsh harbour at dusk: a moored white ferry with a blue hull, wet stone steps, coiled ropes and lobster pots, warm lamps coming on along the harbour wall, grey-blue sea and hills behind.",
+  "landmarks": [],
+  "identity": {
+   "hash": "e4666fdee43c1456",
+   "line": "A small stone quay in a Welsh harbour at dusk: a moored white ferry with a blue hull, wet stone steps, coiled ropes and lobster pots, warm lamps coming on along the harbour wall, grey-blue sea and hills behind",
+   "version": 1,
+   "updatedAt": "2026-10-06T16:42:36.486Z"
+  },
+  "refs": [
+   {
+    "id": "lref-gen-09310b0fa64d45ff3f62",
+    "role": "MASTER",
+    "label": "Master plate",
+    "assetId": "gen-09310b0fa64d45ff3f62",
+    "timeOfDay": "MORNING",
+    "file": {
+     "assetId": "gen-09310b0fa64d45ff3f62",
+     "path": "image/2026/10/gen-09310b0fa64d45ff3f62.a1.png",
+     "sha256": "72d83a082b4da1df1085bdfa7ab2409a88e866607813c081d507211bda6cd80f",
+     "bytes": 1642949,
+     "model": "Qwen-Image-2512",
+     "workflowVersion": "6e3fc595f55c0927",
+     "promptId": "3feb999a-55cb-570a-9073-de8189644f01",
+     "seed": 1438597423
+    },
+    "proxy": "images/location-loc-c4fdd93fc5-MASTER-MORNING-gen-09310b0fa64d45ff3f62.jpg"
+   },
+   {
+    "id": "lref-gen-09310b0fa64d8f915812",
+    "role": "STATE",
+    "label": "night",
+    "assetId": "gen-09310b0fa64d8f915812",
+    "timeOfDay": "NIGHT",
+    "file": {
+     "assetId": "gen-09310b0fa64d8f915812",
+     "path": "image/2026/10/gen-09310b0fa64d8f915812.a1.png",
+     "sha256": "6e67e8be5363c231fa655bb6045d47746632d5af4727438e73d09b9472b3cbd6",
+     "bytes": 1430921,
+     "model": "Qwen-Image-Edit-2511",
+     "workflowVersion": "6f9f66367d089d05",
+     "promptId": "401e12bf-f0dc-50e3-81af-c3732e27e0c5",
+     "seed": 98971859
+    },
+    "proxy": "images/location-loc-c4fdd93fc5-STATE-NIGHT-gen-09310b0fa64d8f915812.jpg"
+   }
+  ]
+ }
+]

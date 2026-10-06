@@ -1,0 +1,401 @@
+[
+ {
+  "shotId": "shot-4478e1b941",
+  "shot": 1,
+  "selected": true,
+  "id": "take-ad9b2ceb0cc98d045ba4",
+  "label": "Take 1",
+  "assetId": "gen-ad9b2ceb0cc954c9cafa",
+  "createdAt": "2026-10-06 16:40:35.005+00",
+  "status": "READY",
+  "provider": "MINIMAX",
+  "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+  "requestId": "873ce765-1591-583f-a49c-4ff17d5cbe61",
+  "seed": 1901211925,
+  "references": [
+   {
+    "kind": "CHARACTER",
+    "note": "canonical image",
+    "assetId": "gen-275d78cf1e95d80a5cbf",
+    "binding": "<Picture 1> = <Subject 1>",
+    "characterId": "char-dbafe259d8"
+   },
+   {
+    "kind": "LOCATION",
+    "note": "master plate of Penhaligon Bindery (World Bible revision 1)",
+    "assetId": "gen-d9105f7f23c12e4536d5",
+    "binding": "<Picture 2> = <Subject 2>",
+    "locationId": "loc-92db4c6e91"
+   },
+   {
+    "kind": "FIRST_FRAME",
+    "note": "the drawn opening frame, bound as a picture (a production asset, not an identity)",
+    "assetId": "gen-ad9b2ceb0cc9707871a2",
+    "binding": "<Picture 3>"
+   },
+   {
+    "kind": "FIRST_FRAME",
+    "assetId": "gen-ad9b2ceb0cc9707871a2",
+    "binding": "guide@0"
+   }
+  ],
+  "width": 1344,
+  "height": 768,
+  "durationSeconds": 7.291688,
+  "fps": 24,
+  "generationMs": 647909,
+  "qa": {
+   "ok": true,
+   "checks": [
+    {
+     "ok": true,
+     "name": "decodable",
+     "detail": "h264 1344x768 24.00 fps"
+    },
+    {
+     "ok": true,
+     "name": "duration",
+     "value": 7.29,
+     "threshold": "7.291666666666667±1.8s"
+    },
+    {
+     "ok": true,
+     "name": "resolution",
+     "value": "1344x768",
+     "threshold": "≥ 672x384"
+    },
+    {
+     "ok": true,
+     "name": "audio_stream",
+     "value": "aac",
+     "threshold": "present"
+    },
+    {
+     "ok": true,
+     "name": "black_frames",
+     "value": 0,
+     "threshold": "≤ 0.7s"
+    },
+    {
+     "ok": true,
+     "name": "frozen_video",
+     "value": 1.42,
+     "threshold": "≤ 2.2s"
+    },
+    {
+     "ok": true,
+     "name": "flicker",
+     "value": 0,
+     "threshold": "< 0.08 of frames swing > 40 luma"
+    },
+    {
+     "ok": true,
+     "name": "audio_silence",
+     "value": 2.13,
+     "threshold": "< 6.9s"
+    },
+    {
+     "ok": true,
+     "name": "script-spoken",
+     "value": 1,
+     "detail": "heard: Bring me the old map, Paul. I promised we would find the bridge before dark. (CER 0.00, WER 0.00)",
+     "threshold": 0.7
+    },
+    {
+     "ok": true,
+     "name": "people-on-screen",
+     "value": 1,
+     "detail": "15 moments counted, never more than 1",
+     "threshold": "≤ 1"
+    },
+    {
+     "ok": true,
+     "name": "identity-references-applied",
+     "value": 1,
+     "detail": "1 of 1 present character(s) conditioned on their canonical image (char-dbafe259d8: <Picture 1> = gen-275d78cf1e95d80a5cbf)",
+     "threshold": 1
+    },
+    {
+     "ok": true,
+     "name": "location-matches-plate",
+     "detail": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place; the plate gen-d9105f7f23c12e4536d5 was conditioned on"
+    },
+    {
+     "ok": true,
+     "name": "lip-sync",
+     "value": -1,
+     "detail": "pass against the recorded lines: in sync",
+     "threshold": "|lag| ≤ 1 frame; 2–6 repaired by moving the sound"
+    },
+    {
+     "ok": true,
+     "name": "identity-similarity",
+     "detail": "1 face(s) match their canonical image"
+    },
+    {
+     "ok": true,
+     "name": "no-accidental-fade",
+     "value": 0,
+     "detail": "no fade or black dip",
+     "threshold": "no ramp from or to luma < 16 over ≥ 6 frames, no black dip"
+    },
+    {
+     "ok": false,
+     "name": "no-duplicate-frames",
+     "value": 85,
+     "detail": "85 repeated frame(s) of 174 (48.9 %), longest run 42 at 5.54 s (review)",
+     "threshold": "≤ 5 % of frames, runs ≤ 3"
+    },
+    {
+     "ok": true,
+     "name": "no-unplanned-cut",
+     "value": 0,
+     "detail": "no cut",
+     "threshold": "planned: none"
+    },
+    {
+     "ok": true,
+     "name": "no-repeated-speech",
+     "value": 0,
+     "detail": "no phrase repeated beyond the script"
+    },
+    {
+     "ok": true,
+     "name": "dialogue-timing",
+     "value": 1,
+     "detail": "1 line(s) on time",
+     "threshold": "start ±0.6 s, length ±45 %"
+    },
+    {
+     "ok": true,
+     "name": "container-valid",
+     "value": "h264 yuv420p 24.00 fps + aac"
+    }
+   ],
+   "reviewer": "AUTO",
+   "reviewedAt": "2026-10-06T16:40:05.690Z"
+  },
+  "jobId": "job-89039f4ae4",
+  "codeVersion": "dev",
+  "workflowVersion": "278971c983c89464",
+  "thumbnailAssetId": "gen-ad9b2ceb0cc96d7f42d2",
+  "soundtrack": {
+   "kind": "DIALOGUE",
+   "lines": [
+    {
+     "to": 4.85,
+     "from": 0.05,
+     "lineId": "d-8d20c051a2",
+     "anchoredFrom": 0.4,
+     "audioAssetId": "gen-ad9b2ceb0cc98a7bacf9"
+    }
+   ],
+   "assetId": "gen-ad9b2ceb0cc9b60e2a2b"
+  },
+  "relation": "STORY_TRANSITION",
+  "prompt": "subject_definitions:\n<Subject 1> is the 52-year-old man in <Picture 1>, featuring Broad-shouldered and sturdy with large, calloused hands, Square jawline with a friendly, open expression and subtle crow's feet around the eyes, Short, thick grey hair, neatly combed to the side hair, Fair skin with a light dusting of freckles across the bridge of the nose skin, Soft hazel eyes with a focused, patient gaze eyes, wearing brown wool waistcoat, white cotton shirt with rolled sleeves, charcoal grey wool trousers, dark brown leather oxfords; facial hair: thick grey handlebar moustache and a short grey beard covering the chin and jaw, a silver signet ring on his own right ring finger.\n<Subject 2> is the interior environment in <Picture 2>, featuring A small bookbinder's workshop in Bristol: a heavy oak workbench in front of tall shelves of leather-bound books, a cast-iron book press, spools of linen thread and stacks of marbled paper, warm late-afternoon light through a single tall window on the left, dust in the air (place identity v1).\n<Picture 3> is the first frame of [Shot 1], showing how medium close-up of <Subject 1> at his workbench, face turned three-quarters toward the camera; he looks up from the book press and speaks his line clearly to his apprentice, who is off-screen beside the camera.\n\nsummary:\n[keyframe completion + reference generation] The target video shows <Subject 1> in <Subject 2>: medium close-up of <Subject 1> at his workbench, face turned three-quarters toward the camera; he looks up from the book press and speaks his line clearly to his apprentice, who is off-screen beside the camera. It begins from <Picture 3>, the opening of a new scene. The camera is locked off: the framing never changes.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 1> are kept exactly.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the architecture, layout, materials and fixed props of <Picture 2> are kept; the camera position and framing may differ.\n<Picture 3> ([Shot 1] first frame): fully_preserved - the video starts exactly from <Picture 3>'s framing, positions and light.\n\ndetailed_description:\ncinematic live-action film still, photorealistic, natural skin texture and pores, practical and motivated lighting, 35mm anamorphic look with gentle halation, true-to-life colour grade with lifted blacks, shallow depth of field, real-world materials and wear. [Shot 1] The shot begins from <Picture 3>. <Subject 1> in <Subject 2>: medium close-up of <Subject 1> at his workbench, face turned three-quarters toward the camera; he looks up from the book press and speaks his line clearly to his apprentice, who is off-screen beside the camera. Camera: medium close up, locked off on a tripod: no zoom, no push-in, no pull-back, no pan, no tilt, no dolly; the framing of the first frame holds to the last frame, and the people move inside it. Scene state (a new scene): afternoon. <Subject 1> (S1) says, <d>[English] Bring me the old map, Paul. I promised we would find the bridge before dark.</d> Every frame stays photoreal: no illustration or CG look, no plastic skin, no over-saturated HDR, no warped hands or extra limbs, no morphing faces, no floating or duplicated objects.\n\noverall_soundscape:\nIndoor ambience of the place at afternoon; the spoken lines are clear and close.\n\nnon_diegetic_music:\nN/A",
+  "params": {
+   "last": false,
+   "refs": 3,
+   "tier": "final",
+   "drift": {
+    "identity": {
+     "ok": true,
+     "characters": [
+      {
+       "applied": true,
+       "assetId": "gen-275d78cf1e95d80a5cbf",
+       "picture": 1,
+       "characterId": "char-dbafe259d8"
+      }
+     ]
+    },
+    "location": {
+     "note": "not comparable: a medium close up shows a crop of the place behind people; a whole-frame comparison with the wide plate measures the framing, not the place",
+     "measured": false,
+     "plateAssetId": "gen-d9105f7f23c12e4536d5"
+    }
+   },
+   "first": true,
+   "graph": "REF2VA",
+   "steps": 20,
+   "turbo": false,
+   "world": {
+    "plate": {
+     "role": "MASTER",
+     "assetId": "gen-d9105f7f23c12e4536d5"
+    },
+    "pinned": true,
+    "location": {
+     "locationId": "loc-92db4c6e91",
+     "establishedHere": false,
+     "identityVersion": 1
+    },
+    "revision": 1,
+    "characters": [
+     {
+      "version": 1,
+      "characterId": "char-dbafe259d8"
+     }
+    ],
+    "revisionId": "wrev-1e44e462f6"
+   },
+   "frames": 175,
+   "guides": [
+    {
+     "audio": true,
+     "image": false,
+     "video": false,
+     "frameIdx": 0
+    }
+   ],
+   "attempt": {
+    "jobAttempt": 1,
+    "firstAttempt": true,
+    "firstForShot": true,
+    "shotGeneration": 1
+   },
+   "context": {
+    "gaps": [],
+    "hash": "f7e24e752e62610b",
+    "changes": [],
+    "version": 2,
+    "blocking": {
+     "people": []
+    },
+    "boundary": "transition",
+    "dialogue": [
+     {
+      "lineId": "d-8d20c051a2",
+      "source": "ESTIMATE",
+      "durationSeconds": 5.77
+     }
+    ],
+    "location": {
+     "changes": [],
+     "timeOfDay": "AFTERNOON",
+     "locationId": "loc-92db4c6e91",
+     "identityHash": "f95030dcf0547062",
+     "identityVersion": 1
+    },
+    "relation": "STORY_TRANSITION",
+    "anchoring": {
+     "after": 4,
+     "reanchor": false,
+     "chainLength": 0
+    },
+    "characters": [
+     {
+      "canonical": {
+       "status": "APPROVED",
+       "assetId": "gen-275d78cf1e95d80a5cbf",
+       "version": 1
+      },
+      "condition": [],
+      "characterId": "char-dbafe259d8",
+      "voiceRevision": 2
+     }
+    ],
+    "constraints": []
+   },
+   "lipSync": {
+    "flags": [],
+    "lagMs": -41.7,
+    "against": "RECORDED",
+    "verdict": "PASS",
+    "lagFrames": -1,
+    "thresholds": "START",
+    "offsetRepair": false,
+    "speakerTrack": 0
+   },
+   "quality": "final",
+   "verdict": {
+    "flags": [
+     "no-duplicate-frames"
+    ],
+    "decision": "REVIEW",
+    "autoChoose": false,
+    "notMeasured": [
+     "location-matches-plate"
+    ]
+   },
+   "engineMs": 643353,
+   "identity": {
+    "ok": true,
+    "rule": "identity-reapplication",
+    "location": {
+     "assetId": "gen-d9105f7f23c12e4536d5",
+     "picture": 2,
+     "locationId": "loc-92db4c6e91"
+    },
+    "characters": [
+     {
+      "source": "CANONICAL",
+      "assetId": "gen-275d78cf1e95d80a5cbf",
+      "picture": 1,
+      "characterId": "char-dbafe259d8"
+     }
+    ]
+   },
+   "timeline": {
+    "basis": "DIALOGUE",
+    "newFrames": 168,
+    "clipFrames": 175,
+    "headFrames": 0
+   },
+   "audioRefs": 0,
+   "graphNodes": 22,
+   "sceneState": {
+    "props": [],
+    "shotId": "shot-4478e1b941",
+    "present": [
+     {
+      "characterId": "char-dbafe259d8"
+     }
+    ],
+    "sceneId": "scene-4006f7c53d",
+    "sources": {
+     "props": {
+      "kind": "SCENE",
+      "sceneId": "scene-4006f7c53d"
+     },
+     "wardrobe": {},
+     "environment": {
+      "kind": "SCENE",
+      "sceneId": "scene-4006f7c53d"
+     }
+    },
+    "boundary": "transition",
+    "relation": "STORY_TRANSITION",
+    "timeOfDay": "AFTERNOON",
+    "locationId": "loc-92db4c6e91"
+   },
+   "dialogueGuide": {
+    "padSeconds": 1.632,
+    "guideSeconds": 7.292
+   },
+   "identityCheck": {
+    "verdict": "PASS",
+    "characters": {
+     "char-dbafe259d8": {
+      "min": 0.6039,
+      "detail": [],
+      "median": 0.6244,
+      "verdict": "PASS",
+      "framesWithFace": 15
+     }
+    },
+    "thresholds": "START"
+   }
+  },
+  "video": {
+   "assetId": "gen-ad9b2ceb0cc954c9cafa",
+   "path": "video/2026/10/gen-ad9b2ceb0cc954c9cafa.a1.mp4",
+   "sha256": "f49c75f7983421e64a03cd3fe3daaf10fe2179c1c7ef87496639f7b10a9d251c",
+   "bytes": 1056361,
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "workflowVersion": "278971c983c89464",
+   "seed": 1901211925
+  }
+ }
+]

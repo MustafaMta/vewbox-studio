@@ -1,0 +1,36 @@
+{
+ "production": {
+  "id": "short-e62f26f8e9",
+  "title": "The Last Ferry",
+  "kind": "SHORT",
+  "language": "EN",
+  "stage": "STORY"
+ },
+ "generatedBy": "docs/evidence/acceptance-v1/driver/bundle.mjs",
+ "updatedAt": "2026-10-06T17:26:51.962Z",
+ "lastStage": "Gwenllian Price realistic speaking take 1 (take-3a6f56768a0464b9e8f9): native lip-sync PASS; framing FAIL (full figure->close-up->full figure: opening frame full figure, crop skipped); cheek scratch artifact 2.0-3.5 s (generation defect)",
+ "files": {
+  "production.json": "story, scenes and the shot plan (prompts, staging, boundaries) as stored",
+  "characters.json": "cast with canonical image records, file sha256 and proxies",
+  "voices.json": "voice identities: engine, reference clip, settings, proof",
+  "locations.json": "location plates with revision and sha256",
+  "takes.json": "every take: MiniMax prompt, guides, references, seed, length, model, checks",
+  "jobs.json": "every job with attempts, errors and events",
+  "cut.json": "cuts and exports with the authoritative audio timeline, joins, subtitles, loudness",
+  "models.json": "models and workflows from the registry",
+  "attempts.jsonl": "append-only first-attempt/retry record",
+  "stages.jsonl": "one line per bundle update",
+  "images/": "JPEG proxies of canonical images and plates",
+  "qa.md": "QA findings and corrections (hand-written)",
+  "gpu.md": "GPU/RAM measurements (hand-written)"
+ },
+ "counts": {
+  "characters": 1,
+  "locations": 1,
+  "shots": 1,
+  "takes": 1,
+  "jobs": 4,
+  "cuts": 0,
+  "exports": 0
+ }
+}

@@ -1,0 +1,54 @@
+[
+ {
+  "id": "loc-92db4c6e91",
+  "name": "Penhaligon Bindery",
+  "kind": "INTERIOR",
+  "style": "REALISTIC",
+  "description": "A small bookbinder's workshop in Bristol: a heavy oak workbench in front of tall shelves of leather-bound books, a cast-iron book press, spools of linen thread and stacks of marbled paper, warm late-afternoon light through a single tall window on the left, dust in the air.",
+  "landmarks": [],
+  "identity": {
+   "hash": "f95030dcf0547062",
+   "line": "A small bookbinder's workshop in Bristol: a heavy oak workbench in front of tall shelves of leather-bound books, a cast-iron book press, spools of linen thread and stacks of marbled paper, warm late-afternoon light through a single tall window on the left, dust in the air",
+   "version": 1,
+   "updatedAt": "2026-10-06T16:08:43.983Z"
+  },
+  "refs": [
+   {
+    "id": "lref-gen-d9105f7f23c12e4536d5",
+    "role": "MASTER",
+    "label": "Master plate",
+    "assetId": "gen-d9105f7f23c12e4536d5",
+    "timeOfDay": "MORNING",
+    "file": {
+     "assetId": "gen-d9105f7f23c12e4536d5",
+     "path": "image/2026/10/gen-d9105f7f23c12e4536d5.a1.png",
+     "sha256": "1d71bde394f41101dae80e4731746ddacb39a6404e6456a62022951a1d1b6654",
+     "bytes": 1282473,
+     "model": "Qwen-Image-2512",
+     "workflowVersion": "6e3fc595f55c0927",
+     "promptId": "98f8f7ae-aa3f-599c-b300-dffc9d4c3613",
+     "seed": 2124864094
+    },
+    "proxy": "images/location-loc-92db4c6e91-MASTER-MORNING-gen-d9105f7f23c12e4536d5.jpg"
+   },
+   {
+    "id": "lref-gen-d9105f7f23c12c8053d9",
+    "role": "STATE",
+    "label": "night",
+    "assetId": "gen-d9105f7f23c12c8053d9",
+    "timeOfDay": "NIGHT",
+    "file": {
+     "assetId": "gen-d9105f7f23c12c8053d9",
+     "path": "image/2026/10/gen-d9105f7f23c12c8053d9.a1.png",
+     "sha256": "c3f785ef02c6bb6587b98f63af34fcde2632f6216451ac43e9ddf8b3c8aa56c0",
+     "bytes": 1223763,
+     "model": "Qwen-Image-Edit-2511",
+     "workflowVersion": "6f9f66367d089d05",
+     "promptId": "c0432161-5ebd-5fa9-ae3b-a8137f263086",
+     "seed": 2104618639
+    },
+    "proxy": "images/location-loc-92db4c6e91-STATE-NIGHT-gen-d9105f7f23c12c8053d9.jpg"
+   }
+  ]
+ }
+]

@@ -1,0 +1,74 @@
+[
+ {
+  "id": "loc-75cdbdb376",
+  "name": "Tea stall, Mutanabbi Street",
+  "kind": "EXTERIOR",
+  "style": "CARTOON",
+  "description": "A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight.",
+  "landmarks": [
+   "The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall"
+  ],
+  "identity": {
+   "hash": "9272b037086cd595",
+   "line": "A small outdoor tea stall on Mutanabbi Street in Baghdad on a sunny morning: a wooden counter with a plain brass samovar (an ordinary metal object, no face) and rows of small clear tulip-shaped istikan tea glasses on saucers, two low wooden stools, stacks of second-hand books on tables along the old brick arcade behind it, soft warm sunlight; fixed features: The brass samovar on the right end of the counter; the old brick arcade with book tables behind the stall",
+   "version": 2,
+   "updatedAt": "2026-10-05T16:59:07.750Z"
+  },
+  "refs": [
+   {
+    "id": "lref-gen-02b5d1949e4d7c60a384",
+    "role": "MASTER",
+    "label": "Master plate",
+    "assetId": "gen-02b5d1949e4d7c60a384",
+    "timeOfDay": "MORNING",
+    "file": {
+     "assetId": "gen-02b5d1949e4d7c60a384",
+     "path": "image/2026/10/gen-02b5d1949e4d7c60a384.a1.png",
+     "sha256": "6e98f34fcf271a2be78c59a6f53ba3bb37ca62e5693ca07384d4738e2c756a80",
+     "bytes": 1289790,
+     "model": "Qwen-Image-2512",
+     "workflowVersion": "6e3fc595f55c0927",
+     "promptId": "b9e46033-e330-5b23-89f1-c9bd3cce8bf6",
+     "seed": 353358090
+    },
+    "proxy": "images/location-loc-75cdbdb376-MASTER-MORNING-gen-02b5d1949e4d7c60a384.jpg"
+   },
+   {
+    "id": "lref-gen-02b5d1949e4d24617719",
+    "role": "VIEW",
+    "label": "Towards the brass samovar",
+    "assetId": "gen-02b5d1949e4d24617719",
+    "timeOfDay": "MORNING",
+    "file": {
+     "assetId": "gen-02b5d1949e4d24617719",
+     "path": "image/2026/10/gen-02b5d1949e4d24617719.a1.png",
+     "sha256": "0aae04f689d3295b856bfa2ef7e329b05c553dc3876bac662f6b20806d9de9af",
+     "bytes": 1165335,
+     "model": "Qwen-Image-Edit-2511",
+     "workflowVersion": "0097a59b86639391",
+     "promptId": "5816f82b-f309-566b-918f-b8b92d56615e",
+     "seed": 929570052
+    },
+    "proxy": "images/location-loc-75cdbdb376-VIEW-MORNING-gen-02b5d1949e4d24617719.jpg"
+   },
+   {
+    "id": "lref-gen-02b5d1949e4dfdfa0278",
+    "role": "STATE",
+    "label": "night",
+    "assetId": "gen-02b5d1949e4dfdfa0278",
+    "timeOfDay": "NIGHT",
+    "file": {
+     "assetId": "gen-02b5d1949e4dfdfa0278",
+     "path": "image/2026/10/gen-02b5d1949e4dfdfa0278.a1.png",
+     "sha256": "e21021198da9e8f6f3ec24240136307059510fba07b77a2d7e270d458cbff337",
+     "bytes": 1174651,
+     "model": "Qwen-Image-Edit-2511",
+     "workflowVersion": "6f9f66367d089d05",
+     "promptId": "7f185f5f-ee72-5d3a-b492-ea2b2490cf89",
+     "seed": 987139882
+    },
+    "proxy": "images/location-loc-75cdbdb376-STATE-NIGHT-gen-02b5d1949e4dfdfa0278.jpg"
+   }
+  ]
+ }
+]

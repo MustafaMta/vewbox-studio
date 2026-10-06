@@ -1,0 +1,49 @@
+[
+ {
+  "id": "char-dbafe259d8",
+  "name": "Arthur Penhaligon",
+  "style": "REALISTIC",
+  "language": "EN",
+  "sex": "MALE",
+  "ageYears": 52,
+  "look": {
+   "build": "Broad-shouldered and sturdy with large, calloused hands",
+   "face": "Square jawline with a friendly, open expression and subtle crow's feet around the eyes",
+   "hair": "Short, thick grey hair, neatly combed to the side",
+   "skin": "Fair skin with a light dusting of freckles across the bridge of the nose",
+   "eyes": "Soft hazel eyes with a focused, patient gaze",
+   "wardrobe": "brown wool waistcoat, white cotton shirt with rolled sleeves, charcoal grey wool trousers, dark brown leather oxfords; facial hair: thick grey handlebar moustache and a short grey beard covering the chin and jaw",
+   "distinguishing": [
+    "a silver signet ring on his own right ring finger"
+   ]
+  },
+  "canonicalImage": {
+   "seed": 153759708,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "jobId": "job-418d297a35",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "APPROVED",
+   "version": 1,
+   "approvedAt": "2026-10-06T15:47:07.686Z",
+   "generatedAt": "2026-10-06T15:07:03.992Z",
+   "identityLine": "Identity: photorealistic real person, a man of about 52; build: Broad-shouldered and sturdy with large, calloused hands; face: Square jawline with a friendly, open expression and subtle crow's feet around the eyes; Short, thick grey hair, neatly combed to the side; Soft hazel eyes with a focused, patient gaze; Fair skin with a light dusting of freckles across the bridge of the nose; wearing brown wool waistcoat, white cotton shirt with rolled sleeves, charcoal grey wool trousers, dark brown leather oxfords; facial hair: thick grey handlebar moustache and a short grey beard covering the chin and jaw; a silver signet ring on his own right ring finger.",
+   "assetId": "gen-275d78cf1e95d80a5cbf",
+   "file": {
+    "assetId": "gen-275d78cf1e95d80a5cbf",
+    "path": "image/2026/10/gen-275d78cf1e95d80a5cbf.a1.png",
+    "sha256": "b6721572504109bf613320d455d4591afbbeb55c5b78fe085aa55e4f1c0cf76a",
+    "bytes": 2017604,
+    "model": "Qwen-Image-2512",
+    "workflowVersion": "5ab9b1fdab562470",
+    "promptId": "782e8264-123a-5cdc-8131-b26a447c8af8",
+    "seed": 153759708
+   },
+   "proxy": "images/character-char-dbafe259d8.jpg"
+  }
+ }
+]

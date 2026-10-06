@@ -1,0 +1,68 @@
+[
+ {
+  "characterId": "char-dbafe259d8",
+  "name": "Arthur Penhaligon",
+  "identity": {
+   "mode": "AUTOMATIC",
+   "jobId": "job-303cbb47de",
+   "model": "moss",
+   "proof": {
+    "cer": 0,
+    "wer": 0,
+    "text": "Hello. My name is Arthur Penhaligon, and this is my voice.",
+    "heard": "Hello, my name is Arthur Penhaligon, and this is my voice.",
+    "assetId": "gen-50a282eedb",
+    "coverage": 1,
+    "sampleId": "voice-5698d2f8ae"
+   },
+   "origin": "DESIGNED",
+   "params": {
+    "seed": 737013982,
+    "speed": 0.9,
+    "emotionAlpha": 1
+   },
+   "status": "ACTIVE",
+   "designId": "vd-b3f356943a",
+   "language": "EN",
+   "provider": "LOCAL_TTS",
+   "revision": 2,
+   "createdAt": "2026-10-06T16:22:42.598Z",
+   "evaluation": {
+    "cer": 0,
+    "lufs": -21.24,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-06T16:22:42.420Z",
+    "truePeakDbtp": -6.72,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.771
+   },
+   "seedSha256": "ad6ab3dc1e70ae1a8b50b330d04a8a82ec3a4ac47f67c981d0901347600d1c0d",
+   "dialectStatus": "NOT_APPLICABLE",
+   "engineVersion": "OpenMOSS-Team/MOSS-TTS-v1.5",
+   "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+   "referenceAssetId": "gen-e2c784f2e4"
+  },
+  "referenceFile": {
+   "assetId": "gen-e2c784f2e4",
+   "path": "audio/2026/10/gen-e2c784f2e4.wav",
+   "sha256": "ad6ab3dc1e70ae1a8b50b330d04a8a82ec3a4ac47f67c981d0901347600d1c0d",
+   "bytes": 468732,
+   "model": "openbmb/VoxCPM2",
+   "seed": 255764990
+  },
+  "proofFile": {
+   "assetId": "gen-50a282eedb",
+   "path": "audio/2026/10/gen-50a282eedb.wav",
+   "sha256": "3e8aab98a0506ad12399da1777ebc349f5b290b63c2adde1374b04d7ba6f72c8",
+   "bytes": 207554,
+   "model": "OpenMOSS-Team/MOSS-TTS-v1.5"
+  },
+  "settings": {
+   "pitch": "LOW",
+   "pace": "SLOW",
+   "timbre": "Warm and resonant",
+   "notes": "Soft West Country accent with a gentle, rhythmic cadence"
+  }
+ }
+]

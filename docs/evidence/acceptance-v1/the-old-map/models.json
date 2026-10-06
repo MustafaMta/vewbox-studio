@@ -1,0 +1,527 @@
+{
+ "usedModelNames": [
+  "Qwen-Image-2512",
+  "openbmb/VoxCPM2",
+  "IndexTTS-2.5",
+  "Qwen-Image-Edit-2511",
+  "FLUX.2-klein-4B",
+  "MiniMax-H3 (local, pruned int8)",
+  "Habibi-TTS IRQ (F5-TTS v1)",
+  "MiniMax-H3 (local, pruned int8, base 20 steps)",
+  "OpenMOSS-Team/MOSS-TTS-v1.5"
+ ],
+ "registryModels": [
+  {
+   "name": "asr/faster-whisper-large-v3/config.json",
+   "version": "Systran/faster-whisper-large-v3",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "asr-whisper"
+  },
+  {
+   "name": "asr/faster-whisper-large-v3/model.bin",
+   "version": "Systran/faster-whisper-large-v3",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "asr-whisper"
+  },
+  {
+   "name": "asr/faster-whisper-large-v3/preprocessor_config.json",
+   "version": "Systran/faster-whisper-large-v3",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "asr-whisper"
+  },
+  {
+   "name": "asr/faster-whisper-large-v3/tokenizer.json",
+   "version": "Systran/faster-whisper-large-v3",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "asr-whisper"
+  },
+  {
+   "name": "asr/faster-whisper-large-v3/vocabulary.json",
+   "version": "Systran/faster-whisper-large-v3",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "asr-whisper"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/config.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/dialect_wer.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/generation_config.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/model.safetensors",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": "a4876ef7f2425f4c4c237228cb85add93bbbdce182794b310df3565c8bed5ac6",
+   "bytes": 6174112552,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/processor_config.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/tokenizer.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "asr/whisper-large-v3-arabic-dialectal-v2-hf/tokenizer_config.json",
+   "version": "oddadmix/whisper-large-v3-arabic-dialectal-v2",
+   "sha256": null,
+   "bytes": null,
+   "status": "PRESENT",
+   "group": "stack-2026-10"
+  },
+  {
+   "name": "diffusion_models/flux-2-klein-4b.safetensors",
+   "version": "Comfy-Org/flux2-klein-4B",
+   "sha256": "ec3d4e733a771f61c052fb4856c48b336c55eaf2c65487c2a1faeb9bbda7a343",
+   "bytes": 7751105712,
+   "status": "PRESENT",
+   "group": "images-flux2-klein"
+  },
+  {
+   "name": "diffusion_models/flux-2-klein-base-4b.safetensors",
+   "version": "Comfy-Org/flux2-klein-4B",
+   "sha256": "9c5fed22b76baea749d88fc2abe3ad53245e7b21a0d353a762665eea00043b92",
+   "bytes": 7751105712,
+   "status": "PRESENT",
+   "group": "eval-flux2-klein-4b"
+  },
+  {
+   "name": "diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "e889202c41dafb67b10d67b97f0d8541508036a6090af23425a5c2615d03c47a",
+   "bytes": 20970379616,
+   "status": "PRESENT",
+   "group": "video-minimax-h3"
+  },
+  {
+   "name": "diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779",
+   "bytes": 20970379616,
+   "status": "PRESENT",
+   "group": "video-minimax-h3-reference"
+  },
+  {
+   "name": "diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+   "version": "Comfy-Org/Qwen-Image-2.1",
+   "sha256": "cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d",
+   "bytes": 7256783064,
+   "status": "PRESENT",
+   "group": "eval-qwen-image-2.1"
+  },
+  {
+   "name": "diffusion_models/qwen_image_2512_bf16.safetensors",
+   "version": "Comfy-Org/Qwen-Image_ComfyUI",
+   "sha256": "cbf55390fff27dbc785046d7007b04e0c5dd7421e7ef128f2831eacb53a8e075",
+   "bytes": 40861031488,
+   "status": "MISSING",
+   "group": "eval-qwen-image-2512-bf16"
+  },
+  {
+   "name": "diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
+   "version": "Comfy-Org/Qwen-Image_ComfyUI",
+   "sha256": "5dc80554d5d83390046a2f4a94ece06afb7700bf7b0aaf8bde9769793875876b",
+   "bytes": 20430679144,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+   "version": "Comfy-Org/Qwen-Image-Edit_ComfyUI",
+   "sha256": "c9fdc158e46d3b61ef75f21ae866ca2fe808bf4a53643120d1c1e87c19280a4e",
+   "bytes": 20533762817,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "loras/Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors",
+   "version": "lightx2v/Qwen-Image-2512-Lightning",
+   "sha256": "b48fb1a8edd939354579c1cf0b403c92f28879b32dddbaaa91b9d424bfc72081",
+   "bytes": 849608296,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+   "version": "lightx2v/Qwen-Image-Edit-2511-Lightning",
+   "sha256": "22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f",
+   "bytes": 849608296,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "loras/minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "2339acdf19bfe123f46b971ea35d367a84adb85de43627e1eceafa5a5b2b111e",
+   "bytes": 1956193000,
+   "status": "PRESENT",
+   "group": "video-minimax-h3"
+  },
+  {
+   "name": "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "5b9ab5ade15d0775676d01a907268a69a1468dc6033b3b0d3ded5502f3ebb84c",
+   "bytes": 1956193000,
+   "status": "PRESENT",
+   "group": "video-minimax-h3-reference"
+  },
+  {
+   "name": "loras/qwen-image-edit-2511-multiple-angles-lora.safetensors",
+   "version": "fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA",
+   "sha256": "42426ded4e25fd22879d9e198b857556445ef4ca56e8da3246d0345155bb6765",
+   "bytes": 295140688,
+   "status": "PRESENT",
+   "group": "images-qwen-identity"
+  },
+  {
+   "name": "text_encoders/qwen3.5_4b_bf16.safetensors",
+   "version": "Comfy-Org/Qwen3.5",
+   "sha256": "9fb3ae42003750fe2d16350259a3ec07761d6d13a8e2b244a6e22fa9d8050841",
+   "bytes": 9319828320,
+   "status": "PRESENT",
+   "group": "images-vlm"
+  },
+  {
+   "name": "text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6",
+   "bytes": 15687142551,
+   "status": "PRESENT",
+   "group": "video-minimax-h3"
+  },
+  {
+   "name": "text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+   "version": "Comfy-Org/Qwen-Image-2.1",
+   "sha256": "8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f",
+   "bytes": 9350798360,
+   "status": "PRESENT",
+   "group": "eval-qwen-image-2.1"
+  },
+  {
+   "name": "text_encoders/qwen3vl_8b_joyimage_edit_int8_convrot.safetensors",
+   "version": "Comfy-Org/JoyAI-Image-Edit",
+   "sha256": "683de3ab15337afb9dcf19caaabb683a5ce53eb311eb302ff8eeaf4f553ad1a8",
+   "bytes": 10064089100,
+   "status": "PRESENT",
+   "group": "eval-joyai-image-edit"
+  },
+  {
+   "name": "text_encoders/qwen_0.6b_ace15.safetensors",
+   "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
+   "sha256": "fd4590c82153b8ddb67e15a2e7aaa8afa8b83a858c8a9b82a4831063156aa7a7",
+   "bytes": 1191588248,
+   "status": "PRESENT",
+   "group": "music-ace-step"
+  },
+  {
+   "name": "text_encoders/qwen_1.7b_ace15.safetensors",
+   "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
+   "sha256": "ed63e9247d1f55f3ace04fa11e95b085fc82d459c82c5626f0b2e37b91ebd710",
+   "bytes": 3708523360,
+   "status": "PRESENT",
+   "group": "music-ace-step"
+  },
+  {
+   "name": "text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+   "version": "Comfy-Org/Qwen-Image_ComfyUI",
+   "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
+   "bytes": 9384670680,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "text_encoders/qwen_3_4b.safetensors",
+   "version": "Comfy-Org/flux2-klein-4B",
+   "sha256": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+   "bytes": 8044982048,
+   "status": "PRESENT",
+   "group": "images-flux2-klein"
+  },
+  {
+   "name": "text_encoders/qwen_4b_ace15.safetensors",
+   "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
+   "sha256": "ffe5ffb855086c2ab55e467e9859fb01894781020a0376484dd19de166b79873",
+   "bytes": 8379154232,
+   "status": "MISSING",
+   "group": "music-ace-step-xl"
+  },
+  {
+   "name": "voice/habibi-tts-irq",
+   "version": "IRQ",
+   "sha256": null,
+   "bytes": null,
+   "status": "SERVICE"
+  },
+  {
+   "name": "voice/indextts-2.5",
+   "version": "2.5",
+   "sha256": null,
+   "bytes": null,
+   "status": "SERVICE"
+  },
+  {
+   "name": "vae/ace_1.5_vae.safetensors",
+   "version": "Comfy-Org/ace_step_1.5_ComfyUI_files",
+   "sha256": "6de92e3a862acd287e08b024ac90f0783a8635451b728721a33ff03565bcb2bb",
+   "bytes": 337431732,
+   "status": "PRESENT",
+   "group": "music-ace-step"
+  },
+  {
+   "name": "vae/flux2-vae.safetensors",
+   "version": "Comfy-Org/flux2-klein-4B",
+   "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+   "bytes": 336211292,
+   "status": "PRESENT",
+   "group": "images-flux2-klein"
+  },
+  {
+   "name": "vae/minimax_h3_audio_vae_fp32.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48",
+   "bytes": 605254808,
+   "status": "PRESENT",
+   "group": "video-minimax-h3"
+  },
+  {
+   "name": "vae/minimax_h3_video_vae_int8_convrot.safetensors",
+   "version": "Comfy-Org/MiniMax-H3",
+   "sha256": "52a2c8c73583c86e4f41cdcce3a6ad0ea562987bc0bf3d60a0cef5f5c8e60c0e",
+   "bytes": 2811065184,
+   "status": "PRESENT",
+   "group": "video-minimax-h3"
+  },
+  {
+   "name": "vae/minimax_music3_dav.safetensors",
+   "version": "Comfy-Org/MiniMax-Music-3",
+   "sha256": "2a32155b769be01445fcc2a8663b910fc9e1751e18dc1c3ec528064512d9ef0c",
+   "bytes": 216696128,
+   "status": "PRESENT",
+   "group": "music-minimax-3"
+  },
+  {
+   "name": "vae/qwen_image_2.1_vae_bf16.safetensors",
+   "version": "Comfy-Org/Qwen-Image-2.1",
+   "sha256": "bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9",
+   "bytes": 675509688,
+   "status": "PRESENT",
+   "group": "eval-qwen-image-2.1"
+  },
+  {
+   "name": "vae/qwen_image_vae.safetensors",
+   "version": "Comfy-Org/Qwen-Image_ComfyUI",
+   "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+   "bytes": 253806246,
+   "status": "PRESENT",
+   "group": "images-qwen"
+  },
+  {
+   "name": "vae/wan_2.1_vae.safetensors",
+   "version": "Comfy-Org/JoyAI-Image-Edit",
+   "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+   "bytes": 253815318,
+   "status": "PRESENT",
+   "group": "eval-joyai-image-edit"
+  },
+  {
+   "name": "lipsync/latentsync-1.6/whisper/tiny.pt",
+   "version": "ByteDance/LatentSync-1.6",
+   "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9",
+   "bytes": 75572083,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
+   "name": "lipsync/sd-vae-ft-mse/config.json",
+   "version": "stabilityai/sd-vae-ft-mse",
+   "sha256": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+   "bytes": 547,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
+   "name": "lipsync/sd-vae-ft-mse/diffusion_pytorch_model.safetensors",
+   "version": "stabilityai/sd-vae-ft-mse",
+   "sha256": "a1d993488569e928462932c8c38a0760b874d166399b14414135bd9c42df5815",
+   "bytes": 334643276,
+   "status": "UNKNOWN",
+   "group": "lipsync-latentsync-1.6"
+  },
+  {
+   "name": "tts/voxcpm2/audiovae.pth",
+   "version": "openbmb/VoxCPM2",
+   "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1",
+   "bytes": 376951122,
+   "status": "UNKNOWN",
+   "group": "voice-design"
+  }
+ ],
+ "workflows": [
+  {
+   "name": "ace-step-1.5.song",
+   "version": "cd0a084d610e2ad4"
+  },
+  {
+   "name": "ace-step-1.5.song",
+   "version": "4209077be62978bf"
+  },
+  {
+   "name": "ace-step-1.5.song",
+   "version": "4c1b228baf946747"
+  },
+  {
+   "name": "ace-step-1.5.xl-sft.song",
+   "version": "645ab6cdae0c6dd3"
+  },
+  {
+   "name": "ace-step-1.5.xl-turbo.song",
+   "version": "cd0a084d610e2ad4"
+  },
+  {
+   "name": "flux2-klein.canonical-reference",
+   "version": "283613ceafdf1ac4"
+  },
+  {
+   "name": "minimax-h3.fl2va",
+   "version": "f140f0da6119bd25"
+  },
+  {
+   "name": "minimax-h3.fl2va",
+   "version": "bcb2042658f27aa1"
+  },
+  {
+   "name": "minimax-h3.fl2va-draft",
+   "version": "bcb2042658f27aa1"
+  },
+  {
+   "name": "minimax-h3.ref2va",
+   "version": "2e2e69f44978d9cf"
+  },
+  {
+   "name": "minimax-h3.ref2va",
+   "version": "7909c7b9d65b9981"
+  },
+  {
+   "name": "minimax-h3.ref2va",
+   "version": "ff9d2f274ab87fe0"
+  },
+  {
+   "name": "minimax-h3.ref2va-continuation",
+   "version": "4b4b4e1a5ed4433d"
+  },
+  {
+   "name": "minimax-h3.ref2va-continuation",
+   "version": "83b32f245b2ad0ad"
+  },
+  {
+   "name": "minimax-h3.ref2va-draft",
+   "version": "7909c7b9d65b9981"
+  },
+  {
+   "name": "minimax-h3.ref2va-opening",
+   "version": "450192c3d473dba2"
+  },
+  {
+   "name": "minimax-h3.ref2va-opening",
+   "version": "5a71139bc3ee7860"
+  },
+  {
+   "name": "minimax-music-3.song",
+   "version": "9f751415d586801d"
+  },
+  {
+   "name": "qwen-image.canonical",
+   "version": "5ab9b1fdab562470"
+  },
+  {
+   "name": "qwen-image.canonical-draft",
+   "version": "31fcc312f4f3545f"
+  },
+  {
+   "name": "qwen-image.canonical-reference",
+   "version": "c9a80976ae0cec98"
+  },
+  {
+   "name": "qwen-image.edit",
+   "version": "7244ef19f09fe57d"
+  },
+  {
+   "name": "qwen-image.edit",
+   "version": "36c60d89638c9b3d"
+  },
+  {
+   "name": "qwen-image.edit-quality",
+   "version": "f58657b751fef96b"
+  },
+  {
+   "name": "qwen-image.face-check",
+   "version": "ab42a9cc7b9d6a8e"
+  },
+  {
+   "name": "qwen-image.identity-sheet",
+   "version": "2f5dee7cc28b1348"
+  },
+  {
+   "name": "qwen-image.identity-sheet-from-face",
+   "version": "458c6a6f1df1f276"
+  },
+  {
+   "name": "qwen-image.secondary",
+   "version": "0097a59b86639391"
+  },
+  {
+   "name": "qwen-image.secondary-portrait",
+   "version": "e0a93601c85d1cac"
+  },
+  {
+   "name": "qwen-image.t2i",
+   "version": "6e3fc595f55c0927"
+  },
+  {
+   "name": "qwen-image.view",
+   "version": "6814039a9771cd17"
+  },
+  {
+   "name": "qwen3.5.reference-read",
+   "version": "1bd5d9d92c56ed05"
+  }
+ ]
+}

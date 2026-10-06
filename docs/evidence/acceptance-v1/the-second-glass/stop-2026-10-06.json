@@ -1,0 +1,28 @@
+{
+ "gate": "5 (4-8-shot scene), with the defect-4 exercise (WIDE with a planned present character behind the counter)",
+ "production": "short-1786f4941a 'The Second Glass' (CARTOON, EN, Tea stall Mutanabbi Street, Clara Hughes + Abu Haidar)",
+ "stoppedBy": "the producer's instruction (planner migration, Phase 1): intake paused, PRODUCE job-a85c108c6e and GENERATE_TAKE job-83d25b940f (shot 1.1) cancelled by the coordinator before any H3 output",
+ "state": {
+  "story": "developed (DEVELOP_STORY job-0ece8905f4) and scripted (WRITE_SCRIPT job-02e7da40ba) by the qwen3.6:27b planner through the UI; approved in the UI after my edits",
+  "plan": "PLAN_SHOTS job-987adfc844 (qwen3.6) planned 5 shots, all Cut, no WIDE; edited in the shot inspector",
+  "shots": [
+   { "n": "1.1", "id": "shot-da80e2edd7", "framing": "WIDE static", "boundary": "transition", "people": "Clara + Abu (Abu behind the counter pouring: defect-4 exercise)", "openingFrame": "gen-23c341f79bb4feb79358 (drawn BEFORE the coordinator's crop-floor fix)", "takes": 0 },
+   { "n": "1.2", "id": "shot-f55ca038f8", "framing": "OVER_THE_SHOULDER static (planner had push-in)", "boundary": "cut", "openingFrame": "gen-024903356101a20dabd4 (before the crop-floor fix)", "takes": 0 },
+   { "n": "1.3", "id": "shot-7fa4975f80", "framing": "TWO_SHOT static", "boundary": "cut", "openingFrame": "gen-250ea8d26b763e9070fd (before the crop-floor fix)", "takes": 0 },
+   { "n": "1.4", "id": "shot-da80b96ad9", "framing": "TWO_SHOT static", "boundary": "continuous (my edit)", "openingFrame": "none (continuation tail)", "takes": 0 },
+   { "n": "1.5", "id": "shot-75f4098972", "framing": "TWO_SHOT static", "boundary": "continuous (my edit)", "line": "Clara: 'It's perfect.'", "openingFrame": "none", "takes": 0 }
+  ]
+ },
+ "plannerFindings_qwen3.6": [
+  "instruction adherence: gave Abu Haidar an English line ('Ha! Look at my hand!') although the brief said English dialogue for Clara only (removed in the UI)",
+  "invented a 'small digital preview screen' on Clara's vintage film camera (story, script and shot 1.4; corrected in the UI)",
+  "planned no Continuous join and no WIDE although the brief asked for one continuous scene",
+  "no character-name slips seen; no 'local model stalled' in the worker log; schema valid on the first attempt (DEVELOP 136 s, SCRIPT 294 s)"
+ ],
+ "resume": [
+  "after the migration: restart the worker through the watchdog (picks the crop-floor fix)",
+  "decide whether to redraw 1.1-1.3 opening frames on the new crop code (they were drawn before it) — 1.1 is WIDE (no crop), 1.2/1.3 would be cropped now",
+  "Produce tab -> 'Produce every shot' (or shot by shot in order 1.1 -> 1.5: 1.4 and 1.5 continue the tails of 1.3 and 1.4)",
+  "then: inspect each take (people-on-screen on 1.1 for defect 4), select, assemble, export, watch"
+ ]
+}

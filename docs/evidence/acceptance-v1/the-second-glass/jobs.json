@@ -1,0 +1,1186 @@
+[
+ {
+  "id": "job-ace4285f0f",
+  "type": "CHARACTER_APPEARANCE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:25:10.847+00",
+  "startedAt": "2026-10-05 16:25:11.918+00",
+  "finishedAt": "2026-10-05 16:26:11.803+00",
+  "payload": {
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 59877,
+   "seed": 1547498800,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "runId": "run-ad16519bfd",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "DRAFT",
+   "agentId": "character-designer",
+   "message": "Abu Haidar: canonical image drawn — awaiting your approval",
+   "version": 1,
+   "lookFrom": "DESCRIPTION",
+   "rejected": [],
+   "identityLine": "Identity: stylized 3D animated character, a man of about 58; build: Slightly plump with a soft belly and rounded shoulders; face: Round and friendly with prominent apple-cheeks and deep laughter lines around the eyes; Salt-and-pepper hair, thinning at the top and cropped short on the sides; Small, twinkling dark brown eyes; Golden-brown, sun-kissed skin; wearing an ankle-length white cotton dishdasha, a red-and-white checked keffiyeh draped loosely over his own right shoulder, and brown leather sandals; a pair of small gold-rimmed reading glasses hanging from a black cord around his neck.",
+   "workflowVersion": "5ab9b1fdab562470",
+   "canonicalAssetId": "gen-70bd991ea7a1f918e0df"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:26:11.823+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-d12320434e",
+  "type": "CHARACTER_APPEARANCE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:40:09.302+00",
+  "startedAt": "2026-10-05 16:40:10.473+00",
+  "finishedAt": "2026-10-05 16:41:09.915+00",
+  "payload": {
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 59433,
+   "seed": 695193644,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "runId": "run-09877082f4",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "DRAFT",
+   "agentId": "character-designer",
+   "message": "Clara Hughes: canonical image drawn — awaiting your approval",
+   "version": 1,
+   "lookFrom": "DESCRIPTION",
+   "rejected": [],
+   "identityLine": "Identity: stylized 3D animated character, a woman of about 32; Slim build; face: Heart-shaped and clean-shaven, with light brown freckles across the bridge of her nose and upper cheeks; clean-shaven: the chin, jaw, cheeks and upper lip are shaved smooth; Shoulder-length auburn hair tied back in a low ponytail; Green eyes; Fair skin; wearing a waist-length olive green field jacket with utility pockets, a cream-colored chunky knit sweater, dark blue straight-cut denim jeans, and brown lace-up leather boots; a vintage film camera hanging from a weathered brown leather strap worn diagonally across her chest.",
+   "workflowVersion": "5ab9b1fdab562470",
+   "canonicalAssetId": "gen-45ec75f1d454ec2f36d9"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:41:09.919+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-27d713507c",
+  "type": "VOICE_BUILD",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:47:35.107+00",
+  "startedAt": "2026-10-05 16:47:35.871+00",
+  "finishedAt": "2026-10-05 16:49:30.243+00",
+  "payload": {
+   "mode": "AUTOMATIC",
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 114364,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "Hello, my name is Clara Hughes, and this is my voice.",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-2530b610fb",
+   "design": {
+    "chosen": 3,
+    "ranking": [
+     3,
+     2,
+     1
+    ],
+    "designId": "vd-33df22a68c",
+    "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+    "candidates": [
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.35,
+      "seed": 1462281475,
+      "index": 1,
+      "passed": true,
+      "sha256": "88a1a5fe92aeb353b02a1d3db02454ae1f610f97b8b7aa7b68768f2aee4da21b",
+      "assetId": "gen-55e84e6d98",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 10.88,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.35,
+       "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -3.87,
+       "clippedSamples": 0,
+       "durationSeconds": 10.88
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you, the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.7814,
+        "engine": "indextts",
+        "assetId": "gen-18c680ac3a",
+        "coverage": 1,
+        "durationSeconds": 5.828
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8387,
+        "engine": "indextts",
+        "assetId": "gen-cd131008a6",
+        "coverage": 1,
+        "durationSeconds": 4.505
+       }
+      ],
+      "nativeAssetId": "gen-aee7816d32",
+      "similarityMean": 0.81,
+      "durationSeconds": 10.88
+     },
+     {
+      "cer": 0.0414,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.48,
+      "seed": 1462281476,
+      "index": 2,
+      "passed": true,
+      "sha256": "2216cbfc8f8d5f716a6369cad88181d34994d83907749812c0fe64da1154a11e",
+      "assetId": "gen-0b53f3ae97",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 0.9,
+      "duration": 8.48,
+      "measured": {
+       "cer": 0.0414,
+       "lufs": -20.48,
+       "heard": "The harbor lights came on one by one as the evening fairy pulled away from the key. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 0.9,
+       "truePeakDbtp": -1,
+       "clippedSamples": 0,
+       "durationSeconds": 8.48
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.8319,
+        "engine": "indextts",
+        "assetId": "gen-c16b83d792",
+        "coverage": 1,
+        "durationSeconds": 4.992
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8235,
+        "engine": "indextts",
+        "assetId": "gen-2d80f28e27",
+        "coverage": 1,
+        "durationSeconds": 3.75
+       }
+      ],
+      "nativeAssetId": "gen-3a815a622a",
+      "similarityMean": 0.8277,
+      "durationSeconds": 8.48
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.11,
+      "seed": 1462281477,
+      "index": 3,
+      "passed": true,
+      "sha256": "72ee6112f8fdb0416eaeef6cd7814bb64507f34b364de6dc761e6e1cba6e3076",
+      "assetId": "gen-b23150ec5e",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 8.8,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.11,
+       "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -5.59,
+       "clippedSamples": 0,
+       "durationSeconds": 8.8
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.8462,
+        "engine": "indextts",
+        "assetId": "gen-2cb814fc8a",
+        "coverage": 1,
+        "durationSeconds": 5.55
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8399,
+        "engine": "indextts",
+        "assetId": "gen-e33c4af7bf",
+        "coverage": 1,
+        "durationSeconds": 4.389
+       }
+      ],
+      "nativeAssetId": "gen-967ca0731c",
+      "similarityMean": 0.8431,
+      "durationSeconds": 8.8
+     }
+    ]
+   },
+   "engine": "indextts",
+   "labels": [
+    "Studio-designed synthetic voice — not a real person",
+    "naturalness not yet judged by a listener"
+   ],
+   "agentId": "voice-casting",
+   "identity": {
+    "mode": "AUTOMATIC",
+    "model": "indextts",
+    "origin": "DESIGNED",
+    "params": {
+     "seed": 2101694182,
+     "speed": 1,
+     "emotionAlpha": 1
+    },
+    "status": "ACTIVE",
+    "designId": "vd-33df22a68c",
+    "provider": "LOCAL_TTS",
+    "dialectStatus": "NOT_APPLICABLE",
+    "referenceAssetId": "gen-b23150ec5e"
+   },
+   "evaluation": {
+    "cer": 0,
+    "lufs": -20.35,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:49:30.012Z",
+    "truePeakDbtp": -5.25,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.7824
+   },
+   "proofSampleId": "voice-ed7bd26e8f",
+   "reviewReasons": [],
+   "sampleAssetId": "gen-8f095c0eab",
+   "awaitingReview": false
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:47:35.893+00",
+    "level": "info",
+    "message": "automatic voice: a voice designed from the profile"
+   },
+   {
+    "at": "2026-10-05 16:48:15.425+00",
+    "level": "info",
+    "message": "voice designed"
+   },
+   {
+    "at": "2026-10-05 16:49:08.659+00",
+    "level": "info",
+    "message": "voice design measured"
+   },
+   {
+    "at": "2026-10-05 16:49:08.757+00",
+    "level": "info",
+    "message": "reference chosen"
+   },
+   {
+    "at": "2026-10-05 16:49:30.246+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-db18982abe",
+  "type": "VOICE_PREVIEW",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:50:14.77+00",
+  "startedAt": "2026-10-05 16:50:15.658+00",
+  "finishedAt": "2026-10-05 16:50:33.043+00",
+  "payload": {
+   "text": "Excuse me, is this the famous tea everyone talks about?",
+   "characterId": "char-0556d14a04"
+  },
+  "result": {
+   "ms": 17381,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "Excuse me, is this the famous tea everyone talks about?",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-4ce3c78422",
+   "engine": "indextts",
+   "agentId": "voice-casting",
+   "assetId": "gen-338b70cc1c",
+   "measured": {
+    "lufs": -21.38,
+    "clipped": 0,
+    "truePeakDbtp": -6.41,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.6158
+   },
+   "awaitingReview": false,
+   "durationSeconds": 4.469841
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:50:14.779+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:50:33.045+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-d21ce20a09",
+  "type": "VOICE_BUILD",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:52:41.844+00",
+  "startedAt": "2026-10-05 16:52:43.198+00",
+  "payload": {
+   "mode": "AUTOMATIC",
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 82419,
+   "check": {
+    "ok": true,
+    "cer": 0,
+    "wer": 0,
+    "heard": "هلا بيك. اني اسمي أبو حيدر وهذا صوتي.",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 1
+   },
+   "runId": "run-79b4106f7c",
+   "design": {
+    "chosen": 3,
+    "ranking": [
+     3,
+     2,
+     1
+    ],
+    "designId": "vd-2faf0bde89",
+    "rankedBy": "gates passed first, then the Iraqi probe lines’ mean letter coverage (spaces ignored), then their mean CER (Iraqi A/B screening)",
+    "candidates": [
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -19.97,
+      "seed": 2089452140,
+      "index": 1,
+      "passed": true,
+      "sha256": "96e034e5f2ec19ae3d05a502ae3b4bc80ba2f19a0cfc1f087c2021bda456ba5d",
+      "assetId": "gen-f7c1d8677f",
+      "cerMean": 0.049,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 8.16,
+      "measured": {
+       "cer": 0,
+       "lufs": -19.97,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -2.18,
+       "clippedSamples": 0,
+       "durationSeconds": 8.16
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكو. هسه وصلت من الشغل.",
+        "cosine": 0.6962,
+        "engine": "habibi",
+        "assetId": "gen-1aa7324f02",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.019
+       },
+       {
+        "cer": 0.0357,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "يلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7431,
+        "engine": "habibi",
+        "assetId": "gen-84ea797fdf",
+        "coverage": 0.8333,
+        "letterCoverage": 0.9565,
+        "durationSeconds": 3.264
+       },
+       {
+        "cer": 0.0571,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "الفايحار هواية. انطيني شويه مي بارد.",
+        "cosine": 0.7624,
+        "engine": "habibi",
+        "assetId": "gen-1bbb801b21",
+        "coverage": 0.7143,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 4.053
+       },
+       {
+        "cer": 0.1034,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باشر الصبح نقاعد وياكم بالغهوة.",
+        "cosine": 0.6733,
+        "engine": "habibi",
+        "assetId": "gen-49875c9797",
+        "coverage": 0.4,
+        "letterCoverage": 0.92,
+        "durationSeconds": 3.317
+       }
+      ],
+      "nativeAssetId": "gen-997f9d5b24",
+      "similarityMean": 0.7188,
+      "durationSeconds": 8.16,
+      "letterCoverageMean": 0.9605
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.02,
+      "seed": 2089452141,
+      "index": 2,
+      "passed": true,
+      "sha256": "2cce699112209466ce4b52a475773d8b41ccdba488da71cf349a59358cd6c2d9",
+      "assetId": "gen-2e58290ca5",
+      "cerMean": 0.033,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 7.84,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.02,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر، ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -3.83,
+       "clippedSamples": 0,
+       "durationSeconds": 7.84
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكو. هسه وصلت من الشغل.",
+        "cosine": 0.6688,
+        "engine": "habibi",
+        "assetId": "gen-f89bdcb6a9",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 2.837
+       },
+       {
+        "cer": 0,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7042,
+        "engine": "habibi",
+        "assetId": "gen-9fbc824ac4",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.061
+       },
+       {
+        "cer": 0.0286,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "الفاي حار هواية، انطيني شوية مي بارد.",
+        "cosine": 0.8071,
+        "engine": "habibi",
+        "assetId": "gen-2b96488248",
+        "coverage": 0.8571,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 3.808
+       },
+       {
+        "cer": 0.1034,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باشر الصبح ننعد وياكم بالغهوة.",
+        "cosine": 0.7805,
+        "engine": "habibi",
+        "assetId": "gen-37bdca3cfa",
+        "coverage": 0.4,
+        "letterCoverage": 0.88,
+        "durationSeconds": 3.115
+       }
+      ],
+      "nativeAssetId": "gen-81d2fe2bd1",
+      "similarityMean": 0.7402,
+      "durationSeconds": 7.84,
+      "letterCoverageMean": 0.9614
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -19.95,
+      "seed": 2089452142,
+      "index": 3,
+      "passed": true,
+      "sha256": "bbf73599a4bbb1c0d8b79e35c69b074e020b0666346f27310469e505ddb26563",
+      "assetId": "gen-4ff84d698b",
+      "cerMean": 0.034,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 9.76,
+      "measured": {
+       "cer": 0,
+       "lufs": -19.95,
+       "heard": "أضاءت أنوار الميناء واحدا تلو الآخر. ولم ينطق أحد بكلمة. هل ستبقى هنا حين تعود؟",
+       "asrModel": "large-v3-arabic-dialectal-v2",
+       "coverage": 1,
+       "truePeakDbtp": -2.57,
+       "clippedSamples": 0,
+       "durationSeconds": 9.76
+      },
+      "previews": [
+       {
+        "cer": 0.0385,
+        "text": "شكو ماكو؟ هسه وصلت من الشغل.",
+        "heard": "شكو ماكوت. هسه وصلت من الشغل.",
+        "cosine": 0.6946,
+        "engine": "habibi",
+        "assetId": "gen-7d765a2397",
+        "coverage": 0.8333,
+        "letterCoverage": 1,
+        "durationSeconds": 3.584
+       },
+       {
+        "cer": 0,
+        "text": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "heard": "گلتلك ماكو وقت، لازم نطلع هسه.",
+        "cosine": 0.7679,
+        "engine": "habibi",
+        "assetId": "gen-26795fbdd8",
+        "coverage": 1,
+        "letterCoverage": 1,
+        "durationSeconds": 3.872
+       },
+       {
+        "cer": 0.0286,
+        "text": "الچاي حار هواية، انطيني شوية مي بارد.",
+        "heard": "ألفاي حار هواية. أنطيني شوية مي بارد.",
+        "cosine": 0.8132,
+        "engine": "habibi",
+        "assetId": "gen-a0f6e02db0",
+        "coverage": 0.8571,
+        "letterCoverage": 0.9655,
+        "durationSeconds": 4.811
+       },
+       {
+        "cer": 0.069,
+        "text": "باچر الصبح نگعد وياكم بالگهوة.",
+        "heard": "باسر الصبح. نقعد وياكم بالغهوة.",
+        "cosine": 0.7874,
+        "engine": "habibi",
+        "assetId": "gen-5ec5285e2c",
+        "coverage": 0.6,
+        "letterCoverage": 0.92,
+        "durationSeconds": 3.947
+       }
+      ],
+      "nativeAssetId": "gen-5363a96fcc",
+      "similarityMean": 0.7658,
+      "durationSeconds": 9.76,
+      "letterCoverageMean": 0.9714
+     }
+    ]
+   },
+   "engine": "habibi",
+   "labels": [
+    "Studio-designed synthetic voice — not a real person",
+    "Iraqi dialect not yet verified by a native listener",
+    "naturalness not yet judged by a listener"
+   ],
+   "agentId": "voice-casting",
+   "identity": {
+    "mode": "AUTOMATIC",
+    "model": "habibi",
+    "origin": "DESIGNED",
+    "params": {
+     "seed": 178769622,
+     "speed": 0.9,
+     "emotionAlpha": 1
+    },
+    "status": "REVIEW",
+    "designId": "vd-2faf0bde89",
+    "provider": "LOCAL_TTS",
+    "dialectStatus": "UNVERIFIED",
+    "fallbackModel": "indextts",
+    "referenceAssetId": "gen-4ff84d698b"
+   },
+   "evaluation": {
+    "cer": 0,
+    "lufs": -19.97,
+    "clipped": 0,
+    "coverage": 1,
+    "measuredAt": "2026-10-05T16:54:05.395Z",
+    "truePeakDbtp": -0.99,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.8224
+   },
+   "proofSampleId": "voice-3074ccdb34",
+   "reviewReasons": [
+    "designed Arabic seed on the Iraqi engine: an experiment, its dialect is unverified"
+   ],
+   "sampleAssetId": "gen-3c2d25886a",
+   "awaitingReview": true
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:52:43.244+00",
+    "level": "info",
+    "message": "automatic voice: a designed Arabic seed for the Iraqi engine (experiment)"
+   },
+   {
+    "at": "2026-10-05 16:53:21.048+00",
+    "level": "info",
+    "message": "voice designed"
+   },
+   {
+    "at": "2026-10-05 16:53:58.03+00",
+    "level": "info",
+    "message": "voice design measured"
+   },
+   {
+    "at": "2026-10-05 16:53:58.175+00",
+    "level": "info",
+    "message": "reference chosen"
+   },
+   {
+    "at": "2026-10-05 16:54:05.626+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-0509c0003d",
+  "type": "VOICE_PREVIEW",
+  "status": "AWAITING_REVIEW",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:54:43.423+00",
+  "startedAt": "2026-10-05 16:54:43.838+00",
+  "payload": {
+   "text": "هلا بيج عيني، هذا أطيب چاي ببغداد. تفضلي اگعدي.",
+   "characterId": "char-3a54ed1937"
+  },
+  "result": {
+   "ms": 7607,
+   "check": {
+    "ok": false,
+    "cer": 0.06818181818181818,
+    "wer": 0.4444444444444444,
+    "heard": "هلا بيجعيني. هذا أطيب آي ببغداد. تفضلي إعدي.",
+    "status": "REVIEW",
+    "reasons": [
+     "چ not confirmable by ASR: «چاي» heard «آي» — a listener decides"
+    ],
+    "coverage": 0.7777777777777778
+   },
+   "runId": "run-1c9aed8427",
+   "engine": "habibi",
+   "agentId": "voice-casting",
+   "assetId": "gen-84ca7c276a",
+   "measured": {
+    "lufs": -18.25,
+    "clipped": 0,
+    "truePeakDbtp": -1,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.7717
+   },
+   "awaitingReview": true,
+   "durationSeconds": 6.037333
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:54:43.43+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:54:51.463+00",
+    "level": "info",
+    "message": "awaiting review"
+   }
+  ]
+ },
+ {
+  "id": "job-26080ec3d4",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:57:21.437+00",
+  "startedAt": "2026-10-05 16:57:21.859+00",
+  "finishedAt": "2026-10-05 16:58:06.792+00",
+  "payload": {
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 44920,
+   "refs": 2,
+   "runId": "run-8a238cba96",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:57:21.452+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 16:58:06.794+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-25e1bf1cfd",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 16:59:09.817+00",
+  "startedAt": "2026-10-05 16:59:10.267+00",
+  "finishedAt": "2026-10-05 17:00:07.325+00",
+  "payload": {
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 57046,
+   "refs": 2,
+   "runId": "run-3803c99a09",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 16:59:09.825+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 17:00:07.328+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-a0f34bd389",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 17:03:19.335+00",
+  "startedAt": "2026-10-05 17:03:19.881+00",
+  "finishedAt": "2026-10-05 17:04:49.474+00",
+  "payload": {
+   "force": true,
+   "locationId": "loc-75cdbdb376"
+  },
+  "result": {
+   "ms": 89587,
+   "refs": 3,
+   "runId": "run-474aa47cb7",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-05 17:03:19.344+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 17:04:49.477+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-0ece8905f4",
+  "type": "DEVELOP_STORY",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:47:55.986+00",
+  "startedAt": "2026-10-06 16:47:56.9+00",
+  "finishedAt": "2026-10-06 16:50:13.394+00",
+  "payload": {
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 136303,
+   "runId": "run-ecfb424e19",
+   "scenes": 1,
+   "agentId": "head-of-story",
+   "newLocations": 0,
+   "newCharacters": 0,
+   "replacedScenes": true
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:47:55.999+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 16:50:13.355+00",
+    "level": "info",
+    "message": "World Bible revision 1 written (add bible (2 character(s), 1 location(s), 2 rule(s), 1 event(s)))"
+   },
+   {
+    "at": "2026-10-06 16:50:13.398+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-02e7da40ba",
+  "type": "WRITE_SCRIPT",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:58:53.146+00",
+  "startedAt": "2026-10-06 16:58:54.191+00",
+  "finishedAt": "2026-10-06 17:03:48.191+00",
+  "payload": {
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 293986,
+   "runId": "run-7c17b06301",
+   "agentId": "screenwriter",
+   "scenesWritten": 1
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:58:53.16+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 16:58:54.337+00",
+    "level": "info",
+    "message": "World Bible: revision 1 read (not pinned yet: the story is not approved)"
+   },
+   {
+    "at": "2026-10-06 17:03:48.198+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-987adfc844",
+  "type": "PLAN_SHOTS",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 17:05:39.015+00",
+  "startedAt": "2026-10-06 17:05:40.363+00",
+  "finishedAt": "2026-10-06 17:12:09.105+00",
+  "payload": {
+   "force": false,
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 388628,
+   "runId": "run-0aa1afede7",
+   "shots": 5,
+   "scenes": 1,
+   "agentId": "film-director"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:05:39.03+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 17:05:40.521+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 17:05:40.564+00",
+    "level": "info",
+    "message": "World Bible: revision 1 read (not pinned yet: the story is not approved)"
+   },
+   {
+    "at": "2026-10-06 17:12:08.878+00",
+    "level": "info",
+    "message": "scene 1: the plan was shaped — shot 2: added to the cast from the actions: Abu Haidar; shot 4: speech words scrubbed from a silent shot"
+   },
+   {
+    "at": "2026-10-06 17:12:09.062+00",
+    "level": "info",
+    "message": "World Bible revision 2 written (add characters/char-0556d14a04/wardrobe/w-849a77a40a (Clara Hughes: olive green field jacket, cream chunky knit swe…); add characters/char-0556d14a04/wardrobe/w-666a99ac3e (Clara Hughes: olive green field jacket, cream sweater); add characters/char-3a54ed1937/wardrobe/w-a267fb20ca (Abu Haidar: ankle-length white cotton dishdasha, red-and-wh…); add characters/char-3a54ed1937/wardrobe/w-c16da5a741 (Abu Haidar: white dishdasha, red-and-white keffiyeh); add props/prop-50416113dc (brass samovar); add props/prop-547bfa7c46 (vintage film camera); and 2 more)"
+   },
+   {
+    "at": "2026-10-06 17:12:09.108+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-a85c108c6e",
+  "type": "PRODUCE",
+  "status": "CANCELLED",
+  "attempts": 2,
+  "createdAt": "2026-10-06 17:14:56.774+00",
+  "startedAt": "2026-10-06 17:14:56.939+00",
+  "finishedAt": "2026-10-06 17:22:03.031+00",
+  "payload": {
+   "productionId": "short-1786f4941a"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:14:56.783+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 17:14:57.087+00",
+    "level": "info",
+    "message": "World Bible: pinned to World Bible revision 2 at the story's approval"
+   },
+   {
+    "at": "2026-10-06 17:14:57.131+00",
+    "level": "info",
+    "message": "waiting for 3 job(s)"
+   },
+   {
+    "at": "2026-10-06 17:17:33.088+00",
+    "level": "info",
+    "message": "woken: everything it waited for has settled"
+   },
+   {
+    "at": "2026-10-06 17:17:33.591+00",
+    "level": "info",
+    "message": "waiting for 1 job(s)"
+   },
+   {
+    "at": "2026-10-06 17:22:03.035+00",
+    "level": "info",
+    "message": "cancelled before it started"
+   }
+  ]
+ },
+ {
+  "id": "job-080e8e9e3c",
+  "type": "SHOT_FRAMES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 17:14:57.107+00",
+  "startedAt": "2026-10-06 17:14:58.436+00",
+  "finishedAt": "2026-10-06 17:15:38.437+00",
+  "payload": {
+   "shotId": "shot-da80e2edd7",
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 39970,
+   "runId": "run-96a4645a9c",
+   "agentId": "storyboard-artist",
+   "openingFrameAssetId": "gen-23c341f79bb4feb79358"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:15:38.44+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-e9450bb6ff",
+  "type": "SHOT_FRAMES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 17:14:57.113+00",
+  "startedAt": "2026-10-06 17:15:39.066+00",
+  "finishedAt": "2026-10-06 17:16:15.95+00",
+  "payload": {
+   "shotId": "shot-f55ca038f8",
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 36822,
+   "runId": "run-5421de067f",
+   "agentId": "storyboard-artist",
+   "openingFrameAssetId": "gen-024903356101a20dabd4"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:16:15.953+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-c01511b08d",
+  "type": "SHOT_FRAMES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 17:14:57.119+00",
+  "startedAt": "2026-10-06 17:16:16.709+00",
+  "finishedAt": "2026-10-06 17:17:33.073+00",
+  "payload": {
+   "shotId": "shot-7fa4975f80",
+   "productionId": "short-1786f4941a"
+  },
+  "result": {
+   "ms": 76357,
+   "runId": "run-d753d7f61b",
+   "agentId": "storyboard-artist",
+   "openingFrameAssetId": "gen-250ea8d26b763e9070fd"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:16:55.146+00",
+    "level": "warn",
+    "message": "shot 1.3: the opening frame (gen-250ea8d26b769c34202b) holds 3 people where the shot has 2; drawing it once more"
+   },
+   {
+    "at": "2026-10-06 17:17:33.08+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-83d25b940f",
+  "type": "GENERATE_TAKE",
+  "status": "CANCELLED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 17:17:33.511+00",
+  "startedAt": "2026-10-06 17:17:34.894+00",
+  "finishedAt": "2026-10-06 17:22:15.319+00",
+  "payload": {
+   "shotId": "shot-da80e2edd7",
+   "productionId": "short-1786f4941a"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 17:17:34.965+00",
+    "level": "info",
+    "message": "World Bible revision 2 (pinned): pinned to World Bible revision 2; the place: master plate of Tea stall, Mutanabbi Street"
+   },
+   {
+    "at": "2026-10-06 17:17:34.982+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 17:17:34.994+00",
+    "level": "info",
+    "message": "production context 95647b70ade3af02: 2 character(s), Tea stall, Mutanabbi Street, transition"
+   },
+   {
+    "at": "2026-10-06 17:17:34.998+00",
+    "level": "info",
+    "message": "scene state (transition): morning, clear, soft warm sunlight from upper left, creating highlights on brass and steam; 2 present, 2 prop(s); environment from scene"
+   },
+   {
+    "at": "2026-10-06 17:17:35.007+00",
+    "level": "info",
+    "message": "reference files: 5 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 17:17:35.047+00",
+    "level": "info",
+    "message": "names bound in the prompt: Abu Haidar"
+   },
+   {
+    "at": "2026-10-06 17:17:35.057+00",
+    "level": "info",
+    "message": "identity rule: 2 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 17:17:35.066+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 17:22:02.976+00",
+    "level": "info",
+    "message": "cancel requested"
+   },
+   {
+    "at": "2026-10-06 17:22:03.045+00",
+    "level": "info",
+    "message": "cancel requested"
+   },
+   {
+    "at": "2026-10-06 17:22:15.322+00",
+    "level": "info",
+    "message": "cancelled"
+   }
+  ]
+ }
+]

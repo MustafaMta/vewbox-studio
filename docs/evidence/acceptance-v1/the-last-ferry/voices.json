@@ -1,0 +1,68 @@
+[
+ {
+  "characterId": "char-3e33b4633f",
+  "name": "Gwenllian Price",
+  "identity": {
+   "mode": "AUTOMATIC",
+   "jobId": "job-0ea4f18d58",
+   "model": "moss",
+   "proof": {
+    "cer": 0.018867924528301886,
+    "wer": 0.09090909090909091,
+    "text": "Hello. My name is Gwenllian Price, and this is my voice.",
+    "heard": "Hello, my name is Gwenlian Price, and this is my voice.",
+    "assetId": "gen-299817a46b",
+    "coverage": 0.9090909090909091,
+    "sampleId": "voice-b8f8dba039"
+   },
+   "origin": "DESIGNED",
+   "params": {
+    "seed": 1851285330,
+    "speed": 1,
+    "emotionAlpha": 1
+   },
+   "status": "ACTIVE",
+   "designId": "vd-4fde535925",
+   "language": "EN",
+   "provider": "LOCAL_TTS",
+   "revision": 1,
+   "createdAt": "2026-10-06T16:43:57.257Z",
+   "evaluation": {
+    "cer": 0.0189,
+    "lufs": -19.87,
+    "clipped": 0,
+    "coverage": 0.9091,
+    "measuredAt": "2026-10-06T16:43:57.088Z",
+    "truePeakDbtp": -1.97,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.709
+   },
+   "seedSha256": "d3738d50f859adc03da05701f542f87073edae7b43a5162e1207f5595251cf0a",
+   "dialectStatus": "NOT_APPLICABLE",
+   "engineVersion": "OpenMOSS-Team/MOSS-TTS-v1.5",
+   "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+   "referenceAssetId": "gen-1b46646184"
+  },
+  "referenceFile": {
+   "assetId": "gen-1b46646184",
+   "path": "audio/2026/10/gen-1b46646184.wav",
+   "sha256": "d3738d50f859adc03da05701f542f87073edae7b43a5162e1207f5595251cf0a",
+   "bytes": 461052,
+   "model": "openbmb/VoxCPM2",
+   "seed": 60556792
+  },
+  "proofFile": {
+   "assetId": "gen-299817a46b",
+   "path": "audio/2026/10/gen-299817a46b.wav",
+   "sha256": "1a254467c9b83026888455ab21b00cd3447423dced6f9ded70fc1211e6dd79d1",
+   "bytes": 199876,
+   "model": "OpenMOSS-Team/MOSS-TTS-v1.5"
+  },
+  "settings": {
+   "pitch": "LOW",
+   "pace": "MEASURED",
+   "timbre": "gravelly and resonant, with a slight Welsh lisp on sibilants",
+   "notes": "pronounces words fully without slang; pauses briefly before answering questions to gauge intent"
+  }
+ }
+]

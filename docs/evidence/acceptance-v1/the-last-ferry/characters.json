@@ -1,0 +1,49 @@
+[
+ {
+  "id": "char-3e33b4633f",
+  "name": "Gwenllian Price",
+  "style": "REALISTIC",
+  "language": "EN",
+  "sex": "FEMALE",
+  "ageYears": 38,
+  "look": {
+   "build": "stocky and broad-shouldered, with a solid center of gravity and thick, capable forearms",
+   "face": "weathered and angular with high cheekbones, heavy freckles across the nose and cheeks, and deep laugh lines at the mouth corners",
+   "hair": "short, tight dark brown curls that are damp and frizzy, cut unevenly above the ears",
+   "skin": "pale but ruddy from wind exposure, with a rough texture and visible pores",
+   "eyes": "sharp steel-grey irises set deep in the brow ridge, often squinting against glare",
+   "wardrobe": "a heavy navy blue wool peacoat with brass buttons, worn open over a thick cream-colored fisherman's sweater with cable knit detailing; dark navy waterproof trousers tucked into black rubber ankle boots",
+   "distinguishing": [
+    "a vertical scar running from the left eyebrow to the cheekbone"
+   ]
+  },
+  "canonicalImage": {
+   "seed": 1185127326,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "jobId": "job-d44dc28b02",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "APPROVED",
+   "version": 1,
+   "approvedAt": "2026-10-06T16:42:15.935Z",
+   "generatedAt": "2026-10-06T16:28:44.176Z",
+   "identityLine": "Identity: photorealistic real person, a woman of about 38; build: stocky and broad-shouldered, with a solid center of gravity and thick, capable forearms; face: weathered and angular with high cheekbones, heavy freckles across the nose and cheeks, and deep laugh lines at the mouth corners; hair: short, tight dark brown curls that are damp and frizzy, cut unevenly above the ears; eyes: sharp steel-grey irises set deep in the brow ridge, often squinting against glare; skin: pale but ruddy from wind exposure, with a rough texture and visible pores; wearing a heavy navy blue wool peacoat with brass buttons, worn open over a thick cream-colored fisherman's sweater with cable knit detailing; dark navy waterproof trousers tucked into black rubber ankle boots; a vertical scar running from the left eyebrow to the cheekbone.",
+   "assetId": "gen-34e56182d388ee91201f",
+   "file": {
+    "assetId": "gen-34e56182d388ee91201f",
+    "path": "image/2026/10/gen-34e56182d388ee91201f.a1.png",
+    "sha256": "bf4107b3a6f9337693604877cf4c4e8e6cd04d9317d5f8d799ab92aa2ea49b56",
+    "bytes": 1899466,
+    "model": "Qwen-Image-2512",
+    "workflowVersion": "5ab9b1fdab562470",
+    "promptId": "c4059917-1e19-5f7f-8b44-89be9c035f03",
+    "seed": 1185127326
+   },
+   "proxy": "images/character-char-3e33b4633f.jpg"
+  }
+ }
+]

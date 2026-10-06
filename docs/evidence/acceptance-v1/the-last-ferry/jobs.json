@@ -1,0 +1,442 @@
+[
+ {
+  "id": "job-d44dc28b02",
+  "type": "CHARACTER_APPEARANCE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:27:35.001+00",
+  "startedAt": "2026-10-06 16:27:35.73+00",
+  "finishedAt": "2026-10-06 16:28:44.4+00",
+  "payload": {
+   "characterId": "char-3e33b4633f"
+  },
+  "result": {
+   "ms": 68663,
+   "seed": 1185127326,
+   "check": {
+    "ok": true,
+    "notes": [
+     "full body in frame: head and feet inside the picture with margin"
+    ]
+   },
+   "runId": "run-7558a1e621",
+   "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+   "status": "DRAFT",
+   "agentId": "character-designer",
+   "message": "Gwenllian Price: canonical image drawn — awaiting your approval",
+   "version": 1,
+   "lookFrom": "DESCRIPTION",
+   "rejected": [],
+   "identityLine": "Identity: photorealistic real person, a woman of about 38; build: stocky and broad-shouldered, with a solid center of gravity and thick, capable forearms; face: weathered and angular with high cheekbones, heavy freckles across the nose and cheeks, and deep laugh lines at the mouth corners; hair: short, tight dark brown curls that are damp and frizzy, cut unevenly above the ears; eyes: sharp steel-grey irises set deep in the brow ridge, often squinting against glare; skin: pale but ruddy from wind exposure, with a rough texture and visible pores; wearing a heavy navy blue wool peacoat with brass buttons, worn open over a thick cream-colored fisherman's sweater with cable knit detailing; dark navy waterproof trousers tucked into black rubber ankle boots; a vertical scar running from the left eyebrow to the cheekbone.",
+   "workflowVersion": "5ab9b1fdab562470",
+   "canonicalAssetId": "gen-34e56182d388ee91201f"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:28:44.406+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-0ea4f18d58",
+  "type": "VOICE_BUILD",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:42:18.559+00",
+  "startedAt": "2026-10-06 16:42:19.025+00",
+  "finishedAt": "2026-10-06 16:43:57.36+00",
+  "payload": {
+   "mode": "AUTOMATIC",
+   "characterId": "char-3e33b4633f"
+  },
+  "result": {
+   "ms": 98250,
+   "check": {
+    "ok": true,
+    "cer": 0.018867924528301886,
+    "wer": 0.09090909090909091,
+    "heard": "Hello, my name is Gwenlian Price, and this is my voice.",
+    "status": "PASS",
+    "reasons": [],
+    "coverage": 0.9090909090909091
+   },
+   "runId": "run-5b22f67013",
+   "design": {
+    "chosen": 3,
+    "ranking": [
+     3,
+     1,
+     2
+    ],
+    "designId": "vd-4fde535925",
+    "rankedBy": "gates passed first, then mean ECAPA(seed, line-engine rendering) over the preview sentences, then CER",
+    "candidates": [
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.66,
+      "seed": 60556790,
+      "index": 1,
+      "passed": true,
+      "sha256": "019f58d0919a042a7e2eeee8b9c77ab0500f4d06f7d3436d37b70bebb95d3769",
+      "assetId": "gen-9db462e406",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 9.6,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.66,
+       "heard": "The harbour lights came on one by one, as the evening ferry pulled away from the quay, nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -1,
+       "clippedSamples": 0,
+       "durationSeconds": 9.6
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.806,
+        "engine": "moss",
+        "assetId": "gen-e23de539ef",
+        "coverage": 1,
+        "durationSeconds": 5.12
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8225,
+        "engine": "moss",
+        "assetId": "gen-362bd5bd36",
+        "coverage": 1,
+        "durationSeconds": 4.08
+       }
+      ],
+      "nativeAssetId": "gen-eb5b982d4a",
+      "similarityMean": 0.8143,
+      "durationSeconds": 9.6
+     },
+     {
+      "cer": 0,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.42,
+      "seed": 60556791,
+      "index": 2,
+      "passed": true,
+      "sha256": "7e9fa821265fe52f4ffc01849db63fd89e9451c78c31f55812e39bd65310a70f",
+      "assetId": "gen-4a9d78069f",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 1,
+      "duration": 10.56,
+      "measured": {
+       "cer": 0,
+       "lufs": -20.42,
+       "heard": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 1,
+       "truePeakDbtp": -1.15,
+       "clippedSamples": 0,
+       "durationSeconds": 10.56
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.8515,
+        "engine": "moss",
+        "assetId": "gen-26d51a1fff",
+        "coverage": 1,
+        "durationSeconds": 5.04
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.7446,
+        "engine": "moss",
+        "assetId": "gen-1631dadd76",
+        "coverage": 1,
+        "durationSeconds": 3.68
+       }
+      ],
+      "nativeAssetId": "gen-d066f579ad",
+      "similarityMean": 0.7981,
+      "durationSeconds": 10.56
+     },
+     {
+      "cer": 0.0069,
+      "gate": {
+       "ok": true,
+       "reasons": []
+      },
+      "lufs": -20.83,
+      "seed": 60556792,
+      "index": 3,
+      "passed": true,
+      "sha256": "d3738d50f859adc03da05701f542f87073edae7b43a5162e1207f5595251cf0a",
+      "assetId": "gen-1b46646184",
+      "cerMean": 0,
+      "reasons": [],
+      "coverage": 0.9667,
+      "duration": 9.6,
+      "measured": {
+       "cer": 0.0069,
+       "lufs": -20.83,
+       "heard": "The harbor lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+       "asrModel": "large-v3",
+       "coverage": 0.9667,
+       "truePeakDbtp": -1,
+       "clippedSamples": 0,
+       "durationSeconds": 9.6
+      },
+      "previews": [
+       {
+        "cer": 0,
+        "text": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "heard": "I told you the ferry would be late again, so we wait by the lights until it comes.",
+        "cosine": 0.7929,
+        "engine": "moss",
+        "assetId": "gen-4c01c4cbdd",
+        "coverage": 1,
+        "durationSeconds": 4.64
+       },
+       {
+        "cer": 0,
+        "text": "Where were you last night? Nobody could find you anywhere.",
+        "heard": "Where were you last night? Nobody could find you anywhere.",
+        "cosine": 0.8448,
+        "engine": "moss",
+        "assetId": "gen-fe84cf4fbd",
+        "coverage": 1,
+        "durationSeconds": 3.6
+       }
+      ],
+      "nativeAssetId": "gen-44b5792b74",
+      "similarityMean": 0.8189,
+      "durationSeconds": 9.6
+     }
+    ]
+   },
+   "engine": "moss",
+   "labels": [
+    "Studio-designed synthetic voice — not a real person",
+    "naturalness not yet judged by a listener"
+   ],
+   "agentId": "voice-casting",
+   "identity": {
+    "mode": "AUTOMATIC",
+    "model": "moss",
+    "origin": "DESIGNED",
+    "params": {
+     "seed": 1851285330,
+     "speed": 1,
+     "emotionAlpha": 1
+    },
+    "status": "ACTIVE",
+    "designId": "vd-4fde535925",
+    "provider": "LOCAL_TTS",
+    "dialectStatus": "NOT_APPLICABLE",
+    "referenceAssetId": "gen-1b46646184"
+   },
+   "evaluation": {
+    "cer": 0.0189,
+    "lufs": -19.87,
+    "clipped": 0,
+    "coverage": 0.9091,
+    "measuredAt": "2026-10-06T16:43:57.088Z",
+    "truePeakDbtp": -1.97,
+    "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+    "seedToLineSimilarity": 0.709
+   },
+   "proofSampleId": "voice-b8f8dba039",
+   "reviewReasons": [],
+   "sampleAssetId": "gen-299817a46b",
+   "awaitingReview": false
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:42:18.573+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 16:42:19.209+00",
+    "level": "info",
+    "message": "automatic voice: a voice designed from the profile"
+   },
+   {
+    "at": "2026-10-06 16:42:51.879+00",
+    "level": "info",
+    "message": "voice designed"
+   },
+   {
+    "at": "2026-10-06 16:43:42.565+00",
+    "level": "info",
+    "message": "voice design measured"
+   },
+   {
+    "at": "2026-10-06 16:43:42.684+00",
+    "level": "info",
+    "message": "reference chosen"
+   },
+   {
+    "at": "2026-10-06 16:43:57.363+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-29c0327ae6",
+  "type": "LOCATION_PLATES",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:42:36.551+00",
+  "startedAt": "2026-10-06 16:43:58.399+00",
+  "finishedAt": "2026-10-06 16:44:46.057+00",
+  "payload": {
+   "locationId": "loc-c4fdd93fc5"
+  },
+  "result": {
+   "ms": 47652,
+   "refs": 2,
+   "runId": "run-b95c094bcf",
+   "agentId": "environment-artist"
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:42:36.573+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 16:44:46.06+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-6ba16f0bf8",
+  "type": "GENERATE_TAKE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 16:47:06.108+00",
+  "startedAt": "2026-10-06 16:47:07.167+00",
+  "finishedAt": "2026-10-06 17:04:27.1+00",
+  "payload": {
+   "shotId": "shot-684c12f667",
+   "quality": "final",
+   "productionId": "short-e62f26f8e9"
+  },
+  "result": {
+   "ms": 1039923,
+   "qaOk": true,
+   "flags": [],
+   "model": "MiniMax-H3 (local, pruned int8, base 20 steps)",
+   "runId": "run-8f66ec4197",
+   "takeId": "take-3a6f56768a0464b9e8f9",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-3a6f56768a04c96148a3",
+   "backend": "local",
+   "verdict": "ACCEPT",
+   "requestId": "71ad497c-f92c-51bf-9c84-a1b6b1c3638a",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 779922,
+   "awaitingReview": false,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 16:47:06.121+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 16:47:32.482+00",
+    "level": "info",
+    "message": "The Last Ferry — shot 1.1 opening frame: kept as drawn (the frame is already at its framing, or the crop would be below the quality floor)"
+   },
+   {
+    "at": "2026-10-06 16:47:32.522+00",
+    "level": "info",
+    "message": "opening frame drawn before the take (gen-3a6f56768a048b1a9efb): a medium with no frame would open on the plate's wide view"
+   },
+   {
+    "at": "2026-10-06 16:47:32.642+00",
+    "level": "info",
+    "message": "World Bible revision 1 (pinned): pinned to World Bible revision 1 at the story's approval; the place: master plate of Harbour quay"
+   },
+   {
+    "at": "2026-10-06 16:47:32.661+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-06 16:47:32.671+00",
+    "level": "info",
+    "message": "production context f1fde7a36a8c92b3: 1 character(s), Harbour quay, transition"
+   },
+   {
+    "at": "2026-10-06 16:47:32.674+00",
+    "level": "info",
+    "message": "scene state (transition): dusk; 1 present, 0 prop(s); environment from scene"
+   },
+   {
+    "at": "2026-10-06 16:47:32.681+00",
+    "level": "info",
+    "message": "reference files: 4 reference file(s) present"
+   },
+   {
+    "at": "2026-10-06 16:48:58.222+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 5 s planned → 7 s"
+   },
+   {
+    "at": "2026-10-06 16:48:58.226+00",
+    "level": "info",
+    "message": "dialogue recorded as the shot's soundtrack"
+   },
+   {
+    "at": "2026-10-06 16:48:58.464+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.312 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-06 16:48:58.511+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-06 16:48:58.521+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 17:03:57.978+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 17:04:27.102+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ }
+]
