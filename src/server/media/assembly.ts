@@ -61,6 +61,12 @@ export function conformFilter(it: Pick<TimelineItem, 'trimStartFrames' | 'holdFr
   return `fps=${fps},select=gte(n\\,${it.trimStartFrames}),setpts=N/FRAME_RATE/TB${it.holdFrames > 0 ? `,tpad=stop_mode=clone:stop=${it.holdFrames}` : ''},scale=${size.width}:${size.height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${size.width}:${size.height}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p,setsar=1`;
 }
 
+/** The end-credit card as one SRT cue of `seconds`. An empty line is a no-break space: in SRT a blank line ends the cue,
+ *  and the card showed only the title (acceptance 2026-10-06, Tea at Mutanabbi export). */
+export function creditCardSrt(lines: string[], seconds: number): string {
+  return `1\n00:00:00,000 --> ${new Date(seconds * 1000).toISOString().slice(11, 23).replace('.', ',')}\n${lines.map((l) => (l.trim() ? l : ' ')).join('\n')}\n`;
+}
+
 /** Concatenate the takes' pictures with a uniform conform, lay the mix plan's tracks at their sample offsets, measure
  *  the joins, bring the loudness to target, encode. Returns the output path, the measured loudness and the joins. */
 export async function assemble(p: Production, timeline: Timeline, opts: AssembleOptions): Promise<{ file: string; loudness: { integrated: number; truePeak: number } | null; durationSeconds: number; joins: JoinMetric[]; /** the burn filter ran (subtitles asked for and an SRT given) */ subtitlesBurned: boolean }> {
@@ -135,10 +141,11 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
     // rendered by the same subtitle renderer as burned-in subtitles, joined after the film with silence under it
     const secs = Math.max(1, opts.credits.seconds);
     const cardSrt = path.join(dir, 'credits.srt');
-    await fsp.writeFile(cardSrt, `1\n00:00:00,000 --> ${new Date(secs * 1000).toISOString().slice(11, 23).replace('.', ',')}\n${opts.credits.lines.map((l) => l || ' ').join('\n')}\n`, 'utf8');
+    await fsp.writeFile(cardSrt, creditCardSrt(opts.credits.lines, secs), 'utf8');
     const filter = [
       `[0:v]${burnFilter ? `${burnFilter},` : ''}setsar=1[mv]`,
-      `[1:v]${subsFilter(cardSrt, 'FontName=Noto Sans,FontSize=18,Outline=0,Shadow=0,Alignment=5')},setsar=1,format=${codec === 'prores' ? 'yuv422p10le' : 'yuv420p'}[cv]`,
+      // force_style on an SRT takes the legacy SSA alignment: 10 is the middle centre (5 is the top left)
+      `[1:v]${subsFilter(cardSrt, 'FontName=Noto Sans,FontSize=18,Outline=0,Shadow=0,Alignment=10')},setsar=1,format=${codec === 'prores' ? 'yuv422p10le' : 'yuv420p'}[cv]`,
       '[mv][0:a][cv][2:a]concat=n=2:v=1:a=1[v][a]',
     ].join(';');
     await ffmpeg(['-i', normalised, '-f', 'lavfi', '-i', `color=c=0x262626:s=${width}x${height}:r=${fps}:d=${secs}`, '-f', 'lavfi', '-t', String(secs), '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000', '-filter_complex', filter, '-map', '[v]', '-map', '[a]', ...vcodec, ...acodec, ...meta, '-movflags', '+faststart', opts.outFile], { timeoutMs: 60 * 60_000 });

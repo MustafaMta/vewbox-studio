@@ -6,6 +6,16 @@ Coordinator's decisions recorded with it:
   evaluation). InsightFace packs stay out (non-commercial): LatentSync runs with a YuNet + MediaPipe detector adapter.
 - GPU work outside the worker goes through `scripts/gpu-hold.ts`.
 
+**Producer's model-size policy (2026-10-06, later):** general-purpose production models target the **27B–30B class**
+(planning, story, screenplay, agent reasoning, World Bible and continuity reasoning, multimodal reasoning, and
+image generation/editing where a comparable option exists). Do not download or evaluate 122B-class models at this
+stage (no Qwen3.5-122B, no gpt-oss-120b). Smaller general-purpose models (7–14B) stay only as development, fast-preview
+or emergency fallbacks, never the production default unless no materially better 27–30B alternative exists.
+Specialist models (ASR, forced alignment, lip-sync, face detection/embeddings, VAEs, audio encoders, upscalers, QA
+models) are exempt: use the strongest proven specialist regardless of size. Every model choice is proved through real
+Vewbox UI output before promotion. Model benchmarking never blocks the filmmaking acceptance, which continues in
+parallel. The repeated Docker Desktop crash is an open reliability defect to investigate.
+
 **Producer's licence decision (2026-10-06): commercial-safe models only.** Vewbox must be usable commercially. Do not
 download or integrate non-commercial weights (FLUX.2 [dev], FLUX.2 klein 9B under the FLUX Non-Commercial licence,
 Fish Audio research licence, CC-BY-NC, etc.) into the runtime, production configuration or any required workflow. A
