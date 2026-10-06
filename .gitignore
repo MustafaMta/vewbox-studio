@@ -10,6 +10,10 @@ node_modules/
 test-results/
 playwright-report/
 var/
+coverage/
+blob-report/
+# stray logs at the repository root (evidence logs under docs/evidence are committed on purpose)
+/*.log
 
 # agent worktrees
 .claude/worktrees/
