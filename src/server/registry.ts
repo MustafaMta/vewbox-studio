@@ -1,4 +1,5 @@
 import fsp from 'node:fs/promises';
+import { englishEngine } from './providers/voice-engines';
 import path from 'node:path';
 import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
@@ -76,8 +77,11 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
     }
   }
   // voices and transcription (served by their own containers)
-  rows.push({ name: 'voice/indextts-2.5', version: '2.5', source: 'https://github.com/index-tts/index-tts', license: 'Apache-2.0 (code); model licence per repository', kind: 'TTS', local: true, status: 'SERVICE', metadata: { service: e.TTS_URL, languages: ['EN', 'AR'] }, updatedAt: now });
-  rows.push({ name: 'voice/habibi-tts-irq', version: 'IRQ', source: 'https://huggingface.co/Habibi-TTS', license: 'Apache-2.0', kind: 'TTS', local: true, status: 'SERVICE', metadata: { service: e.TTS_HABIBI_URL, languages: ['AR-IQ'] }, updatedAt: now });
+  rows.push({ name: 'voice/indextts-2.5', version: '2.5', source: 'https://github.com/index-tts/index-tts', license: 'bilibili Model Use License (commercial use below 100M MAU / RMB 1bn revenue; outputs must not train other models, §3.4c)', kind: 'TTS', local: true, status: 'SERVICE', metadata: { service: e.TTS_URL, languages: ['EN', 'AR'] }, updatedAt: now });
+  rows.push({ name: 'voice/habibi-tts-irq', version: 'IRQ', source: 'https://huggingface.co/SWivid/Habibi-TTS', license: 'Apache-2.0 per licensor; data-provenance risk (F5-TTS init on Emilia, CC-BY-NC); legal review before commercial release', kind: 'TTS', local: true, status: 'SERVICE', metadata: { service: e.TTS_HABIBI_URL, languages: ['AR-IQ'] }, updatedAt: now });
+  // MOSS-TTS v1.5: the English production candidate (PRODUCTION-STACK-DIRECTIVE 2026-10-06); SERVICE once promoted
+  // (VOICE_ENGINE_EN=moss, compose profile `moss`), PRESENT on the store until then
+  rows.push({ name: 'voice/moss-tts-v1.5', version: '1.5', source: 'https://huggingface.co/OpenMOSS-Team/MOSS-TTS-v1.5', license: 'Apache-2.0', kind: 'TTS', local: true, status: englishEngine(e.VOICE_ENGINE_EN) === 'moss' ? 'SERVICE' : 'PRESENT', metadata: { service: e.TTS_MOSS_URL, languages: ['EN', 'AR'], role: englishEngine(e.VOICE_ENGINE_EN) === 'moss' ? 'the English voice engine for new voices' : 'candidate (profile moss); promoted by VOICE_ENGINE_EN=moss after the real-UI proof' }, updatedAt: now });
   rows.push({ name: 'audio/demucs-htdemucs', version: '4.0.1', source: 'https://github.com/adefossez/demucs', license: 'MIT', kind: 'SEPARATION', local: true, status: asrHealth ? 'SERVICE' : 'UNKNOWN', metadata: { service: e.ASR_URL }, updatedAt: now });
   // hosted MiniMax
   const key = Boolean(e.MINIMAX_API_KEY);

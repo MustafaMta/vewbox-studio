@@ -1,4 +1,5 @@
 import type { Dialect, Language } from '@/domain/vocabulary';
+import { VOICE_ENGINES, type LocalTtsEngine } from './voice-engines';
 import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
 
 /** LINE PREPARATION FOR THE ARABIC ENGINES — pure text, applied in `speakLine` between the script and the
@@ -33,7 +34,8 @@ import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
  *  Diacritics written by hand are KEPT (the vocabulary has them; research §2.5: no automatic diacritisation).
  *  گ چ are never mapped to ق ج for synthesis: that fold is for evaluation only. */
 
-export type PrepareEngine = 'habibi' | 'indextts';
+/** The engine the line goes to (src/server/providers/voice-engines.ts ids); only IndexTTS gets the one-word lead-in. */
+export type PrepareEngine = LocalTtsEngine;
 export interface PrepareOptions { engine: PrepareEngine; language: Language; dialect?: Dialect }
 /** `leadIn`: the sentence spoken before a one-word IndexTTS line (src/server/media/lead-in.ts) — the handler cuts it off
  *  after synthesis at the silence before the word. */
@@ -198,7 +200,7 @@ export function prepareLineText(text: string, opts: PrepareOptions): PreparedTex
   t = t.replace(/\s+([،؛؟!?.,;:])/g, '$1').replace(/\s+/g, ' ').trim();
   // 8. a one-word line on IndexTTS is spoken after a lead-in sentence and cut after synthesis (lead-in.ts): alone, the
   //    engine runs on past the word into an invented syllable (MODEL-EVAL-2026-10 §4, open item 7)
-  if (opts.engine === 'indextts' && isOneWordLine(t)) return { text: `${ONE_WORD_LEAD_IN} ${t}`, changes: [...changes, 'one-word line: spoken after a lead-in sentence, cut after synthesis'], leadIn: ONE_WORD_LEAD_IN };
+  if (VOICE_ENGINES[opts.engine]?.oneWordLeadIn && isOneWordLine(t)) return { text: `${ONE_WORD_LEAD_IN} ${t}`, changes: [...changes, 'one-word line: spoken after a lead-in sentence, cut after synthesis'], leadIn: ONE_WORD_LEAD_IN };
   if (t === original) return { text: original, changes: [] };
   return { text: t, changes };
 }

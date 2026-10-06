@@ -1,0 +1,17 @@
+{
+  "name": "acceptance-clara-2026-10",
+  "version": 1,
+  "language": "EN",
+  "writtenBy": "Voice-model engineer, 2026-10-06 (PRODUCTION-STACK-DIRECTIVE: focused MOSS-TTS vs IndexTTS validation on the acceptance scene's real lines)",
+  "source": "docs/evidence/acceptance-v1/tea-at-mutanabbi/production.json (Clara's two lines, with the line as first written) and acceptance-v1/g13-face-reference/production.json (the realistic takes' lines); one-word lines from the IndexTTS lead-in study (MODEL-EVAL-2026-10 §6.3)",
+  "lines": [
+    { "id": "clara-1", "category": "film", "text": "Excuse me, is this the famous tea everyone talks about?", "emotion": "curious", "session2": true, "repeat": true, "durationTargets": [0.8, 1.25] },
+    { "id": "clara-2", "category": "film", "text": "Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.", "emotion": "happy", "session2": true, "durationTargets": [0.8, 1.25] },
+    { "id": "clara-2-first", "category": "film", "text": "Oh, that is wonderful. Thank you!", "emotion": "happy" },
+    { "id": "g13-1", "category": "film", "text": "It smells of cardamom and woodsmoke.", "emotion": "warm", "session2": true },
+    { "id": "g13-2", "category": "film", "text": "Did your father teach you this?", "emotion": "curious", "session2": true },
+    { "id": "short-nothing", "category": "short", "text": "Nothing.", "emotion": "flat" },
+    { "id": "short-now", "category": "short", "text": "Now?", "emotion": "surprised" },
+    { "id": "short-thanks", "category": "short", "text": "Thanks!", "emotion": "happy" }
+  ]
+}

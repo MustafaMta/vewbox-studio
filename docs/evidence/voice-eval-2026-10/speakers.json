@@ -1,0 +1,90 @@
+{
+  "at": "2026-10-05T22:57:57.868Z",
+  "note": "one reference clip per speaker (a single Common Voice clip, or the repository fixture); the reference transcript is sent to engines that take one",
+  "speakers": [
+    {
+      "id": "cv-f-young",
+      "sex": "F",
+      "age": "teens",
+      "label": "female, teens",
+      "source": "Common Voice 17.0 en/test row 4542 (fixie-ai/common_voice_17_0), contributor c15ed1e908f8…, votes 3/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-f-young.wav",
+      "referenceText": "A Lakeview branch of the Chicago public library was renamed in John Merlo's honor.",
+      "referenceSeconds": 9.46,
+      "clips": [
+        {
+          "idx": 4542,
+          "sentence": "A Lakeview branch of the Chicago public library was renamed in John Merlo's honor.",
+          "client": "c15ed1e908f8"
+        }
+      ]
+    },
+    {
+      "id": "cv-m-young",
+      "sex": "M",
+      "age": "teens",
+      "label": "male, teens, United States English",
+      "source": "Common Voice 17.0 en/test row 2104 (fixie-ai/common_voice_17_0), contributor 5a0386206941…, votes 4/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-m-young.wav",
+      "referenceText": "The track was written by Utada herself, alongside Pharrell Williams and Chad Hugo.",
+      "referenceSeconds": 6.1,
+      "clips": [
+        {
+          "idx": 2104,
+          "sentence": "The track was written by Utada herself, alongside Pharrell Williams and Chad Hugo.",
+          "client": "5a0386206941"
+        }
+      ]
+    },
+    {
+      "id": "cv-f-old",
+      "sex": "F",
+      "age": "seventies",
+      "label": "female, seventies",
+      "source": "Common Voice 17.0 en/test row 4852 (fixie-ai/common_voice_17_0), contributor cf5a3a79c90a…, votes 3/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-f-old.wav",
+      "referenceText": "\"I have watched the Caravan as it crossed the desert,\" he said.",
+      "referenceSeconds": 6.26,
+      "clips": [
+        {
+          "idx": 4852,
+          "sentence": "\"I have watched the Caravan as it crossed the desert,\" he said.",
+          "client": "cf5a3a79c90a"
+        }
+      ]
+    },
+    {
+      "id": "cv-m-old",
+      "sex": "M",
+      "age": "seventies",
+      "label": "male, seventies, Canadian English",
+      "source": "Common Voice 17.0 en/test row 4369 (fixie-ai/common_voice_17_0), contributor ba48005d36be…, votes 2/0",
+      "licence": "CC0-1.0 (Mozilla Common Voice)",
+      "reference": "media/refs/cv-m-old.wav",
+      "referenceText": "This proof completed a programme initiated and largely developed by Alexander Grothendieck.",
+      "referenceSeconds": 6.16,
+      "clips": [
+        {
+          "idx": 4369,
+          "sentence": "This proof completed a programme initiated and largely developed by Alexander Grothendieck.",
+          "client": "ba48005d36be"
+        }
+      ]
+    },
+    {
+      "id": "fixture-en",
+      "sex": "M",
+      "age": "adult (unlabelled)",
+      "label": "tests/fixtures/speech-en.wav (the acceptance runs' English recording)",
+      "source": "repository fixture",
+      "licence": "repository fixture",
+      "reference": "media/refs/fixture-en.wav",
+      "referenceText": "The last bus to Karada leaves at midnight, and the driver has decided it will be his final shift.",
+      "referenceSeconds": 6.3,
+      "clips": []
+    }
+  ]
+}

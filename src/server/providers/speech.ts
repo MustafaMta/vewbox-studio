@@ -6,17 +6,24 @@ import { env } from '../env';
 import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
+import { VOICE_ENGINES, englishEngine, type LocalTtsEngine } from './voice-engines';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
  *  and dialect; transcribe a file with word timings. Both expose /health and /unload for the GPU lease. */
 
-export type TtsEngine = 'indextts' | 'habibi' | 'auto';
+/** A local engine id (src/server/providers/voice-engines.ts: indextts, habibi and the benchmarked candidates), or auto. */
+export type TtsEngine = LocalTtsEngine | 'auto';
 
 /** The knobs an identity pins so a line can be spoken again identically. `seed` is honoured by both engines; `nfeStep`,
  *  `cfgStrength` and `swaySamplingCoef` by Habibi (F5) only; `emotionAlpha` by IndexTTS only. */
 export interface SynthesizeParams { seed?: number; speed?: number; nfeStep?: number; cfgStrength?: number; swaySamplingCoef?: number; emotionAlpha?: number }
-export interface SynthesizeInput extends SynthesizeParams { text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string; engine?: TtsEngine }
+export interface SynthesizeInput extends SynthesizeParams {
+  text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string; engine?: TtsEngine;
+  /** A target length in seconds, honoured by an engine with token-level duration control (voice-engines.ts
+   *  `durationControl: 'tokens'`); others ignore it (IndexTTS's length follows `speed`). */
+  durationSeconds?: number;
+}
 export interface SynthesizeResult {
   file: string; sampleRate: number; durationSeconds: number; engine: string; model: string; ms: number;
   /** Package/model versions as the service reports them (x-engine-version); 'unknown' from an older service. */
@@ -30,7 +37,7 @@ export interface SynthesizeResult {
 }
 
 // one card, one lease: a process outside the live lease may not use the real engines (src/server/gpu/lease-db.ts)
-const tts = (engine: Exclude<TtsEngine, 'auto'>) => guardedEngineUrl((engine === 'habibi' ? env().TTS_HABIBI_URL : env().TTS_URL).replace(/\/$/, ''), 'the voice service');
+const tts = (engine: LocalTtsEngine) => guardedEngineUrl(String(env()[VOICE_ENGINES[engine].urlEnv] || VOICE_ENGINES[engine].defaultUrl).replace(/\/$/, ''), 'the voice service');
 const asr = () => guardedEngineUrl(env().ASR_URL.replace(/\/$/, ''), 'the transcription service');
 
 /** POST and read the WHOLE answer under the same timeout and job signal. The body is read inside: a service that
@@ -94,12 +101,18 @@ export function wavProblem(buf: Buffer): string | null {
   return 'no audio data chunk';
 }
 
-/** Which engine speaks this character: Iraqi Arabic → Habibi (IRQ model); everything else → IndexTTS 2.5. */
-export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine): Exclude<TtsEngine, 'auto'> {
+/** Which engine speaks this character: the pinned one when given; Iraqi Arabic → Habibi (IRQ model); English → the
+ *  configured English engine (`VOICE_ENGINE_EN`, default IndexTTS 2.5); other Arabic → IndexTTS 2.5. */
+export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine, english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine {
   if (preferred && preferred !== 'auto') return preferred;
   if (language === 'AR' && dialect === 'IRAQI_BAGHDADI') return 'habibi';
+  if (language === 'EN') return englishEngine(english);
   return 'indextts';
 }
+
+/** The engine for a Latin-script line of a voice whose own engine is `base`: the voice's engine when it speaks
+ *  English (a pinned candidate keeps its timbre on English lines), otherwise IndexTTS (Habibi has no English). */
+const latinEngine = (base: LocalTtsEngine): LocalTtsEngine => (base !== 'habibi' && VOICE_ENGINES[base].languages.includes('EN') ? base : 'indextts');
 
 /** What a line is written in, for routing and for the ASR language — THE one implementation (the worker's handlers,
  *  take.ts and scripts/iraqi-voice-suite.mjs all route through it). Punctuation, symbols and digits are not script:
@@ -127,31 +140,39 @@ const mostlyArabic = (text: string) => (text.match(/(?=\p{L})\p{Script=Arabic}/g
  *  Arabic script → the character's engine; Latin-only or mixed → IndexTTS (Habibi has no English), with `fallback`
  *  naming the switch so the job can log it; a mixed line is heard in the language most of its letters are in. The
  *  identity's model is never changed by this. */
-export function routeLine(text: string, language: Language, dialect?: Dialect, preferred?: TtsEngine): { script: LineScript; engine: Exclude<TtsEngine, 'auto'>; asrLanguage: 'ar' | 'en'; fallback?: string } {
+export function routeLine(text: string, language: Language, dialect?: Dialect, preferred?: TtsEngine, english?: string): { script: LineScript; engine: LocalTtsEngine; asrLanguage: 'ar' | 'en'; fallback?: string } {
   const script = lineScript(text);
-  const base = pickEngine(language, dialect, preferred);
+  const base = pickEngine(language, dialect, preferred, english);
   if (script === 'MIXED') return { script, engine: 'indextts', asrLanguage: mostlyArabic(text) ? 'ar' : 'en', fallback: base !== 'indextts' ? `mixed Arabic/Latin line: ${base} has no English, spoken by indextts` : undefined };
-  if (script === 'LATIN') return { script, engine: 'indextts', asrLanguage: 'en', fallback: base !== 'indextts' ? `Latin-script line: spoken by indextts, not ${base}` : undefined };
+  if (script === 'LATIN') { const e = latinEngine(base); return { script, engine: e, asrLanguage: 'en', fallback: base !== e ? `Latin-script line: spoken by ${e}, not ${base}` : undefined }; }
   if (script === 'AR') return { script, engine: base, asrLanguage: 'ar' };
   return { script, engine: base, asrLanguage: language === 'AR' ? 'ar' : 'en' };
+}
+
+/** The text fields of one /synthesize request (pure, tested): what every engine gets, plus what only an engine with
+ *  the capability gets — the reference transcript (Habibi, dots), the target length as `duration` (MOSS's token
+ *  budget), the emotion (IndexTTS vector / VoxCPM2 style; the others accept it and condition on the reference). */
+export function synthesisFields(i: Omit<SynthesizeInput, 'referenceWav'>, engine: LocalTtsEngine): Record<string, string> {
+  const caps = VOICE_ENGINES[engine];
+  const f: Record<string, string> = { text: i.text, language: i.language === 'AR' ? 'ar' : 'en', engine };
+  if (i.dialect) f.dialect = i.dialect;
+  if (i.referenceText && caps.usesReferenceText) f.reference_text = i.referenceText;
+  if (i.emotion) f.emotion = i.emotion;
+  if (i.emotionAlpha !== undefined) f.emotion_alpha = String(i.emotionAlpha);
+  if (i.speed !== undefined) f.speed = String(i.speed);
+  if (i.seed !== undefined) f.seed = String(Math.trunc(i.seed));
+  if (i.nfeStep !== undefined) f.nfe_step = String(Math.trunc(i.nfeStep));
+  if (i.cfgStrength !== undefined) f.cfg_strength = String(i.cfgStrength);
+  if (i.swaySamplingCoef !== undefined) f.sway_sampling_coef = String(i.swaySamplingCoef);
+  if (i.durationSeconds !== undefined && caps.durationControl === 'tokens') f.duration = String(Math.round(i.durationSeconds * 1000) / 1000);
+  return f;
 }
 
 export async function synthesize(i: SynthesizeInput, outDir: string): Promise<SynthesizeResult> {
   const engine = pickEngine(i.language, i.dialect, i.engine);
   const fd = new FormData();
-  fd.set('text', i.text);
-  fd.set('language', i.language === 'AR' ? 'ar' : 'en');
-  if (i.dialect) fd.set('dialect', i.dialect);
-  fd.set('engine', engine);
+  for (const [k, v] of Object.entries(synthesisFields(i, engine))) fd.set(k, v);
   fd.set('reference', new Blob([await fsp.readFile(i.referenceWav)]), path.basename(i.referenceWav));
-  if (i.referenceText) fd.set('reference_text', i.referenceText);
-  if (i.emotion) fd.set('emotion', i.emotion);
-  if (i.emotionAlpha !== undefined) fd.set('emotion_alpha', String(i.emotionAlpha));
-  if (i.speed !== undefined) fd.set('speed', String(i.speed));
-  if (i.seed !== undefined) fd.set('seed', String(Math.trunc(i.seed)));
-  if (i.nfeStep !== undefined) fd.set('nfe_step', String(Math.trunc(i.nfeStep)));
-  if (i.cfgStrength !== undefined) fd.set('cfg_strength', String(i.cfgStrength));
-  if (i.swaySamplingCoef !== undefined) fd.set('sway_sampling_coef', String(i.swaySamplingCoef));
   const t0 = Date.now();
   const { res, body: buf } = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
   const file = path.join(outDir, `line-${Date.now().toString(36)}.wav`);
@@ -228,7 +249,10 @@ async function unzipTo(zip: Buffer, outDir: string): Promise<Record<string, stri
   return out;
 }
 
-export async function unloadTts(): Promise<void> { for (const e of ['indextts', 'habibi'] as const) { try { await fetch(`${tts(e)}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } } }
+/** The voice engines to unload: the two live ones, plus a candidate when it is the configured English engine (the
+ *  others are not on the studio network unless the bench profile runs them; an unreachable one costs a refused connect). */
+export const enginesToUnloadForTts = (english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine[] => [...new Set<LocalTtsEngine>(['indextts', 'habibi', englishEngine(english)])];
+export async function unloadTts(): Promise<void> { for (const e of enginesToUnloadForTts()) { try { await fetch(`${tts(e)}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } } }
 export async function unloadAsr(): Promise<void> { try { await fetch(`${asr()}/unload`, { method: 'POST', signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ } }
 
 // ------------------------------------------------------------------------------------------------ text metrics
