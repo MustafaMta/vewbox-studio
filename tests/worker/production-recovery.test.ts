@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@/server/db/client';
 import { enqueue } from '@/server/jobs/queue';
 import { command, commands, readState } from '@/server/studio/engine';
@@ -26,8 +26,6 @@ const prod = async () => (await readState()).state.productions.find((p) => p.id 
 const takeJobsOf = (shotId: string) => db().select().from(schema.jobs).where(and(eq(schema.jobs.type, 'GENERATE_TAKE'), eq(schema.jobs.shotId, shotId)));
 
 beforeAll(async () => {
-  await db().update(schema.jobs).set({ status: 'CANCELLED', finishedAt: new Date().toISOString(), lockedBy: null }).where(inArray(schema.jobs.status, ['QUEUED', 'PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING', 'WAITING']));
-  await db().delete(schema.resourceLeases);
   const [p] = await commands([{ name: 'addProduction', args: [{ kind: 'SHORT', title: 'Production harness', style: 'ANIME', language: 'EN', aspect: 'WIDE_16_9', targetSeconds: 10, brief: { mode: 'MANUAL', text: 'fixture' }, castIds: [], locationIds: [] }] }]) as [{ production: { id: string } }];
   productionId = p.production.id;
   const { scene } = await command('addScene', [productionId, { title: 'S', timeOfDay: 'NIGHT' }]);
@@ -40,12 +38,12 @@ afterAll(async () => { if (productionId) await commands([{ name: 'deleteProducti
 describe('a production that loses its worker, with one failing shot', () => {
   it('killed mid-production: the next worker carries on — no shot generated twice, the finished takes kept, the failed shot reported; regenerating it alone completes the film', async () => {
     const failing = shots[4];
-    const a = h.start('produce-a', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500' });
+    const a = h.start('produce-a', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500', WORKER_ONLY_PRODUCTIONS: productionId });
     const { job: produce } = await enqueue({ type: 'PRODUCE', payload: { productionId } });
     // past the pilot: a later shot is rendering
     await until('a non-pilot take rendering', async () => { const js = (await Promise.all(shots.slice(1, 4).map(takeJobsOf))).flat(); return js.some((j) => j.status === 'GENERATING' && (j.progress as { percent?: number } | null)?.percent) ? js : undefined; });
     await h.kill(a);
-    const b = h.start('produce-b', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500' });
+    const b = h.start('produce-b', { FIXTURE_FAIL_SHOTS: failing, FIXTURE_RENDER_MS: '2500', WORKER_ONLY_PRODUCTIONS: productionId });
     const settled = await until('the production settled', async () => { const r = await row(produce.id); return ['COMPLETED', 'FAILED', 'CANCELLED', 'AWAITING_REVIEW'].includes(r.status) ? r : undefined; }, 180_000);
     await h.stop(b);
     // a production with a failed shot is not "done": it waits for the producer, the failure named in its result
@@ -71,7 +69,7 @@ describe('a production that loses its worker, with one failing shot', () => {
 
     // the failed shot alone is generated again (the provider works now): one job, nothing else of the film touched
     const before = (await db().select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.productionId, productionId))).length;
-    const c = h.start('produce-c', { FIXTURE_RENDER_MS: '500' });
+    const c = h.start('produce-c', { FIXTURE_RENDER_MS: '500', WORKER_ONLY_PRODUCTIONS: productionId });
     const r = await regenerate(productionId, { shotId: failing, select: true });
     await until('the regenerated take', async () => (await row(r.job.id)).status === 'COMPLETED');
     const after = (await db().select({ id: schema.jobs.id }).from(schema.jobs).where(eq(schema.jobs.productionId, productionId))).length;

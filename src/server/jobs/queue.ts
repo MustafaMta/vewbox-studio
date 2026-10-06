@@ -232,7 +232,7 @@ const RUNNING_STATUSES: JobStatus[] = ['PREPARING', 'GENERATING', 'DOWNLOADING',
 export async function reapStale(now = new Date()): Promise<{ cancelled: string[]; failed: string[]; woken?: string[] }> {
   const nowIso = now.toISOString();
   const staleBefore = new Date(now.getTime() - leaseSeconds() * 1000).toISOString();
-  const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)));
+  const stale = and(inArray(schema.jobs.status, RUNNING_STATUSES), or(isNull(schema.jobs.heartbeatAt), lt(schema.jobs.heartbeatAt, staleBefore)), servedHere());
   // ONE TRANSACTION: the job is settled and the attempt its lost worker never finished is closed together (step 15) —
   // a reaper that stopped between the two left the attempt "running" forever under a settled job (found by the
   // failure-injection harness, tests/worker/failure-recovery.test.ts)
@@ -306,6 +306,14 @@ export async function wakeReady(): Promise<string[]> {
   return wakeParents(Array.from(new Set(waiting.map((w) => w.id))));
 }
 
+/** WORKER_ONLY_PRODUCTIONS (comma-separated production ids): this worker claims and reaps only those productions' jobs.
+ *  A maintenance and test knob — the failure-injection harness's workers serve only their own fixtures and never touch
+ *  another test's jobs. Unset (the studio): every job. Read per call. */
+export function servedHere(env: Record<string, string | undefined> = process.env) {
+  const ids = (env.WORKER_ONLY_PRODUCTIONS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  return ids.length ? inArray(schema.jobs.productionId, ids) : undefined;
+}
+
 /** Claim the next runnable job of the given types. Stale leases (no heartbeat within the lease) are taken over. */
 export async function claim(workerId: string, types: JobType[]): Promise<Job | undefined> {
   if (types.length === 0) return undefined;
@@ -323,6 +331,7 @@ export async function claim(workerId: string, types: JobType[]): Promise<Job | u
         and(inArray(schema.jobs.status, RUNNING_STATUSES), lt(schema.jobs.heartbeatAt, staleBefore), lt(schema.jobs.attempts, schema.jobs.maxAttempts)),
       ),
       eq(schema.jobs.cancelRequested, false),
+      servedHere(),
     )).orderBy(desc(schema.jobs.priority), asc(schema.jobs.createdAt)).limit(1).for('update', { skipLocked: true });
     const r = rows[0];
     if (!r) return undefined;
@@ -351,7 +360,9 @@ export async function claim(workerId: string, types: JobType[]): Promise<Job | u
  *  (WORKER_ID set) never renews an attempt that is not its own. */
 export async function heartbeat(id: string, workerId: string, attempt?: number): Promise<{ cancelRequested: boolean }> {
   const now = new Date().toISOString();
-  const conds = [eq(schema.jobs.id, id), eq(schema.jobs.lockedBy, workerId), inArray(schema.jobs.status, RUNNING_STATUSES)];
+  // (no status condition: a handler may park its job in AWAITING_REVIEW while it still runs; a job handed back or
+  // finished has no locked_by)
+  const conds = [eq(schema.jobs.id, id), eq(schema.jobs.lockedBy, workerId)];
   if (attempt !== undefined) conds.push(eq(schema.jobs.attempts, attempt));
   const rows = await db().update(schema.jobs).set({ heartbeatAt: now }).where(and(...conds)).returning({ cancelRequested: schema.jobs.cancelRequested });
   if (rows.length === 0) throw new StudioError('CONFLICT', 'Lost the lease on this job.');
