@@ -508,3 +508,38 @@ thing): (V-a) Ref2VA base, no LoRA, 20 steps (expected ≈ 5× sampling time); (
 (V-e) video VAE fp16 decode (5.2 GB download); (V-f) pruned bf16 DiT (40.2 GB download, weight streaming; RAM headroom now
 ≈ 78.5 GiB). V-a…V-c need no download. Measures: identity (SFace per frame), lip-sync/script heard back, motion and
 in-take cuts by eye, card/RAM peak, latency. This needs the coordinator's VIDEO slot (31.9 GB card, ≈ 41 GiB RAM).
+
+### 8.4 Configuration benchmark (2026-10-06) and the quality tiers
+
+Harness `scripts/model-eval-h3-config.ts` (evidence `docs/evidence/model-eval-2026-10/h3-config/`: `results.json`, graphs;
+sheets and 640-px proxies gitignored; originals `var/model-eval/h3-config/`). Two real shots of The Static Sky,
+conditioned exactly as the take handler conditions them (`resolveShotPack` → `bindingOf` → `h3ReferencePrompt` →
+`minimaxH3Video`: canonical image + plate + drawn opening frame as pictures, the opening frame anchored at 0): **SPK** =
+scene 1 shot 2 (Elias, MEDIUM_CLOSE_UP, one English line; §5's V1) and **SIL** = scene 1 shot 1 (WIDE, silent). Seed
+970007, 5 s = 124 frames at 1344×768, Ref2VA, first attempts only, every run under `gpu-hold VIDEO`. SFace sampled at
+4 fps against the canonical image (START threshold 0.363); comfyui container RAM from `docker stats` in a 78.5 GiB VM.
+
+| Arm | Change from shipping | Engine | Card | RAM | SPK SFace median (frames < 0.363) | SPK picture, by eye | SIL SFace median |
+|---|---|---|---|---|---|---|---|
+| T | — (turbo 4-step LoRA v0.1, simple, match) | 110 s / 85 s | 31.9 GB | 46.1 GiB | 0.33 (11/20), drift 0.79 | 3 in-take cuts (wide → wrench close-up → face → over-the-shoulder); beard comes and goes, reads as another man at the end | 0.65 (1/21); one continuous push-in to a face close-up |
+| **A** | **no LoRA, 20 steps** (template default) | **350 s / 348 s** | 31.7 GB | 46.0 GiB | **0.69 (0/21)**, drift 0.23 | opening frame held 2 frames, then **one continuous MCU** to the end (as planned); cap appears late | 0.52 (0/12 with a face); continuous push-in, holds the wide longer, ends on the radio |
+| B | turbo + scheduler beta | 123 s / 85 s | 28.6–31.2 GB | 46.0 GiB | 0.38 (8/19) | **broken**: blown-out, smeared, ghosting frames; same cuts as T | 0.54 (3/21) |
+| C | turbo + ref_image_size max | 91 s / 88 s | 31.4–31.6 GB | 46.1 GiB | 0.39 (10/20) | as T, frame for frame | 0.67 (0/21) |
+| D | A + ref_image_size max | 422 s | 28.6 GB | 46.0 GiB | 0.63 (0/21) | as A | — |
+| E | A + scheduler beta | 371 s | 31.6 GB | 46.1 GiB | 0.28 (11/21) | cuts inside the take to a three-quarter and a back view | — |
+
+Mouth activity (energy windows, START values): every arm is flagged at least once (MOUTH_MOVING_WHILE_SILENT on T, A,
+B, D; none on C and E) — not a lip-sync verdict; the real-UI takes are. The line heard back by ASR: §8.5.
+
+**Decision (merged as dea25145):** the local engine has two **quality tiers** as capability data
+(`src/domain/video-capability.ts` `tiers`): **final** — the default for every take — is arm A (the base model, 20 steps,
+`simple`, `match`); **draft** is the turbo LoRA, made only when the producer asks and recorded as `params.quality:
+'draft'`. Reasons: on the speaking shot the final tier is the only configuration that kept the planned framing as one
+shot and the face on model (0.69 vs 0.33), at the same card and RAM; the silent shot is mixed (both tiers move the
+camera; turbo kept the face larger). Cost: ≈ 3.2× engine time (350 s vs 110 s for 5 s); the run deadline now follows the
+tier and the length (`h3RunTimeoutMs`, 90–180 min). B (beta under turbo) breaks the picture; C and D change nothing
+measurable; E is worse — none is adopted. The ref-image `max` and beta notes of the r2v template do not hold on this
+material. Licence: unchanged by the tier — the same MiniMax H3 Community License weights (§8.1: territory limit on
+Outputs, "MiniMax H3" shown in the UI, AUP); the turbo LoRAs of the draft tier are apache-2.0 (lightx2v). Next
+measurements owed: long (10–15 s) final clips (the deadline estimate scales frames^1.5, unmeasured), the
+continuation (V4-style) on the final tier, and the real-UI Tea retakes.
