@@ -17,6 +17,13 @@ describe('voice engines', () => {
     expect(isLocalTtsEngine('minimax')).toBe(false);
   });
 
+  it('MOSS-TTS is the default engine for new English voices since 2026-10-06; indextts stays selectable', async () => {
+    const { env } = await import('@/server/env');
+    const configured = process.env.VOICE_ENGINE_EN; // a local .env may override; the CODE default is what is tested
+    expect(configured ? englishEngine(configured) : englishEngine(env().VOICE_ENGINE_EN)).toBe(configured ? englishEngine(configured) : 'moss');
+    expect(englishEngine('indextts')).toBe('indextts');
+  });
+
   it('picks the configured English engine only for NEW English voices; a pinned engine always wins', () => {
     expect(pickEngine('EN', undefined, undefined, 'indextts')).toBe('indextts');
     expect(pickEngine('EN', undefined, undefined, 'voxcpm2')).toBe('voxcpm2');
@@ -63,6 +70,16 @@ describe('voice engines', () => {
     expect(synthesisFields(line, 'indextts').duration).toBeUndefined();
     expect(synthesisFields({ ...line, language: 'AR', dialect: 'IRAQI_BAGHDADI', nfeStep: 32 }, 'habibi')).toMatchObject({ language: 'ar', dialect: 'IRAQI_BAGHDADI', reference_text: line.referenceText, nfe_step: '32' });
     expect(synthesisFields(line, 'dots').reference_text).toBe(line.referenceText);
+  });
+
+  it('budgets a one-word line on a token-controlled engine, never on the others, and never over a caller’s target', async () => {
+    const { durationFor } = await import('@/server/providers/voice-engines');
+    expect(durationFor('moss', 'Nothing.')).toBe(0.9);
+    expect(durationFor('moss', 'Now?')).toBe(0.9);
+    expect(durationFor('moss', 'Did your father teach you this?')).toBeUndefined();
+    expect(durationFor('moss', 'Nothing.', 1.4)).toBe(1.4);
+    expect(durationFor('indextts', 'Nothing.')).toBeUndefined(); // IndexTTS keeps the lead-in + cut
+    expect(durationFor('dots', 'Nothing.')).toBeUndefined();
   });
 
   it('lists only commercial-safe engines (producer’s rule 2026-10-06)', () => {

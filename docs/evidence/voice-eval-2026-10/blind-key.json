@@ -1,0 +1,622 @@
+{
+  "note": "label → engine per speaker|line; do not show to the reviewer before the ratings are saved",
+  "arms": [],
+  "key": {
+    "cv-f-young|en-short-01": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-f-young|en-short-02": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-f-young|en-short-03": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-short-04": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-short-05": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-f-young|en-short-06": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-f-young|en-short-07": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-short-08": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-f-young|en-e1-calm": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-e2-angry": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-e3-sad": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-whisper-01": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-ex-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-tender-01": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-tired-01": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-f-young|en-q-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-q-02": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-num-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-f-young|en-num-02": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-num-03": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-f-young|en-name-01": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-name-02": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-young|en-name-03": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-film-01": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-f-young|en-film-02": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-e4-monologue": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-long-03": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-f-young|en-long-04": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-m-young|en-short-01": {
+      "A": "dots",
+      "B": "indextts",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-short-02": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-short-03": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-m-young|en-short-04": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-short-05": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-short-06": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-m-young|en-short-07": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-m-young|en-short-08": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-e1-calm": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-e2-angry": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-e3-sad": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-m-young|en-whisper-01": {
+      "A": "voxcpm2",
+      "B": "dots",
+      "C": "indextts"
+    },
+    "cv-m-young|en-ex-01": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-tender-01": {
+      "A": "dots",
+      "B": "indextts",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-tired-01": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-q-01": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-q-02": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-num-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-m-young|en-num-02": {
+      "A": "dots",
+      "B": "indextts",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-num-03": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-m-young|en-name-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-m-young|en-name-02": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-m-young|en-name-03": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-film-01": {
+      "A": "voxcpm2",
+      "B": "indextts",
+      "C": "dots"
+    },
+    "cv-m-young|en-film-02": {
+      "A": "dots",
+      "B": "indextts",
+      "C": "voxcpm2"
+    },
+    "cv-m-young|en-e4-monologue": {
+      "A": "dots",
+      "B": "voxcpm2",
+      "C": "indextts"
+    },
+    "cv-m-young|en-long-03": {
+      "A": "indextts",
+      "B": "voxcpm2",
+      "C": "dots"
+    },
+    "cv-m-young|en-long-04": {
+      "A": "indextts",
+      "B": "dots",
+      "C": "voxcpm2"
+    },
+    "cv-f-old|en-short-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-short-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-short-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-short-04": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-short-05": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-short-06": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-short-07": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-short-08": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-e1-calm": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-e2-angry": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-e3-sad": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-whisper-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-ex-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-tender-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-tired-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-q-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-q-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-num-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-num-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-num-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-name-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-name-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-name-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-film-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-film-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-e4-monologue": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-f-old|en-long-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-f-old|en-long-04": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-short-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-short-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-short-03": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-short-04": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-short-05": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-short-06": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-short-07": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-short-08": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-e1-calm": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-e2-angry": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-e3-sad": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-whisper-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-ex-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-tender-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-tired-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-q-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-q-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-num-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-num-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-num-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-name-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-name-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-name-03": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-film-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "cv-m-old|en-film-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-e4-monologue": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-long-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "cv-m-old|en-long-04": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-short-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-short-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-short-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-short-04": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-short-05": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-short-06": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-short-07": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-short-08": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-e1-calm": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-e2-angry": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-e3-sad": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-whisper-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-ex-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-tender-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-tired-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-q-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-q-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-num-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-num-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-num-03": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-name-01": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-name-02": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-name-03": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-film-01": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-film-02": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    },
+    "fixture-en|en-e4-monologue": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-long-03": {
+      "A": "voxcpm2",
+      "B": "indextts"
+    },
+    "fixture-en|en-long-04": {
+      "A": "indextts",
+      "B": "voxcpm2"
+    }
+  }
+}

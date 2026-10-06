@@ -145,7 +145,8 @@ export function routeLine(text: string, language: Language, dialect?: Dialect, p
   const base = pickEngine(language, dialect, preferred, english);
   if (script === 'MIXED') return { script, engine: 'indextts', asrLanguage: mostlyArabic(text) ? 'ar' : 'en', fallback: base !== 'indextts' ? `mixed Arabic/Latin line: ${base} has no English, spoken by indextts` : undefined };
   if (script === 'LATIN') { const e = latinEngine(base); return { script, engine: e, asrLanguage: 'en', fallback: base !== e ? `Latin-script line: spoken by ${e}, not ${base}` : undefined }; }
-  if (script === 'AR') return { script, engine: base, asrLanguage: 'ar' };
+  // an Arabic-script line of a voice whose engine is not proven on Arabic (MOSS until the Iraqi phase) → IndexTTS
+  if (script === 'AR') return VOICE_ENGINES[base].languages.includes('AR') ? { script, engine: base, asrLanguage: 'ar' } : { script, engine: 'indextts', asrLanguage: 'ar', fallback: `Arabic-script line: ${base} is not used for Arabic yet, spoken by indextts` };
   return { script, engine: base, asrLanguage: language === 'AR' ? 'ar' : 'en' };
 }
 

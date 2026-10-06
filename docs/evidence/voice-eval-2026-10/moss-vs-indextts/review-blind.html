@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blind voice review</title><style>
+:root{--bg:#111214;--fg:#e8e8ea;--mut:#9a9aa2;--line:#2a2b30}body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;margin:0;padding:16px;max-width:1100px}
+section{border-top:1px solid var(--line);padding:12px 0}.take{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}small{color:var(--mut)}h3{font-weight:600;font-size:20px}
+select,input{background:#1b1c20;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px}button{padding:8px 16px;font-size:15px}</style></head><body>
+<h1>Blind listening review</h1>
+<p>Each line is spoken by several engines in a <b>random order (A, B, C…)</b>; which engine is which is not on this page. Listen to the reference first, then rate every take.  Your name: <input id="who" size="20"> <button onclick="save()">Save ratings (JSON)</button></p>
+<section><h3 dir="auto">Excuse me, is this the famous tea everyone talks about?</h3><p><small>clara-1 ·  · asked emotion: curious · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/indextts/clara/clara-1-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-1|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-1|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-1|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-1|A|wrong" size="18"></label><label>note <input name="clara|clara-1|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/moss/clara/clara-1-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-1|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-1|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-1|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-1|B|wrong" size="18"></label><label>note <input name="clara|clara-1|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Oh, that is wonderful. Thank you so much, it really is the best tea in Baghdad.</h3><p><small>clara-2 ·  · asked emotion: happy · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/indextts/clara/clara-2-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-2|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-2|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-2|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-2|A|wrong" size="18"></label><label>note <input name="clara|clara-2|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/moss/clara/clara-2-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-2|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-2|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-2|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-2|B|wrong" size="18"></label><label>note <input name="clara|clara-2|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Oh, that is wonderful. Thank you!</h3><p><small>clara-2-first ·  · asked emotion: happy · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/moss/clara/clara-2-first-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-2-first|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-2-first|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-2-first|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-2-first|A|wrong" size="18"></label><label>note <input name="clara|clara-2-first|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/indextts/clara/clara-2-first-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|clara-2-first|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|clara-2-first|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|clara-2-first|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|clara-2-first|B|wrong" size="18"></label><label>note <input name="clara|clara-2-first|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">It smells of cardamom and woodsmoke.</h3><p><small>g13-1 ·  · asked emotion: warm · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/moss/clara/g13-1-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|g13-1|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|g13-1|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|g13-1|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|g13-1|A|wrong" size="18"></label><label>note <input name="clara|g13-1|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/indextts/clara/g13-1-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|g13-1|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|g13-1|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|g13-1|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|g13-1|B|wrong" size="18"></label><label>note <input name="clara|g13-1|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Did your father teach you this?</h3><p><small>g13-2 ·  · asked emotion: curious · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/moss/clara/g13-2-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|g13-2|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|g13-2|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|g13-2|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|g13-2|A|wrong" size="18"></label><label>note <input name="clara|g13-2|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/indextts/clara/g13-2-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|g13-2|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|g13-2|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|g13-2|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|g13-2|B|wrong" size="18"></label><label>note <input name="clara|g13-2|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Nothing.</h3><p><small>short-nothing ·  · asked emotion: flat · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/indextts/clara/short-nothing-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-nothing|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-nothing|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-nothing|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-nothing|A|wrong" size="18"></label><label>note <input name="clara|short-nothing|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/moss/clara/short-nothing-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-nothing|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-nothing|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-nothing|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-nothing|B|wrong" size="18"></label><label>note <input name="clara|short-nothing|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Now?</h3><p><small>short-now ·  · asked emotion: surprised · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/indextts/clara/short-now-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-now|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-now|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-now|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-now|A|wrong" size="18"></label><label>note <input name="clara|short-now|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/moss/clara/short-now-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-now|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-now|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-now|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-now|B|wrong" size="18"></label><label>note <input name="clara|short-now|B|note" size="24"></label></div></section>
+<section><h3 dir="auto">Thanks!</h3><p><small>short-thanks ·  · asked emotion: happy · voice clara</small> reference: <audio controls preload="none" src="media/refs/clara.wav"></audio></p><div class="take"><b>A</b> <audio controls preload="none" src="media/moss/clara/short-thanks-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-thanks|A|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-thanks|A|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-thanks|A|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-thanks|A|wrong" size="18"></label><label>note <input name="clara|short-thanks|A|note" size="24"></label></div><div class="take"><b>B</b> <audio controls preload="none" src="media/indextts/clara/short-thanks-s1-natural-seed7.wav"></audio>
+<label>natural <select name="clara|short-thanks|B|natural"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+
+<label>same voice as reference <select name="clara|short-thanks|B|same"><option></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>emotion as asked <select name="clara|short-thanks|B|emotion"><option></option><option>yes</option><option>partly</option><option>no</option></select></label>
+<label>words wrong <input name="clara|short-thanks|B|wrong" size="18"></label><label>note <input name="clara|short-thanks|B|note" size="24"></label></div></section>
+<p><button onclick="save()">Save ratings (JSON)</button></p>
+<script>function save(){const r={};document.querySelectorAll('select,input[name]').forEach(e=>{if(e.value)r[e.name]=e.value});const b=new Blob([JSON.stringify({reviewer:document.getElementById('who').value,at:new Date().toISOString(),ratings:r},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='blind-review-'+(document.getElementById('who').value||'anon').replace(/\W+/g,'-')+'.json';a.click()}</script></body></html>

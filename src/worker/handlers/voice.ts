@@ -16,7 +16,7 @@ import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
-import { VOICE_ENGINES, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
+import { VOICE_ENGINES, durationFor, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -210,7 +210,8 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   // against (the dialect fold reads spelled numbers back to digits)
   const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect });
   if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
-  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine, ...(opts.targetSeconds ? { durationSeconds: opts.targetSeconds } : {}) };
+  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine, ...(durationFor(route.engine, text, opts.targetSeconds) ? { durationSeconds: durationFor(route.engine, text, opts.targetSeconds) } : {}) };
+  if (local.durationSeconds && !opts.targetSeconds) await ctx.event('info', `one-word line: ${route.engine} is asked for ${local.durationSeconds} s (its token budget) so it stops after the word`, { characterId: c.id });
   // the lease estimate follows the engine (MOSS-TTS 8B needs far more of the card than IndexTTS)
   const vram = ttsVramFor(route.engine);
   const r = await ctx.gpu('TTS', vram, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });

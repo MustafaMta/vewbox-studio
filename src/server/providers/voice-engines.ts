@@ -1,4 +1,5 @@
 import type { Language } from '@/domain/vocabulary';
+import { isOneWordLine } from '../media/lead-in';
 
 /** THE LOCAL VOICE ENGINES AND WHAT EACH CAN DO — capability data, not code paths (docs/research/VOICE-BENCH-2026-10.md).
  *  Every engine speaks the same `/synthesize` contract (docker/tts/app.py, docker/tts-bench/app.py): text + ONE
@@ -24,6 +25,9 @@ export interface VoiceEngineCaps {
   usesReferenceText: boolean;
   /** one-word lines need the lead-in sentence and the cut (src/server/media/lead-in.ts): measured on IndexTTS only */
   oneWordLeadIn: boolean;
+  /** an engine with token-level duration control stops a one-word line by its budget instead: the length asked for
+   *  (seconds) when the line is one word and no other target is given (MOSS ran «Nothing.» on to 5.7 s unbudgeted) */
+  oneWordBudgetSeconds?: number;
   licence: string;
   /** measured peak card memory while loaded (MB); the lease estimate for TTS covers the largest selectable engine */
   vramMb: number;
@@ -32,10 +36,12 @@ export interface VoiceEngineCaps {
 export const VOICE_ENGINES: Record<LocalTtsEngine, VoiceEngineCaps> = {
   indextts: { id: 'indextts', label: 'IndexTTS 2.5', urlEnv: 'TTS_URL', defaultUrl: 'http://tts:8020', languages: ['EN', 'AR'], durationControl: 'speed', emotion: 'vector', usesReferenceText: false, oneWordLeadIn: true, licence: 'bilibili Model Use License (commercial below 100M MAU / RMB 1bn; §3.4c)', vramMb: 6000 },
   habibi: { id: 'habibi', label: 'Habibi-TTS IRQ', urlEnv: 'TTS_HABIBI_URL', defaultUrl: 'http://tts-habibi:8021', languages: ['AR'], durationControl: 'speed', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0 per licensor; data-provenance risk (F5-TTS / Emilia)', vramMb: 2000 },
-  // the candidates' defaults are HOST ports (like TTS_DESIGN_URL): the worker runs on the host; compose passes the service names
-  voxcpm2: { id: 'voxcpm2', label: 'VoxCPM2 (clone)', urlEnv: 'TTS_VOXCPM2_URL', defaultUrl: 'http://127.0.0.1:8040', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'style', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 7700 },
-  dots: { id: 'dots', label: 'dots.tts-soar', urlEnv: 'TTS_DOTS_URL', defaultUrl: 'http://127.0.0.1:8041', languages: ['EN', 'AR'], durationControl: 'none', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 8000 },
-  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://127.0.0.1:8023', languages: ['EN', 'AR'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 20000 },
+  // the candidates' defaults are HOST ports (like TTS_DESIGN_URL): the worker runs on the host; compose passes the service names.
+  // Their cards list Arabic, but none is measured on Arabic here: 'AR' joins `languages` only with the Iraqi phase's
+  // listener verdict (docs/voice/IRAQI-ENGINE-COMPARISON-2026-10.md); until then an Arabic-script line falls back to IndexTTS
+  voxcpm2: { id: 'voxcpm2', label: 'VoxCPM2 (clone)', urlEnv: 'TTS_VOXCPM2_URL', defaultUrl: 'http://127.0.0.1:8040', languages: ['EN'], durationControl: 'none', emotion: 'style', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 7700 },
+  dots: { id: 'dots', label: 'dots.tts-soar', urlEnv: 'TTS_DOTS_URL', defaultUrl: 'http://127.0.0.1:8041', languages: ['EN'], durationControl: 'none', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 8000 },
+  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://127.0.0.1:8023', languages: ['EN'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, oneWordBudgetSeconds: 0.9, licence: 'Apache-2.0', vramMb: 24000 /* measured: torch peak 23,986 MB, bf16 + SDPA, 2026-10-06 focused run */ },
 };
 
 export const isLocalTtsEngine = (x: unknown): x is LocalTtsEngine => typeof x === 'string' && Object.prototype.hasOwnProperty.call(VOICE_ENGINES, x);
@@ -50,6 +56,14 @@ export function englishEngine(configured: string | undefined): LocalTtsEngine {
  *  or the engine's own measured peak, whichever is larger. */
 export const TTS_VRAM_FLOOR_MB = 8000;
 export const ttsVramFor = (engine: LocalTtsEngine): number => Math.max(TTS_VRAM_FLOOR_MB, VOICE_ENGINES[engine].vramMb);
+
+/** The length to ask of `engine` for `text`: the caller's target when it has one; else, for a one-word line on an
+ *  engine that budgets by tokens, the engine's one-word budget; else nothing (the engine's own length). */
+export function durationFor(engine: LocalTtsEngine, text: string, targetSeconds?: number): number | undefined {
+  if (targetSeconds) return targetSeconds;
+  const caps = VOICE_ENGINES[engine];
+  return caps.durationControl === 'tokens' && caps.oneWordBudgetSeconds && isOneWordLine(text) ? caps.oneWordBudgetSeconds : undefined;
+}
 
 /** An engine an identity may pin for a character speaking `language`. */
 export const pinnable = (model: string | undefined, language: Language): LocalTtsEngine | undefined => (isLocalTtsEngine(model) && VOICE_ENGINES[model].languages.includes(language) ? model : undefined);
