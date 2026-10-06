@@ -529,7 +529,8 @@ scene 1 shot 2 (Elias, MEDIUM_CLOSE_UP, one English line; §5's V1) and **SIL** 
 | E | A + scheduler beta | 371 s | 31.6 GB | 46.1 GiB | 0.28 (11/21) | cuts inside the take to a three-quarter and a back view | — |
 
 Mouth activity (energy windows, START values): every arm is flagged at least once (MOUTH_MOVING_WHILE_SILENT on T, A,
-B, D; none on C and E) — not a lip-sync verdict; the real-UI takes are. The line heard back by ASR: §8.5.
+B, D; none on C and E) — not a lip-sync verdict; the real-UI takes are. The line heard back (large-v3, the take gate's `judgeHeard`): "Obsolescence.
+Always obsolescence." verbatim on all six SPK arms — CER 0, coverage 1, PASS. The tier does not change the speech.
 
 **Decision (merged as dea25145):** the local engine has two **quality tiers** as capability data
 (`src/domain/video-capability.ts` `tiers`): **final** — the default for every take — is arm A (the base model, 20 steps,

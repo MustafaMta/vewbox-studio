@@ -78,6 +78,19 @@
           ]
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   },
   "SPK-A": {
@@ -172,6 +185,19 @@
           ]
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   },
   "SIL-T": {
@@ -372,6 +398,19 @@
           ]
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   },
   "SIL-B": {
@@ -512,6 +551,19 @@
           "flags": []
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   },
   "SIL-C": {
@@ -668,6 +720,19 @@
           ]
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   },
   "SPK-E": {
@@ -750,6 +815,19 @@
           "flags": []
         }
       ]
+    },
+    "asr": {
+      "model": "large-v3",
+      "text": "Obsolescence. Always obsolescence.",
+      "judged": {
+        "ok": true,
+        "status": "PASS",
+        "reasons": [],
+        "wer": 0,
+        "cer": 0,
+        "coverage": 1,
+        "heard": "Obsolescence. Always obsolescence."
+      }
     }
   }
 }
