@@ -63,5 +63,7 @@ export { identitySeedFor, seedFromId } from './identity';
 // the canonical character image and its identity line (docs/CONTRACTS-IDENTITY-PACK.md v2; the handler is
 // src/worker/handlers/images.ts)
 export * from './canonical-image';
+export { joyaiEdit, JOYAI_FILES, JOYAI_MAX_REFERENCES, JOYAI_DEFAULTS } from './joyai-image';
+export type { JoyaiEditInput, JoyaiReference } from './joyai-image';
 export { minimaxH3Video, h3FrameCount, h3GraphKind, H3_FPS } from './minimax-h3';
 export { aceStepSong, minimaxMusic3Song } from './music';

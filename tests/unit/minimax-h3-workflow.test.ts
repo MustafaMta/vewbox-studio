@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES, h3AlignFrames, h3FrameCount, h3GuideClipFrames, h3GuideFits, minimaxH3Video } from '@/server/workflows/minimax-h3';
-import { workflowVersion } from '@/server/workflows';
+import { MODELS, workflowVersion } from '@/server/workflows';
+import { MINIMAX_H3_API, MINIMAX_H3_LOCAL, h3EngineEstimateMs, h3RunTimeoutMs, videoTier } from '@/domain/video-capability';
 
 /** The MiniMax H3 graph builder against ComfyUI v0.38.1 `nodes_minimax_h3.py` and the official templates
  *  (docs/research/MINIMAX-CONTINUITY.md §1): frames snap UP to 17k+5 inside the trained range, guide clips snap DOWN
@@ -48,8 +49,8 @@ describe('frame count (P0.1)', () => {
 });
 
 describe('graph shapes', () => {
-  it('FL2VA: first and last frame are the node inputs; 8-step turbo; 5 s is 124 frames', () => {
-    const g = minimaxH3Video({ prompt: 'p', width: 1280, height: 720, seconds: 5, seed: 1, firstFrame: 'a.png', lastFrame: 'b.png' });
+  it('FL2VA: first and last frame are the node inputs; the draft tier is the 8-step turbo; 5 s is 124 frames', () => {
+    const g = minimaxH3Video({ prompt: 'p', width: 1280, height: 720, seconds: 5, seed: 1, firstFrame: 'a.png', lastFrame: 'b.png', quality: 'draft' });
     expect(g['7'].class_type).toBe('MiniMaxH3ImageToVideo');
     expect(g['7'].inputs).toMatchObject({ first_frame: ['ff', 0], last_frame: ['lf', 0], length: 124 });
     expect(g['10'].inputs).toMatchObject({ steps: 8, scheduler: 'simple' });
@@ -57,7 +58,7 @@ describe('graph shapes', () => {
   });
 
   it('Ref2VA: pictures in connection order; the opening frame is anchored at 0 and the ending frame at −1 (never dropped)', () => {
-    const g = minimaxH3Video({ prompt: 'p', width: 1280, height: 720, seconds: 5, referenceImages: ['canon.png', 'plate.png', 'open.png'], firstFrame: 'open.png', lastFrame: 'end.png', scheduler: 'beta', refImageSize: 'max' });
+    const g = minimaxH3Video({ prompt: 'p', width: 1280, height: 720, seconds: 5, referenceImages: ['canon.png', 'plate.png', 'open.png'], firstFrame: 'open.png', lastFrame: 'end.png', scheduler: 'beta', refImageSize: 'max', quality: 'draft' });
     expect(g['7'].class_type).toBe('MiniMaxH3ReferenceToVideo');
     expect(g['7'].inputs).toMatchObject({ 'ref_images.ref_image_0': ['ri0', 0], 'ref_images.ref_image_1': ['ri1', 0], 'ref_images.ref_image_2': ['ri2', 0], ref_image_size: 'max' });
     expect(g['7'].inputs.first_frame).toBeUndefined();
@@ -97,5 +98,45 @@ describe('graph shapes', () => {
     expect(w * h).toBeLessThanOrEqual(768 * 1344);
     expect(w % 32).toBe(0); expect(h % 32).toBe(0);
     expect(minimaxH3Video({ prompt: 'p', width: 1280, height: 720, seconds: 5, turbo: false, steps: 12, referenceImages: ['a.png'] })['10'].inputs.steps).toBe(12);
+  });
+});
+
+describe('quality tiers (capability tiers, MODEL-EVAL-2026-10.md §8.4)', () => {
+  it('final is the default: the base model at 20 steps, no turbo LoRA, on both graphs', () => {
+    for (const g of [minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'] }), minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, firstFrame: 'a.png' }), minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'], quality: 'final' })]) {
+      expect(g['5']).toBeUndefined();
+      expect(Object.values(g).some((n) => n.class_type === 'LoraLoaderModelOnly')).toBe(false);
+      expect(g['10'].inputs).toMatchObject({ steps: MINIMAX_H3_LOCAL.tiers!.final.steps, scheduler: 'simple' });
+      expect(g['6'].inputs.model).toEqual(['1', 0]);
+    }
+  });
+  it('draft is only the explicit request: the turbo LoRA, 4 steps on Ref2VA and 8 on FL2VA', () => {
+    const ref = minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'], quality: 'draft' });
+    expect(ref['5'].inputs).toMatchObject({ lora_name: MODELS.h3TurboRef2v4 });
+    expect(ref['10'].inputs.steps).toBe(4);
+    const fl = minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, firstFrame: 'a.png', quality: 'draft' });
+    expect(fl['5'].inputs).toMatchObject({ lora_name: MODELS.h3TurboFl2v8 });
+    expect(fl['10'].inputs.steps).toBe(8);
+    // the tiers are different workflow versions
+    expect(workflowVersion(ref)).not.toBe(workflowVersion(minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'] })));
+  });
+  it('explicit settings override the tier', () => {
+    expect(minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'], turbo: true })['10'].inputs.steps).toBe(4);
+    expect(minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'], steps: 30 })['10'].inputs.steps).toBe(30);
+    expect(minimaxH3Video({ prompt: 'p', width: 1344, height: 768, seconds: 5, referenceImages: ['a.png'], scheduler: 'beta' })['10'].inputs.scheduler).toBe('beta');
+  });
+  it('the tier is a capability record; the run deadline follows tier and length and never drops below 90 min', () => {
+    expect(videoTier(MINIMAX_H3_LOCAL).tier).toBe('final');
+    expect(videoTier(MINIMAX_H3_LOCAL, 'final').tier).toBe('final');
+    expect(videoTier(MINIMAX_H3_LOCAL, 'draft').config).toMatchObject({ turbo: true });
+    expect(videoTier(MINIMAX_H3_API, 'draft')).toEqual({ tier: 'final' });
+    expect(h3EngineEstimateMs(124, 'draft')).toBe(110_000);
+    expect(h3EngineEstimateMs(124, 'final')).toBe(352_000);
+    expect(h3EngineEstimateMs(362, 'final')).toBeGreaterThan(h3EngineEstimateMs(124, 'final') * 4);
+    expect(h3RunTimeoutMs(124, 'draft')).toBe(90 * 60_000);
+    expect(h3RunTimeoutMs(124, 'final')).toBe(90 * 60_000);
+    const long = h3RunTimeoutMs(362, 'final');
+    expect(long).toBeGreaterThan(100 * 60_000);
+    expect(long).toBeLessThanOrEqual(180 * 60_000);
   });
 });

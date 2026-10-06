@@ -2636,5 +2636,302 @@
     "message": "completed"
    }
   ]
+ },
+ {
+  "id": "job-4feb374e31",
+  "type": "GENERATE_TAKE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-05 23:43:41.748+00",
+  "startedAt": "2026-10-05 23:43:42.048+00",
+  "finishedAt": "2026-10-06 01:11:07.579+00",
+  "payload": {
+   "shotId": "shot-050ff6f102",
+   "quality": "final",
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 5245523,
+   "qaOk": false,
+   "flags": [
+    "people-on-screen",
+    "identity-similarity",
+    "no-duplicate-frames"
+   ],
+   "model": "MiniMax-H3 (local, pruned int8)",
+   "runId": "run-f798850985",
+   "takeId": "take-ba8f80a2c9d2a055bdcc",
+   "agentId": "minimax-video-specialist",
+   "assetId": "gen-ba8f80a2c9d2871d1b3e",
+   "backend": "local",
+   "verdict": "REJECT",
+   "requestId": "9317a10c-37b2-5d91-a1f2-4f323c164703",
+   "libraryRoot": "D:\\volexar-studio\\volexar-studio\\var\\library",
+   "generationMs": 1082446,
+   "awaitingReview": false,
+   "takeUnverified": false,
+   "unverifiedLines": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-05 23:43:41.756+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-05 23:43:42.239+00",
+    "level": "info",
+    "message": "World Bible revision 3 (pinned): re-pinned from World Bible revision 2 to 3 (update locations/loc-75cdbdb376/locked (Tea stall, Mutanabbi Street: locked (used in an approved cut)); add locations/loc-75cdbdb376/plates/gen-62fa9abb8e (Tea stall, Mutanabbi Street: established Tea stall, Mutanabbi Street — established in “Tea at Mutanabbi”, scene 1 (two shot) (morning))); the place: established frame of Tea stall, Mutanabbi Street at morning (from an approved take)"
+   },
+   {
+    "at": "2026-10-05 23:43:42.258+00",
+    "level": "info",
+    "message": "preflight passed"
+   },
+   {
+    "at": "2026-10-05 23:43:42.273+00",
+    "level": "info",
+    "message": "production context 1c81ff032e842dad: 1 character(s), Tea stall, Mutanabbi Street, cut"
+   },
+   {
+    "at": "2026-10-05 23:43:42.278+00",
+    "level": "info",
+    "message": "scene state (cut): morning, sunny, warm morning sun, soft glow on face; 1 present, 3 prop(s); environment from previous shot"
+   },
+   {
+    "at": "2026-10-05 23:43:42.395+00",
+    "level": "info",
+    "message": "shot length set to its dialogue: 4 s planned → 8 s"
+   },
+   {
+    "at": "2026-10-05 23:43:42.398+00",
+    "level": "info",
+    "message": "dialogue reused as the shot's soundtrack (joined track reused too)"
+   },
+   {
+    "at": "2026-10-05 23:43:42.625+00",
+    "level": "info",
+    "message": "the dialogue guide runs to the clip's end: 1.437 s of silence after the last line are anchored (nobody speaks there)"
+   },
+   {
+    "at": "2026-10-05 23:43:42.656+00",
+    "level": "info",
+    "message": "names bound in the prompt: Abu Haidar"
+   },
+   {
+    "at": "2026-10-05 23:43:42.664+00",
+    "level": "info",
+    "message": "identity rule: 1 character(s) and the plate conditioned on and bound"
+   },
+   {
+    "at": "2026-10-05 23:43:42.678+00",
+    "level": "info",
+    "message": "take request prepared"
+   },
+   {
+    "at": "2026-10-06 00:40:29.43+00",
+    "level": "info",
+    "message": "lines placed on the take"
+   },
+   {
+    "at": "2026-10-06 01:11:07.582+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-4ff7813326",
+  "type": "ASSEMBLE",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 11:18:59.452+00",
+  "startedAt": "2026-10-06 11:19:00.13+00",
+  "finishedAt": "2026-10-06 11:19:19.713+00",
+  "payload": {
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 19464,
+   "joins": 1,
+   "runId": "run-669e3244b2",
+   "shots": 3,
+   "agentId": "video-editor",
+   "loudness": {
+    "truePeak": -7.66,
+    "integrated": -23.16
+   },
+   "joinJumps": 0,
+   "cutAssetId": "gen-0cb0ff13b48aa2048c5f",
+   "subtitleAssets": [
+    "gen-0cb0ff13b48af295cac2",
+    "gen-0cb0ff13b48aa668b0d5"
+   ],
+   "durationSeconds": 19,
+   "audioTimelineRevision": 5
+  },
+  "events": [
+   {
+    "at": "2026-10-06 11:18:59.467+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 11:19:00.461+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-06 11:19:17.989+00",
+    "level": "info",
+    "message": "cut validation passed"
+   },
+   {
+    "at": "2026-10-06 11:19:18.06+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-06 11:19:19.718+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-9ab2799dc9",
+  "type": "EXPORT",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 11:20:27.121+00",
+  "startedAt": "2026-10-06 11:20:28.3+00",
+  "finishedAt": "2026-10-06 11:20:44.755+00",
+  "payload": {
+   "format": "mp4-h264",
+   "credits": true,
+   "subtitles": "en",
+   "resolution": "1080",
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 16435,
+   "size": {
+    "width": 1920,
+    "height": 1080
+   },
+   "runId": "run-b20b13c131",
+   "agentId": "export-engineer",
+   "loudness": {
+    "truePeak": -7.67,
+    "integrated": -23.04
+   },
+   "exportAssetId": "gen-bfaf3457a9455d36de6d",
+   "subtitleAssets": [
+    "gen-bfaf3457a9451f888760",
+    "gen-bfaf3457a945ea40be66"
+   ],
+   "durationSeconds": 23,
+   "establishedFrames": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 11:20:27.268+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 11:20:28.456+00",
+    "level": "info",
+    "message": "World Bible: nothing new to establish (revision 3)"
+   },
+   {
+    "at": "2026-10-06 11:20:28.524+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-06 11:20:43.162+00",
+    "level": "info",
+    "message": "export validation passed"
+   },
+   {
+    "at": "2026-10-06 11:20:43.203+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-06 11:20:44.759+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
+ },
+ {
+  "id": "job-e0d6aad63f",
+  "type": "EXPORT",
+  "status": "COMPLETED",
+  "attempts": 1,
+  "createdAt": "2026-10-06 11:24:11.982+00",
+  "startedAt": "2026-10-06 11:24:12.824+00",
+  "finishedAt": "2026-10-06 11:24:55.905+00",
+  "payload": {
+   "format": "mp4-h264",
+   "credits": true,
+   "subtitles": "en",
+   "resolution": "1080",
+   "productionId": "short-efe98843f0"
+  },
+  "result": {
+   "ms": 43058,
+   "size": {
+    "width": 1920,
+    "height": 1080
+   },
+   "runId": "run-717679cded",
+   "agentId": "export-engineer",
+   "loudness": {
+    "truePeak": -7.67,
+    "integrated": -23.04
+   },
+   "exportAssetId": "gen-e36c2b4dbe3d319e1f5e",
+   "subtitleAssets": [
+    "gen-e36c2b4dbe3d1c5a38ad",
+    "gen-e36c2b4dbe3d8a605c56"
+   ],
+   "durationSeconds": 23,
+   "establishedFrames": 0
+  },
+  "events": [
+   {
+    "at": "2026-10-06 11:24:11.999+00",
+    "level": "info",
+    "message": "queued"
+   },
+   {
+    "at": "2026-10-06 11:24:13.023+00",
+    "level": "info",
+    "message": "World Bible: nothing new to establish (revision 3)"
+   },
+   {
+    "at": "2026-10-06 11:24:13.082+00",
+    "level": "info",
+    "message": "mix plan"
+   },
+   {
+    "at": "2026-10-06 11:24:44.036+00",
+    "level": "info",
+    "message": "export validation passed"
+   },
+   {
+    "at": "2026-10-06 11:24:44.102+00",
+    "level": "info",
+    "message": "joins measured: 1 continuation join(s), 0 jump(s)"
+   },
+   {
+    "at": "2026-10-06 11:24:55.91+00",
+    "level": "info",
+    "message": "completed"
+   }
+  ]
  }
 ]

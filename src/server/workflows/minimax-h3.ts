@@ -1,11 +1,11 @@
 import { MODELS, seed32, snap, type Graph } from './index';
-import { MINIMAX_H3_LOCAL as CAP, framesFor, guideFramesKept } from '@/domain/video-capability';
+import { MINIMAX_H3_LOCAL as CAP, framesFor, guideFramesKept, videoTier, type VideoQualityTier } from '@/domain/video-capability';
 
 /** LOCAL MINIMAX H3 — the open-weights MiniMax video model running in ComfyUI on the RTX 5090. Text-to-video and
  *  first/last-frame-to-video with native audio (FL2VA checkpoint), or reference-to-video (Ref2VA) with up to nine
  *  reference pictures and three reference audios, plus guides anchored on the target timeline (`MiniMaxH3AddGuide`).
  *  Follows the official templates (comfyui_workflow_templates 0.11.73): res_multistep, video shift 12, audio shift 3,
- *  24 fps, frame count on the 17k+5 grid, turbo LoRA for 8 (FL2VA) or 4 (Ref2VA) steps. Verified against ComfyUI
+ *  24 fps, frame count on the 17k+5 grid. QUALITY TIER (capability 	iers, MODEL-EVAL-2026-10.md §8.4): inal (the\n *  default) = the base model at 20 steps, as the official templates ship; draft = the turbo LoRA, 8 (FL2VA) or 4\n *  (Ref2VA) steps — only when asked for. Explicit turbo/steps/scheduler/refImageSize override the tier. Verified against ComfyUI
  *  v0.38.1 `comfy_extras/nodes_minimax_h3.py` (docs/research/MINIMAX-CONTINUITY.md §1). */
 
 /** The numbers below are READ from the engine's capability record (src/domain/video-capability.ts), never restated. */
@@ -66,6 +66,8 @@ export interface H3Input {
   prompt: string;
   width: number; height: number; seconds: number;
   seed?: number; steps?: number; turbo?: boolean;
+  /** the capability's quality tier (default inal); explicit turbo/steps/scheduler/refImageSize override it */
+  quality?: VideoQualityTier;
   /** sampler schedule; the r2v template note: `beta`/`normal` "tends to outperform `simple`" for reference-heavy prompts */
   scheduler?: 'simple' | 'beta' | 'normal';
   /** Ref2VA picture sizing: `match` (down to the generation's area) or `max` (2048 short edge, slower) */
@@ -88,8 +90,9 @@ export const h3GraphKind = (i: Pick<H3Input, 'referenceImages' | 'referenceAudio
 
 export function minimaxH3Video(i: H3Input): Graph {
   const useRef = h3GraphKind(i) === 'REF2VA';
-  const turbo = i.turbo !== false;
-  const steps = i.steps ?? (turbo ? (useRef ? 4 : 8) : 20);
+  const tier = videoTier(CAP, i.quality).config;
+  const turbo = i.turbo ?? tier?.turbo ?? false;
+  const steps = i.steps ?? (turbo ? (useRef ? 4 : 8) : (tier && !tier.turbo ? tier.steps : 20));
   // area cap 768x1344, multiples of 32
   let w = snap(i.width, 32), h = snap(i.height, 32);
   const cap = 768 * 1344;
@@ -143,7 +146,7 @@ export function minimaxH3Video(i: H3Input): Graph {
   });
   g['8'] = { class_type: 'RandomNoise', inputs: { noise_seed: seed32(i.seed) } };
   g['9'] = { class_type: 'KSamplerSelect', inputs: { sampler_name: 'res_multistep' } };
-  g['10'] = { class_type: 'BasicScheduler', inputs: { model, scheduler: i.scheduler ?? 'simple', steps, denoise: 1.0 } };
+  g['10'] = { class_type: 'BasicScheduler', inputs: { model, scheduler: i.scheduler ?? tier?.scheduler ?? 'simple', steps, denoise: 1.0 } };
   g['11'] = { class_type: 'BasicGuider', inputs: { model, conditioning: positive } };
   g['12'] = { class_type: 'SamplerCustomAdvanced', inputs: { noise: ['8', 0], guider: ['11', 0], sampler: ['9', 0], sigmas: ['10', 0], latent_image: ['7', 1] } };
   g['13'] = { class_type: 'VAEDecode', inputs: { samples: ['12', 0], vae: ['3', 0] } };

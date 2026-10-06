@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Asset, Production, ShotRelation, Take } from '@/domain/types';
-import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
+import { anchoredLineStarts, auditTimeline, buildAudioTimeline, JOIN_SPEECH, REPLACED_SPEECH_PAD_SAMPLES, ROOM_BED, ROOM_TONE, roomToneStretch, SAMPLES_PER_FRAME, songWindowFrames, windowEndSourceFrame, type AudioCue } from '@/domain/timeline';
 import { buildMixPlan, buildTimeline, CUT_RATE } from '@/server/media/assembly';
 import { gainExpression, mixPlanOf, trackFilter } from '@/server/media/mix';
 import { DEFAULT_AUDIO_POLICY } from '@/domain/world';
@@ -125,6 +125,23 @@ describe('the dialogue policy', () => {
     expect(buildAudioTimeline(p, assets, { policy: { ...DEFAULT_AUDIO_POLICY, dialogue: 'MODEL_VOICE' } }).cues.some((c) => c.kind === 'DIALOGUE')).toBe(false);
   });
 
+  it('room tone: the longest stretch of the take without speech loops under each replaced span; without one the take is ducked, never silenced', () => {
+    expect(roomToneStretch({ head: 0, takeSeconds: 6.58, speech: [{ from: 0.4, to: 4.87 }] })).toEqual({ from: 4.99, to: 6.53 });
+    expect(roomToneStretch({ head: 22 / 24, takeSeconds: 6.58, speech: [{ from: 1.3, to: 6.5 }] })).toBeUndefined();
+    const { p, assets } = speaking(false);
+    const tl = buildAudioTimeline(p, assets);
+    const room = tl.cues.find((c) => c.kind === 'AMBIENCE')!;
+    expect(room).toMatchObject({ sourceAssetId: 'vid-0', loopSamples: expect.any(Number), voice: false, fadeInSamples: ROOM_TONE.rampSamples });
+    const take = tl.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!;
+    expect(room.startSample).toBe(take.startSample + take.automation!.spans[0].from - ROOM_TONE.rampSamples);
+    expect(tl.problems).toEqual([]);
+    // the whole take is speech: ducked −20 dB
+    p.shots[0].takes[0].soundtrack!.lines[0] = { lineId: 'l1', from: 22 / 24, to: 158 / 24 };
+    const ducked = buildAudioTimeline(p, assets);
+    expect(ducked.cues.some((c) => c.kind === 'AMBIENCE')).toBe(false);
+    expect(ducked.cues.find((c) => c.kind === 'GENERATED_VIDEO_AUDIO')!.automation!.spans[0].gain).toBe(ROOM_TONE.duckGain);
+  });
+
   it('a take made before the anchor was recorded: read from its joined soundtrack’s line list with the join rule', () => {
     const { p, assets } = production('SHORT', [{ seconds: 8, lines: [{ id: 'l1', audio: 'rec-1', seconds: 1.5, from: 0.05, to: 1.6 }, { id: 'l2', audio: 'rec-2', seconds: 2, from: 2.0, to: 4.0 }] }]);
     const t = p.shots[0].takes[0];
@@ -222,7 +239,11 @@ describe('the mix plan and its filters', () => {
     const { p, assets } = production('SHORT', [{ seconds: 5 }, { seconds: 158 / 24, trim: 22, intended: 120 }]);
     const plan = buildMixPlan(p, buildTimeline(p, assets));
     expect(plan.targetLufs).toBe(-23);
-    expect(plan.tracks.map((t) => [t.kind, t.sourceAssetId, t.startSample, t.sourceOffsetSamples, t.gain])).toEqual([['GENERATED_VIDEO_AUDIO', 'vid-0', 0, 0, 1], ['GENERATED_VIDEO_AUDIO', 'vid-1', 120 * F, 22 * F, 1]]);
+    expect(plan.tracks.filter((t) => t.kind !== 'AMBIENCE').map((t) => [t.kind, t.sourceAssetId, t.startSample, t.sourceOffsetSamples, t.gain])).toEqual([['GENERATED_VIDEO_AUDIO', 'vid-0', 0, 0, 1], ['GENERATED_VIDEO_AUDIO', 'vid-1', 120 * F, 22 * F, 1]]);
+    // the place's room bed under the whole run of shots there, from the first take's room, −10 dB, looped
+    const bed = plan.tracks.find((t) => t.kind === 'AMBIENCE')!;
+    expect(bed).toMatchObject({ sourceAssetId: 'vid-0', startSample: 0, durationSamples: 240 * F, gain: ROOM_BED.gain, voice: false, loopSamples: expect.any(Number) });
+    expect(plan.tracks.filter((t) => t.kind === 'AMBIENCE')).toHaveLength(1);
     const mv = production('MUSIC_VIDEO', [{ seconds: 5 }], { seconds: 30 });
     expect(buildMixPlan(mv.p, buildTimeline(mv.p, mv.assets)).targetLufs).toBe(-14);
   });
