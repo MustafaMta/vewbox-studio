@@ -508,3 +508,99 @@ thing): (V-a) Ref2VA base, no LoRA, 20 steps (expected ≈ 5× sampling time); (
 (V-e) video VAE fp16 decode (5.2 GB download); (V-f) pruned bf16 DiT (40.2 GB download, weight streaming; RAM headroom now
 ≈ 78.5 GiB). V-a…V-c need no download. Measures: identity (SFace per frame), lip-sync/script heard back, motion and
 in-take cuts by eye, card/RAM peak, latency. This needs the coordinator's VIDEO slot (31.9 GB card, ≈ 41 GiB RAM).
+
+### 8.4 Configuration benchmark (2026-10-06) and the quality tiers
+
+Harness `scripts/model-eval-h3-config.ts` (evidence `docs/evidence/model-eval-2026-10/h3-config/`: `results.json`, graphs;
+sheets and 640-px proxies gitignored; originals `var/model-eval/h3-config/`). Two real shots of The Static Sky,
+conditioned exactly as the take handler conditions them (`resolveShotPack` → `bindingOf` → `h3ReferencePrompt` →
+`minimaxH3Video`: canonical image + plate + drawn opening frame as pictures, the opening frame anchored at 0): **SPK** =
+scene 1 shot 2 (Elias, MEDIUM_CLOSE_UP, one English line; §5's V1) and **SIL** = scene 1 shot 1 (WIDE, silent). Seed
+970007, 5 s = 124 frames at 1344×768, Ref2VA, first attempts only, every run under `gpu-hold VIDEO`. SFace sampled at
+4 fps against the canonical image (START threshold 0.363); comfyui container RAM from `docker stats` in a 78.5 GiB VM.
+
+| Arm | Change from shipping | Engine | Card | RAM | SPK SFace median (frames < 0.363) | SPK picture, by eye | SIL SFace median |
+|---|---|---|---|---|---|---|---|
+| T | — (turbo 4-step LoRA v0.1, simple, match) | 110 s / 85 s | 31.9 GB | 46.1 GiB | 0.33 (11/20), drift 0.79 | 3 in-take cuts (wide → wrench close-up → face → over-the-shoulder); beard comes and goes, reads as another man at the end | 0.65 (1/21); one continuous push-in to a face close-up |
+| **A** | **no LoRA, 20 steps** (template default) | **350 s / 348 s** | 31.7 GB | 46.0 GiB | **0.69 (0/21)**, drift 0.23 | opening frame held 2 frames, then **one continuous MCU** to the end (as planned); cap appears late | 0.52 (0/12 with a face); continuous push-in, holds the wide longer, ends on the radio |
+| B | turbo + scheduler beta | 123 s / 85 s | 28.6–31.2 GB | 46.0 GiB | 0.38 (8/19) | **broken**: blown-out, smeared, ghosting frames; same cuts as T | 0.54 (3/21) |
+| C | turbo + ref_image_size max | 91 s / 88 s | 31.4–31.6 GB | 46.1 GiB | 0.39 (10/20) | as T, frame for frame | 0.67 (0/21) |
+| D | A + ref_image_size max | 422 s | 28.6 GB | 46.0 GiB | 0.63 (0/21) | as A | — |
+| E | A + scheduler beta | 371 s | 31.6 GB | 46.1 GiB | 0.28 (11/21) | cuts inside the take to a three-quarter and a back view | — |
+
+Mouth activity (energy windows, START values): every arm is flagged at least once (MOUTH_MOVING_WHILE_SILENT on T, A,
+B, D; none on C and E) — not a lip-sync verdict; the real-UI takes are. The line heard back (large-v3, the take gate's `judgeHeard`): "Obsolescence.
+Always obsolescence." verbatim on all six SPK arms — CER 0, coverage 1, PASS. The tier does not change the speech.
+
+**Decision (merged as dea25145):** the local engine has two **quality tiers** as capability data
+(`src/domain/video-capability.ts` `tiers`): **final** — the default for every take — is arm A (the base model, 20 steps,
+`simple`, `match`); **draft** is the turbo LoRA, made only when the producer asks and recorded as `params.quality:
+'draft'`. Reasons: on the speaking shot the final tier is the only configuration that kept the planned framing as one
+shot and the face on model (0.69 vs 0.33), at the same card and RAM; the silent shot is mixed (both tiers move the
+camera; turbo kept the face larger). Cost: ≈ 3.2× engine time (350 s vs 110 s for 5 s); the run deadline now follows the
+tier and the length (`h3RunTimeoutMs`, 90–180 min). B (beta under turbo) breaks the picture; C and D change nothing
+measurable; E is worse — none is adopted. The ref-image `max` and beta notes of the r2v template do not hold on this
+material. Licence: unchanged by the tier — the same MiniMax H3 Community License weights (§8.1: territory limit on
+Outputs, "MiniMax H3" shown in the UI, AUP); the turbo LoRAs of the draft tier are apache-2.0 (lightx2v). Next
+measurements owed: long (10–15 s) final clips (the deadline estimate scales frames^1.5, unmeasured), the
+continuation (V4-style) on the final tier, and the real-UI Tea retakes.
+
+## 9. Image upgrade outcome (2026-10-06): the image stack is frozen
+
+The producer's production-stack directive (docs/directives/PRODUCTION-STACK-DIRECTIVE-2026-10-06.md) froze the image
+stack before the candidate arms ran: **Qwen-Image-2512** generates, **Qwen-Image-Edit-2511** edits and keeps
+consistency, and Edit-2511 also takes the "character from a picture" role from FLUX.2 [klein] 4B (klein stays only behind
+`CANONICAL_REFERENCE_ENGINE=klein` until the Qwen route is proven in the UI). JoyAI-Image-Edit stays an
+already-downloaded fallback, with no benchmark arms run (weights verified on the store, graph builder and tests in the
+repo). The 27–30B-class search found no commercially usable model in that class more practical than the Qwen pair
+(Cosmos3-Super 64.6B: T2I only, 8×H100 class, arena below 2512; HunyuanImage 3.0 83B MoE: territory-excluding licence,
+no local ComfyUI runtime) — research references only. Qwen-Image-2512 **bf16** is being fetched as the frozen model's
+full precision; it becomes the final image tier only if a focused A/B on three canonical characters shows a visible
+gain over fp8 (§10.3).
+
+Measured today on the incumbents (harness `--tag upgrade`, first attempts, `docs/evidence/model-eval-2026-10/images-upgrade/`):
+canonical T2I 13/13 whole figures by the framing check and by eye (2512 quality 42–43 s, Lightning 6–10 s warm; card
+28.9–30.3 GB; comfyui RAM 29.1–29.9 GiB); plates 6/6 usable (27 s quality, 6–7 s Lightning); posters 4/4 cast right,
+the English title 2/2 (32–45 s); location views 0/6 changed the view (Edit-2511 quality 50 s and Lightning 8–32 s both
+returned the master's composition — as in §2.3); placement E1 (5 drawn before the freeze): Lightning C1 2/2 (SFace
+0.88, 0.82), quality C1 s970007 **the person missing** (only the kite drawn), quality C1 s970008 the plate replaced by a new
+street (SFace 0.55), Lightning C2 s970007 usable (SFace 0.54, anime face).
+
+## 10. Promotion records (production-stack directive §23, 2026-10-06)
+
+Paths are logical paths in the model store (`VEWBOX_MODELS_ROOT`, the D: VHDX; ComfyUI reads them under
+`/models/comfyui/<folder>/`). VRAM = nvidia-smi card peak at 250 ms; RAM = the comfyui container (docker stats).
+
+### 10.1 Qwen-Image-2512 — image generation (characters, locations, plates, frames, posters, key art)
+
+| Field | Record |
+|---|---|
+| Checkpoint | `diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors` (Comfy-Org/Qwen-Image_ComfyUI, 20 430 679 144 B, sha256 `5dc80554…876b`); encoder `text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors` (9.38 GB); VAE `vae/qwen_image_vae.safetensors`; draft LoRA `loras/Qwen-Image-2512-Lightning-8steps-V1.0-bf16` |
+| Params | 20B MMDiT + Qwen2.5-VL-7B encoder |
+| Precision | fp8 e4m3fn DiT, fp8 scaled encoder (bf16 candidate: §10.3) |
+| Licence | Apache-2.0 (model card; commercial use allowed) |
+| VRAM / RAM | 28.9–30.3 GB card; 29.1–29.9 GiB container RAM (2026-10-06) |
+| Speed | canonical 928×1664 quality (30 steps, cfg 4) 42–43 s warm; plate 1344×768 quality 27 s; poster 896×1344 32–45 s; Lightning 8-step 6–10 s |
+| First attempt | canonical 13/13 today + 6/6 and 9/9 stress (§2.1–2.2); plates 6/6; posters 4/4 (English title 2/2) |
+| Quality | whole figures with margin, one-sided details on the correct side, cel-shaded anime and feature-animation cartoon only in quality mode (Lightning draws cartoon semi-real — never for a Cartoon canonical); Arabic titles stay typeset |
+| Why it holds the role | the strongest commercially usable open T2I on the arena (999; only NC Qwen-2.1 and FLUX.2 [dev] are level or above); no first-attempt failure in 38 canonical/stress/plate/poster pictures |
+
+### 10.2 Qwen-Image-Edit-2511 — editing and consistency, and the character from a picture
+
+| Field | Record |
+|---|---|
+| Checkpoint | `diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors` (Comfy-Org/Qwen-Image-Edit_ComfyUI, 20 533 762 817 B, sha256 `c9fdc158…a4e`); same encoder and VAE as 2512; draft LoRA `loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16` |
+| Params | 20B MMDiT + Qwen2.5-VL-7B encoder; up to 3 reference pictures |
+| Precision | fp8 mixed (sensitive layers kept in bf16) |
+| Licence | Apache-2.0 (model card; commercial use allowed) |
+| VRAM / RAM | 30.0–32.0 GB card (the IMAGE lease estimate 30 400 is its typical peak); 30.4–31.3 GiB container RAM |
+| Speed | quality (24 steps, cfg 4) 50 s for a 1344×768 edit, 82–102 s with two references, 101–120 s for the Image Reference redraw at 928×1664; Lightning 4-step 7–32 s |
+| First attempt | Image Reference whole figure 7/10 (§2.6; 17/24 in the earlier A/B) — the handler redraws once without the face crop on a framing failure; placement in a plate 8/12 (§2.5) and 3/5 today; location views 0/12 (unsupported: never advertise a reverse angle or a time-of-day re-light from the master) |
+| Quality | likeness good on all five uploads (one rounder new face, ic4 s1); quality mode can drop the person or replace the plate in placement (Lightning was steadier there, 5/6) |
+| Why it holds the role | the strongest commercially usable open editor on the arena (1021; HunyuanImage 3.0 Instruct and Qwen-2.1 above it are territory-limited or NC); replaces FLUX.2 [klein] 4B for the character from a picture by the producer's directive (one engine family for generation and editing; FLUX no longer a production dependency). Promotion proof owed: one real-UI "from a picture" character (acceptance engineer) |
+
+### 10.3 Qwen-Image-2512 bf16 — candidate final image tier
+
+40 861 031 488 B, sha256 `cbf55390…e075`, Apache-2.0, fetching into the store (group `eval-qwen-image-2512-bf16`). Rule: a
+focused A/B on the three canonical characters (C1 cartoon, C2 anime, C3 realistic; the same prompts and seed as §2.1)
+against fp8; promoted as the final image tier only on a visible gain at full size, otherwise recorded and fp8 stays.

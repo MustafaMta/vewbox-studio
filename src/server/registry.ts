@@ -31,8 +31,9 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     // the canonical character image (docs/CONTRACTS-IDENTITY-PACK.md v2) and its optional secondary material
     { name: 'qwen-image.canonical', graph: qwenCanonicalImage({ prompt: '' }) },
     { name: 'qwen-image.canonical-draft', graph: qwenCanonicalImage({ prompt: '', quality: false }) },
+    // the non-default klein redraw (CANONICAL_REFERENCE_ENGINE=klein) until the Qwen route is proven in the UI
     { name: 'flux2-klein.canonical-reference', graph: kleinReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
-    // the rollback of the Image Reference redraw for one release (CANONICAL_REFERENCE_ENGINE=qwen)
+    // the Image Reference redraw (character from a picture): Qwen-Image-Edit-2511, the default since 2026-10-06
     { name: 'qwen-image.canonical-reference', graph: qwenReferenceCanonical({ upload: 'a.png', faceRect: { x: 0, y: 0, width: 256, height: 256 }, prompt: '' }) },
     { name: 'qwen3.5.reference-read', graph: referenceReadGraph({ image: 'a.png', describe: true }) },
     { name: 'qwen-image.secondary', graph: qwenSecondary({ canonical: 'a.png', kind: 'EXPRESSION', prompt: '' }) },

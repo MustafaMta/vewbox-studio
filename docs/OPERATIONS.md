@@ -7,7 +7,7 @@
 | `db` | postgres:17.6-alpine | 5432 | the authoritative studio: records, jobs, usage, continuity, metrics |
 | `web` | vewbox/web | **4200 (all interfaces)** | Next.js: pages, command API, uploads, media streaming, event stream |
 | `worker` | vewbox/worker | — | runs jobs: story engine, MiniMax video, images, voices, music, assembly |
-| `comfyui` | vewbox/comfyui | 8188 | GPU: Qwen-Image-2512 (characters from text), FLUX.2 [klein] 4B (characters from a picture), Qwen-Image-Edit-2511 (rollback for pictures, secondary material), Qwen3.5-4B (reads uploaded pictures), local MiniMax H3, ACE-Step, MiniMax Music 3 (hidden behind the worker) |
+| `comfyui` | vewbox/comfyui | 8188 | GPU: Qwen-Image-2512 (characters from text), Qwen-Image-Edit-2511 (characters from a picture, secondary material; FLUX.2 [klein] 4B only with `CANONICAL_REFERENCE_ENGINE=klein`), Qwen3.5-4B (reads uploaded pictures), local MiniMax H3, ACE-Step, MiniMax Music 3 (hidden behind the worker) |
 | `tts` | vewbox/tts-indextts | 8020 | GPU: IndexTTS 2.5 voices (English, Arabic) |
 | `tts-habibi` | vewbox/tts-habibi | 8021 | GPU: Habibi-TTS IRQ voices (Iraqi Arabic) |
 | `tts-design` | vewbox/tts-design | 8022 | GPU: VoxCPM2 voice design from a description (EN, MSA); CPU: ECAPA speaker embeddings |
@@ -148,8 +148,8 @@ Image models, whole card measured with `nvidia-smi` during the 2026-10-03 compar
 | Use | Engine | Card while drawing | Time per image |
 |---|---|---|---|
 | Character from text (Auto, Manual) | Qwen-Image-2512, quality mode | ≈ 31 GB (the card's limit) | ≈ 42 s warm |
-| Character from a picture (Image Reference) | FLUX.2 [klein] 4B distilled | ≈ 22 GB | ≈ 4 s warm |
-| Rollback for pictures | Qwen-Image-Edit-2511 (`CANONICAL_REFERENCE_ENGINE=qwen`) | ≈ 32 GB | ≈ 100 s |
+| Character from a picture (Image Reference) | Qwen-Image-Edit-2511 (since 2026-10-06) | ≈ 30.4 GB | ≈ 100–120 s |
+| Non-default fallback for pictures | FLUX.2 [klein] 4B (`CANONICAL_REFERENCE_ENGINE=klein`) | ≈ 22 GB | ≈ 4 s warm |
 
 The FLUX.2 [klein] 4B Base weights (7.75 GB) were downloaded for the comparison only and are not used; they can be
 removed from the models volume.

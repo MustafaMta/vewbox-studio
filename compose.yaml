@@ -393,7 +393,7 @@ services:
       - ./docker/models/fetch.py:/app/fetch.py:ro
       - ./docker/models/manifest.json:/app/manifest.json:ro
       - ./docker/models/layout.json:/app/layout.json:ro
-    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design,images-flux2-klein}"]
+    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design}"]
 
 # An extra public root certificate the asr and models builds (and the llm / llm-pull containers, at run time) trust,
 # for a network that inspects TLS (an antivirus's HTTPS scanning re-signs pypi.org, huggingface.co and the Ollama
