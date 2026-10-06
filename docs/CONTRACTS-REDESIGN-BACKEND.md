@@ -82,11 +82,14 @@ command engine. `takeExpectations` (B9) leaves `rating: REJECTED` takes out.
 
 ## B6 — Quality tier
 
-`GENERATE_TAKE` payload accepts `quality?: 'draft' | 'final'`. Every take the worker makes records
-`params.quality: 'final'`; a `draft` request is recorded as `params.qualityRequested: 'draft'` and a job event says it
-was made at final quality. **There is no draft path**: the local MiniMax H3 workflow has one tier (the official
-template — turbo LoRA, 4 or 8 steps — which is the standard path, not a faster variant of it) and the hosted API has
-none, so none was invented. Takes made before this have no `params.quality`; read absent as `final`.
+`GENERATE_TAKE` payload accepts `quality?: 'draft' | 'final'`. **Updated 2026-10-06** (docs/research/MODEL-EVAL-2026-10.md
+§8.4): the local MiniMax H3 engine has two tiers, data in the capability record (`src/domain/video-capability.ts`,
+`tiers`). `final` — the default — is the base model at 20 steps, as the official ComfyUI templates ship it; `draft` is the
+turbo LoRA (4 steps Ref2VA, 8 steps FL2VA), about 3× faster with less stable framing and identity, made ONLY when asked
+for and recorded as `params.quality: 'draft'` with a job event. The hosted API has one tier: a draft request there is made
+at final and recorded as `params.qualityRequested: 'draft'`. (Before 2026-10-06 every local take was the turbo path and
+recorded `final`; those takes have `params.turbo` absent — read their tier from `workflowVersion`.) Takes with no
+`params.quality` read as `final`.
 Pure rule: `takeQuality()` in `src/worker/handlers/take.ts`.
 
 ---

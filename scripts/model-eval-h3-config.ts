@@ -39,10 +39,10 @@ const opt = (n: string, d: string) => { const i = argv.indexOf(`--${n}`); return
 
 interface ArmConfig { turbo?: boolean; steps?: number; scheduler?: 'simple' | 'beta' | 'normal'; refImageSize?: 'match' | 'max' }
 const ARMS: Record<string, { what: string; cfg: ArmConfig }> = {
-  T: { what: 'shipping: Ref2VA turbo 4-step LoRA v0.1, scheduler simple, ref_image_size match', cfg: {} },
+  T: { what: 'shipping until 2026-10-06 (now the draft tier): Ref2VA turbo 4-step LoRA v0.1, scheduler simple, ref_image_size match', cfg: { turbo: true } },
   A: { what: 'no LoRA, 20 steps (the official template default)', cfg: { turbo: false } },
-  B: { what: 'turbo, scheduler beta (r2v template note)', cfg: { scheduler: 'beta' } },
-  C: { what: 'turbo, ref_image_size max (2048-px short edge references)', cfg: { refImageSize: 'max' } },
+  B: { what: 'turbo, scheduler beta (r2v template note)', cfg: { turbo: true, scheduler: 'beta' } },
+  C: { what: 'turbo, ref_image_size max (2048-px short edge references)', cfg: { turbo: true, refImageSize: 'max' } },
 };
 /** --best turbo=false,scheduler=beta,ref=max,steps=20 */
 function bestConfig(spec: string): ArmConfig {
