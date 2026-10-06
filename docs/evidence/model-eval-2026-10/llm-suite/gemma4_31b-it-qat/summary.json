@@ -8,6 +8,8 @@
       "n": 1,
       "medianMs": 200852,
       "firstAttemptValid": 0,
+      "everyFirstCallValid": 0,
+      "repairs": 0,
       "truncatedAttempts": 0,
       "errors": 0,
       "peakMiB": 21764,
@@ -20,6 +22,8 @@
       "n": 1,
       "medianMs": 97316,
       "firstAttemptValid": 1,
+      "everyFirstCallValid": 0,
+      "repairs": 0,
       "truncatedAttempts": 0,
       "errors": 0,
       "peakMiB": 21764,
@@ -29,15 +33,115 @@
       }
     },
     "ep-plan": {
-      "n": 4,
-      "medianMs": 168849,
-      "firstAttemptValid": 0,
+      "n": 11,
+      "medianMs": 169930,
+      "firstAttemptValid": 3,
+      "everyFirstCallValid": 6,
+      "repairs": 1,
       "truncatedAttempts": 0,
       "errors": 0,
-      "peakMiB": 21770,
+      "peakMiB": 32001,
       "ramPeak": {
         "containerGiB": 26.55,
-        "vmUsedGiB": 16.65
+        "vmUsedGiB": 19.85
+      }
+    },
+    "bible-record": {
+      "n": 1,
+      "medianMs": 30788,
+      "firstAttemptValid": 1,
+      "everyFirstCallValid": 1,
+      "repairs": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 32001,
+      "ramPeak": {
+        "containerGiB": 8.24,
+        "vmUsedGiB": 20.65
+      }
+    },
+    "bible-next": {
+      "n": 1,
+      "medianMs": 111697,
+      "firstAttemptValid": 0,
+      "everyFirstCallValid": 0,
+      "repairs": 1,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 32001,
+      "ramPeak": {
+        "containerGiB": 10.51,
+        "vmUsedGiB": 23.07
+      }
+    },
+    "perf": {
+      "n": 1,
+      "medianMs": 46529,
+      "firstAttemptValid": 1,
+      "everyFirstCallValid": 1,
+      "repairs": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 24127,
+      "ramPeak": {
+        "containerGiB": 10.74,
+        "vmUsedGiB": 13.73
+      }
+    },
+    "design-ar": {
+      "n": 1,
+      "medianMs": 25301,
+      "firstAttemptValid": 1,
+      "everyFirstCallValid": 1,
+      "repairs": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 24129,
+      "ramPeak": {
+        "containerGiB": 11.68,
+        "vmUsedGiB": 14.38
+      }
+    },
+    "design-en": {
+      "n": 1,
+      "medianMs": 47844,
+      "firstAttemptValid": 0,
+      "everyFirstCallValid": 0,
+      "repairs": 1,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 24129,
+      "ramPeak": {
+        "containerGiB": 14.4,
+        "vmUsedGiB": 16.95
+      }
+    },
+    "plan": {
+      "n": 1,
+      "medianMs": 106547,
+      "firstAttemptValid": 1,
+      "everyFirstCallValid": 1,
+      "repairs": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 24129,
+      "ramPeak": {
+        "containerGiB": 15.86,
+        "vmUsedGiB": 18.68
+      }
+    },
+    "ar-plan": {
+      "n": 1,
+      "medianMs": 215818,
+      "firstAttemptValid": 0,
+      "everyFirstCallValid": 1,
+      "repairs": 0,
+      "truncatedAttempts": 0,
+      "errors": 0,
+      "peakMiB": 24137,
+      "ramPeak": {
+        "containerGiB": 19.11,
+        "vmUsedGiB": 21.82
       }
     }
   },
@@ -597,6 +701,1309 @@
           "cut"
         ]
       }
+    },
+    {
+      "task": "ep-plan-s05",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 286825,
+      "attempts": 3,
+      "firstAttemptValid": false,
+      "firstCalls": 2,
+      "repairs": 1,
+      "reasks": 0,
+      "everyFirstCallValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 13458,
+      "tokPerS": 47,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16240:Plan the shots for Scene 5 \"The Truth in Ink\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where beat",
+          "ms": 107868,
+          "status": 200,
+          "maxTokens": 10779,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the beginning of the investigation and the physical weight of the book.\",\n      \"action\": \"Najm lowers the logb",
+          "tail": "ession solemn. The background is the blurred, warm interior of the harbour office with the soft glow of morning light hitting the side of his face.\"\n    }\n  ]\n}",
+          "requestChars": 16432,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3702,
+          "completionTokens": 5282,
+          "tokPerS": 49
+        },
+        {
+          "kind": "repair",
+          "requestKey": "28869:The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nshots.2.continuity.characters.0.screenDirection: Invalid option: expected one o",
+          "ms": 66341,
+          "status": 200,
+          "maxTokens": 6944,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the beginning of the investigation and the physical weight of the book.\",\n      \"action\": \"Najm lowers the logb",
+          "tail": "ession solemn. The background is the blurred, warm interior of the harbour office with the soft glow of morning light hitting the side of his face.\"\n    }\n  ]\n}",
+          "requestChars": 29076,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 6730,
+          "completionTokens": 3229,
+          "tokPerS": 48.7
+        },
+        {
+          "kind": "first",
+          "requestKey": "15802:Plan the shots for Scene 5 \"The Truth in Ink\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previ",
+          "ms": 111873,
+          "status": 200,
+          "maxTokens": 10910,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Reveal the shocking text in the logbook\",\n      \"action\": \"The camera pans across the shaky ink text on the yellowed page",
+          "tail": "ning light creates a warm, glowing atmosphere around the text. High-end 3D animated feature film still, simplified geometry, saturated local color.\"\n    }\n  ]\n}",
+          "requestChars": 15994,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3606,
+          "completionTokens": 4947,
+          "tokPerS": 44.2
+        }
+      ],
+      "vramBeforeMiB": 1850,
+      "vramPeakMiB": 22481,
+      "ram": {
+        "containerGiB": 24.56,
+        "vmUsedGiB": 14.96
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T23:42:15.85927575Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T23:40:16.502Z",
+      "checks": {
+        "shots": 9,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 2,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 69,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s06",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 206068,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 2,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 9853,
+      "tokPerS": 48,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16547:Plan the shots for Scene 6 \"The Silent Departure\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where ",
+          "ms": 121680,
+          "status": 200,
+          "maxTokens": 10670,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical manifestation of Elias's shock\",\n      \"action\": \"Elias's bandaged hand trembles violently over the ope",
+          "tail": "d disappointment. The lighting is soft and warm, highlighting the tactile texture of his tweed jacket against the blurred stone wall of the office.\"\n    }\n  ]\n}",
+          "requestChars": 16739,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3758,
+          "completionTokens": 5601,
+          "tokPerS": 46
+        },
+        {
+          "kind": "first",
+          "requestKey": "16545:Plan the shots for Scene 6 \"The Silent Departure\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the p",
+          "ms": 83803,
+          "status": 200,
+          "maxTokens": 10674,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Capture the immediate emotional pivot as they turn away.\",\n      \"action\": \"Elias and Najm slowly turn their backs to Ing",
+          "tail": "window. The lighting is soft, highlighting the wind-burn on her cheeks and the tactile texture of her wool blazer. The emotion is subtle but heavy.\"\n    }\n  ]\n}",
+          "requestChars": 16737,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3747,
+          "completionTokens": 4252,
+          "tokPerS": 50.7
+        }
+      ],
+      "vramBeforeMiB": 22481,
+      "vramPeakMiB": 26461,
+      "ram": {
+        "containerGiB": 23.75,
+        "vmUsedGiB": 18.35
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T23:45:42.221818191Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T23:43:42.579Z",
+      "checks": {
+        "shots": 11,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 0,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 85,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s07",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 128138,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 6408,
+      "tokPerS": 50.1,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "15841:Plan the shots for Scene 7 \"The Shadow of the Cliff\" of \"The Harbour Office\". Aspect WIDE_16_9. The scene should run about 35 seconds in 6–9 shots of 3–10 seconds (each shot becomes one video generati",
+          "ms": 127798,
+          "status": 200,
+          "maxTokens": 10900,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the scale and mood of the journey back\",\n      \"action\": \"The two figures walk as silhouettes against the drama",
+          "tail": "e speaks with a measured, deliberate expression. The lighting is a soft, cool blue moonlight hitting his face, creating a pensive and hopeful mood.\"\n    }\n  ]\n}",
+          "requestChars": 16033,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3591,
+          "completionTokens": 6408,
+          "tokPerS": 50.1
+        }
+      ],
+      "vramBeforeMiB": 26237,
+      "vramPeakMiB": 26237,
+      "ram": {
+        "containerGiB": 22.14,
+        "vmUsedGiB": 18.04
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T23:47:50.364293017Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T23:45:50.727Z",
+      "checks": {
+        "shots": 6,
+        "budget": 35,
+        "totalSeconds": 35,
+        "scriptLines": 1,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 60,
+        "promptsOutside60to160": 2,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s08",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 163746,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 2,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 8454,
+      "tokPerS": 51.8,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16361:Plan the shots for Scene 8 \"The Waiting Game\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where beat",
+          "ms": 80965,
+          "status": 200,
+          "maxTokens": 10725,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the quiet tension of the workshop interior\",\n      \"action\": \"Elias sits frozen at the workbench while Najm sta",
+          "tail": "pe. The lighting is warm and focused, with the green lamp casting soft shadows across his weathered face, highlighting the faint scar on his cheek.\"\n    }\n  ]\n}",
+          "requestChars": 16553,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3742,
+          "completionTokens": 4234,
+          "tokPerS": 52.3
+        },
+        {
+          "kind": "first",
+          "requestKey": "16313:Plan the shots for Scene 8 \"The Waiting Game\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previ",
+          "ms": 82334,
+          "status": 200,
+          "maxTokens": 10742,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Emphasize the silence and the lack of signal\",\n      \"action\": \"The radio dial is perfectly still.\",\n      \"framing\": \"EX",
+          "tail": "e both illuminated, their silhouettes sharp against the walls of radios as they both turn their heads toward the light. Camera is a slight push-in.\"\n    }\n  ]\n}",
+          "requestChars": 16505,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3719,
+          "completionTokens": 4220,
+          "tokPerS": 51.3
+        }
+      ],
+      "vramBeforeMiB": 26237,
+      "vramPeakMiB": 26237,
+      "ram": {
+        "containerGiB": 21.27,
+        "vmUsedGiB": 17.23
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-05T23:50:34.046169526Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-05T23:48:34.482Z",
+      "checks": {
+        "shots": 9,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 1,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 1,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 77,
+        "promptsOutside60to160": 1,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s09",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 185958,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 4479,
+      "tokPerS": 24.1,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16310:Plan the shots for Scene 9 \"The Sky Ignites\" of \"The Harbour Office\". Aspect WIDE_16_9. The scene should run about 35 seconds in 6–9 shots of 3–10 seconds (each shot becomes one video generation of th",
+          "ms": 185544,
+          "status": 200,
+          "maxTokens": 10752,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the cosmic event through the window\",\n      \"action\": \"The sky erupts in a flurry of meteors seen through the w",
+          "tail": " mouth. He holds a look of quiet realization and a faint, hopeful smile. Warm, saturated colors, soft tactile skin textures, high-end CG animation.\"\n    }\n  ]\n}",
+          "requestChars": 16502,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3722,
+          "completionTokens": 4479,
+          "tokPerS": 24.1
+        }
+      ],
+      "vramBeforeMiB": 8959,
+      "vramPeakMiB": 31999,
+      "ram": {
+        "containerGiB": 2.18,
+        "vmUsedGiB": 14.38
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T00:07:16.98939222Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T00:05:17.400Z",
+      "checks": {
+        "shots": 6,
+        "budget": 35,
+        "totalSeconds": 35,
+        "scriptLines": 1,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 56,
+        "promptsOutside60to160": 4,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s10",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 247922,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 2,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 8833,
+      "tokPerS": 35.7,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16233:Plan the shots for Scene 10 \"The Bearing\" of \"The Harbour Office\" — PART: beats 1–2 of the scene's 4 (the other beats are planned separately; plan only these, starting the scene, ending where beat 3 b",
+          "ms": 114405,
+          "status": 200,
+          "maxTokens": 10767,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the sudden auditory shock and Elias's immediate reaction\",\n      \"action\": \"The radio erupts in static; Elias f",
+          "tail": "e light of the radio reflects in his wide, glistening hazel eyes, catching a hint of a tear. Static camera, eye level. Soft, tactile skin textures.\"\n    }\n  ]\n}",
+          "requestChars": 16425,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3721,
+          "completionTokens": 4243,
+          "tokPerS": 37.1
+        },
+        {
+          "kind": "first",
+          "requestKey": "16023:Plan the shots for Scene 10 \"The Bearing\" of \"The Harbour Office\" — PART: beats 3–4 of the scene's 4 (the other beats are planned separately; plan only these, continuing straight on from the previous ",
+          "ms": 133115,
+          "status": 200,
+          "maxTokens": 10832,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Capture the urgency of recording the lead\",\n      \"action\": \"Najm quickly scribbles the coordinates onto a scrap of paper",
+          "tail": "d lamp and the cold, pale moonlight. The atmosphere is heavy and silent. Static camera, wide framing to emphasize the isolation of the two figures.\"\n    }\n  ]\n}",
+          "requestChars": 16215,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3651,
+          "completionTokens": 4590,
+          "tokPerS": 34.5
+        }
+      ],
+      "vramBeforeMiB": 31999,
+      "vramPeakMiB": 31999,
+      "ram": {
+        "containerGiB": 5.44,
+        "vmUsedGiB": 17.88
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T00:11:24.961462789Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T00:09:25.332Z",
+      "checks": {
+        "shots": 9,
+        "budget": 47,
+        "totalSeconds": 46,
+        "scriptLines": 1,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 77,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ep-plan-s11",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 166521,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 6140,
+      "tokPerS": 37,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16628:Plan the shots for Scene 11 \"The Horizon\" of \"The Harbour Office\". Aspect WIDE_16_9. The scene should run about 35 seconds in 6–9 shots of 3–10 seconds (each shot becomes one video generation of that ",
+          "ms": 166168,
+          "status": 200,
+          "maxTokens": 10652,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Transition from stillness to movement, showing Elias's internal struggle\",\n      \"action\": \"Elias stands up from the work",
+          "tail": "set. He speaks with a warm but gravelly voice. The background of the workshop is blurred and dark, keeping the focus entirely on his resolute face.\"\n    }\n  ]\n}",
+          "requestChars": 16820,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3812,
+          "completionTokens": 6140,
+          "tokPerS": 37
+        }
+      ],
+      "vramBeforeMiB": 31999,
+      "vramPeakMiB": 32001,
+      "ram": {
+        "containerGiB": 7.07,
+        "vmUsedGiB": 19.85
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T00:14:11.513383326Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T00:12:11.861Z",
+      "checks": {
+        "shots": 7,
+        "budget": 35,
+        "totalSeconds": 35,
+        "scriptLines": 2,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 63,
+        "promptsOutside60to160": 3,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "bible-record",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 30788,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 984,
+      "tokPerS": 32.3,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "5326:The episode \"The Static Sky\" (season 1, episode 1) of the show \"The Static Sky\" has been cut. Record it for the show's bible.\nSynopsis: Najm, a retired librarian and amateur astronomer, brings a broke",
+          "ms": 30457,
+          "status": 200,
+          "maxTokens": 2500,
+          "head": "{\n  \"events\": [\n    \"S1E1: Najm brought a cracked valve radio labeled '1987' to Elias Moore's seaside workshop during a meteor shower.\",\n    \"S1E1: Elias Moore ",
+          "tail": "nine years later?\",\n    \"The contents of the Mariner's last logbook, which remains sealed at the harbour office since the 1987 inquiry.\"\n  ],\n  \"resolved\": []\n}",
+          "requestChars": 5517,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 1256,
+          "completionTokens": 984,
+          "tokPerS": 32.3
+        }
+      ],
+      "vramBeforeMiB": 32001,
+      "vramPeakMiB": 32001,
+      "ram": {
+        "containerGiB": 8.24,
+        "vmUsedGiB": 20.65
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T00:14:42.333592675Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T00:12:42.666Z",
+      "checks": {
+        "events": 5,
+        "eventsTagged": 5,
+        "unresolved": 2,
+        "keepsOpenLogbook": true,
+        "keepsOpenSignal": true
+      }
+    },
+    {
+      "task": "bible-next",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 111697,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 1,
+      "repairs": 1,
+      "reasks": 0,
+      "everyFirstCallValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 3713,
+      "tokPerS": 33.4,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "10511:Propose the NEXT EPISODE of the show described below: the structure is its 3–6 scenes.\nTarget running time: about 270 seconds. \n\nThe producer gave no premise: invent one that is fresh, specific and em",
+          "ms": 59919,
+          "status": 200,
+          "maxTokens": 6000,
+          "head": "{\n\"title\": \"The Harbour Office\",\n\"logline\": \"Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn",
+          "tail": "ty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.\",\n\"kind\": \"INTERIOR\"\n}\n]\n}",
+          "requestChars": 10702,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 2337,
+          "completionTokens": 1977,
+          "tokPerS": 33
+        },
+        {
+          "kind": "repair",
+          "requestKey": "15595:The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nlocations.0.description: Invalid input: expected string, received undefined",
+          "ms": 51372,
+          "status": 200,
+          "maxTokens": 6000,
+          "head": "{\n\"title\": \"The Harbour Office\",\n\"logline\": \"Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn",
+          "tail": "ty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.\",\n\"kind\": \"INTERIOR\"\n}\n]\n}",
+          "requestChars": 15786,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3554,
+          "completionTokens": 1736,
+          "tokPerS": 33.8
+        }
+      ],
+      "vramBeforeMiB": 32001,
+      "vramPeakMiB": 32001,
+      "ram": {
+        "containerGiB": 10.51,
+        "vmUsedGiB": 23.07
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T00:16:34.031659775Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T00:14:34.376Z",
+      "checks": {
+        "structure": 6,
+        "castReturning": [
+          "Elias Moore",
+          "Najm"
+        ],
+        "castNew": [
+          "Arthur Penhaligon"
+        ],
+        "locationsReturning": [
+          "Elias’s Workshop"
+        ],
+        "picksUpOpen": true,
+        "eliasOnWater": false
+      }
+    },
+    {
+      "task": "perf",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 46529,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 1537,
+      "tokPerS": 33.3,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "4008:Assign the singing in \"Lanterns on the Breakwater\" (treatment MIXED). Performers (exact names): [{\"name\":\"Elias Moore\",\"voice\":\"LOW Warm and resonant, with a faint wheeze from old age\",\"role\":\"Retired",
+          "ms": 46188,
+          "status": 200,
+          "maxTokens": 4000,
+          "head": "{\n  \"sections\": [\n    {\n      \"sectionId\": \"sec-1\",\n      \"mode\": \"INSTRUMENTAL\",\n      \"singerNames\": []\n    },\n    {\n      \"sectionId\": \"sec-2\",\n      \"mode\":",
+          "tail": "ingerNames\": []\n    },\n    {\n      \"sectionId\": \"sec-7\",\n      \"mode\": \"DUET\",\n      \"singerNames\": [\n        \"Elias Moore\",\n        \"Salam\"\n      ]\n    }\n  ]\n}",
+          "requestChars": 4199,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 925,
+          "completionTokens": 1537,
+          "tokPerS": 33.3
+        }
+      ],
+      "vramBeforeMiB": 3499,
+      "vramPeakMiB": 24127,
+      "ram": {
+        "containerGiB": 10.74,
+        "vmUsedGiB": 13.73
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T01:06:10.745403152Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T01:04:11.073Z",
+      "checks": {
+        "sections": 7,
+        "everySection": true,
+        "instrumentalOk": true,
+        "bridgeAlternating": "ALTERNATING",
+        "verseSolo": [
+          "SOLO:1",
+          "SOLO:1"
+        ],
+        "everyoneEverywhere": false
+      }
+    },
+    {
+      "task": "design-ar",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 25301,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 1343,
+      "tokPerS": 53.9,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "4888:Design ONE new original character for cartoon production in Arabic (Iraqi — Baghdadi).\nBrief: \"\"\"A Baghdadi kite-maker of about seventy who sells paper kites on the Tigris corniche and talks to the wi",
+          "ms": 24938,
+          "status": 200,
+          "maxTokens": 2500,
+          "head": "{\n  \"name\": \"Abu Jassim\",\n  \"nameAr\": \"أبو جاسم\",\n  \"role\": \"Kite-maker on the Tigris corniche\",\n  \"sex\": \"Male\",\n  \"ageYears\": 70,\n  \"species\": \"Human\",\n  \"bui",
+          "tail": "nge\",\n    \"pace\": \"Rhythmic and sing-song\",\n    \"timbre\": \"Raspy and warm\",\n    \"notes\": \"Uses traditional Baghdadi idioms and often whispers to the wind\"\n  }\n}",
+          "requestChars": 5079,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 1041,
+          "completionTokens": 1343,
+          "tokPerS": 53.9
+        }
+      ],
+      "vramBeforeMiB": 24127,
+      "vramPeakMiB": 24129,
+      "ram": {
+        "containerGiB": 11.68,
+        "vmUsedGiB": 14.38
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T01:06:36.013126353Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T01:04:36.380Z"
+    },
+    {
+      "task": "design-en",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 47844,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 1,
+      "repairs": 1,
+      "reasks": 0,
+      "everyFirstCallValid": false,
+      "truncatedAttempts": 0,
+      "answerTokens": 2533,
+      "tokPerS": 53.4,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "4912:Design ONE new original character for cartoon production in English.\nBrief: \"\"\"Ingrid Dahl, the Kerran Point harbour master: a brisk woman in her fifties, practical, keeps the harbour office spotless,",
+          "ms": 28989,
+          "status": 200,
+          "maxTokens": 2500,
+          "head": "{\n  \"name\": \"Ingrid Dahl\",\n  \"role\": \"Kerran Point Harbour Master\",\n  \"sex\": \"Female\",\n  \"ageYears\": 54,\n  \"build\": \"Sturdy and upright with a rectangular silho",
+          "tail": "ace\": \"Rapid and clipped\",\n    \"timbre\": \"Crisp\",\n    \"notes\": \"Authoritative and precise, sounding like a seasoned schoolteacher who brooks no nonsense.\"\n  }\n}",
+          "requestChars": 5103,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 1036,
+          "completionTokens": 1576,
+          "tokPerS": 54.4
+        },
+        {
+          "kind": "repair",
+          "requestKey": "6674:The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\neyes: Too big: expected string to have <=120 characters",
+          "ms": 18424,
+          "status": 200,
+          "maxTokens": 2500,
+          "head": "{\n  \"name\": \"Ingrid Dahl\",\n  \"role\": \"Kerran Point Harbour Master\",\n  \"sex\": \"Female\",\n  \"ageYears\": 54,\n  \"build\": \"Sturdy and upright with a rectangular silho",
+          "tail": "ace\": \"Rapid and clipped\",\n    \"timbre\": \"Crisp\",\n    \"notes\": \"Authoritative and precise, sounding like a seasoned schoolteacher who brooks no nonsense.\"\n  }\n}",
+          "requestChars": 6865,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 1448,
+          "completionTokens": 957,
+          "tokPerS": 51.9
+        }
+      ],
+      "vramBeforeMiB": 24129,
+      "vramPeakMiB": 24129,
+      "ram": {
+        "containerGiB": 14.4,
+        "vmUsedGiB": 16.95
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T01:07:23.895475549Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T01:05:24.231Z"
+    },
+    {
+      "task": "plan",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 106547,
+      "attempts": 1,
+      "firstAttemptValid": true,
+      "firstCalls": 1,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 6014,
+      "tokPerS": 56.6,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "15187:Plan the shots for Scene 1 \"The Broken Signal\" of \"The Static Sky\". Aspect WIDE_16_9. The scene should run about 30 seconds in 5–8 shots of 3–10 seconds (each shot becomes one video generation of that",
+          "ms": 106221,
+          "status": 200,
+          "maxTokens": 11096,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Hook: Najm's arrival and the atmospheric setting\",\n      \"action\": \"Najm struggles through the workshop door, clutching t",
+          "tail": "ith a slow, resonant voice. The background is the soft, blurred glow of the workshop's green lamp. Static camera, holding the pose for readability.\"\n    }\n  ]\n}",
+          "requestChars": 15379,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3500,
+          "completionTokens": 6014,
+          "tokPerS": 56.6
+        }
+      ],
+      "vramBeforeMiB": 24129,
+      "vramPeakMiB": 24129,
+      "ram": {
+        "containerGiB": 15.86,
+        "vmUsedGiB": 18.68
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T01:09:10.436588028Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T01:07:10.785Z",
+      "checks": {
+        "shots": 6,
+        "budget": 30,
+        "totalSeconds": 35,
+        "scriptLines": 3,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 1,
+        "speechScrubbed": 0,
+        "framingChanged": 0,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 78,
+        "promptsOutside60to160": 0,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ]
+      }
+    },
+    {
+      "task": "ar-plan",
+      "run": 1,
+      "model": "gemma4:31b-it-qat",
+      "ms": 215818,
+      "attempts": 2,
+      "firstAttemptValid": false,
+      "firstCalls": 2,
+      "repairs": 0,
+      "reasks": 0,
+      "everyFirstCallValid": true,
+      "truncatedAttempts": 0,
+      "answerTokens": 12036,
+      "tokPerS": 55.9,
+      "attemptsDetail": [
+        {
+          "kind": "first",
+          "requestKey": "16153:Plan the shots for Scene 1 \"The Broken Signal\" of \"السماء الساكنة\" — PART: beats 1–3 of the scene's 6 (the other beats are planned separately; plan only these, starting the scene, ending where beat 4 ",
+          "ms": 106033,
+          "status": 200,
+          "maxTokens": 10776,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Establish the cosmic event and the setting\",\n      \"action\": \"A bright meteor streaks across the night sky over the coast",
+          "tail": "belief, eyebrows raised high. He speaks with a tone of utter amazement, his weathered skin catching the warm, golden glow of the green-shaded lamp.\"\n    }\n  ]\n}",
+          "requestChars": 16345,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3785,
+          "completionTokens": 5971,
+          "tokPerS": 56.3
+        },
+        {
+          "kind": "first",
+          "requestKey": "16918:Plan the shots for Scene 1 \"The Broken Signal\" of \"السماء الساكنة\" — PART: beats 4–6 of the scene's 6 (the other beats are planned separately; plan only these, continuing straight on from the previous",
+          "ms": 109421,
+          "status": 200,
+          "maxTokens": 10553,
+          "head": "{\n  \"shots\": [\n    {\n      \"purpose\": \"Show the physical struggle with the obsolete machine\",\n      \"action\": \"Elias grips the radio tuning knob and tries to fo",
+          "tail": "o soft, mysterious shadows. The camera slowly pulls back, framing them as a unified team against the cluttered backdrop of the seaside repair shop.\"\n    }\n  ]\n}",
+          "requestChars": 17110,
+          "numCtx": 16384,
+          "think": false,
+          "finishReason": "stop",
+          "promptTokens": 3953,
+          "completionTokens": 6065,
+          "tokPerS": 55.4
+        }
+      ],
+      "vramBeforeMiB": 24129,
+      "vramPeakMiB": 24137,
+      "ram": {
+        "containerGiB": 19.11,
+        "vmUsedGiB": 21.82
+      },
+      "ollamaPs": {
+        "models": [
+          {
+            "name": "gemma4:31b-it-qat",
+            "model": "gemma4:31b-it-qat",
+            "size": 19099004435,
+            "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gemma4",
+              "families": [
+                "gemma4"
+              ],
+              "parameter_size": "30.7B",
+              "quantization_level": "Q4_0"
+            },
+            "expires_at": "2026-10-06T01:12:46.251606405Z",
+            "size_vram": 19099004435,
+            "context_length": 16384
+          }
+        ]
+      },
+      "at": "2026-10-06T01:10:46.612Z",
+      "checks": {
+        "shots": 14,
+        "budget": 60,
+        "totalSeconds": 73,
+        "scriptLines": 6,
+        "everyLineOnce": true,
+        "linesForgottenByPlanner": 0,
+        "castAddedFromActions": 0,
+        "speechScrubbed": 0,
+        "framingChanged": 1,
+        "cutsDropped": 0,
+        "promptsWithCastName": 0,
+        "promptWordsMedian": 69,
+        "promptsOutside60to160": 1,
+        "boundaries": [
+          "transition",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut",
+          "cut"
+        ],
+        "calls": 2,
+        "finishReasons": [
+          "stop",
+          "stop"
+        ]
+      }
     }
-  ]
+  ],
+  "episode": {
+    "scenes": 11,
+    "shots": 89,
+    "seconds": 474,
+    "wardrobe": {
+      "Elias Moore": {
+        "shotsDescribed": 50,
+        "against": "canonical wardrobe",
+        "medianOverlap": 0.25,
+        "minOverlap": 0.06
+      },
+      "Najm": {
+        "shotsDescribed": 47,
+        "against": "first described wardrobe",
+        "medianOverlap": 0.83,
+        "minOverlap": 0
+      },
+      "Ingrid Dahl": {
+        "shotsDescribed": 18,
+        "against": "canonical wardrobe",
+        "medianOverlap": 0.27,
+        "minOverlap": 0.24
+      }
+    }
+  }
 }

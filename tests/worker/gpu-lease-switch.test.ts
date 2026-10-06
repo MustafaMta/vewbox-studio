@@ -52,7 +52,11 @@ describe('GPU family switches', () => {
     const second = b('IMAGE', 1, async () => { log.push('B IMAGE work'); });
     await new Promise((x) => setTimeout(x, 300));
     expect(log.includes('B IMAGE work')).toBe(false);
-    expect((await rowsOf(r)).map((x) => [x.family, x.state]).sort()).toEqual([['IMAGE', 'SWITCHING'], ['IMAGE', 'WAITING']]);
+    // the switching grant is a HOLDING row without granted_at: older lease code (counting HOLDING rows) sees it as a holder
+    const rows = (await rowsOf(r)).map((x) => ({ family: x.family, state: x.state, granted: x.grantedAt !== null })).sort((p, q) => p.state.localeCompare(q.state));
+    expect(rows).toEqual([{ family: 'IMAGE', state: 'HOLDING', granted: false }, { family: 'IMAGE', state: 'WAITING', granted: false }]);
+    // what a process on OLDER lease code sees (it counts HOLDING rows as holders): a holder - so it waits too
+    expect(rows.filter((x) => x.state === 'HOLDING')).toHaveLength(1);
     gate.open();
     await until(() => log.includes('B IMAGE work'));
     w1.open(); await first; await second;

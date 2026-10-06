@@ -2,6 +2,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { StudioError } from '@/domain/errors';
 import { env } from '../env';
+import { guardedEngineUrl } from '../gpu/lease-db';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
 
 /** THE LIP-SYNC CORRECTOR CLIENT — the `lipsync` service (docker/lipsync: LatentSync 1.6 with a YuNet + MediaPipe face
@@ -29,7 +30,7 @@ export interface LipsyncResult { available: true; file: string; bytes: number; r
 
 export interface LipsyncHealth { available: boolean; reason?: string | null; loaded?: boolean; model?: string; detector?: string; licences?: Record<string, string>; defaults?: Record<string, number>; maxSeconds?: number }
 
-const base = () => env().LIPSYNC_URL.replace(/\/$/, '');
+const base = () => guardedEngineUrl(env().LIPSYNC_URL.replace(/\/$/, ''), 'the lip-sync service'); // one card, one lease (gpu/lease-db.ts)
 export const lipsyncConfigured = () => Boolean(env().LIPSYNC_URL);
 
 const camel = (k: string) => k.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());

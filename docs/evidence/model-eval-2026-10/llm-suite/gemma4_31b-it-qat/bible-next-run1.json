@@ -1,0 +1,204 @@
+{
+  "task": "bible-next",
+  "run": 1,
+  "model": "gemma4:31b-it-qat",
+  "ms": 111697,
+  "attempts": 2,
+  "firstAttemptValid": false,
+  "firstCalls": 1,
+  "repairs": 1,
+  "reasks": 0,
+  "everyFirstCallValid": false,
+  "truncatedAttempts": 0,
+  "answerTokens": 3713,
+  "tokPerS": 33.4,
+  "attemptsDetail": [
+    {
+      "kind": "first",
+      "requestKey": "10511:Propose the NEXT EPISODE of the show described below: the structure is its 3–6 scenes.\nTarget running time: about 270 seconds. \n\nThe producer gave no premise: invent one that is fresh, specific and em",
+      "ms": 59919,
+      "status": 200,
+      "maxTokens": 6000,
+      "head": "{\n\"title\": \"The Harbour Office\",\n\"logline\": \"Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn",
+      "tail": "ty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.\",\n\"kind\": \"INTERIOR\"\n}\n]\n}",
+      "requestChars": 10702,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 2337,
+      "completionTokens": 1977,
+      "tokPerS": 33
+    },
+    {
+      "kind": "repair",
+      "requestKey": "15595:The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nlocations.0.description: Invalid input: expected string, received undefined",
+      "ms": 51372,
+      "status": 200,
+      "maxTokens": 6000,
+      "head": "{\n\"title\": \"The Harbour Office\",\n\"logline\": \"Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn",
+      "tail": "ty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.\",\n\"kind\": \"INTERIOR\"\n}\n]\n}",
+      "requestChars": 15786,
+      "numCtx": 16384,
+      "think": false,
+      "finishReason": "stop",
+      "promptTokens": 3554,
+      "completionTokens": 1736,
+      "tokPerS": 33.8
+    }
+  ],
+  "vramBeforeMiB": 32001,
+  "vramPeakMiB": 32001,
+  "ram": {
+    "containerGiB": 10.51,
+    "vmUsedGiB": 23.07
+  },
+  "ollamaPs": {
+    "models": [
+      {
+        "name": "gemma4:31b-it-qat",
+        "model": "gemma4:31b-it-qat",
+        "size": 19099004435,
+        "digest": "e0812a55773bfeac846b2d605b4d93638b8dfa7119d9587f3d91475afc78185e",
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "gemma4",
+          "families": [
+            "gemma4"
+          ],
+          "parameter_size": "30.7B",
+          "quantization_level": "Q4_0"
+        },
+        "expires_at": "2026-10-06T00:16:34.031659775Z",
+        "size_vram": 19099004435,
+        "context_length": 16384
+      }
+    ]
+  },
+  "at": "2026-10-06T00:14:34.376Z",
+  "checks": {
+    "structure": 6,
+    "castReturning": [
+      "Elias Moore",
+      "Najm"
+    ],
+    "castNew": [
+      "Arthur Penhaligon"
+    ],
+    "locationsReturning": [
+      "Elias’s Workshop"
+    ],
+    "picksUpOpen": true,
+    "eliasOnWater": false
+  },
+  "request": [
+    {
+      "role": "system",
+      "content": "You are the story department of Vewbox Studio, an AI filmmaking studio that makes original shows, short films and music videos in three production directions (cartoon, anime, realistic) and in English or Arabic, including Iraqi (Baghdadi) Arabic.\nRules you always follow:\n- Write ORIGINAL characters, places and stories. Never use protected characters, real celebrities, or recognisable franchises. Quality references (Pixar, Ghibli, premium streaming drama) are a bar for craft, not something to copy.\n- Respect everything the producer already decided (title, cast, places, style, language, duration, song). Build on it; do not contradict it.\n- Reuse existing characters and locations from the studio when they fit the story; invent new ones only when the story needs them, and say why.\n- Every scene must be producible as short video shots of 4–15 seconds each, generated one by one with consistent characters and locations. Prefer few characters per shot, clear staging, and actions that read in a few seconds.\n- Keep continuity explicit: who is where, what they wear, what they hold, time of day, and how each shot relates to the one before (continuation, cut, or story transition).\n- Answer with ONE JSON object only. No prose before or after it, no markdown fences, no comments.\n\nProduction direction: Cartoon (feature-animation CG).\nStorytelling: Feature-animation storytelling: clear wants, big readable emotions, visual gags that pay off, a warm ensemble. Scenes are built around physical business and expressive reactions. Dialogue is short and playful; silences and looks do real work.\nCharacter design rules: Appealing stylized proportions (slightly larger head and eyes, simplified hands), one strong silhouette, two or three signature colours, costume details reduced to the memorable few, exaggerated but consistent facial structure, materials read as soft and tactile.\nEnvironment rules: Sets designed like animated features: simplified geometry with caricatured proportions, warm bounce light, saturated local colour, every prop designed and placed on purpose, atmosphere (dust, steam, haze) used for depth.\nCamera rules: Confident, planned camera: dolly and crane moves with eases, snappy timing, staging on clear lines of action, poses held for readability, squash-and-stretch energy in motion.\n\nLanguage: English. Write natural spoken English in \"text\"; leave \"textAr\" empty."
+    },
+    {
+      "role": "user",
+      "content": "Propose the NEXT EPISODE of the show described below: the structure is its 3–6 scenes.\nTarget running time: about 270 seconds. \n\nThe producer gave no premise: invent one that is fresh, specific and emotionally clear, set in a concrete place with a cultural texture that fits the language.\n\n\nCONTINUITY RULES for this show: keep its language (EN) and direction; the story continues from \"lastEpisode.endsWith\" and \"previousSeason.endedWith\" — never restart from nothing or contradict the bible's timeline; pick up at least one of the bible's unresolved storylines (bible.unresolved) when there are any; reuse returning cast and places by their ids (their identities are locked and must not be redescribed); introduce a new character or place only when this story genuinely needs it, and say why.\nShow context (reuse its returning cast and places by existingCharacterId / existingLocationId; propose at most one or two newcomers this episode needs — a guest character or a new place): {\"title\":\"The Static Sky\",\"logline\":\"Two old men in a cliff-top fishing town follow a radio signal from a ship lost in the storm of 1987.\",\"genre\":\"mystery drama\",\"synopsis\":\"Elias Moore, a retired lighthouse keeper and radio repairman, and Najm, a retired librarian and amateur astronomer, hear the lost trawler Mariner calling on an old valve radio whenever meteors fall. Season 1 follows the signal toward what really happened in 1987.\",\"language\":\"EN\",\"style\":\"CARTOON\",\"bible\":{\"worldRules\":[\"Kerran Point is a small cold fishing town on a northern cliff coast; the story stays grounded — no ghosts are ever shown, only what a radio, a logbook or a person can carry.\",\"The old valve radio only receives the Mariner's frequency while meteors are falling; on a clear night without meteors it hears nothing but static.\",\"Elias has not set foot on a boat since the storm of 1987 and will not go out on the water.\"],\"relationships\":[\"Elias Moore and Najm: strangers until episode 1; now bound by the same storm — wary friends.\",\"Elias was married to Ruth Moore, the Mariner's radio officer, lost with the ship in the storm of 1987.\",\"Najm's younger brother Tariq was the Mariner's deckhand and was never found.\"],\"timeline\":[\"S1E1: Najm brought a cracked valve radio labelled \\\"1987\\\" to Elias's workshop on the night of a meteor shower.\",\"S1E1: The repaired radio received the Mariner's call: \\\"This is the Mariner… four miles south of the point…\\\".\",\"S1E1: Elias cut the palm of his LEFT hand on the radio's chassis; it is bandaged.\",\"S1E1: Najm learned that Elias's wife Ruth was aboard the Mariner.\"],\"unresolved\":[\"Who — or what — is still transmitting on the Mariner's frequency, thirty-nine years later?\",\"The harbour office keeps the Mariner's last logbook, sealed since the 1987 inquiry.\"],\"styleNotes\":\"Warm hand-drawn cartoon; night scenes lit by lamps and the meteors; the sea always audible.\"},\"seasons\":[{\"number\":1,\"title\":\"The Signal\",\"arc\":\"From the first call to the truth about the Mariner's last night.\",\"episodes\":2}],\"thisSeason\":{\"number\":1,\"title\":\"The Signal\",\"arc\":\"From the first call to the truth about the Mariner's last night.\"},\"previousEpisodes\":[{\"season\":1,\"number\":1,\"title\":\"The Static Sky\",\"logline\":\"A retired librarian and a lighthouse keeper repair a broken radio, uncovering a decades-old distress call from the ship that vanished with Elias's wife and Najm's missing brother.\",\"synopsis\":\"Najm, a retired librarian and amateur astronomer, brings a broken valve radio to Elias Moore, a retired lighthouse keeper and radio repairman. As they work in Elias’s cluttered seaside workshop during a meteor shower, the radio picks up a faint signal from a ship that disappeared in the great storm of 1987 — the night Elias’s wife was lost at sea and Najm’s brother never came home. The discovery forces them to confront a shared loss, as the signal names the ship and the place where it went down. The story balances quiet introspection with the thrill of discovery, anchored by the growing bond b\",\"finished\":true,\"endsWith\":\"Past midnight. The radio is silent again; Elias, his left palm bandaged, stares at Ruth's photograph; Najm sits beside him, the meteors thinning over the sea.\"},{\"season\":1,\"number\":2,\"title\":\"The Harbour Office\",\"logline\":\"\",\"synopsis\":\"\",\"finished\":false}],\"lastEpisode\":{\"season\":1,\"number\":2,\"title\":\"The Harbour Office\",\"logline\":\"\",\"synopsis\":\"\",\"finished\":false},\"returningCast\":[{\"id\":\"char-56c47abc59\",\"name\":\"Elias Moore\",\"role\":\"Retired Lighthouse Keeper and Radio Repairman\",\"sex\":\"MALE\",\"ageYears\":72,\"bornAbout\":1954,\"species\":\"Human\",\"look\":\"Portly but sturdy, with broad shoulders and a slight stoop from years of bending over radios; Weathered, with deep lines around the eyes and mouth; a faint scar runs from his left eyebrow to his cheekbone; Thick, silver-gray hair cropped short on the sides and slightly longer on top, combed back with a slight wave; Warm hazel, with a glint of curiosity that never fades eyes; Tanned, with a network of faint blue veins visible on his hands and arms skin\",\"wardrobe\":\"Striped navy-and-white wool sweater (V-neck, rolled sleeves), yellow raincoat (fur collar, brass buttons), gray flannel trousers (brass-buckled belt), black rubber boots (missing left heel tread)\",\"distinguishing\":[\"A faded navy wool cap with a single red button on his own left side\",\"A yellow raincoat with a green-checked pattern that flares out like a skirt when he moves\"],\"personality\":\"Kind but stubborn, with a dry wit and a tendency to remember every radio frequency he ever tuned into\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm and resonant, with a faint wheeze from old age\",\"hasAppearance\":true,\"usedInVideo\":true},{\"id\":\"char-e71e80cde4\",\"name\":\"Najm\",\"role\":\"Retired librarian and amateur astronomer\",\"sex\":\"MALE\",\"ageYears\":65,\"bornAbout\":1961,\"look\":\"\",\"wardrobe\":\"\",\"distinguishing\":[],\"personality\":\"Wise but absent-minded, with a quiet enthusiasm for forgotten knowledge. Speaks in measured, deliberate phrases, often pausing to adjust his glasses or scratch his beard when lost in thought. Kind but socially awkward, preferring books to people.\",\"language\":\"EN\",\"voice\":\"LOW SLOW Warm, slightly gravelly\",\"hasAppearance\":true,\"usedInVideo\":true}],\"returningLocations\":[{\"id\":\"loc-cde19129ca\",\"name\":\"Elias’s Workshop\",\"kind\":\"INTERIOR\",\"description\":\"A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.\",\"landmarks\":[\"A long wooden workbench in the centre, covered in radio parts, under a hanging green-shaded lamp\",\"A large multi-pane window on the back wall, facing the sea\",\"Shelves of old radios stacked floor to ceiling on the left wall\",\"One framed portrait photograph of a smiling woman with dark curly hair on the right wall, beside a nautical chart\",\"The wooden door on the right, at the front\"],\"props\":[\"The cracked valve radio with a faded 1987 label\",\"A glass jar of screws on the workbench\",\"A screwdriver and a small wrench\",\"A soldering iron on its stand\"],\"lighting\":[\"NIGHT\"]}]}\nReturn JSON with exactly these keys: title, titleAr (optional), logline, premise (2–4 paragraphs), genre, mood, structure (array of {title, summary}), cast (array of {existingCharacterId?, name, role, reason, sex, ageYears, appearance, personality}), locations (array of {existingLocationId?, name, description, kind}).\nFor a new character \"appearance\" is one dense sentence of how they look (age, build, face, hair, skin, eyes, wardrobe, one distinguishing detail)."
+    },
+    {
+      "role": "assistant",
+      "content": "{\n\"title\": \"The Harbour Office\",\n\"logline\": \"Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn bureaucrat who guards the town's secrets.\",\n\"premise\": \"The morning after the meteor shower, the adrenaline remains. Elias and Najm realize that while the radio provides a voice from the past, only the official records can explain why the Mariner vanished. They set their sights on the Kerran Point Harbour Office, where the ship's final logbook has been locked away since the 1987 inquiry.\\n\\nThe tension shifts from the mystical to the bureaucratic as the two men confront the Harbour Master, a man who views the tragedy of 1987 as a closed chapter that should remain shut. The episode focuses on the contrast between Elias's desperate emotional drive and the cold, paper-shuffling rigidity of the town's administration.\\n\\nThrough a combination of Elias's local standing and Najm's strategic knowledge of archival loopholes, they attempt to breach the archives. The goal is not just a book, but a clue to whether the Mariner was truly lost to the storm or if something more sinister kept it from coming home.\",\n\"genre\": \"mystery drama\",\n\"mood\": \"determined, claustrophobic, bittersweet\",\n\"structure\": [\n{\n\"title\": \"The Morning After\",\n\"summary\": \"In the grey morning light of Elias's Workshop, the two men stare at the silent radio. The excitement of the night has turned into a heavy, shared urgency. Elias, rubbing his bandaged left palm, insists on visiting the Harbour Office, while Najm meticulously maps out the official's likely objections.\"\n},\n{\n\"title\": \"The Walk Through Kerran Point\",\n\"summary\": \"A sequence of shots showing Elias and Najm walking through the wind-swept, salt-crusted town. They pass shuttered fish-markets and rusted anchors, establishing the town's stagnant energy. Elias's missing heel tread on his boot makes a rhythmic 'clack-thud' that punctuates their tense conversation.\"\n},\n{\n\"title\": \"The Gatekeeper\",\n\"summary\": \"They enter the Harbour Office, a space that feels like a paper labyrinth. They meet Arthur, the Harbour Master, whose movement is as precise and restrictive as his rules. Arthur dismisses their request for the logbook with a series of exaggerated, dismissive hand gestures and citing 'Official Seal 1987'.\"\n},\n{\n\"title\": \"The Librarian's Gambit\",\n\"summary\": \"As Elias grows visibly frustrated, Najm steps in. Using his background as a librarian, he begins to point out inconsistencies in the office's filing system—physical business involving him rearranging a few folders to find a 'lost' administrative error from decades ago that grants them temporary access.\"\n},\n{\n\"title\": \"The First Page\",\n\"summary\": \"Arthur reluctantly allows them to see the logbook under strict supervision. The camera focuses on the tactile nature of the old leather and yellowed pages. They find a final, handwritten entry from Ruth Moore that doesn't match the official cause of death in the inquiry report.\"\n},\n{\n\"title\": \"The Weight of Truth\",\n\"summary\": \"Exiled back into the cold air, the two men stand on the pier. They have a new piece of the puzzle, but it confirms that the 1987 inquiry was a lie. They look out at the horizon, the sea sounding louder and more menacing than before.\"\n}\n],\n\"cast\": [\n{\n\"existingCharacterId\": \"char-56c47abc59\",\n\"name\": \"Elias Moore\",\n\"role\": \"Retired Lighthouse Keeper\",\n\"sex\": \"MALE\",\n\"ageYears\": 72\n},\n{\n\"existingCharacterId\": \"char-e71e80cde4\",\n\"name\": \"Najm\",\n\"role\": \"Retired Librarian\",\n\"sex\": \"MALE\",\n\"ageYears\": 65\n},\n{\n\"name\": \"Arthur Penhaligon\",\n\"role\": \"The Harbour Master\",\n\"reason\": \"To serve as the bureaucratic antagonist and the keeper of the physical evidence (the logbook).\",\n\"sex\": \"MALE\",\n\"ageYears\": 62,\n\"appearance\": \"A spindly, narrow-shouldered man with a sharp, beak-like nose, wire-rimmed glasses perched on the tip, wearing a moth-eaten beige cardigan over a stiff white button-down, with thin, pale fingers always stained with ink.\",\n\"personality\": \"Rigid, pedantic, and deeply uncomfortable with emotional outbursts; he hides his own guilt behind a shield of rules and regulations.\"\n}\n],\n\"locations\": [\n{\n\"existingLocationId\": \"loc-cde19129ca\",\n\"name\": \"Elias’s Workshop\",\n\"kind\": \"INTERIOR\"\n},\n{\n\"name\": \"The Harbour Office\",\n\"description\": \"A claustrophobic interior filled with towering walls of grey filing cabinets and stacks of yellowing ledgers. A single, dusty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.\",\n\"kind\": \"INTERIOR\"\n}\n]\n}"
+    },
+    {
+      "role": "user",
+      "content": "The JSON does not match the required shape. Fix exactly these problems and answer with the complete corrected JSON only:\nlocations.0.description: Invalid input: expected string, received undefined"
+    }
+  ],
+  "answer": {
+    "sample": false,
+    "title": "The Harbour Office",
+    "logline": "Driven by the radio's ghostly call, Elias and Najm attempt to retrieve the Mariner's sealed logbook from a stubborn bureaucrat who guards the town's secrets.",
+    "premise": "The morning after the meteor shower, the adrenaline remains. Elias and Najm realize that while the radio provides a voice from the past, only the official records can explain why the Mariner vanished. They set their sights on the Kerran Point Harbour Office, where the ship's final logbook has been locked away since the 1987 inquiry.\n\nThe tension shifts from the mystical to the bureaucratic as the two men confront the Harbour Master, a man who views the tragedy of 1987 as a closed chapter that should remain shut. The episode focuses on the contrast between Elias's desperate emotional drive and the cold, paper-shuffling rigidity of the town's administration.\n\nThrough a combination of Elias's local standing and Najm's strategic knowledge of archival loopholes, they attempt to breach the archives. The goal is not just a book, but a clue to whether the Mariner was truly lost to the storm or if something more sinister kept it from coming home.",
+    "genre": "mystery drama",
+    "mood": "determined, claustrophobic, bittersweet",
+    "style": "CARTOON",
+    "language": "EN",
+    "durationSeconds": 270,
+    "structure": [
+      {
+        "title": "The Morning After",
+        "summary": "In the grey morning light of Elias's Workshop, the two men stare at the silent radio. The excitement of the night has turned into a heavy, shared urgency. Elias, rubbing his bandaged left palm, insists on visiting the Harbour Office, while Najm meticulously maps out the official's likely objections."
+      },
+      {
+        "title": "The Walk Through Kerran Point",
+        "summary": "A sequence of shots showing Elias and Najm walking through the wind-swept, salt-crusted town. They pass shuttered fish-markets and rusted anchors, establishing the town's stagnant energy. Elias's missing heel tread on his boot makes a rhythmic 'clack-thud' that punctuates their tense conversation."
+      },
+      {
+        "title": "The Gatekeeper",
+        "summary": "They enter the Harbour Office, a space that feels like a paper labyrinth. They meet Arthur, the Harbour Master, whose movement is as precise and restrictive as his rules. Arthur dismisses their request for the logbook with a series of exaggerated, dismissive hand gestures and citing 'Official Seal 1987'."
+      },
+      {
+        "title": "The Librarian's Gambit",
+        "summary": "As Elias grows visibly frustrated, Najm steps in. Using his background as a librarian, he begins to point out inconsistencies in the office's filing system—physical business involving him rearranging a few folders to find a 'lost' administrative error from decades ago that grants them temporary access."
+      },
+      {
+        "title": "The First Page",
+        "summary": "Arthur reluctantly allows them to see the logbook under strict supervision. The camera focuses on the tactile nature of the old leather and yellowed pages. They find a final, handwritten entry from Ruth Moore that doesn't match the official cause of death in the inquiry report."
+      },
+      {
+        "title": "The Weight of Truth",
+        "summary": "Exiled back into the cold air, the two men stand on the pier. They have a new piece of the puzzle, but it confirms that the 1987 inquiry was a lie. They look out at the horizon, the sea sounding louder and more menacing than before."
+      }
+    ],
+    "cast": [
+      {
+        "key": "c-char-56c47abc59",
+        "characterId": "char-56c47abc59",
+        "name": "Elias Moore",
+        "role": "Retired Lighthouse Keeper and Radio Repairman",
+        "reason": "Returning cast of The Static Sky. Returning from the library.",
+        "isNew": false,
+        "fromPreference": false,
+        "sex": "MALE",
+        "ageYears": 72
+      },
+      {
+        "key": "c-char-e71e80cde4",
+        "characterId": "char-e71e80cde4",
+        "name": "Najm",
+        "role": "Retired librarian and amateur astronomer",
+        "reason": "Returning cast of The Static Sky. Returning from the library.",
+        "isNew": false,
+        "fromPreference": false,
+        "sex": "MALE",
+        "ageYears": 65
+      },
+      {
+        "key": "new-c-2",
+        "name": "Arthur Penhaligon",
+        "role": "The Harbour Master",
+        "reason": "To serve as the bureaucratic antagonist and the keeper of the physical evidence (the logbook).",
+        "isNew": true,
+        "fromPreference": false,
+        "sex": "MALE",
+        "ageYears": 62,
+        "appearance": "A spindly, narrow-shouldered man with a sharp, beak-like nose, wire-rimmed glasses perched on the tip, wearing a moth-eaten beige cardigan over a stiff white button-down, with thin, pale fingers always stained with ink.",
+        "personality": "Rigid, pedantic, and deeply uncomfortable with emotional outbursts; he hides his own guilt behind a shield of rules and regulations."
+      }
+    ],
+    "locations": [
+      {
+        "key": "l-loc-cde19129ca",
+        "locationId": "loc-cde19129ca",
+        "name": "Elias’s Workshop",
+        "description": "A cluttered, dimly lit seaside repair workshop filled with old valve radios, nautical maps and hand tools. On the right wall hangs one framed portrait photograph of a smiling woman in her forties with dark curly hair, dated 1987. A large window looks out over the dark sea where a meteor shower streaks across the sky.",
+        "isNew": false,
+        "fromPreference": false,
+        "kind": "INTERIOR"
+      },
+      {
+        "key": "new-l-1",
+        "name": "The Harbour Office",
+        "description": "A claustrophobic interior filled with towering walls of grey filing cabinets and stacks of yellowing ledgers. A single, dusty window allows a sliver of cold northern light to hit a heavy oak desk. The air is thick with the smell of old paper and damp salt.",
+        "isNew": true,
+        "fromPreference": false,
+        "kind": "INTERIOR"
+      }
+    ]
+  }
+}
