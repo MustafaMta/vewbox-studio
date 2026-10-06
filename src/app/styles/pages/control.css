@@ -6,11 +6,12 @@
      fl-*   Files (src/components/files/Files.tsx): the bar, owner blocks, shaped grids, the preview
    ============================================================================================================ */
 @layer components {
-  /* ---- decisions: 4 across at ≥ 1280, 2 across from 640, a rail on phones (Home's rule) ------------------------- */
-  .ctl-decisions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin: 0; padding: 0; list-style: none; }
-  .ctl-decisions > * { display: flex; min-inline-size: 0; }
+  /* ---- decisions: ONE row at every width (QA S1: the skeleton reserves one row; a second row of decisions moved the
+     page by a card's height), 4 in view at ≥ 1280, 2 from 640, a rail on phones (Home's rule); more scroll sideways */
+  .ctl-decisions { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 16px) / 2); gap: 16px; align-items: stretch; margin: -4px -4px 0; padding: 4px 4px 8px; list-style: none; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+  .ctl-decisions > * { display: flex; min-inline-size: 0; scroll-snap-align: start; }
   .ctl-decisions > * > .dcard { flex: 1; }
-  @media (min-width: 1280px) { .ctl-decisions { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 1280px) { .ctl-decisions { grid-auto-columns: calc((100% - 3 * 16px) / 4); } }
   @media (max-width: 639px) {
     .ctl-decisions { display: flex; gap: 12px; margin-inline: calc(-1 * var(--pad)); padding-inline: var(--pad); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--pad); overscroll-behavior-x: contain; padding-block-end: 8px; }
     .ctl-decisions > * { flex: none; inline-size: 280px; scroll-snap-align: start; }

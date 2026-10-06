@@ -561,7 +561,7 @@ function Boundary({ p, shot, value, onChange, continuation, onContinuation }: { 
     <>
       <Field label="Join with the shot before" help={<>{BOUNDARY_WORDS[shown].line}{value ? '' : ' (planned from the scene order; choose to set it)'}</>}>
         <Segmented<ShotBoundary> label="Join with the shot before" size="sm" value={shown} onChange={onChange}
-          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label, disabled: first && b !== 'transition', reason: first && b === 'continuous' ? firstWhy : undefined }))} />
+          options={(['continuous', 'cut', 'transition'] as const).map((b) => ({ value: b, label: BOUNDARY_WORDS[b].label, disabled: first && b !== 'transition', reason: first && b !== 'transition' ? firstWhy : undefined }))} />
       </Field>
       {shown === 'continuous' && !first && (
         <>

@@ -53,6 +53,11 @@
   .create-back { display: inline-flex; align-items: center; gap: 4px; min-block-size: 20px; margin-block-end: 12px; font-size: 13px; line-height: 18px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: var(--r-xs); transition: color var(--dur-1) var(--ease-out); }
   .create-back:hover { color: var(--text-1); }
   .create-back svg { inline-size: 14px; block-size: 14px; }
+  /* QA S3: the back link and the Preferences disclosure are 44 px targets on a coarse pointer (the line keeps its height) */
+  @media (pointer: coarse) {
+    .create-back { min-block-size: 44px; margin-block: -12px 0; }
+    .disclosure[data-variant='inline'] .disclosure-head { min-block-size: 44px; align-items: center; }
+  }
   .create-title-row { display: flex; align-items: center; gap: 12px; min-inline-size: 0; }
   .create-glyph { display: inline-flex; flex: none; color: var(--text-2); }
   .create-glyph svg { inline-size: 24px; block-size: 24px; }

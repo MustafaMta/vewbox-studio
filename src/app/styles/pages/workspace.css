@@ -538,6 +538,9 @@
     .ws-fact .check-row { align-items: center; min-block-size: 44px; }
     .ws-fact .check-row > .check { margin: 14px; }
     .ws-fact .check-row { margin-inline-start: -14px; gap: 0; }
+    /* QA S3: the Story tab's checkbox rows and the Produce tab's shot names are 44 px targets */
+    :is(.ws-checks, .ws-scene-establish) > .check-row, .ws-scene-card .check-row { align-items: center; min-block-size: 44px; }
+    .ws-prod-name { align-items: center; min-block-size: 44px; }
     .ws-studioline-link { display: inline-flex; align-items: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -13px; }
     .ws-textlink { display: inline-flex; align-items: center; justify-content: center; min-inline-size: 44px; min-block-size: 44px; margin-block: -12px; }
     .ws-flow a, .ws-skeleton .ws-flow > span { min-block-size: 44px; }
