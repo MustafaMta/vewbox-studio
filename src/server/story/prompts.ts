@@ -473,8 +473,10 @@ export const FRAMING_WORDS: Record<Framing, string> = {
   MEDIUM_WIDE: 'a medium wide shot: the people from the knees up, the room around them',
   MEDIUM: 'a medium shot: the people from the waist up; the place is the background behind them',
   MEDIUM_CLOSE_UP: 'a medium close-up: head and chest fill most of the frame; the place is a soft background',
-  CLOSE_UP: 'a close-up: the face fills the frame; the place is only a blurred background',
-  EXTREME_CLOSE_UP: 'an extreme close-up: one detail of the face fills the frame',
+  // the subject, not always the face: a close-up of "his shoe slips on a wet step" told "the face fills the frame" was
+  // drawn with BOTH — the man on the stair and a giant second face in the lens (2026-10-08, "The Last Crossing" 1.1)
+  CLOSE_UP: 'a close-up: what the moment is about fills the frame — the face, or the hand, foot or object the action happens to; one of each person, never a second face; the place is only a blurred background',
+  EXTREME_CLOSE_UP: 'an extreme close-up: one detail the moment is about fills the frame — an eye, a mouth, a hand, an object',
   INSERT: 'an insert: one object or hand detail fills the frame',
   TWO_SHOT: 'a two-shot: both people from the waist up, side by side in the frame',
   OVER_THE_SHOULDER: 'an over-the-shoulder shot: the back of one person’s shoulder and head in the foreground, the other person facing the camera',

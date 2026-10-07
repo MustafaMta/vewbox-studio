@@ -42,6 +42,17 @@ describe('the moment’s state, as one edit of the drawn frame', () => {
   });
 });
 
+describe('the frame’s people: the vision count and the faces', () => {
+  it('a second face fails a one-person frame even when the vision count says one (the giant face in the lens)', async () => {
+    const { framePeopleOk } = await import('@/worker/handlers/images');
+    expect(framePeopleOk(1, 1, 1)).toBe(true);
+    expect(framePeopleOk(1, 1, 2)).toBe(false); // 1.1: man on the stair + a giant face (YuNet 0.91 and 0.93)
+    expect(framePeopleOk(1, 2, 2)).toBe(false); // a stranger
+    expect(framePeopleOk(2, 2, 1)).toBe(true); // a face turned away is not a missing person
+    expect(framePeopleOk(1, undefined, undefined)).toBe(true); // nothing measured never fails a frame
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');

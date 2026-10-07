@@ -26,7 +26,7 @@ import {
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
 import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
-import { faceIdentity, judgeIdentity } from '@/server/providers/qa-service';
+import { detectFaces, faceIdentity, isQaUnavailable, judgeIdentity } from '@/server/providers/qa-service';
 import type { FrameIdentity } from '@/domain/frames';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
@@ -588,23 +588,26 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // — it is never drawn again silently (it was, once, until 2026-10-08)
   let counted: number | undefined;
   let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, creativeAttempt: 1, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
-  if (expected !== undefined) counted = await countPeople(ctx, kept.id, label);
+  let faces: number | undefined;
+  if (expected !== undefined) { counted = await countPeople(ctx, kept.id, label); faces = await countFaces(kept.id); }
   await ctx.checkpoint();
-  const wrong = expected !== undefined && counted !== undefined && counted !== expected;
+  let wrong = expected !== undefined && !framePeopleOk(expected, counted, faces);
   // THE COUNT IS KEPT ON THE FRAME (acceptance 2026-10-05, open item 5: a frame that failed the people count was kept
   // and the warning lived only in the job log): the shot page shows it beside the frame, and the preflight refuses to
   // film from an opening frame that holds the wrong people until it is redrawn or removed
-  if (kept && expected !== undefined && counted !== undefined) {
-    const a = (await readState({ shared: true })).state.assets.find((x) => x.id === kept!.id);
-    await command('updateAsset', [kept.id, { provenance: { ...(a?.provenance ?? {}), peopleCheck: { expected, counted, ok: !wrong, at: new Date().toISOString() } } }], 'worker');
-  }
+  const recordPeople = async (id: string) => {
+    if (expected === undefined || (counted === undefined && faces === undefined)) return;
+    const a = (await readState({ shared: true })).state.assets.find((x) => x.id === id);
+    await command('updateAsset', [id, { provenance: { ...(a?.provenance ?? {}), peopleCheck: { expected, counted: Math.max(counted ?? 0, faces ?? 0), people: counted, faces, ok: !wrong, at: new Date().toISOString() } } }], 'worker');
+  };
+  await recordPeople(kept.id);
   // an ending frame is optional and a take is guided towards it: a wrong one is left out rather than filmed towards
   if (wrong && opts.ending) {
     await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ending frame still holds ${counted} people where the shot has ${expected} (${kept!.id}); the shot keeps no ending frame`, { shotId: sh.id, assetId: kept!.id, expected, counted });
     await command('setShotFrames', [p.id, sh.id, { endingFrameAssetId: null }], 'worker');
     return undefined;
   }
-  if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) holds ${counted} people where the shot has ${expected} — redraw it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+  if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) holds ${counted ?? '?'} ${counted === 1 ? 'person' : 'people'} and ${faces ?? '?'} ${faces === 1 ? 'face' : 'faces'} where the shot has ${expected} — redraw it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted, faces });
   // A ONE-PERSON CLOSE SHOT IS CUT TO ITS FRAMING (acceptance 2026-10-06, Tea 1.3): composed from the person, the edit
   // model still draws about a medium shot; the frame is cropped around the drawn face to the planned framing's extent
   // and scaled back to the take size — or kept as drawn (no face, or the crop would be too soft)
@@ -613,7 +616,17 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // the portrait's expression; one edit pass on this frame gives it the moment's, and its face is then measured against
   // the canonical image and recorded (a FAIL is never filmed from). A defined stage, run once — never a choice between
   // candidates.
-  if (!wrong && composition === 'PEOPLE' && people.length === 1) kept = await momentState(ctx, kept!, sh, people[0], { width: info.width, height: info.height }, `frame:${sh.id}:${which}:moment`, label);
+  if (!wrong && composition === 'PEOPLE' && people.length === 1) {
+    const before = kept!.id;
+    kept = await momentState(ctx, kept!, sh, people[0], { width: info.width, height: info.height }, `frame:${sh.id}:${which}:moment`, label);
+    // the edit can add a face: the frame that will be filmed is counted again, and its check is the one recorded on it
+    if (kept.id !== before && expected !== undefined) {
+      faces = await countFaces(kept.id);
+      wrong = !framePeopleOk(expected, counted, faces);
+      if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame given the moment (${kept.id}) shows ${faces} faces where the shot has ${expected} — redraw it before filming`, { shotId: sh.id, assetId: kept.id, expected, faces });
+    }
+  }
+  if (kept && kept.id !== undefined) await recordPeople(kept.id);
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
 }
@@ -680,6 +693,24 @@ async function framedToShot(ctx: HandlerContext, drawn: Drawn, sh: Shot, size: {
 export { peopleExpected };
 
 /** The people physically in a drawn frame (people.ts); undefined when the vision model is not installed. */
+/** The confident faces on a still (YuNet, the asr service's /qa/faces): a second, disembodied face — a giant face in the
+ *  lens beside the man on the stair (2026-10-08, 1.1) — is no person to the vision count, but it is a face. */
+async function countFaces(assetId: string): Promise<number | undefined> {
+  const a = (await readState()).state.assets.find((x) => x.id === assetId);
+  if (!usableImage(a)) return undefined;
+  const r = await detectFaces(assetFile(a)).catch(() => undefined);
+  return !r || isQaUnavailable(r) ? undefined : r.faces.filter((f) => f.score >= FACE_SCORE).length;
+}
+/** A face this sure is counted (YuNet's own default threshold is 0.9 for detection; 0.8 keeps a turned or shadowed
+ *  face of the real person counted). */
+const FACE_SCORE = 0.8;
+
+/** THE FRAME'S PEOPLE (pure, tested): the vision count must equal the shot's people, and no more faces than people may
+ *  show (a duplicate face). Unknown readings never fail a frame. */
+export function framePeopleOk(expected: number, counted: number | undefined, faces: number | undefined): boolean {
+  return (counted === undefined || counted === expected) && (faces === undefined || faces <= expected);
+}
+
 async function countPeople(ctx: HandlerContext, assetId: string, label: string): Promise<number | undefined> {
   if (!(await canCountPeople())) return undefined;
   const a = (await readState()).state.assets.find((x) => x.id === assetId);

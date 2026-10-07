@@ -77,7 +77,8 @@ describe('item 1 — a frame is drawn at the shot’s framing, not the plate’s
     const { state, p } = fixture();
     const sh = { ...shotOf(p, 's13'), framing: 'CLOSE_UP' as const };
     const close = framePrompt(p, sh, state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), { timeOfDay: 'DUSK' });
-    expect(close).toMatch(/Camera: a close-up: the face fills the frame/);
+    // the subject of the moment fills a close-up (the face, or the hand, foot or object), never a second face (2026-10-08)
+    expect(close).toMatch(/Camera: a close-up: what the moment is about fills the frame — the face, or the hand, foot or object/);
     expect(close).toMatch(/keep the place’s look, not its framing/);
     const wide = framePrompt(p, { ...sh, framing: 'WIDE' as const }, state.characters, undefined, undefined);
     expect(wide).toMatch(/Camera: a wide shot/);
