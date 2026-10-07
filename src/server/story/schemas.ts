@@ -44,9 +44,11 @@ export const ProposalSchema = z.preprocess(aliases({ title: ['name', 'titleEn'],
   song: z.preprocess(aliases({ caption: ['description', 'style', 'musicalCaption'], lyrics: ['text', 'words'] }), z.object({ title: str(80), caption: str(300).optional(), lyrics: z.string().trim().max(4000) })).optional(),
 }));
 
+/** A character the story invents: the caps are the character record's own (src/domain/commands.ts ProfileBase and
+ *  canon) — a tighter cap only fails good answers (Qwen3.8 writes 130–250-character look fields; Phase 1 finding). */
 export const CharacterDesignSchema = z.preprocess(aliases({ distinguishing: ['distinguishingFeatures', 'features', 'marks'], wardrobe: ['clothing', 'outfit', 'costume'] }), z.object({
-  build: str(160), face: str(300), hair: str(160), skin: str(80), eyes: str(80), distinguishing: strs(80, 6), wardrobe: str(300), personality: str(400), ageYears: int(1, 120).optional(), sex: sex.optional(), nameAr: str(60).optional(),
-  canon: z.object({ heightCm: int(30, 250).optional(), accessories: strs(80, 6).optional(), visualRestrictions: strs(120, 6).optional(), agePresentation: str(80).optional(), speech: str(200).optional() }).optional(),
+  build: str(400), face: str(400), hair: str(400), skin: str(400), eyes: str(400), distinguishing: strs(120, 6), wardrobe: str(400), personality: str(400), ageYears: int(1, 120).optional(), sex: sex.optional(), nameAr: str(80).optional(),
+  canon: z.object({ heightCm: int(30, 250).optional(), accessories: strs(120, 6).optional(), visualRestrictions: strs(200, 6).optional(), agePresentation: str(200).optional(), speech: str(400).optional() }).optional(),
 }));
 
 export const LocationDesignSchema = z.preprocess(aliases({ kind: ['type'], lighting: ['timesOfDay', 'times'] }), z.object({

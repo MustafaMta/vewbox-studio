@@ -185,12 +185,16 @@ Return JSON: { events: [3–8 one-sentence facts that later episodes must respec
 
 /** The local design's shape. Sex and the voice's pitch and pace are read from the model's words (`designSex`,
  *  `voicePitch`, `voicePace`): the strict enums here cost a repair round on every local design (MODEL-EVAL-2026-10 §3). */
+/*  The caps are the character record's own (src/domain/commands.ts ProfileBase: 400 per look field, a role of 200, a
+ *  timbre of 200): a cap tighter than what the studio stores only fails good answers — Qwen3.8 writes 130–250
+ *  character look fields and cannot count characters, so a 120 cap cost every repair round and failed whole jobs
+ *  (Phase 1, 2026-10-07: "skin/eyes too big" three times running). The prompt asks for the length it should aim at. */
 export const CharacterDesignSchema = z.object({
-  name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(120),
+  name: z.string().min(1).max(80), nameAr: z.string().max(80).optional(), role: z.string().min(1).max(200),
   sex: designSex, ageYears: z.number().int().min(1).max(120), species: z.string().max(60).optional(),
-  build: z.string().min(2).max(200), face: z.string().min(2).max(300), hair: z.string().min(2).max(200), skin: z.string().min(2).max(120), eyes: z.string().min(2).max(120),
-  distinguishing: z.array(z.string().max(120)).max(6), wardrobe: z.string().min(2).max(300), personality: z.string().min(2).max(400),
-  voice: z.object({ pitch: voicePitch, pace: voicePace, timbre: z.string().max(120), notes: z.string().max(200).optional() }).optional(),
+  build: z.string().min(2).max(400), face: z.string().min(2).max(400), hair: z.string().min(2).max(400), skin: z.string().min(2).max(400), eyes: z.string().min(2).max(400),
+  distinguishing: z.array(z.string().max(120)).max(6), wardrobe: z.string().min(2).max(400), personality: z.string().min(2).max(400),
+  voice: z.object({ pitch: voicePitch, pace: voicePace, timbre: z.string().max(200), notes: z.string().max(400).optional() }).optional(),
 });
 export type CharacterDesign = z.infer<typeof CharacterDesignSchema>;
 type ReferenceDesign = z.infer<typeof CharacterDesignFromReferenceSchema>;
@@ -212,7 +216,7 @@ export async function designCharacter(s: StudioState, req: { brief: string; name
   const user = `Design ONE new original character for ${req.style.toLowerCase()} production in ${req.language === 'AR' ? `Arabic${req.dialect ? ` (${DIALECT_LABELS[req.dialect].en})` : ''}` : 'English'}.
 Brief: """${req.brief}"""${req.name ? `\nName to use: ${req.name}` : ''}${req.world ? `\nThe world they belong to: ${req.world}` : ''}
 Existing characters (do not duplicate a look or a name): ${compact(existing)}
-Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot. State facial hair exactly ("a grey moustache only, clean-shaven chin", "a full beard", "clean-shaven") and give a culturally specific garment its cut and length ("an ankle-length grey dishdasha").`;
+Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, voice: { pitch, pace, timbre, notes? } }. Each look field (build, face, hair, skin, eyes, wardrobe) is ONE short sentence about that part only (under 200 characters; never more than 400); each distinguishing detail under 120 characters. Describe the look concretely (a picture is drawn from these words); one distinguishing detail that survives every shot. State facial hair exactly ("a grey moustache only, clean-shaven chin", "a full beard", "clean-shaven") and give a culturally specific garment its cut and length ("an ankle-length grey dishdasha").`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(req.style)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(CharacterDesignSchema, messages, { ...opts, maxTokens: 2500, temperature: 0.9 });
   opts.onResult?.(r.result);

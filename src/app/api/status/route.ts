@@ -3,6 +3,7 @@ import { json, route } from '@/server/http';
 import { videoBackendStatus } from '@/server/providers/video';
 import * as comfy from '@/server/providers/comfy';
 import { plannerBase, resolveProvider } from '@/server/providers/llm';
+import { VOICE_ENGINES, englishEngine } from '@/server/providers/voice-engines';
 import { vllmSleeping } from '@/server/providers/vllm';
 import { llmDisplayName } from '@/domain/llm-names';
 
@@ -18,8 +19,10 @@ async function probe(url: string, timeoutMs = 2500): Promise<{ ok: boolean; deta
 /** Live engine status for the Settings page: what runs where, and whether it is reachable right now. */
 export const GET = route(async () => {
   const e = env();
+  const voiceEngine = englishEngine(e.VOICE_ENGINE_EN);
+  const voiceUrl = String(e[VOICE_ENGINES[voiceEngine].urlEnv] || VOICE_ENGINES[voiceEngine].defaultUrl).replace(/\/$/, '');
   const caps = capabilities();
-  const [video, comfyHealth, tts, asr, design, habibi] = await Promise.all([videoBackendStatus(), comfy.health(), probe(`${e.TTS_URL}/health`), probe(`${e.ASR_URL}/health`), probe(`${e.TTS_DESIGN_URL}/health`), probe(`${e.TTS_HABIBI_URL}/health`)]);
+  const [video, comfyHealth, tts, asr, design, habibi] = await Promise.all([videoBackendStatus(), comfy.health(), probe(`${voiceUrl}/health`), probe(`${e.ASR_URL}/health`), probe(`${e.TTS_DESIGN_URL}/health`), probe(`${e.TTS_HABIBI_URL}/health`)]);
   // THE LOCAL HELPERS THE CHECKS AND VOICES NEED (the engine room says which one is offline, with the service's own
   // reason): word timing and picture QA from the asr service's capabilities, voice design and the Iraqi voice engine
   const cap = (asr.data?.capabilities ?? {}) as { align?: { en?: { available?: boolean; reason?: string | null; model?: string }; ar?: { available?: boolean; reason?: string | null; model?: string } }; qa_mouth?: { available?: boolean; reason?: string | null; model?: string }; qa_identity?: { available?: boolean; reason?: string | null; model?: string }; syncnet?: { available?: boolean; reason?: string | null } };
@@ -53,7 +56,8 @@ export const GET = route(async () => {
   return json({
     video: { ok: video.ready, detail: video.detail, where: video.backend === 'api' ? 'hosted' : 'local', backend: video.backend, model: video.backend === 'api' ? caps.videoModel : 'MiniMax-H3 (open weights)' },
     story, images: { ...images, where: 'local' },
-    voice: { ok: tts.ok, detail: tts.ok ? String((tts.data?.engines as unknown) ?? 'ready') : `voice service ${tts.detail}`, where: 'local' },
+    // the engine new English voices are built and spoken with (VOICE_ENGINE_EN: MOSS-TTS), not the retired default
+    voice: { ok: tts.ok, detail: tts.ok ? `${VOICE_ENGINES[voiceEngine].label}${tts.data?.loaded === false ? ' (loads on first use)' : ''}` : `${VOICE_ENGINES[voiceEngine].label} ${tts.detail}`, where: 'local' },
     transcription: { ok: asr.ok, detail: asr.ok ? String(asr.data?.model ?? 'ready') : `transcription service ${asr.detail}`, where: 'local' },
     music: { ...music, where: e.MINIMAX_API_KEY ? 'hosted' : 'local' },
     gpu: comfyHealth.ok ? { device: comfyHealth.device, vramTotal: comfyHealth.vramTotal, vramFree: comfyHealth.vramFree } : null,

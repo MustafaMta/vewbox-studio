@@ -76,14 +76,21 @@ export function Settings({ value, onChange }: { value: HeaderValues; onChange: (
 function StyleLanguage({ value, onChange }: { value: HeaderValues; onChange: (v: HeaderValues) => void }) {
   const set = (p: Partial<HeaderValues>) => onChange({ ...value, ...p });
   return (
+    <>
     <div className="pc-choices">
       <div><p className="label">Performs</p><Segmented label="Performs" value={value.kind} onChange={(v) => set({ kind: v })} options={PERFORMER_KINDS.map((k) => ({ value: k, label: KIND_WORD[k] }))} /></div>
-      {sings(value.kind) && <Field label="Singing voice" optional help="The range they sing in; the song engine is matched to it."><Select value={value.voiceType ?? ''} onChange={(e) => set({ voiceType: (e.target.value || undefined) as VoiceType | undefined })} placeholder="Studio decides" options={VOICE_TYPES.map((t) => ({ value: t, label: VOICE_TYPE_WORD[t] }))} /></Field>}
-      {sings(value.kind) && <Field label="Singing styles" optional help="A few words, separated by commas: ballad, folk, pop."><Input value={value.singingStyles ?? ''} onChange={(e) => set({ singingStyles: e.target.value })} maxLength={200} autoComplete="off" /></Field>}
       <div><p className="label">Style</p><Segmented label="Style" value={value.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: STYLE_WORD[s] }))} /></div>
       <div><p className="label">Language</p><Segmented label="Language" value={value.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: 'English' }, { value: 'AR' as Language, label: 'Arabic' }]} /></div>
       {value.language === 'AR' && <Field label="Dialect"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
     </div>
+    {/* a singer's own facts, on their own row (they belong to the singing voice, not to the look) */}
+    {sings(value.kind) && (
+      <div className="pc-choices">
+        <Field label="Singing voice" optional help="The range they sing in; the song engine is matched to it."><Select aria-label="Singing voice" value={value.voiceType ?? ''} onChange={(e) => set({ voiceType: (e.target.value || undefined) as VoiceType | undefined })} placeholder="Studio decides" options={VOICE_TYPES.map((t) => ({ value: t, label: VOICE_TYPE_WORD[t] }))} /></Field>
+        <Field label="Singing styles" optional help="A few words, separated by commas: ballad, folk, pop."><Input value={value.singingStyles ?? ''} onChange={(e) => set({ singingStyles: e.target.value })} maxLength={200} autoComplete="off" /></Field>
+      </div>
+    )}
+    </>
   );
 }
 

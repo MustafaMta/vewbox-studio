@@ -30,12 +30,13 @@ describe('the recorded first answers (MODEL-EVAL-2026-10 llm/*/design-run*.json)
     expect(r2.data).toMatchObject({ sex: 'MALE', voice: { pitch: 'LOW', pace: 'SLOW' } }); // "Male", "Medium-low", "Slow and rhythmic"
   });
 
-  it('qwen3:14b: run 2 valid; run 1 keeps only its genuine mistake (a 120+ character role), no enum issue', () => {
+  it('qwen3:14b: both runs valid, no enum issue (run 1\'s 120+ character role fits the record\'s 200 since Phase 1)', () => {
     const r2 = CharacterDesignSchema.safeParse(firstAnswer('qwen3_14b', 2));
     expect(issues(r2)).toEqual([]);
     expect(r2.data).toMatchObject({ sex: 'MALE', voice: { pitch: 'LOW', pace: 'MEASURED' } }); // "low and gravelly", "measured, with pauses for effect"
     const r1 = CharacterDesignSchema.safeParse(firstAnswer('qwen3_14b', 1));
-    expect(issues(r1)).toEqual(['role']);
+    expect(issues(r1)).toEqual([]);
+    expect(String((r1.data as { role: string }).role).length).toBeGreaterThan(120);
   });
 
   it('the reference-mode design uses the same reading', () => {

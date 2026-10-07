@@ -32,7 +32,46 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   32,768 (`src/server/jobs/work-deadline.ts`); the planner's speed/VRAM figures were placeholders (25 tok/s,
   31,500 MiB) — now the measured 13 tok/s and 30,000 MiB; the story agents named "qwen3:14b (Ollama) or the configured
   hosted LLM" — now the planner.
-- **Remaining blocker:** none for Phase 1. Open: decode speed (try decode-only CUDA graphs once stability is proven);
+- **Remaining blocker:** none for Phase 1. Open (Phase 0): decode speed (try decode-only CUDA graphs once stability is proven);
   shot-length overrun (2) and the lens/window slip (3) belong to the shot-planning work of the filming phases; old LLM
   weights (Ollama 54 GB: Qwen3.6, Gemma; FP8 30.9 GB) are deleted only after NVFP4 has run stably, with the
   producer's approval.
+
+## Phase 1 — Character + persistent voice — DONE, listening pending (2026-10-07)
+
+- **Commit:** `main` (Phase 1 commits after `90ac641`).
+- **Models active:** Qwen3.8-27B-NVFP4 (character sheets), Qwen-Image-2512 fp8 (canonical figures, ComfyUI 0.38.1),
+  VoxCPM2 (one designed voice seed per character), MOSS-TTS v1.5 (8B Delay; every spoken line), Whisper large-v3
+  (heard-back checks), ECAPA (speaker similarity). Services: `comfyui`, `tts-design`, `tts-moss`, `asr`.
+- **Built:** performer kind ACTOR / SINGER / ACTOR_SINGER in domain, DB (migration 0028), creation UI ("Performs", with
+  singing voice and styles for a kind that sings), character page (slate + Performs section) and cast directory (label
+  under the name, filter); the singing profile is stored apart from the spoken voice.
+- **First-attempt policy enforced in this path:** canonical image drawn ONCE (no automatic redraw); voice design makes
+  ONE voice (no best-of-3, no candidate grid); the voice seed is the character's (a retry makes the same voice);
+  dialogue lines failing their gate are kept and flagged, never re-spoken automatically.
+- **Real artifacts (through the UI):** Walter Finch — Actor, Cartoon; Hana Kisaragi — Singer, Anime (soprano; ballad,
+  city pop); Marcus Bell — Actor + Singer, Realistic (baritone; soul, gospel). Each: one canonical full-body front
+  figure (inspected, approved), one designed voice pinned to MOSS, the proof line and three different requested
+  sentences. 12/12 lines heard back exactly (CER 0). Speaker similarity (ECAPA, mean over each character's 4 lines):
+  within a character 0.806 / 0.773 / 0.759, across characters 0.106–0.194 — one persistent, distinct voice each
+  (`scripts/voice-identity-matrix.ts`). Creation 2:03–2:13 per character (design ~60 s, figure ~60 s), voice build
+  60–127 s, a line ~14 s.
+- **First-attempt result:** 20 of 21 jobs on attempt 1. The exception: Hana's design needed 3 job attempts (see root
+  causes).
+- **Defects found:** (1) side-specific details are mirrored in 4 of 4 cases (pencil ear, hair streak, ring hand, brow
+  scar) — Qwen-Image places "left/right" from the viewer; a measured A/B (15/24 either way) showed prompt wording does
+  not fix it, so the approved image is the authority and the written sheet can contradict it; (2) Marcus reads older
+  than 41 (all-grey hair and beard for "greying at the temples") and his "small healed scar" was drawn as a fresh red
+  cut; (3) planner sheet slips: boots inside Walter's face field, a garbled wardrobe ending, "clean-shaven; no facial
+  hair" for Hana; (4) the creation form remembers the previous character's kind and singing range (convenient, but a
+  soprano can carry over); (5) MOSS takes emotion only from its reference, so gruff / proud / kind lines cannot be
+  steered per line — to be judged by ear; (6) unconfirmed: the cast directory figures looked dull in the pane's
+  screenshots (CSS and the thumbnail file are normal).
+- **Root causes fixed:** the character-design schemas capped look fields at 80–200 characters while the character
+  record stores 400 — Qwen3.8 writes 130–250 and cannot count characters, so three repair rounds failed and the job
+  re-ran (Hana); the caps now equal the record's and the prompt asks for one short sentence per field (Marcus: 0
+  repairs); the same latent cap in story development's invented characters fixed. The voice health check probed the
+  retired IndexTTS service and reported the voice engine down; it now probes the configured English engine (MOSS).
+  The creation form put Style beside the singing fields; the singing fields now have their own row.
+- **Remaining blocker:** the producer must LISTEN — naturalness, emotional range and pronunciation are not claimed by
+  any measurement (each character's page plays the voice and every line; "I listened" records the judgement).

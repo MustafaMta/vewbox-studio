@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { KIND_WORD } from './create/Starts';
 import type { ReactNode } from 'react';
 import type { Asset, Character, StudioState } from '@/domain/types';
 import { assetById, primaryImageOf } from '@/studio/selectors';
@@ -41,6 +42,8 @@ export function figureOf(s: StudioState, c: Character): Asset | undefined {
 export function CastCard({ c, asset, track, waiting, priority }: { c: Character; asset?: Asset; track: Track | null; waiting: boolean; priority?: boolean }) {
   return (
     <FigureCard href={`/characters/${encodeURIComponent(c.id)}`} name={c.name} nameLang={nameLang(c.name)} asset={asset} waiting={waiting} priority={priority}
+      // what they are cast as, under the name (casting reads it at a glance); "Needs approval" wins while it applies
+      badge={waiting ? undefined : <span className="t-meta">{KIND_WORD[c.kind ?? 'ACTOR']}</span>}
       disc={track ? <PlayDisc track={track} size={36} tone="secondary" labelPlay={`Play ${c.name}’s voice`} labelPause={`Pause ${c.name}’s voice`} /> : undefined} />
   );
 }
