@@ -339,6 +339,15 @@
       ]
     },
     {
+      "name": "eval-svc-soulx-singer",
+      "purpose": "EVALUATION ONLY — NOT PRODUCTION-APPROVED (Phase 3 singer identity, 2026-10-07). ACE-Step's timbre reference moved a sung vocal only partway to a real speaker (ECAPA 0.05 → 0.39), so the minimal production-safe path is evaluated: SoulX-Singer-SVC, zero-shot singing voice conversion (frozen Whisper-base content encoder + F0 encoder + flow-matching decoder; transcription-free; no per-speaker training) — the song's vocal re-voiced by the performer's consented reference. Checks so far: code and weights Apache-2.0 (model card), active (updated 2026-03-13), local. OPEN: training data is a 'large-scale proprietary dataset' (42k+ h, Mandarin/English/Cantonese) with no named sources — provenance needs the producer's legal review; the prompt is meant to be SINGING (speech reference to be tested); Arabic untested; the weights are .pt pickles (loaded only inside an isolated evaluation container). RMVPE (pitch) from the preprocess repo. Revision and sha256 from the Hugging Face API (LFS oid; config hashed from its bytes).",
+      "files": [
+        { "repo": "Soul-AILab/SoulX-Singer", "revision": "40493ad90286056c7a9095035164434a79daa8c9", "file": "config.yaml", "folder": "eval/soulx-singer", "bytes": 579, "sha256": "d164c978dde6f57e1075bc21ef5f9b7b27895267f35b735cebe863418492be38", "license": "Apache-2.0" },
+        { "repo": "Soul-AILab/SoulX-Singer", "revision": "40493ad90286056c7a9095035164434a79daa8c9", "file": "model-svc.pt", "folder": "eval/soulx-singer", "bytes": 2793965154, "sha256": "38e72d9e15be6eef3cc937daaf81421a7b5b546816786530bb9aa346cee5d43c", "license": "Apache-2.0" },
+        { "repo": "Soul-AILab/SoulX-Singer-Preprocess", "revision": "83dc50289d22a81b1e9998f5b9e111aef7c1fdcd", "file": "rmvpe/rmvpe.pt", "folder": "eval/soulx-singer/rmvpe", "bytes": 181184272, "sha256": "6d62215f4306e3ca278246188607209f09af3dc77ed4232efdd069798c4ec193", "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "qa-phoneme-espeak",
       "purpose": "THE IRAQI PHONOLOGY GATE (Phase 3, 2026-10-07): wav2vec2 XLSR-53 fine-tuned for multilingual phoneme recognition (IPA, eSpeak set; Apache-2.0), run on the CTC-aligned span of a dialect word to hear WHICH consonant was spoken: چ must come back as tʃ (the historical «باچر» → «باسر» failure is the regression case), گ as ɡ. Spelling-based ASR cannot do this: neither Qwen3-ASR nor Whisper writes چ (Whisper: 0 of 36). Used by the asr service (/qa/phonemes); never generates anything. Revision and sha256 from the Hugging Face API (LFS oid) and the downloaded small files.",
       "files": [

@@ -254,3 +254,27 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   - Iraqi engine decision, given that Habibi failed with a verified integration: `WAITING_FOR_USER`. The frozen stack
     keeps Habibi IRQ until the producer decides; nothing was switched silently.
   - Phoneme gate formal run: waiting for its model download (queued behind MOSS-SFX v2 and htdemucs_ft).
+### Phase 3 — singer identity (2026-10-07, later)
+
+- **ACE-Step timbre reference with a real human voice** (the lab clip; LAB TEST, controlled pair, same seed, Iraqi
+  lyrics):
+  - ECAPA to the speaker rose from 0.05 (no reference) to 0.389 (with the reference). For scale, the same person
+    speaking scores 0.76–0.81 and different people 0.11–0.19.
+  - Pitch moved toward hers: 328 → 262 Hz, against her 226 Hz. The tone came out darker.
+  - Both arms are intelligible, and the dialect Whisper hears «گلبي», «هسه» and «باچر» with the چ (ACE-Step sings the
+    چ that Habibi failed to speak).
+  - **A partial shift toward the speaker, not identity preservation, and not voice cloning.** On Hana's synthetic
+    voice there was no shift at all.
+  - Samples were sent: `WAITING_FOR_USER_ACCEPTANCE`.
+- **Minimal production-safe candidate, under evaluation:** SoulX-Singer-SVC (Soul AI Lab).
+  - Zero-shot singing voice conversion that re-voices the song's vocal with the performer's reference. It is
+    transcription-free and needs no per-speaker training.
+  - Passes: Apache-2.0 for code and weights, active (updated 2026-03-13), runs locally.
+  - **Open:**
+    - Training data is a proprietary 42k-hour set with no named sources: provenance needs legal review
+      (`WAITING_FOR_USER`).
+    - It expects a singing prompt; a speech reference is untested.
+    - Arabic is untested.
+    - Its weights are .pt pickles, so they are loaded only in an isolated evaluation container.
+  - Pinned as manifest group `eval-svc-soulx-singer` (2.98 GB), queued after the phoneme model.
+  - NOT production-approved. Seed-VC stays excluded (archived, GPL-3.0).
