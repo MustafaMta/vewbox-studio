@@ -23,6 +23,7 @@ const SORTS = [{ value: 'studio', label: 'Studio order' }, { value: 'name', labe
 type Sort = (typeof SORTS)[number]['value'];
 const FACETS: Facet[] = [
   { id: 'state', label: 'Image', options: [{ value: 'waiting', label: 'Needs approval' }, { value: 'approved', label: 'Approved' }, { value: 'locked', label: 'Filmed' }, { value: 'none', label: 'No image yet' }], kind: 'many' },
+  { id: 'performs', label: 'Performs', options: [{ value: 'ACTOR', label: 'Actor' }, { value: 'SINGER', label: 'Singer' }, { value: 'ACTOR_SINGER', label: 'Actor + Singer' }] },
   { id: 'style', label: 'Style', options: [{ value: 'CARTOON', label: 'Cartoon' }, { value: 'ANIME', label: 'Anime' }, { value: 'REALISTIC', label: 'Realistic' }] },
   { id: 'language', label: 'Language', options: [{ value: 'EN', label: 'English' }, { value: 'AR', label: 'Arabic' }] },
   { id: 'voice', label: 'Voice', options: [{ value: 'yes', label: 'Has a voice' }, { value: 'no', label: 'No voice yet' }] },
@@ -59,7 +60,7 @@ export function CastDirectory() {
   const shown = useMemo(() => {
     const f = large ? cat.filters : {};
     const hit = (id: string, v: string) => !f[id]?.length || f[id].includes(v);
-    const list = search(all, cat.q).filter((c) => hit('state', stateOf(c)) && hit('style', c.style) && hit('language', c.language) && hit('voice', voiceState(c) !== 'NONE' || c.voice.selectedSampleId ? 'yes' : 'no'));
+    const list = search(all, cat.q).filter((c) => hit('state', stateOf(c)) && hit('performs', c.kind ?? 'ACTOR') && hit('style', c.style) && hit('language', c.language) && hit('voice', voiceState(c) !== 'NONE' || c.voice.selectedSampleId ? 'yes' : 'no'));
     const sort = large ? cat.sort : 'studio';
     return sort === 'name' ? [...list].sort((a, b) => a.name.localeCompare(b.name)) : sort === 'recent' ? [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : list;
   }, [all, cat.q, cat.filters, cat.sort, large, waiting]); // eslint-disable-line react-hooks/exhaustive-deps

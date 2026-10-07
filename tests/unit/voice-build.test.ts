@@ -343,7 +343,7 @@ describe('speakLine on a built voice', () => {
 });
 
 describe('DIALOGUE_AUDIO and the gate', () => {
-  it('a line that FAILS is spoken once more; one just below the gate (REVIEW) is kept and flagged for a person', async () => {
+  it('a line that FAILS is kept and flagged (one recording, no automatic re-take); one just below the gate (REVIEW) is kept and flagged for a person', async () => {
     prepare({ text: 'x y z' });
     await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }));
     const p = fake.state.productions.find((x) => x.id === 'river-lights')!;
@@ -354,9 +354,9 @@ describe('DIALOGUE_AUDIO and the gate', () => {
     expect(fake.synth).toHaveLength(1);
     expect(review).toMatchObject({ lines: 1, flagged: 1, awaitingReview: true });
     fake.synth = [];
-    fake.asrHears = 'nothing like it at all'; // FAIL
+    fake.asrHears = 'nothing like it at all'; // FAIL: kept and flagged, never re-spoken automatically (first-attempt policy)
     const failed = await dialogueAudio(ctxFor({ payload: { productionId: p.id, force: true }, type: 'DIALOGUE_AUDIO' }));
-    expect(fake.synth).toHaveLength(2);
+    expect(fake.synth).toHaveLength(1);
     expect(failed).toMatchObject({ lines: 1, flagged: 1 });
     expect(fake.events.some((e) => /failed the gate/.test(e.message))).toBe(true);
   });

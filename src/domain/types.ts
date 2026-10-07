@@ -1,4 +1,4 @@
-import type { Aspect, CameraMove, CharacterRefRole, Dialect, Framing, Kind, Language, LocationRefRole, LyricKind, Sex, Stage, Style, TimeOfDay, Transition } from './vocabulary';
+import type { Aspect, CameraMove, CharacterRefRole, Dialect, Framing, Kind, Language, LocationRefRole, LyricKind, PerformerKind, Sex, Stage, Style, TimeOfDay, Transition, VoiceType } from './vocabulary';
 import type { Presentation } from './presentation';
 
 /** WHAT THE STUDIO KEEPS — the shapes every page reads and writes, and the shapes the server persists. The
@@ -721,10 +721,19 @@ export interface ImageReferenceValidation { ok: boolean; width: number; height: 
 export interface PendingReference { assetId: string; addedAt: string; validation?: ImageReferenceValidation }
 
 /** The written profile of a character as the server accepts it (diagnosis §3.1): validated by zod in commands.ts. */
+/** A singer's capability, stored apart from the spoken voice (master plan §3, §10): range, styles and the languages the
+ *  character sings in. The authoritative singing identity a song generator is conditioned on joins it in the music
+ *  phase; a profile alone never makes a song claim a specific singer. */
+export interface SingingProfile { voiceType?: VoiceType; styles: string[]; languages: Language[]; notes?: string }
+
 export interface CharacterProfileInput {
   name: string;
   nameAr?: string;
   role: string;
+  /** Actor, Singer, or Actor + Singer; ACTOR when absent. */
+  kind?: PerformerKind;
+  /** Only for a kind that sings; dropped for an actor. */
+  singing?: SingingProfile;
   style: Style;
   sex: Sex;
   species?: string;
@@ -751,6 +760,10 @@ export interface Character {
   name: string;
   nameAr?: string;
   role: string;
+  /** What the character performs: spoken parts (ACTOR), songs (SINGER) or both — the same identity either way. */
+  kind: PerformerKind;
+  /** The singing capability of a SINGER / ACTOR_SINGER, apart from `voice` (spoken); absent for an ACTOR. */
+  singing?: SingingProfile;
   style: Style;
   sex: Sex;
   species?: string;

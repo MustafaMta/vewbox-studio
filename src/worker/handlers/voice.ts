@@ -29,10 +29,18 @@ import type { VoiceIdentityInput } from '@/domain/actions';
 import { assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
 import { designAndMeasure, designSummary } from './voice-design';
 
+/** The seed a voice build pins: the character's and the next identity revision's (FNV-1a), so a retried build makes
+ *  the same voice and a deliberate rebuild (a new revision) a new one. Inside the design service's seed range. */
+export function voiceSeedOf(c: Pick<Character, 'id' | 'voice'>): number {
+  let h = 2166136261;
+  for (const ch of `${c.id}:voice:${(c.voice.identity?.revision ?? 0) + 1}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return (h >>> 0) % (2 ** 31 - 4);
+}
+
 /** VOICES — one persistent identity per character (which engine, which reference, which revision), a preview line,
  *  and the recording of every dialogue line of a production. The reference is a consented recording or a studio
  *  design seed with its record (Rule V-DESIGN), never a generated line. Each generated line is transcribed back and
- *  compared with the script; a line that drifts too far is regenerated once and flagged if it still drifts; a line
+ *  compared with the script; a line that drifts too far is kept and flagged (never re-spoken automatically); a line
  *  that could not be heard back is flagged too, never passed. Contracts: docs/CONTRACTS-CHARACTER-VOICE.md §1.4,
  *  docs/CONTRACTS-VOICE-IDENTITY-V2.md. */
 
@@ -249,7 +257,7 @@ async function cutOneWordLeadIn(ctx: HandlerContext, file: string, line: string,
 }
 
 /** What hearing a line back proved. `ok` only on PASS (coverage AND CER within the gate); `status` is the contract's
- *  verdict — FAIL is regenerated once, REVIEW (just below the gate) goes to a person. */
+ *  verdict — FAIL is flagged for the producer (no automatic re-take), REVIEW (just below the gate) goes to a person. */
 export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string }
 
 /** THE GATE (contract §1.4, v2 §4) on a line and what was heard: word coverage (Arabic on the space-insensitive
@@ -319,8 +327,10 @@ export const voiceBuild: Handler = async (ctx) => {
   if (mode === 'MANUAL' && !env().MINIMAX_API_KEY) throw new StudioError('NOT_CONFIGURED', 'A catalogue voice needs the hosted speech provider: MINIMAX_API_KEY is not set.');
   const dir = await tmpDir('voice');
 
-  // the line engine's parameters to pin — decided first: a design's previews are spoken with the same seed
-  const params: VoiceIdentity['params'] = { speed: speedForPace(c.voice.pace), emotionAlpha: 1, seed: Math.floor(Math.random() * 2 ** 31) };
+  // the line engine's parameters to pin — decided first: a design's previews are spoken with the same seed. The seed is
+  // the character's and the revision's, never random: an infrastructure retry of this build makes the SAME voice, not a
+  // second creative attempt (master plan §1)
+  const params: VoiceIdentity['params'] = { speed: speedForPace(c.voice.pace), emotionAlpha: 1, seed: voiceSeedOf(c) };
 
   // 1) the reference: a consented recording or a recorded design seed (Rule V-DESIGN), never a generated line
   let ref: Reference | null = null;
@@ -344,12 +354,13 @@ export const voiceBuild: Handler = async (ctx) => {
     if (plan.kind === 'UPLOAD') ref = await referenceWav(c, state.assets, dir, { sampleId: plan.sampleId, purpose: 'BUILD' });
     else {
       experiment = plan.experiment;
-      record = await designAndMeasure(ctx, c, { mode: 'AUTOMATIC', experiment, speech: { speed: params.speed, emotionAlpha: params.emotionAlpha, seed: params.seed! } });
+      // ONE designed voice (DESIGN_CANDIDATES), from the same seed on every infrastructure retry
+      record = await designAndMeasure(ctx, c, { mode: 'AUTOMATIC', experiment, seed: params.seed, speech: { speed: params.speed, emotionAlpha: params.emotionAlpha, seed: params.seed! } });
       const pick = rankDesignCandidates(record.candidates, rankingFor(c)).pick;
       if (pick === undefined) {
         const unheard = record.candidates.every((x) => x.measured.cer === undefined);
-        const why = record.candidates.map((x) => `candidate ${x.index}: ${x.gate.reasons.join('; ')}`).join(' | ');
-        throw new StudioError(unheard ? 'UNAVAILABLE' : 'PROVIDER', `None of the ${record.candidates.length} voices designed for ${c.name} passed the gates (${why}); they are kept on design ${record.id}. Retry to design new candidates.`, { failureClass: unheard ? 'INFRASTRUCTURE' : 'PROVIDER', characterId: c.id, designId: record.id });
+        const why = record.candidates.map((x) => x.gate.reasons.join('; ')).join(' | ');
+        throw new StudioError(unheard ? 'UNAVAILABLE' : 'PROVIDER', `The voice designed for ${c.name} did not pass its checks (${why}); it is kept on design ${record.id} for you to hear. Design the voice again (or change its description) to make a new one.`, { failureClass: unheard ? 'INFRASTRUCTURE' : 'PROVIDER', characterId: c.id, designId: record.id });
       }
       // the record is on the character now
       ({ state } = await readState());
@@ -502,9 +513,11 @@ export const dialogueAudio: Handler = async (ctx) => {
     const text = p.language === 'AR' ? (d.textAr || d.text) : d.text;
     if (!text?.trim()) continue;
     await ctx.progress('GENERATING', { phase: 'recording', message: `${c.name}: “${text.slice(0, 40)}”`, step: done + 1, total: lines.length });
-    let line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery });
-    let check = await verifyLine(ctx, line.file, text, line.language);
-    if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+    const line = await speakLine(ctx, c, text, ref, dir, { delivery: d.delivery });
+    const check = await verifyLine(ctx, line.file, text, line.language);
+    // ONE recording per line (first-attempt policy): a line that fails its gate is kept and flagged for the producer,
+    // never re-spoken behind their back; re-recording it is an explicit request (lineIds)
+    if (shouldRegenerate(check)) await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}): kept and flagged for review`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer, lineId: d.id });
     if (check === null) unverified++; else if (!check.ok) flagged++;
     const id = nid('gen');
     const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });

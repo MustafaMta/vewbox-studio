@@ -20,8 +20,10 @@ export type ConsentStatement = (typeof CONSENT_STATEMENTS)[number];
  *  (REFERENCE_RULES: −30…−10 LUFS, a true peak above 0 dBTP is clipping; a test holds them equal); a designed seed is
  *  a clone reference only if the line engine hears all of it, so ≤ 11.5 s (Habibi clips references over 12 s). */
 export const DESIGN_GATES = { cer: { EN: 0.1, AR: 0.15 } as Record<Language, number>, maxSeconds: 11.5, lufs: { min: -30, max: -10 }, maxTruePeakDbtp: 0, maxClippedSamples: 0 } as const;
-/** How many candidates a design makes (the service's maximum). */
-export const DESIGN_CANDIDATES = 3;
+/** How many voices a design makes: ONE (first-attempt policy, master plan §1 — no best-of-N, no candidate grid). The
+ *  service could make three; a designed voice that fails its gates is kept and shown, and a new design is an explicit
+ *  request of the producer's. */
+export const DESIGN_CANDIDATES = 1;
 
 /** The calibration sentence every candidate speaks, per language: short enough to stay under 11.5 s (measured: the
  *  English one 6.6–9.6 s; the Arabic one of the first evaluation ran 10–15 s, so this one is shorter). */

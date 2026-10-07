@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigserial, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, SceneStory, ShotDialogue, ShotStaging, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
+import type { AssetThumb, Beat, Brief, CanonicalImage, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, LocationRef, PendingReference, QaReport, Settings, SceneStory, ShotDialogue, ShotStaging, SingingProfile, Song, TakeReference, TakeStale, Voice } from '@/domain/types';
 import type { ContinuationChoice } from '@/domain/video-capability';
 import type { RunPhaseEvent } from '@/domain/phases';
 import type { JobError, JobProgress } from '@/domain/jobs';
@@ -199,6 +199,10 @@ export const characters = pgTable('characters', {
   name: text('name').notNull(),
   nameAr: text('name_ar'),
   role: text('role').notNull().default(''),
+  /** ACTOR | SINGER | ACTOR_SINGER (master plan §3); existing rows are actors. */
+  kind: text('kind').notNull().default('ACTOR'),
+  /** The singing capability of a character who sings (src/domain/types.ts SingingProfile); NULL for an actor. */
+  singing: jsonb('singing').$type<SingingProfile>(),
   style: text('style').notNull(),
   sex: text('sex').notNull(),
   species: text('species'),

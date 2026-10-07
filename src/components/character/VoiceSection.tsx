@@ -274,7 +274,7 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
   const blocked = iraqi && !hasUploads && !experiment;
   return (
     <div className="char-form">
-      <p className="t-body char-card-line">{iraqi ? (hasUploads ? 'The voice is made from your Iraqi recording.' : experiment ? 'Experiment on: a designed Arabic voice stands in for an Iraqi character; the dialect stays unconfirmed until a listener says so.' : 'Iraqi voices are made from a real Iraqi recording: record or upload 5 to 12 seconds of the voice under “A recording”.') : c.language === 'AR' ? 'A synthetic Modern Standard Arabic voice is designed from the profile, measured, and the best of three is kept. Its accent waits for a listener.' : 'A synthetic voice is designed from the profile (sex, age, pitch, pace, timbre), measured, and the best of three is kept.'}</p>
+      <p className="t-body char-card-line">{iraqi ? (hasUploads ? 'The voice is made from your Iraqi recording.' : experiment ? 'Experiment on: a designed Arabic voice stands in for an Iraqi character; the dialect stays unconfirmed until a listener says so.' : 'Iraqi voices are made from a real Iraqi recording: record or upload 5 to 12 seconds of the voice under “A recording”.') : c.language === 'AR' ? 'One synthetic Modern Standard Arabic voice is designed from the profile and measured. Its accent waits for a listener.' : 'One synthetic voice is designed from the profile (sex, age, pitch, pace, timbre) and measured; you hear it before it speaks any line.'}</p>
       {running ? <JobPhase job={running} /> : (
         <div className="char-form-acts">
           <Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={blocked} onClick={() => void build()}>Make the voice</Button>
@@ -286,8 +286,8 @@ function Automatic({ c, hasUploads, experiment }: { c: Character; hasUploads: bo
   );
 }
 
-/** DESIGN A VOICE — a description (prefilled from the profile, editable) → three candidates speaking a calibration
- *  sentence, each with a real player and its measured numbers → choose one. A designed voice is synthetic and belongs
+/** DESIGN A VOICE — a description (prefilled from the profile, editable) → ONE designed voice speaking a calibration
+ *  sentence, with a real player and its measured numbers → use it (first-attempt policy: no candidate grid). A designed voice is synthetic and belongs
  *  to nobody; a description that names a real person is refused by the service. */
 function Design({ c }: { c: Character }) {
   const { state, startJob } = useStudio();
@@ -304,21 +304,21 @@ function Design({ c }: { c: Character }) {
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={600} dir="auto" />
       </Field>
       {c.dialect === 'IRAQI_BAGHDADI' && <p className="t-body char-card-line">Designed voices speak English or Modern Standard Arabic; an Iraqi voice needs a recording.</p>}
-      {running ? <JobPhase job={running} /> : <div className="char-form-acts"><Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={description.trim().length < 12} onClick={() => void run(() => startVoiceDesign(startJob, c.id, description.trim()))}>Design three voices</Button></div>}
+      {running ? <JobPhase job={running} /> : <div className="char-form-acts"><Button variant="primary" icon={<IconGenerate />} loading={busy} disabled={description.trim().length < 12} onClick={() => void run(() => startVoiceDesign(startJob, c.id, description.trim()))}>Design the voice</Button></div>}
       {last?.status === 'FAILED' && !running && <FailureNotice copy={copyOf(last.error)} jobId={last.id} action={<RetryControl job={last} size="sm" />} />}
       {result && !running && (
         <div>
-          <p className="label">Candidates · designed voices, not real people</p>
+          <p className="label">The designed voice · synthetic, not a real person</p>
           <ul className="vrow-list">
             {result.candidates.map((cand) => {
               const a = assetById(state, cand.assetId);
-              const track: Track | null = a && !a.unavailable && a.src ? { id: `design-${result.designId}-${cand.index}`, src: a.src, title: `${c.name} — candidate ${cand.index}`, subtitle: lang, duration: a.durationSeconds ?? cand.durationSeconds } : null;
+              const track: Track | null = a && !a.unavailable && a.src ? { id: `design-${result.designId}-${cand.index}`, src: a.src, title: `${c.name} — designed voice`, subtitle: lang, duration: a.durationSeconds ?? cand.durationSeconds } : null;
               const heard = cand.coverage !== undefined ? cand.coverage : cand.cer !== undefined ? Math.max(0, 1 - cand.cer) : undefined;
               const numbers = [heard !== undefined ? `${pct(heard)} of words heard back` : null, cand.passed === false ? 'did not pass the measured checks' : null].filter(Boolean).join(' · ');
               return (
                 <li key={cand.index}>
-                  <VoicePlayer track={track} name={`Candidate ${cand.index}`} detail={numbers || 'not measured yet'}
-                    action={build.running ? undefined : <Button size="sm" variant="secondary" icon={<IconCheck />} disabled={cand.passed === false} onClick={() => void run(() => startVoiceBuildV2(startJob, { characterId: c.id, mode: 'DESIGN', designId: result.designId, candidate: cand.index }))}>Choose</Button>} />
+                  <VoicePlayer track={track} name="Designed voice" detail={numbers || 'not measured yet'}
+                    action={build.running ? undefined : <Button size="sm" variant="secondary" icon={<IconCheck />} disabled={cand.passed === false} onClick={() => void run(() => startVoiceBuildV2(startJob, { characterId: c.id, mode: 'DESIGN', designId: result.designId, candidate: cand.index }))}>Use this voice</Button>} />
                 </li>
               );
             })}

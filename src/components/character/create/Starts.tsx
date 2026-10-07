@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import type { Asset } from '@/domain/types';
-import { DIALECTS, PACES, PITCHES, SEXES, STYLES, type Dialect, type Language, type Sex } from '@/domain/vocabulary';
+import { DIALECTS, PACES, PERFORMER_KINDS, PITCHES, SEXES, STYLES, VOICE_TYPES, sings, type Dialect, type Language, type PerformerKind, type Sex, type VoiceType } from '@/domain/vocabulary';
 import { api, type ImageReferenceValidation } from '@/studio/api';
 import { useStudio } from '@/studio/store';
 import { isStudioError } from '@/domain/errors';
@@ -25,7 +25,19 @@ import { AUDIO_RULES, BRIEF_MAX, checkAudioDuration, checkAudioFile, checkBrief,
  *    ManualStart   a minimal brief: name, role, style, language; the look, personality and voice on demand
  *    PictureStart  a reference picture (checked in the browser, then by the server), what to keep, what changes */
 
-export interface HeaderValues { forId: string; style: (typeof STYLES)[number]; language: Language; dialect: Dialect }
+/** Who they are cast as (master plan §3): what they perform, and — for a singer — the singing range and styles. */
+export interface HeaderValues { forId: string; style: (typeof STYLES)[number]; language: Language; dialect: Dialect; kind: PerformerKind; voiceType?: VoiceType; singingStyles?: string }
+
+export const KIND_WORD: Record<PerformerKind, string> = { ACTOR: 'Actor', SINGER: 'Singer', ACTOR_SINGER: 'Actor + Singer' };
+export const VOICE_TYPE_WORD: Record<VoiceType, string> = { SOPRANO: 'Soprano', MEZZO_SOPRANO: 'Mezzo-soprano', ALTO: 'Alto', TENOR: 'Tenor', BARITONE: 'Baritone', BASS: 'Bass' };
+
+/** The performer fields of the profile a creation submits: the kind always; a singing profile for a kind that sings
+ *  (its styles from the comma-separated line, the languages from the spoken one — the reducer keeps them in step). */
+export function performerProfile(h: HeaderValues): { kind: PerformerKind; singing?: { voiceType?: VoiceType; styles: string[]; languages: Language[] } } {
+  if (!sings(h.kind)) return { kind: h.kind };
+  const styles = (h.singingStyles ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 6).map((s) => s.slice(0, 40));
+  return { kind: h.kind, singing: { ...(h.voiceType ? { voiceType: h.voiceType } : {}), styles, languages: [h.language] } };
+}
 /** Nothing is preselected: sex, age band and species stay unset ("Studio decides") until the producer chooses. */
 export interface DescribeValues { name: string; brief: string; sex?: Sex; band?: AgeBand; ageYears?: number; species?: string; voiceMode: DescribeVoiceMode }
 /** The recording chosen in the form (a File cannot be remembered across a reload; the choice can). */
@@ -52,7 +64,7 @@ export function Settings({ value, onChange }: { value: HeaderValues; onChange: (
   const homes = [...state.shows.map((s) => ({ value: `show:${s.id}`, label: s.title })), ...state.productions.filter((p) => !p.showId).map((p) => ({ value: `p:${p.id}`, label: p.title }))];
   const home = homes.find((h) => h.value === value.forId);
   return (
-    <SettingsSummary items={[home ? `For ${home.label}` : 'For the library', STYLE_WORD[value.style], value.language === 'AR' ? `Arabic (${dialectLabel(value.dialect)})` : 'English']}>
+    <SettingsSummary items={[home ? `For ${home.label}` : 'For the library', KIND_WORD[value.kind], STYLE_WORD[value.style], value.language === 'AR' ? `Arabic (${dialectLabel(value.dialect)})` : 'English']}>
       <div className="char-form char-voice">
         <Field label="Who it is for" optional><Select value={value.forId} onChange={(e) => set({ forId: e.target.value })} placeholder="The library (no show yet)" options={homes} /></Field>
         <StyleLanguage value={value} onChange={onChange} />
@@ -65,6 +77,9 @@ function StyleLanguage({ value, onChange }: { value: HeaderValues; onChange: (v:
   const set = (p: Partial<HeaderValues>) => onChange({ ...value, ...p });
   return (
     <div className="pc-choices">
+      <div><p className="label">Performs</p><Segmented label="Performs" value={value.kind} onChange={(v) => set({ kind: v })} options={PERFORMER_KINDS.map((k) => ({ value: k, label: KIND_WORD[k] }))} /></div>
+      {sings(value.kind) && <Field label="Singing voice" optional help="The range they sing in; the song engine is matched to it."><Select value={value.voiceType ?? ''} onChange={(e) => set({ voiceType: (e.target.value || undefined) as VoiceType | undefined })} placeholder="Studio decides" options={VOICE_TYPES.map((t) => ({ value: t, label: VOICE_TYPE_WORD[t] }))} /></Field>}
+      {sings(value.kind) && <Field label="Singing styles" optional help="A few words, separated by commas: ballad, folk, pop."><Input value={value.singingStyles ?? ''} onChange={(e) => set({ singingStyles: e.target.value })} maxLength={200} autoComplete="off" /></Field>}
       <div><p className="label">Style</p><Segmented label="Style" value={value.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: STYLE_WORD[s] }))} /></div>
       <div><p className="label">Language</p><Segmented label="Language" value={value.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: 'English' }, { value: 'AR' as Language, label: 'Arabic' }]} /></div>
       {value.language === 'AR' && <Field label="Dialect"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
@@ -245,7 +260,7 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
 export function FigurePreview({ name, role, header, sex, band, ageYears }: { name: string; role?: string; header: HeaderValues; sex?: Sex; band?: AgeBand; ageYears?: number }) {
   const n = name.trim();
   const age = sheetAge({ band, exactAge: ageYears });
-  const slate = [STYLE_WORD[header.style], header.language === 'AR' ? `Arabic (${dialectLabel(header.dialect)})` : 'English', sex ? (sex === 'FEMALE' ? 'Woman' : 'Man') : null, age ? `${age}` : null].filter(Boolean).join(' · ');
+  const slate = [KIND_WORD[header.kind], STYLE_WORD[header.style], header.language === 'AR' ? `Arabic (${dialectLabel(header.dialect)})` : 'English', sex ? (sex === 'FEMALE' ? 'Woman' : 'Man') : null, age ? `${age}` : null].filter(Boolean).join(' · ');
   return (
     <div className="pc-preview">
       <Frame ratio="928/1664" alt="" title={n || 'Unnamed'} titleLang={nameLang(n)} titleState="notDrawn" className="pc-preview-frame" decorative />

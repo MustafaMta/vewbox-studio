@@ -136,7 +136,7 @@ export const createCharacter: Handler = async (ctx) => {
   } else {
     if (!name) throw new StudioError('INVALID', 'A character needs a name.');
     const input: CharacterInput = {
-      name, nameAr: profile.nameAr, role: profile.role ?? '', style, sex: profile.sex!, species: profile.species, ageYears: profile.ageYears!,
+      name, nameAr: profile.nameAr, role: profile.role ?? '', kind: profile.kind, singing: profile.singing, style, sex: profile.sex!, species: profile.species, ageYears: profile.ageYears!,
       build: profile.build ?? '', face: profile.face ?? '', hair: profile.hair ?? '', skin: profile.skin ?? '', eyes: profile.eyes ?? '', wardrobe: profile.wardrobe ?? '', personality: profile.personality ?? '', distinguishing: profile.distinguishing ?? [],
       language, dialect, canon: profile.canon, notes: profile.notes,
       voice: profile.voice ? { pitch: profile.voice.pitch ?? 'MID', pace: profile.voice.pace ?? 'MEASURED', timbre: profile.voice.timbre, notes: profile.voice.notes } : undefined,

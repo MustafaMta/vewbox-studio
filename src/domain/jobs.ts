@@ -101,6 +101,8 @@ const ideaKind = z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']);
 /** A partial CharacterProfileInput (diagnosis §3.1) as a job may carry it; the command schema validates the whole. */
 const characterProfilePartial = z.object({
   name: z.string().trim().min(1).max(80).optional(), nameAr: z.string().max(80).optional(), role: z.string().max(200).optional(),
+  kind: z.enum(['ACTOR', 'SINGER', 'ACTOR_SINGER']).optional(),
+  singing: z.object({ voiceType: z.enum(['SOPRANO', 'MEZZO_SOPRANO', 'ALTO', 'TENOR', 'BARITONE', 'BASS']).optional(), styles: z.array(z.string().max(40)).max(6).default([]), languages: z.array(language).max(2).default([]), notes: z.string().max(400).optional() }).optional(),
   style: style.optional(), sex: z.enum(['FEMALE', 'MALE']).optional(), species: z.string().max(60).optional(), ageYears: z.number().int().min(1).max(120).optional(),
   build: z.string().max(400).optional(), face: z.string().max(400).optional(), hair: z.string().max(400).optional(), skin: z.string().max(400).optional(), eyes: z.string().max(400).optional(), wardrobe: z.string().max(400).optional(), personality: z.string().max(400).optional(),
   distinguishing: z.array(z.string().max(120)).max(6).optional(), language: language.optional(), dialect: dialect.optional(),
@@ -141,7 +143,7 @@ export const JOB_PAYLOADS = {
   /** Manual design (contract v2 §2 DESIGN): the producer's description (absent: written from the profile) → three
    *  candidates speaking the calibration sentence, each measured (CER, loudness, true peak, clipping, ≤ 11.5 s) and
    *  heard through the line engine; the producer then builds with VOICE_BUILD { mode: 'DESIGN', designId, candidate }. */
-  VOICE_DESIGN: z.object({ characterId: id, description: z.string().trim().min(3).max(300).optional(), text: z.string().trim().min(10).max(400).optional(), seed: z.number().int().min(0).max(2 ** 31 - 4).optional(), n: z.number().int().min(1).max(3).optional() }),
+  VOICE_DESIGN: z.object({ characterId: id, description: z.string().trim().min(3).max(300).optional(), text: z.string().trim().min(10).max(400).optional(), seed: z.number().int().min(0).max(2 ** 31 - 4).optional(), n: z.number().int().min(1).max(1).optional() }),
   VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
   /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),

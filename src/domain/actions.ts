@@ -1,5 +1,5 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, Song, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
-import type { Aspect, Dialect, Kind, Language, Stage, Style } from './vocabulary';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError, consentRequired, missingReference } from './errors';
@@ -548,11 +548,19 @@ export function updateSong(s: S, productionId: string, patch: Partial<Song>): S 
  *  samples or an identity: a new character has none), and optionally pictures the caller already holds. */
 export type CharacterInput = CharacterProfileInput & { voice?: VoiceProfileInput & Partial<Pick<Voice, 'timbre' | 'notes'>>; refs?: CharacterRef[]; portraitAssetId?: string; pendingReference?: PendingReference };
 
-const PROFILE_KEYS = ['nameAr', 'role', 'style', 'sex', 'species', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality', 'distinguishing', 'language', 'dialect', 'canon', 'notes'] as const satisfies ReadonlyArray<keyof CharacterProfileInput>;
+const PROFILE_KEYS = ['nameAr', 'role', 'kind', 'singing', 'style', 'sex', 'species', 'ageYears', 'build', 'face', 'hair', 'skin', 'eyes', 'wardrobe', 'personality', 'distinguishing', 'language', 'dialect', 'canon', 'notes'] as const satisfies ReadonlyArray<keyof CharacterProfileInput>;
 
 /** The dialect a character speaks: the given one for Arabic (or the studio's default), none for English. */
 function dialectFor(s: S, language: Language, dialect: Dialect | undefined): Dialect | undefined {
   return language === 'AR' ? dialect ?? s.settings.defaults.dialect : undefined;
+}
+
+/** The singing profile a performer keeps: a kind that sings always has one (its languages default to the spoken
+ *  language), an actor has none — the two never drift apart. */
+function singingFor(kind: PerformerKind, singing: SingingProfile | null | undefined, language: Language): SingingProfile | undefined {
+  if (!sings(kind)) return undefined;
+  const p = singing ?? { styles: [], languages: [] };
+  return { ...p, styles: p.styles ?? [], languages: p.languages?.length ? p.languages : [language] };
 }
 
 export function addCharacter(s: S, input: CharacterInput): { state: S; character: Character } {
@@ -562,7 +570,7 @@ export function addCharacter(s: S, input: CharacterInput): { state: S; character
   const profile = Object.fromEntries(PROFILE_KEYS.filter((k) => input[k] !== undefined).map((k) => [k, input[k]])) as Partial<CharacterProfileInput>;
   const character: Character = {
     ...(profile as Pick<Character, (typeof PROFILE_KEYS)[number]>),
-    id: nid('char'), name: input.name.trim(), role: input.role ?? '', style: input.style, sex: input.sex, ageYears: input.ageYears,
+    id: nid('char'), name: input.name.trim(), role: input.role ?? '', kind: input.kind ?? 'ACTOR', singing: singingFor(input.kind ?? 'ACTOR', input.singing, input.language), style: input.style, sex: input.sex, ageYears: input.ageYears,
     build: input.build ?? '', face: input.face ?? '', hair: input.hair ?? '', skin: input.skin ?? '', eyes: input.eyes ?? '', wardrobe: input.wardrobe ?? '', personality: input.personality ?? '', distinguishing: input.distinguishing ?? [],
     language: input.language, dialect: dialectFor(s, input.language, input.dialect),
     refs: input.refs ?? [], portraitAssetId: input.portraitAssetId, pendingReference: input.pendingReference,
@@ -599,6 +607,8 @@ export function updateCharacter(s: S, id: string, patch: Partial<Omit<Character,
     next.voice = { ...c.voice, ...v };
   }
   const language = next.language ?? c.language;
+  // the singing profile follows the kind: kept (or given its defaults) for a kind that sings, dropped for an actor
+  if ('kind' in next || 'singing' in next) next.singing = singingFor(next.kind ?? c.kind, 'singing' in next ? next.singing : c.singing, language);
   const speechTouched = 'language' in next || 'dialect' in next;
   if (speechTouched) next.dialect = dialectFor(s, language, 'dialect' in next ? next.dialect : c.dialect);
   const speechChanged = language !== c.language || (speechTouched && (next.dialect ?? undefined) !== (c.dialect ?? undefined));

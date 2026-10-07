@@ -106,9 +106,13 @@ export const designCharacter: Handler = async (ctx) => {
   const language = given.language ?? payload.language ?? show?.language ?? p?.language ?? state.settings.defaults.language;
   const dialect: Dialect | undefined = language === 'AR' ? given.dialect ?? payload.dialect ?? show?.dialect ?? p?.dialect ?? state.settings.defaults.dialect : undefined;
   // what the model designs from: the producer's line, what is already known of the character, or the name alone
-  const known = (Object.keys(given) as Array<keyof typeof given>).filter((k) => !['name', 'style', 'language', 'dialect', 'voice', 'canon', 'notes'].includes(k)).map((k) => [k, given[k]] as const).filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
+  const known = (Object.keys(given) as Array<keyof typeof given>).filter((k) => !['name', 'style', 'language', 'dialect', 'voice', 'canon', 'notes', 'kind', 'singing'].includes(k)).map((k) => [k, given[k]] as const).filter(([, v]) => v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`);
   const line = payload.brief?.trim();
-  const brief = [line, known.length ? `Known so far — keep these exactly and fill only what is missing: ${known.join('; ')}.` : '', !line && !known.length ? `A character named ${name} for a ${style.toLowerCase()} production; invent a fitting role, look and personality.` : ''].filter(Boolean).join('\n');
+  // what the character performs is the producer's choice: the design hears it (a singer's look and manner fit the
+  // stage), never decides it
+  const sungAs = given.singing?.voiceType ? ` (${given.singing.voiceType.toLowerCase().replace('_', '-')} voice${given.singing.styles?.length ? `; ${given.singing.styles.join(', ')}` : ''})` : '';
+  const performs = given.kind === 'SINGER' ? `A singer, cast for musical performance${sungAs}.` : given.kind === 'ACTOR_SINGER' ? `An actor who also sings${sungAs}.` : '';
+  const brief = [line, performs, known.length ? `Known so far — keep these exactly and fill only what is missing: ${known.join('; ')}.` : '', !line && !known.length ? `A character named ${name} for a ${style.toLowerCase()} production; invent a fitting role, look and personality.` : ''].filter(Boolean).join('\n');
   await ctx.progress('GENERATING', { phase: 'designing', message: `Designing ${name ?? 'a character'}` });
   const d = await ctx.tool('story.structured_answer', () => design(state, { brief, name, style, language, dialect, world: show ? `${show.title}: ${show.logline}` : p ? `${p.title}: ${p.logline}` : undefined }, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }), { label: 'design', input: { task: 'character-design', productionId: p?.id, showId: show?.id } });
   await ctx.checkpoint();
@@ -117,7 +121,7 @@ export const designCharacter: Handler = async (ctx) => {
   // words are never touched
   const en = (s: string | undefined) => { if (!s) return s; const r = latinizeField(s); return r.dropped.length ? s : r.text; };
   const input: CharacterInput = {
-    name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, style, sex: given.sex ?? d.sex, species: nonHumanSpecies(given.species ?? d.species), ageYears: given.ageYears ?? d.ageYears,
+    name: name ?? d.name, nameAr: given.nameAr ?? d.nameAr, role: given.role ?? d.role, kind: given.kind, singing: given.singing, style, sex: given.sex ?? d.sex, species: nonHumanSpecies(given.species ?? d.species), ageYears: given.ageYears ?? d.ageYears,
     build: given.build || en(d.build) || '', face: given.face || en(d.face) || '', hair: given.hair || en(d.hair) || '', skin: given.skin || en(d.skin) || '', eyes: given.eyes || en(d.eyes) || '', wardrobe: given.wardrobe || en(d.wardrobe) || '', personality: given.personality || d.personality,
     distinguishing: given.distinguishing?.length ? given.distinguishing : (d.distinguishing ?? []).map((x) => en(x) ?? x), language, dialect, canon: given.canon,
     notes: given.notes ?? (line ? `Designed by Casting from the brief: “${line.slice(0, 200)}”` : 'Designed by Casting from the written profile.'),

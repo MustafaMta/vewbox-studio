@@ -3,7 +3,7 @@ import type { StudioState } from './types';
 import * as A from './actions';
 import { withCommandContext } from './ids';
 import { StudioError } from './errors';
-import { ASPECTS, CAMERA_MOVES, DIALECTS, FRAMINGS, KINDS, LANGUAGES, LOCATION_REF_ROLES, LYRIC_KINDS, PACES, PITCHES, SEXES, STAGES, STYLES, TIMES_OF_DAY, TRANSITIONS } from './vocabulary';
+import { ASPECTS, CAMERA_MOVES, DIALECTS, FRAMINGS, KINDS, LANGUAGES, LOCATION_REF_ROLES, LYRIC_KINDS, PACES, PERFORMER_KINDS, PITCHES, SEXES, STAGES, STYLES, TIMES_OF_DAY, TRANSITIONS, VOICE_TYPES } from './vocabulary';
 
 /** THE COMMAND SET — every studio action by name, so the browser and the server run the same function. A command
  *  is `{ name, args, seed, at }`: the seed fixes the ids it creates and `at` fixes its clock, so both sides agree. */
@@ -51,6 +51,9 @@ const short = (max: number) => z.string().max(max);
 const text400 = short(400);
 const canon = z.object({ heightCm: z.number().positive().max(400).optional(), accessories: z.array(short(120)).max(12).optional(), visualRestrictions: z.array(short(200)).max(12).optional(), agePresentation: short(200).optional(), speech: short(400).optional() }).partial();
 
+/** A singer's capability (types.ts SingingProfile): kept apart from the spoken voice. */
+export const SingingProfileSchema = z.object({ voiceType: z.enum(VOICE_TYPES).optional(), styles: z.array(short(40)).max(6).default([]), languages: z.array(z.enum(LANGUAGES)).max(2).default([]), notes: short(400).optional() });
+
 const noDialectOnEnglish = { check: (p: { language?: string; dialect?: string }) => !(p.language === 'EN' && p.dialect), message: 'An English-speaking character has no dialect.', path: ['dialect'] };
 
 /** CharacterProfileInput (diagnosis §3.1): dialect only with Arabic; it defaults to the studio's when missing. */
@@ -58,6 +61,7 @@ const ProfileBase = z.object({
   name: z.string().trim().min(1).max(80),
   nameAr: short(80).optional(),
   role: short(200).default(''),
+  kind: z.enum(PERFORMER_KINDS).default('ACTOR'), singing: SingingProfileSchema.optional(),
   style: z.enum(STYLES), sex: z.enum(SEXES), species: short(60).optional(),
   ageYears: z.number().int().min(1).max(120),
   build: text400.default(''), face: text400.default(''), hair: text400.default(''), skin: text400.default(''), eyes: text400.default(''), wardrobe: text400.default(''), personality: text400.default(''),
@@ -75,6 +79,7 @@ const pendingReference = z.object({ assetId: id, addedAt: z.string(), validation
 const CharacterInputSchema = ProfileBase.extend({ voice: VoiceProfileSchema.partial().passthrough().optional(), refs: z.array(characterRef).max(24).optional(), portraitAssetId: id.optional(), pendingReference: pendingReference.optional() }).refine(noDialectOnEnglish.check, { message: noDialectOnEnglish.message, path: noDialectOnEnglish.path });
 const CharacterPatchSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(), nameAr: short(80).nullable().optional(), role: short(200).optional(),
+  kind: z.enum(PERFORMER_KINDS).optional(), singing: SingingProfileSchema.nullable().optional(),
   style: z.enum(STYLES).optional(), sex: z.enum(SEXES).optional(), species: short(60).nullable().optional(), ageYears: z.number().int().min(1).max(120).optional(),
   build: text400.optional(), face: text400.optional(), hair: text400.optional(), skin: text400.optional(), eyes: text400.optional(), wardrobe: text400.optional(), personality: text400.optional(),
   distinguishing: z.array(short(120)).max(6).optional(), language: z.enum(LANGUAGES).optional(), dialect: z.enum(DIALECTS).optional(),

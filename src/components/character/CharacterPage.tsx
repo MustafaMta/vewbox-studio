@@ -9,7 +9,9 @@ import { artVars } from '@/studio/presentation';
 import { assetById, assignmentsOf, productionHref, shotHref, shotLabel } from '@/studio/selectors';
 import { posterOf } from '@/studio/selectors/poster';
 import { useToast } from '@/components/ui/toast';
-import { Button, MenuButton, MenuItem, MenuSeparator, Notice, StateWord, Textarea, useConfirm } from '@/components/ui/kit';
+import { Button, Field, MenuButton, MenuItem, MenuSeparator, Notice, Segmented, Select, StateWord, Textarea, useConfirm } from '@/components/ui/kit';
+import { PERFORMER_KINDS, VOICE_TYPES, sings, type VoiceType } from '@/domain/vocabulary';
+import { KIND_WORD, VOICE_TYPE_WORD } from './create/Starts';
 import { IconClose, IconDelete, IconEdit } from '@/components/ui/icons';
 import { Frame } from '@/components/media/Frame';
 import { words } from '@/lib/format';
@@ -50,7 +52,7 @@ export function CharacterPage({ c }: { c: Character }) {
   const target = sp.get('tab') ?? (typeof window !== 'undefined' ? window.location.hash.slice(1) : '');
   useEffect(() => { const id = target ? LEGACY[target] ?? target : undefined; if (id) document.getElementById(id)?.scrollIntoView({ block: 'start' }); }, [target]);
   const species = nonHumanSpecies(c.species);
-  const slate = [STYLE_WORD[c.style], languageWords(c), species ? words(species) : null, c.ageYears ? `${c.ageYears} years old` : null].filter(Boolean) as string[];
+  const slate = [KIND_WORD[c.kind ?? 'ACTOR'], STYLE_WORD[c.style], languageWords(c), species ? words(species) : null, c.ageYears ? `${c.ageYears} years old` : null].filter(Boolean) as string[];
 
   const remove = async () => {
     const ok = await confirm({ title: `Delete ${c.name}?`, body: 'They are removed from every cast list. Finished shots and cuts keep their pictures and sound.', confirmLabel: `Delete ${c.name}`, tone: 'danger' });
@@ -83,6 +85,7 @@ export function CharacterPage({ c }: { c: Character }) {
           <VoiceSummary c={c} />
 
           <About c={c} />
+          <Performs c={c} />
           <VoiceSection c={c} />
           <AppearsIn c={c} />
           <Notes c={c} />
@@ -115,6 +118,34 @@ function About({ c }: { c: Character }) {
       <dl className="char-facts">
         {facts.map(([label, value]) => <div key={label}><dt className="t-label">{label}</dt><dd dir="auto">{value}</dd></div>)}
       </dl>
+    </CastSection>
+  );
+}
+
+/** PERFORMS — what the character is cast as (master plan §3): an actor, a singer, or both, with the same identity. A
+ *  singer's range and styles are their own facts, apart from the speaking voice below. The kind stays editable after
+ *  filming: it is casting, not appearance. */
+function Performs({ c }: { c: Character }) {
+  const { act } = useStudio();
+  const toast = useToast();
+  const kind = c.kind ?? 'ACTOR';
+  const set = (patch: Partial<Character>, done: string) => { try { act('updateCharacter', c.id, patch); toast.ok(done); } catch (e) { toast.bad((e as Error).message); } };
+  const facts = c.singing ? [
+    ['Singing voice', c.singing.voiceType ? VOICE_TYPE_WORD[c.singing.voiceType] : 'Not set'],
+    ['Sings in', c.singing.languages.map((l) => (l === 'AR' ? 'Arabic' : 'English')).join(' · ') || '—'],
+    ['Styles', c.singing.styles.join(' · ') || 'Not set'],
+  ] : [];
+  return (
+    <CastSection id="performs" title="Performs" description={sings(kind) ? 'The singing voice is theirs alone: a song this character sings is sung as them, never by an unnamed voice.' : 'Spoken parts. Make them a singer to cast them in songs.'}>
+      <Segmented label="Performs" value={kind} onChange={(v) => set({ kind: v }, `${c.name} is cast as ${KIND_WORD[v].toLowerCase()}.`)} options={PERFORMER_KINDS.map((k) => ({ value: k, label: KIND_WORD[k] }))} />
+      {c.singing && (
+        <>
+          <dl className="char-facts">
+            {facts.map(([label, value]) => <div key={label}><dt className="t-label">{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+          <Field label="Singing voice" optional><Select value={c.singing.voiceType ?? ''} onChange={(e) => set({ singing: { ...c.singing!, voiceType: (e.target.value || undefined) as VoiceType | undefined } }, 'Singing voice saved.')} placeholder="Not set" options={VOICE_TYPES.map((t) => ({ value: t, label: VOICE_TYPE_WORD[t] }))} /></Field>
+        </>
+      )}
     </CastSection>
   );
 }

@@ -15,7 +15,7 @@ import type { StudioState } from '@/domain/types';
 
 const at = (d: number) => `2026-10-0${d}T10:00:00.000Z`;
 const character = (p: Partial<Character> = {}): Character => ({
-  id: 'samir', name: 'Samir Hassan', role: 'Kite seller', style: 'CARTOON', sex: 'MALE', ageYears: 66, build: '', face: '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: '', language: 'EN',
+  id: 'samir', name: 'Samir Hassan', role: 'Kite seller', kind: 'ACTOR', style: 'CARTOON', sex: 'MALE', ageYears: 66, build: '', face: '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: '', language: 'EN',
   voice: { pitch: 'LOW', pace: 'SLOW', timbre: '', notes: '', samples: [] }, refs: [], usage: { known: true, videos: [] }, createdAt: at(1), updatedAt: at(1), ...p,
 });
 const image = (p: Partial<CanonicalImage> = {}): CanonicalImage => ({ assetId: 'img-2', status: 'DRAFT', version: 2, generatedAt: at(2), ...p });

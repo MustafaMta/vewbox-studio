@@ -307,27 +307,23 @@ export const characterAppearance: Handler = async (ctx) => {
   const model = !read ? 'Qwen-Image-2512' : 'Qwen-Image-Edit-2511';
   const references = pending ? [pending.id] : [];
 
-  // draw; a picture whose figure is not whole in the frame is redrawn once (it stays in the library as RAW). From a
-  // picture the redraw leaves the face crop out: with it the model drew a three-quarter-length shot in 1 of 3 A/B
-  // runs, without it 3 of 3 were whole figures (REPORT §4)
+  // ONE DRAW (first-attempt policy, master plan §1): the picture is drawn once and kept with its framing check. A
+  // figure that is not whole in the frame is NOT redrawn behind the producer's back: the failed check stays on the
+  // image (approving over it needs a stated reason) and an explicit "Draw again" is a new, counted creative attempt
+  // (the canonical image's version). An infrastructure retry of this job re-judges the picture it already drew.
   const rejected: Array<{ assetId: string; seed: number; reasons: string[] }> = [];
-  let drawn: Drawn | undefined; let usedSeed = seed; let framing: FramingCheck | undefined;
-  for (let attempt = 0; attempt < 2 && !drawn; attempt++) {
-    usedSeed = (seed + attempt) % 2 ** 31;
-    const faceRect = attempt === 0 ? read?.faceRect : undefined;
-    const prompt = !read ? canonicalPrompt({ style, identityLine: look.line, character: d.character, visual: d.visual, avoid: d.avoid })
-      : referenceCanonicalPrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual });
-    const graph = !read ? qwenCanonicalImage({ prompt, negative, seed: usedSeed })
-      : qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed });
-    await ctx.progress('GENERATING', { phase: 'drawing', message: attempt ? `Drawing ${c.name} again (the first picture was not whole in the frame)` : `Drawing ${c.name}`, percent: null });
-    // a picture an earlier attempt of this job already drew for this step is judged again, never drawn again
-    const key = `canonical:${attempt}`;
-    const earlierDraw = await reuseDrawn(ctx, key);
-    if (earlierDraw) {
-      framing = await framingOf(earlierDraw.file);
-      if (framing.ok || attempt === 1) drawn = earlierDraw; else rejected.push({ assetId: earlierDraw.id, seed: usedSeed, reasons: framing.reasons });
-      continue;
-    }
+  const usedSeed = seed;
+  const faceRect = read?.faceRect;
+  const prompt = !read ? canonicalPrompt({ style, identityLine: look.line, character: d.character, visual: d.visual, avoid: d.avoid })
+    : referenceCanonicalPrompt({ style, identityLine: look.line, faceImage: Boolean(faceRect), character: d.character, visual: d.visual });
+  const graph = !read ? qwenCanonicalImage({ prompt, negative, seed: usedSeed })
+    : qwenReferenceCanonical({ upload: read.upload, faceRect, prompt, negative, seed: usedSeed });
+  await ctx.progress('GENERATING', { phase: 'drawing', message: `Drawing ${c.name}`, percent: null });
+  const key = 'canonical:0';
+  let drawn: Drawn | undefined = await reuseDrawn(ctx, key);
+  let framing: FramingCheck;
+  if (drawn) framing = await framingOf(drawn.file);
+  else {
     const t0 = Date.now();
     const run = await runGraph(ctx, graph, { key, label: `${c.name} — canonical image`, tool: read ? 'image.edit_with_references' : 'image.generate' });
     const out = run.outputs[CANONICAL_OUTPUT]?.images?.[0];
@@ -335,22 +331,17 @@ export const characterAppearance: Handler = async (ctx) => {
     const tmp = await fetchOutput(out);
     try {
       framing = await framingOf(tmp.file);
-      const keep = framing.ok || attempt === 1;
-      const a = await adoptFetched(ctx, tmp.file, run, { key, label: `${c.name} — ${keep ? 'canonical image' : 'rejected draft'}`, tags: ['character', keep ? 'canonical' : 'rejected'], prompt, negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, ...(keep ? {} : { tier: 'RAW' as const }), provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
-      await recordMetric('image.generation_ms', a.ms, 'ms', { model, refs: references.length, canonical: 1 }, ctx.job.id);
-      if (keep) drawn = a;
-      else {
-        rejected.push({ assetId: a.id, seed: usedSeed, reasons: framing.reasons });
-        await ctx.event('warn', `${c.name}: the first picture (${a.id}) was not whole in the frame — ${framing.reasons.join('; ')}; drawing once more`, { characterId: c.id, assetId: a.id, reasons: framing.reasons });
-      }
+      drawn = await adoptFetched(ctx, tmp.file, run, { key, label: `${c.name} — canonical image`, tags: ['character', 'canonical'], prompt, negative, references, seed: usedSeed, model, loras: [], ms: Date.now() - t0, provenance: { characterId: c.id, view: 'CANONICAL', identityLine: look.line, identitySeed: seed, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', framing: { ok: framing.ok, reasons: framing.reasons, box: framing.box }, creativeAttempt: (c.canonicalImage?.version ?? 0) + 1, ...(pending ? { referenceAssetId: pending.id, faceBox: read?.faceRect, faceCropGiven: Boolean(faceRect), faces: read?.faces, description: read?.description, describedBy: read?.describedBy } : {}), ...(validation ? { referenceValidation: validation } : {}) } });
+      await recordMetric('image.generation_ms', drawn.ms, 'ms', { model, refs: references.length, canonical: 1 }, ctx.job.id);
     } finally { await fsp.rm(tmp.dir, { recursive: true, force: true }).catch(() => {}); }
     await ctx.checkpoint();
   }
-  const check = { ok: framing!.ok, notes: [framing!.ok ? FRAMING_OK : `full body not in frame: ${framing!.reasons.join('; ')}`, ...rejected.map((r) => `redrawn once: the first picture (${r.assetId}) — ${r.reasons.join('; ')}`), ...notes] };
+  if (!framing.ok) await ctx.event('warn', `${c.name}: the picture (${drawn.id}) is not whole in the frame — ${framing.reasons.join('; ')}; kept for your review (no automatic redraw)`, { characterId: c.id, assetId: drawn.id, reasons: framing.reasons });
+  const check = { ok: framing.ok, notes: [framing.ok ? FRAMING_OK : `full body not in frame: ${framing.reasons.join('; ')}`, ...notes] };
   await command('setCanonicalImage', [c.id, { assetId: drawn!.id, jobId: ctx.job.id, seed: usedSeed, referenceAssetId: pending?.id, engine, identityLine: look.line, check }], 'worker');
   const fresh = (await readState()).state.characters.find((x) => x.id === c.id);
   const from = pending ? `from the producer’s reference picture (${pending.id})${read?.description ? ', its look described by Qwen3.5-4B' : ''}` : 'from the description';
-  await ctx.activity('CHARACTER_DRAWN', `${c.name}: canonical image drawn ${from}, seed ${usedSeed}; ${framing!.ok ? 'whole figure in frame' : `FRAMING CHECK FAILED (${framing!.reasons.join('; ')})`}${rejected.length ? ', after one redraw' : ''} — awaiting your approval`, { characterId: c.id, assetId: drawn!.id, ms: drawn!.ms, references, seed: usedSeed, identityLine: look.line, check, rejected });
+  await ctx.activity('CHARACTER_DRAWN', `${c.name}: canonical image drawn ${from}, seed ${usedSeed}; ${framing.ok ? 'whole figure in frame' : `FRAMING CHECK FAILED (${framing.reasons.join('; ')})`} — awaiting your approval`, { characterId: c.id, assetId: drawn!.id, ms: drawn!.ms, references, seed: usedSeed, identityLine: look.line, check, rejected });
   return { canonicalAssetId: drawn!.id, version: fresh?.canonicalImage?.version, status: fresh?.canonicalImage?.status ?? 'DRAFT', ms: drawn!.ms, workflowVersion: drawn!.workflowVersion, seed: usedSeed, identityLine: look.line, lookFrom: pending ? 'REFERENCE' : 'DESCRIPTION', engine, check, rejected, message: `${c.name}: canonical image drawn — awaiting your approval` };
 };
 

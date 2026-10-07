@@ -112,24 +112,26 @@ describe('CHARACTER_APPEARANCE: the canonical image from text', () => {
     // the old pointers are not written and no reference sheet follows
     expect(fake.state.characters.find((x) => x.id === c.id)!.portraitAssetId).toBe(c.portraitAssetId);
   });
-  it('a picture whose figure is cut by the frame is redrawn once with the next seed; the first is kept as RAW', async () => {
+  it('ONE draw (first-attempt policy): a figure cut by the frame is NOT redrawn — the picture is kept with the failed check for the producer', async () => {
     const c = freeChar();
     fake.framing = ['head-cut', 'ok'];
-    const r = await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: c.id })) as { rejected: Array<{ assetId: string }>; canonicalAssetId: string };
-    expect(fake.runs.map((x) => x.graph['9'].inputs.seed)).toEqual([identitySeedFor(c), identitySeedFor(c) + 1]);
-    expect(r.rejected).toHaveLength(1);
-    expect(asset(r.rejected[0].assetId).tier).toBe('RAW');
+    const r = await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: c.id })) as { rejected: unknown[]; canonicalAssetId: string };
+    expect(fake.runs.map((x) => x.graph['9'].inputs.seed)).toEqual([identitySeedFor(c)]);
+    expect(r.rejected).toEqual([]);
     const img = fake.state.characters.find((x) => x.id === c.id)!.canonicalImage!;
-    expect(img).toMatchObject({ assetId: r.canonicalAssetId, seed: identitySeedFor(c) + 1, check: { ok: true } });
-    expect(img.check!.notes!.join(' ')).toMatch(/redrawn once/);
-    expect(fake.events.some((e) => e.level === 'warn' && /not whole in the frame/.test(e.message))).toBe(true);
+    expect(img).toMatchObject({ assetId: r.canonicalAssetId, seed: identitySeedFor(c), check: { ok: false } });
+    expect(img.check!.notes![0]).toMatch(/full body not in frame: the head touches or leaves the top edge/);
+    expect(img.check!.notes!.join(' ')).not.toMatch(/redrawn/);
+    expect(asset(r.canonicalAssetId)).toMatchObject({ provenance: expect.objectContaining({ creativeAttempt: 1 }) });
+    expect(asset(r.canonicalAssetId).tier).not.toBe('RAW');
+    expect(fake.events.some((e) => e.level === 'warn' && /not whole in the frame.*no automatic redraw/.test(e.message))).toBe(true);
   });
-  it('when the redraw fails too, the image is left for the producer with the failed check (approval then needs an override)', async () => {
-    fake.framing = ['head-cut', 'head-cut'];
+  it('the failed check stays on the image (approval then needs an override)', async () => {
+    fake.framing = ['head-cut'];
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
     const img = fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!;
     expect(img.check).toMatchObject({ ok: false });
-    expect(img.check!.notes![0]).toMatch(/full body not in frame: the head touches or leaves the top edge/);
+    expect(fake.runs).toHaveLength(1);
   });
   it('a redraw is a new version with the next seed; the replaced image becomes RAW', async () => {
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
@@ -199,16 +201,14 @@ describe('CHARACTER_APPEARANCE: the canonical image from the producer’s pictur
     expect(asset(img.assetId).provenance).toMatchObject({ model: 'Qwen-Image-Edit-2511' });
     expect(img.check!.notes!.join(' ')).not.toMatch(/klein/);
   });
-  it('a redraw after a framing failure leaves the face crop out (it pulled the shot in to three-quarter length)', async () => {
+  it('from a picture too, ONE draw: a framing failure is kept with its check, never redrawn without the face crop behind the producer', async () => {
     upload();
     fake.text = { bboxes: '[[{"x": 320, "y": 245, "width": 357, "height": 408}]]', vlm_describe: '{"sex": "male", "ageRange": "25-35", "clothing": [{"item": "shirt", "colour": "blue"}]}' };
     fake.framing = ['head-cut', 'ok'];
     await characterAppearance(ctx('CHARACTER_APPEARANCE', { characterId: 'nour' }));
-    expect(fake.runs.map((x) => x.tool)).toEqual(['image.describe_reference', 'image.edit_with_references', 'image.edit_with_references']);
+    expect(fake.runs.map((x) => x.tool)).toEqual(['image.describe_reference', 'image.edit_with_references']);
     expect(fake.runs[1].graph.facecrop).toBeDefined();
-    expect(fake.runs[2].graph.facecrop).toBeUndefined();
-    expect(String(fake.runs[2].graph['6'].inputs.prompt)).not.toContain('image 2');
-    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.check).toMatchObject({ ok: true });
+    expect(fake.state.characters.find((x) => x.id === 'nour')!.canonicalImage!.check).toMatchObject({ ok: false });
   });
   it('without the vision model the look is the picture’s alone, said in the check notes; two faces → no separate face crop', async () => {
     // a character created from a picture: the look fields are the picture's (empty)

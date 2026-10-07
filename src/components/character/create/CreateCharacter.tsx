@@ -15,7 +15,7 @@ import { Button, Notice, Segmented, StateWord } from '@/components/ui/kit';
 import { IconOpen, IconRetry } from '@/components/ui/icons';
 import { createResultOf, startCreateCharacter, startVoiceBuild, type CreateCharacterPayload, type CreateStepName } from '../contract';
 import { EMPTY_SHEET, sheetAge, sheetPayload, type SheetValues } from '../sheetModel';
-import { AutoStart, FigurePreview, ManualStart, PictureStart, type DescribeRecording, type DescribeValues, type HeaderValues, type PictureValues } from './Starts';
+import { AutoStart, FigurePreview, ManualStart, PictureStart, performerProfile, type DescribeRecording, type DescribeValues, type HeaderValues, type PictureValues } from './Starts';
 import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
@@ -54,7 +54,7 @@ export function CreateCharacter() {
   const [hydrated, setHydrated] = useState(false);
   const asked = sp.get('start');
   const [start, setStart] = useState<Start>(STARTS.includes(asked as Start) ? (asked as Start) : 'describe');
-  const [header, setHeader] = useState<HeaderValues>({ forId: sp.get('show') ? `show:${sp.get('show')}` : sp.get('production') ? `p:${sp.get('production')}` : '', style: def.style, language: def.language, dialect: def.dialect });
+  const [header, setHeader] = useState<HeaderValues>({ forId: sp.get('show') ? `show:${sp.get('show')}` : sp.get('production') ? `p:${sp.get('production')}` : '', style: def.style, language: def.language, dialect: def.dialect, kind: 'ACTOR' });
   const [describe, setDescribe] = useState<DescribeValues>({ name: '', brief: '', voiceMode: 'NONE' });
   const [picture, setPicture] = useState<PictureValues>({ name: '', role: '', keep: 'FACE', note: '' });
   const [sheet, setSheet] = useState<SheetValues>(EMPTY_SHEET);
@@ -171,6 +171,7 @@ export function CreateCharacter() {
     const check = checkBrief(describe.brief, describe.name); if (!check.ok) return;
     const ageYears = sheetAge({ band: describe.band, exactAge: describe.ageYears });
     const profile: NonNullable<CreateCharacterPayload['profile']> = {};
+    Object.assign(profile, performerProfile(header));
     if (describe.sex) profile.sex = describe.sex; if (ageYears) profile.ageYears = ageYears; if (describe.species) profile.species = describe.species;
     // a recording added here is uploaded once the character exists; the chain's voice step (AUTOMATIC) builds from it
     const voice = describeVoicePayload(describe.voiceMode, Boolean(recording));
@@ -178,7 +179,7 @@ export function CreateCharacter() {
   };
   const submitSheet = (draw: boolean) => {
     const { profile, brief } = sheetPayload(sheet, { style: header.style, language: header.language, dialect: header.dialect });
-    void launch({ mode: 'MANUAL', name: profile.name, profile, brief, ...basePayload(), voice: { mode: 'NONE' }, draw });
+    void launch({ mode: 'MANUAL', name: profile.name, profile: { ...profile, ...performerProfile(header) }, brief, ...basePayload(), voice: { mode: 'NONE' }, draw });
   };
   const submitPicture = () => {
     if (!picture.asset) return;
@@ -190,7 +191,7 @@ export function CreateCharacter() {
     const changes = picture.keep === 'FACE' ? { hair: picture.hair?.trim() || undefined, wardrobe: picture.wardrobe?.trim() || undefined } : {};
     // "What should change?" is a drawing instruction: it rides on the character's canon, which the image step reads
     const asked = pictureChangeRestrictions(picture.note);
-    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, ...(asked.length ? { canon: { visualRestrictions: asked } } : {}), style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
+    void launch({ mode: 'REFERENCE', name: picture.name.trim() || undefined, brief, profile: { name: picture.name.trim() || undefined, role: picture.role.trim() || undefined, sex: picture.sex, ageYears, ...changes, ...(asked.length ? { canon: { visualRestrictions: asked } } : {}), ...performerProfile(header), style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined }, referenceAssetId: picture.asset.id, ...basePayload(), voice: { mode: 'NONE' }, draw: true });
   };
 
   /** A relaunch of a creation that made nothing carries the recording again (it was never uploaded: no character). */

@@ -5,6 +5,16 @@
 export const STYLES = ['CARTOON', 'ANIME', 'REALISTIC'] as const;
 export type Style = (typeof STYLES)[number];
 
+/** What a character performs (master plan §3): spoken parts, songs, or both — with one identity either way. */
+export const PERFORMER_KINDS = ['ACTOR', 'SINGER', 'ACTOR_SINGER'] as const;
+export type PerformerKind = (typeof PERFORMER_KINDS)[number];
+/** Whether a performer kind sings (and so carries a singing profile). */
+export const sings = (k: PerformerKind): boolean => k !== 'ACTOR';
+
+/** A singer's range, kept with the singing profile (never with the spoken voice). */
+export const VOICE_TYPES = ['SOPRANO', 'MEZZO_SOPRANO', 'ALTO', 'TENOR', 'BARITONE', 'BASS'] as const;
+export type VoiceType = (typeof VOICE_TYPES)[number];
+
 export const LANGUAGES = ['EN', 'AR'] as const;
 export type Language = (typeof LANGUAGES)[number];
 

@@ -116,7 +116,7 @@ vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording } from '@/domain/actions';
 import { CALIBRATION_TEXT, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, MSA_ACCENT_PENDING, PREVIEW_SENTENCES, describeVoiceFromProfile } from '@/domain/voice-identity';
-import { judgeHeard, proofLineFor, shouldRegenerate, voiceBuild, voicePreview } from '@/worker/handlers/voice';
+import { judgeHeard, proofLineFor, shouldRegenerate, voiceBuild, voicePreview, voiceSeedOf } from '@/worker/handlers/voice';
 import { voiceDesign } from '@/worker/handlers/voice-design';
 import type { HandlerContext } from '@/worker/handlers';
 
@@ -141,66 +141,64 @@ beforeEach(() => {
   fake.engineFiles.clear();
 });
 
-describe('AUTOMATIC, English, no recording: design → gates → line-engine previews → pick → proof (contract §2)', () => {
-  it('designs from the profile, keeps every candidate, previews each through IndexTTS, pins the highest ECAPA — and records every number', async () => {
+describe('AUTOMATIC, English, no recording: ONE designed voice → gates → line-engine previews → proof (first-attempt policy)', () => {
+  it('designs ONE voice from the profile with the character\'s seed, previews it through IndexTTS, pins it — and records every number', async () => {
     fresh('EN');
+    const seedOfNour = voiceSeedOf(ch('nour'));
     const r = await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } })) as Record<string, unknown>;
     const c = ch('nour');
     const rec = c.voice.designs![0];
-    // 1) the description is the profile's, the text the calibration sentence; three loudness-matched candidates
-    expect(fake.designs).toEqual([expect.objectContaining({ description: describeVoiceFromProfile(c), text: CALIBRATION_TEXT.EN, language: 'EN', n: 3, loudnessTarget: -20, designId: rec.id })]);
-    expect(rec).toMatchObject({ mode: 'AUTOMATIC', descriptionSource: 'PROFILE', engine: 'voxcpm2', engineVersion: 'voxcpm 2.0.3 (fake)', lineEngine: 'indextts', label: DESIGN_LABEL, seeds: [500, 501, 502], chosen: 2, chosenBy: 'AUTOMATIC', ranking: [2, 3, 1], rankedBy: expect.stringMatching(/ECAPA/) });
-    // 2) every candidate stored (24 kHz reference + 48 kHz original), hashed, measured and gated
-    for (const x of rec.candidates) {
-      expect(asset(x.assetId)).toMatchObject({ origin: 'GENERATED', sha256: x.sha256, provenance: expect.objectContaining({ designId: rec.id, candidate: x.index, label: DESIGN_LABEL }) });
-      expect(asset(x.nativeAssetId!).sha256).toBe(x.nativeSha256);
-      expect(x).toMatchObject({ measured: { cer: 0, coverage: 1, lufs: -20.1, truePeakDbtp: -1.5, clippedSamples: 0, asrModel: 'fake-whisper' }, gate: { ok: true, reasons: [] } });
-      // 3) two preview sentences through the line engine, each heard back, ECAPA(seed, rendering) measured
-      expect(x.previews!.map((p) => [p.text, p.engine, p.cosine, p.cer, p.coverage])).toEqual(PREVIEW_SENTENCES.EN.map((t) => [t, 'indextts', fake.similarity[x.index - 1], 0, 1]));
-      expect(x.similarityMean).toBe(fake.similarity[x.index - 1]);
-      for (const p of x.previews!) expect(asset(p.assetId!)).toMatchObject({ tier: 'RAW', tags: ['voice', 'design', 'preview'] });
-    }
-    // the previews and the proof were spoken with the parameters that were pinned
+    // 1) the description is the profile's, the text the calibration sentence; ONE loudness-matched voice, from the seed
+    //    the character's identity revision gives (never random: a retry makes the same voice)
+    expect(fake.designs).toEqual([expect.objectContaining({ description: describeVoiceFromProfile(c), text: CALIBRATION_TEXT.EN, language: 'EN', n: 1, seed: seedOfNour, loudnessTarget: -20, designId: rec.id })]);
+    expect(rec).toMatchObject({ mode: 'AUTOMATIC', descriptionSource: 'PROFILE', engine: 'voxcpm2', engineVersion: 'voxcpm 2.0.3 (fake)', lineEngine: 'indextts', label: DESIGN_LABEL, seeds: [seedOfNour], chosen: 1, chosenBy: 'AUTOMATIC', ranking: [1] });
+    expect(rec.candidates).toHaveLength(1);
+    // 2) the voice stored (24 kHz reference + 48 kHz original), hashed, measured and gated
+    const x = rec.candidates[0];
+    expect(asset(x.assetId)).toMatchObject({ origin: 'GENERATED', sha256: x.sha256, provenance: expect.objectContaining({ designId: rec.id, candidate: 1, label: DESIGN_LABEL }) });
+    expect(asset(x.nativeAssetId!).sha256).toBe(x.nativeSha256);
+    expect(x).toMatchObject({ measured: { cer: 0, coverage: 1, lufs: -20.1, truePeakDbtp: -1.5, clippedSamples: 0, asrModel: 'fake-whisper' }, gate: { ok: true, reasons: [] } });
+    // 3) two preview sentences through the line engine, each heard back, ECAPA(seed, rendering) measured
+    expect(x.previews!.map((p) => [p.text, p.engine, p.cosine, p.cer, p.coverage])).toEqual(PREVIEW_SENTENCES.EN.map((t) => [t, 'indextts', fake.similarity[0], 0, 1]));
+    for (const p of x.previews!) expect(asset(p.assetId!)).toMatchObject({ tier: 'RAW', tags: ['voice', 'design', 'preview'] });
+    // the previews and the proof were spoken with the parameters that were pinned: 2 previews + 1 proof
     const id = c.voice.identity!;
+    expect(id.params.seed).toBe(seedOfNour);
     expect(rec.lineParams).toEqual({ speed: 1, emotionAlpha: 1, seed: id.params.seed });
-    expect(fake.synth).toHaveLength(7);
+    expect(fake.synth).toHaveLength(3);
     expect(fake.synth.every((s) => s.seed === id.params.seed && s.engine === 'indextts')).toBe(true);
     // 4) the identity: designed, its seed's sha256 pinned, the proof measured; nothing claims naturalness
-    const chosen = rec.candidates[1];
-    expect(id).toMatchObject({ origin: 'DESIGNED', mode: 'AUTOMATIC', designId: rec.id, seedSha256: chosen.sha256, referenceAssetId: chosen.assetId, referenceText: CALIBRATION_TEXT.EN, status: 'ACTIVE', dialectStatus: 'NOT_APPLICABLE', evaluation: { cer: 0, coverage: 1, lufs: -20.1, truePeakDbtp: -1.5, clipped: 0, seedToLineSimilarity: 0.74 } });
+    expect(id).toMatchObject({ origin: 'DESIGNED', mode: 'AUTOMATIC', designId: rec.id, seedSha256: x.sha256, referenceAssetId: x.assetId, referenceText: CALIBRATION_TEXT.EN, status: 'ACTIVE', dialectStatus: 'NOT_APPLICABLE', evaluation: { cer: 0, coverage: 1, lufs: -20.1, truePeakDbtp: -1.5, clipped: 0, seedToLineSimilarity: 0.66 } });
     expect(id.referenceSampleId).toBeUndefined();
-    expect(fake.synth.at(-1)).toMatchObject({ referenceWav: seedPath(chosen.assetId), text: 'Hello. My name is Nour, and this is my voice.' });
-    expect([asset(chosen.assetId).tier, asset(chosen.nativeAssetId!).tier, asset(rec.candidates[0].assetId).tier, asset(rec.candidates[2].assetId).tier]).toEqual(['SECONDARY', 'SECONDARY', 'RAW', 'RAW']);
-    expect(r).toMatchObject({ awaitingReview: false, labels: [DESIGN_LABEL, 'naturalness not yet judged by a listener'], design: { designId: rec.id, chosen: 2, ranking: [2, 3, 1] }, evaluation: { seedToLineSimilarity: 0.74 } });
-    // the designed voice speaks a preview from its seed, measured
+    expect(fake.synth.at(-1)).toMatchObject({ referenceWav: seedPath(x.assetId), text: 'Hello. My name is Nour, and this is my voice.' });
+    expect([asset(x.assetId).tier, asset(x.nativeAssetId!).tier]).toEqual(['SECONDARY', 'SECONDARY']);
+    expect(r).toMatchObject({ awaitingReview: false, labels: [DESIGN_LABEL, 'naturalness not yet judged by a listener'], design: { designId: rec.id, chosen: 1, ranking: [1] }, evaluation: { seedToLineSimilarity: 0.66 } });
+    // the designed voice speaks a requested line from its seed, measured
     const p = await voicePreview(ctxFor({ type: 'VOICE_PREVIEW', payload: { characterId: 'nour', text: 'See you at the harbour.' } })) as Record<string, unknown>;
-    expect(fake.synth.at(-1)).toMatchObject({ referenceWav: seedPath(chosen.assetId), seed: id.params.seed });
-    expect(p).toMatchObject({ measured: { seedToLineSimilarity: 0.74, clipped: 0 } });
+    expect(fake.synth.at(-1)).toMatchObject({ referenceWav: seedPath(x.assetId), seed: id.params.seed });
+    expect(p).toMatchObject({ measured: { seedToLineSimilarity: 0.66, clipped: 0 } });
   });
-  it('a candidate over 11.5 s or with a high CER fails its gates and is not previewed; the pick comes from those that passed', async () => {
+  it('a designed voice that fails its gates is kept for the producer to hear — never replaced by a second design; nothing is pinned', async () => {
     fresh('EN');
-    fake.durations = [12.2, 9.3, 8.5];
-    fake.similarity = [0.95, 0.6, 0.9];
-    fake.candidateHeard = (k, text) => (k === 3 ? 'the harbour lights went off one at a time and nobody came back' : text);
-    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } }));
-    const rec = ch('nour').voice.designs![0];
-    expect(rec.candidates[0].gate).toMatchObject({ ok: false, reasons: [expect.stringMatching(/12.20 s is over 11.5 s/)] });
-    expect(rec.candidates[2].gate.ok).toBe(false);
-    expect(rec.candidates[2].gate.reasons[0]).toMatch(/CER 0\.\d+ > 0.1/);
-    expect(rec.candidates[0].previews).toBeUndefined(); expect(rec.candidates[2].previews).toBeUndefined();
-    expect(rec).toMatchObject({ chosen: 2, ranking: [2, 3] });
-    expect(fake.synth).toHaveLength(3); // two previews of candidate 2, then the proof
-  });
-  it('none passing fails the build (PROVIDER) and keeps the candidates and their record; nothing is pinned', async () => {
-    fresh('EN');
-    fake.durations = [12.1, 13, 14.5];
+    fake.durations = [12.1];
     const err = await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } })).catch((e: unknown) => e) as { code: string; failureClass: string; message: string };
-    expect(err).toMatchObject({ code: 'PROVIDER', failureClass: 'PROVIDER', message: expect.stringMatching(/None of the 3 voices designed for Nour passed the gates/) });
+    expect(err).toMatchObject({ code: 'PROVIDER', failureClass: 'PROVIDER', message: expect.stringMatching(/The voice designed for Nour did not pass its checks.*12.10 s is over 11.5 s.*kept on design/) });
+    expect(fake.designs).toHaveLength(1);
     expect(ch('nour').voice.identity).toBeUndefined();
     const rec = ch('nour').voice.designs![0];
-    expect(rec.candidates.map((x) => x.gate.ok)).toEqual([false, false, false]);
-    expect(rec.candidates.every((x) => fake.state.assets.some((a) => a.id === x.assetId))).toBe(true);
+    expect(rec.candidates.map((x) => x.gate.ok)).toEqual([false]);
+    expect(rec.candidates[0].previews).toBeUndefined();
+    expect(fake.state.assets.some((a) => a.id === rec.candidates[0].assetId)).toBe(true);
+    expect(fake.synth).toHaveLength(0);
     expect(fake.removed).toEqual([]);
+  });
+  it('an infrastructure retry of the build designs from the SAME seed (the same voice, not a second creative attempt)', async () => {
+    fresh('EN');
+    fake.durations = [12.1];
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } })).catch(() => undefined);
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' }, attempts: 2 })).catch(() => undefined);
+    expect(fake.designs).toHaveLength(2);
+    expect(fake.designs[1].seed).toBe(fake.designs[0].seed);
   });
 });
 
@@ -210,7 +208,7 @@ describe('AUTOMATIC, Arabic', () => {
     const r = await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } })) as Record<string, unknown>;
     expect(fake.designs[0]).toMatchObject({ language: 'AR', text: CALIBRATION_TEXT.AR, description: expect.stringMatching(/Modern Standard Arabic/) });
     expect(ch('nour').voice.identity).toMatchObject({ origin: 'DESIGNED', dialectStatus: 'UNVERIFIED', model: 'indextts' });
-    expect(fake.synth.filter((s) => PREVIEW_SENTENCES.MSA.includes(s.text as never))).toHaveLength(6);
+    expect(fake.synth.filter((s) => PREVIEW_SENTENCES.MSA.includes(s.text as never))).toHaveLength(PREVIEW_SENTENCES.MSA.length);
     expect(r.labels).toEqual([DESIGN_LABEL, MSA_ACCENT_PENDING, 'naturalness not yet judged by a listener']);
   });
   it('Iraqi without an Iraqi recording is refused with the contract’s sentence; nothing is designed', async () => {
@@ -229,21 +227,16 @@ describe('AUTOMATIC, Arabic', () => {
     expect(ch('nour').voice.identity).toMatchObject({ origin: 'UPLOAD_CONSENTED', consent: { statement: 'MY_VOICE' }, model: 'habibi', dialectStatus: 'UNVERIFIED', status: 'ACTIVE' });
     expect(fake.synth[0]).toMatchObject({ engine: 'habibi', referenceWav: '/lib/audio/gen-iqwin.wav', referenceText: 'هلا شلونكم اليوم' });
   });
-  it('the allowDesignedIraqi experiment: an Arabic seed through Habibi, screened on the four Iraqi probe lines by letter coverage then CER; always REVIEW', async () => {
+  it('the allowDesignedIraqi experiment: ONE Arabic seed through Habibi, screened on the four Iraqi probe lines by letter coverage; always REVIEW', async () => {
     fresh('AR', 'IRAQI_BAGHDADI', true);
-    // candidate 1 has the best ECAPA but its probe lines come back with other letters
-    fake.similarity = [0.9, 0.7, 0.72];
-    fake.previewHeard = (k, text) => (k === 1 ? text.replace(/ه/g, 'ح').replace(/ش/g, 'س') : text);
     const r = await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'AUTOMATIC' } })) as Record<string, unknown>;
     const rec = ch('nour').voice.designs![0];
-    expect(rec).toMatchObject({ experiment: 'DESIGNED_IRAQI', lineEngine: 'habibi', rankedBy: expect.stringMatching(/letter coverage/) });
+    expect(rec).toMatchObject({ experiment: 'DESIGNED_IRAQI', lineEngine: 'habibi', rankedBy: expect.stringMatching(/letter coverage/), chosen: 1 });
     const previews = fake.synth.slice(0, -1);
-    expect(previews).toHaveLength(12);
+    expect(previews).toHaveLength(PREVIEW_SENTENCES.IRAQI.length);
     expect(previews.every((s) => s.engine === 'habibi' && s.referenceText === CALIBRATION_TEXT.AR)).toBe(true);
     expect([...new Set(previews.map((s) => s.text))]).toEqual([...PREVIEW_SENTENCES.IRAQI]);
-    expect(rec.candidates[0].letterCoverageMean!).toBeLessThan(1);
-    expect(rec.candidates[1].letterCoverageMean).toBe(1);
-    expect(rec.chosen).toBe(2); // not candidate 1, despite its ECAPA
+    expect(rec.candidates[0].letterCoverageMean).toBe(1);
     expect(ch('nour').voice.identity).toMatchObject({ origin: 'DESIGNED', model: 'habibi', status: 'REVIEW', dialectStatus: 'UNVERIFIED' });
     expect(fake.synth.at(-1)).toMatchObject({ engine: 'habibi', referenceText: CALIBRATION_TEXT.AR });
     expect(r).toMatchObject({ awaitingReview: true, reviewReasons: [expect.stringMatching(/experiment/)] });
@@ -251,22 +244,23 @@ describe('AUTOMATIC, Arabic', () => {
 });
 
 describe('DESIGN (manual): VOICE_DESIGN → the producer chooses → VOICE_BUILD { mode: DESIGN }', () => {
-  it('three measured candidates with previews and nothing pinned; the chosen one is pinned with the seed the previews used', async () => {
+  it('ONE measured voice with previews and nothing pinned; when the producer uses it, it is pinned with the seed the previews used', async () => {
     fresh('EN');
     const d = await voiceDesign(ctxFor({ type: 'VOICE_DESIGN', payload: { characterId: 'nour', description: 'A bright, quick young woman, about 25, friendly' } })) as { designId: string; recommended: number; candidates: Array<{ index: number; previews: unknown[]; gate: { ok: boolean } }>; notes: string[]; awaitingReview: boolean };
     expect(fake.designs[0]).toMatchObject({ description: 'A bright, quick young woman, about 25, friendly' });
-    expect(d).toMatchObject({ recommended: 2, awaitingReview: false, notes: [DESIGN_LABEL, 'naturalness not yet judged by a listener'] });
-    expect(d.candidates.map((x) => x.previews.length)).toEqual([2, 2, 2]);
+    expect(fake.designs[0]).toMatchObject({ n: 1 });
+    expect(d).toMatchObject({ recommended: 1, awaitingReview: false, notes: [DESIGN_LABEL, 'naturalness not yet judged by a listener'] });
+    expect(d.candidates.map((x) => x.previews.length)).toEqual([2]);
     // the flat fields the voice panel reads (src/components/character/contract.ts designResultOf)
     expect(d.candidates[0]).toMatchObject({ index: 1, assetId: expect.stringMatching(/^gen-/), duration: 9.6, durationSeconds: 9.6, cer: 0, coverage: 1, lufs: -20.1, passed: true, reasons: [] });
     expect(ch('nour').voice.identity).toBeUndefined();
     const rec = ch('nour').voice.designs![0];
     expect(rec).toMatchObject({ mode: 'DESIGN', descriptionSource: 'PRODUCER' });
     expect(rec.chosen).toBeUndefined();
-    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 3 }, id: 'job-v2-design' }));
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 1 }, id: 'job-v2-design' }));
     const id = ch('nour').voice.identity!;
-    expect(id).toMatchObject({ origin: 'DESIGNED', mode: 'DESIGN', referenceAssetId: rec.candidates[2].assetId, seedSha256: rec.candidates[2].sha256, params: { seed: rec.lineParams!.seed }, evaluation: { seedToLineSimilarity: 0.7 } });
-    expect(ch('nour').voice.designs![0]).toMatchObject({ chosen: 3, chosenBy: 'PRODUCER' });
+    expect(id).toMatchObject({ origin: 'DESIGNED', mode: 'DESIGN', referenceAssetId: rec.candidates[0].assetId, seedSha256: rec.candidates[0].sha256, params: { seed: rec.lineParams!.seed }, evaluation: { seedToLineSimilarity: 0.66 } });
+    expect(ch('nour').voice.designs![0]).toMatchObject({ chosen: 1, chosenBy: 'PRODUCER' });
   });
   it('a description that names someone is refused before any GPU work (Rule V-DESIGN §4)', async () => {
     fresh('EN');
@@ -281,21 +275,21 @@ describe('Rule V-DESIGN at the clone boundary', () => {
     fresh('EN');
     const d = await voiceDesign(ctxFor({ type: 'VOICE_DESIGN', payload: { characterId: 'nour' } })) as { designId: string };
     const rec = ch('nour').voice.designs![0];
-    const seed2 = seedPath(rec.candidates[1].assetId);
+    const seed2 = seedPath(rec.candidates[0].assetId);
     // swapped file: the build from that candidate is refused before anything is spoken
     fake.libSha.set(seed2, 'f'.repeat(64));
     const before = fake.synth.length;
-    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 2 } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: expect.stringMatching(/Rule V-DESIGN.*does not match design/) });
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 1 } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: expect.stringMatching(/Rule V-DESIGN.*does not match design/) });
     expect(fake.synth.length).toBe(before);
     expect(ch('nour').voice.identity).toBeUndefined();
     // the right file but a tag naming another design
-    fake.libSha.set(seed2, rec.candidates[1].sha256);
-    fake.tags.set(seed2, { comment: 'synthetic speech; engine=voxcpm2; designId=vd-someone-else; candidate=2; not a voice reference' });
-    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 2 } }))).rejects.toMatchObject({ message: expect.stringMatching(/provenance tag names design vd-someone-else/) });
+    fake.libSha.set(seed2, rec.candidates[0].sha256);
+    fake.tags.set(seed2, { comment: 'synthetic speech; engine=voxcpm2; designId=vd-someone-else; candidate=1; not a voice reference' });
+    await expect(voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 1 } }))).rejects.toMatchObject({ message: expect.stringMatching(/provenance tag names design vd-someone-else/) });
     // its own tag: accepted; then a swap after pinning stops the voice speaking from it
-    fake.tags.set(seed2, { comment: `synthetic speech; engine=voxcpm2; designId=${d.designId}; candidate=2; not a voice reference` });
-    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 2 } }));
-    expect(ch('nour').voice.identity).toMatchObject({ origin: 'DESIGNED', seedSha256: rec.candidates[1].sha256 });
+    fake.tags.set(seed2, { comment: `synthetic speech; engine=voxcpm2; designId=${d.designId}; candidate=1; not a voice reference` });
+    await voiceBuild(ctxFor({ payload: { characterId: 'nour', mode: 'DESIGN', designId: d.designId, candidate: 1 } }));
+    expect(ch('nour').voice.identity).toMatchObject({ origin: 'DESIGNED', seedSha256: rec.candidates[0].sha256 });
     fake.libSha.set(seed2, 'e'.repeat(64));
     await expect(voicePreview(ctxFor({ type: 'VOICE_PREVIEW', payload: { characterId: 'nour', text: 'Hello again.' } }))).rejects.toMatchObject({ code: 'MISSING_REFERENCE', message: expect.stringMatching(/Rule V-DESIGN/) });
   });
