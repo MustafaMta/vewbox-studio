@@ -13,7 +13,7 @@ import { displaySrc, runtime } from '@/components/home/model';
 import { ShotFields, emptyShot, type ShotDraft } from '../ShotForm';
 import { IconDelete, IconDown, IconDuplicate, IconEdit, IconGenerate, IconPlus, IconUp } from '@/components/ui/icons';
 import { GenButton, type StudioGate } from '../gate';
-import { frameRatioOf, shotState, vocab, workspaceHref } from '../model';
+import { BOUNDARY_WORDS, boundaryOf, frameRatioOf, shotState, vocab, workspaceHref } from '../model';
 
 /** STORYBOARD — the shots as frames, scene by scene, in the film's ratio. Drag a frame onto another to reorder it in
  *  its scene (or use its menu); open one to work on it. The shot planner drafts the board from the script on request. */
@@ -75,8 +75,21 @@ function BoardCard({ p, sh, first, last, dragging, over, pic, stateWords, onDrag
   onDragStart: () => void; onDragEnd: () => void; onDragOver: () => void; onDrop: () => void; onMove: (d: -1 | 1) => void; onDuplicate: () => void; onDelete: () => void;
 }) {
   const { state } = useStudio();
-  const cast = castOf(state, p).filter((c) => sh.characterIds.includes(c.id));
+  const everyone = castOf(state, p);
+  const cast = everyone.filter((c) => sh.characterIds.includes(c.id));
   const href = shotHref(p, sh.id);
+  // PRE-PRODUCTION AT A GLANCE (producer directive: the board is pre-production, not a table of prompts): how the
+  // shot joins the one before, the first line spoken and by whom, whether every speaker has a voice, what continuity
+  // the shot carries
+  const boundary = boundaryOf(p, sh);
+  const lines = sh.dialogue.filter((d) => (p.language === 'AR' ? d.textAr || d.text : d.text || d.textAr)?.trim());
+  const speakerOf = (id: string) => everyone.find((c) => c.id === id);
+  const opening = lines[0];
+  const openingText = opening ? (p.language === 'AR' ? opening.textAr || opening.text : opening.text || opening.textAr) ?? '' : '';
+  const speakers = [...new Set(lines.map((d) => d.characterId))].map(speakerOf).filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const voiceless = speakers.filter((c) => !c.voice.identity);
+  const cont = sh.continuity;
+  const carried = cont ? [cont.characters?.length ? `${cont.characters.length} ${cont.characters.length === 1 ? 'look' : 'looks'}` : '', cont.props?.length ? `${cont.props.length} ${cont.props.length === 1 ? 'prop' : 'props'}` : ''].filter(Boolean) : [];
   return (
     <li draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onDragOver={(e) => { e.preventDefault(); onDragOver(); }} onDrop={(e) => { e.preventDefault(); onDrop(); }}
       className="ws-board-card" data-dragging={dragging || undefined} data-over={over || undefined}>
@@ -84,8 +97,15 @@ function BoardCard({ p, sh, first, last, dragging, over, pic, stateWords, onDrag
         <Frame asset={pic} src={displaySrc(pic)} ratio={frameRatioOf(p)} fit="cover" alt="" decorative art={artVars(pic)} title={sh.purpose || `Shot ${shotLabel(p, sh)}`} titleState="notDrawn" className="ws-shot-frame">
           <span className="art-chip ws-ro">{shotLabel(p, sh)} · {sh.durationSeconds} s</span>
         </Frame>
-        <span className="ws-shot-name">{vocab(sh.framing)} · {vocab(sh.cameraMove).toLowerCase()}</span>
+        <span className="ws-shot-name">{vocab(sh.framing)} · {vocab(sh.cameraMove).toLowerCase()} · <span className="t-meta">{BOUNDARY_WORDS[boundary]?.label ?? boundary}</span></span>
         <span className="ws-shot-purpose" dir="auto">{sh.purpose || sh.action || 'No purpose written'}</span>
+        {opening && <span className="ws-shot-line" dir="auto"><span className="t-label name"><bdi>{speakerOf(opening.characterId)?.name ?? 'Someone'}</bdi></span> {openingText}{lines.length > 1 && <span className="t-meta"> · +{lines.length - 1} {lines.length === 2 ? 'line' : 'lines'}</span>}</span>}
+        {(speakers.length > 0 || carried.length > 0) && (
+          <span className="t-meta ws-shot-facts">
+            {speakers.length > 0 && <span>{voiceless.length ? <><bdi>{voiceless.map((c) => c.name).join(', ')}</bdi>: no voice yet</> : speakers.length === 1 ? 'Voice ready' : 'Voices ready'}</span>}
+            {carried.length > 0 && <span>Continuity: {carried.join(', ')}</span>}
+          </span>
+        )}
         <span className="ws-shot-state"><StateWord tone={stateWords.tone}>{stateWords.words}</StateWord>{cast.length > 0 && <span className="t-meta name"><bdi>{cast.map((c) => c.name).join(', ')}</bdi></span>}</span>
       </Link>
       <span className="ws-board-menu">

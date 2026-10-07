@@ -73,6 +73,12 @@ export const DevelopSchema = z.object({
 export const ScriptSceneSchema = z.preprocess(aliases({ sceneId: ['id', 'scene'] }), z.object({
   sceneId: looseString,
   beats: looseArray(z.preprocess(aliases({ action: ['description', 'text', 'beat'], lines: ['dialogue'] }), z.object({ action: req(600), lines })), { min: 1, max: 12 }),
+  // WHAT THE SCENE ESTABLISHES (src/domain/types.ts SceneStory): carried into later episodes by the World Bible
+  facts: z.preprocess((v) => (v === null || typeof v !== 'object' ? undefined : v), z.preprocess(aliases({ events: ['happened', 'storyEvents'], knowledge: ['learns', 'learned', 'knows'], changes: ['persistentChanges', 'lasting'] }), z.object({
+    events: strs(240, 4).optional(),
+    knowledge: looseArray(z.preprocess(aliases({ characterName: ['character', 'who', 'name'], text: ['fact', 'knows', 'learns'] }), z.object({ characterName: req(60), text: req(240) })), { max: 6 }).optional(),
+    changes: looseArray(z.preprocess(aliases({ subject: ['who', 'what', 'name'], key: ['aspect', 'slot'], text: ['state', 'change', 'description'] }), z.object({ subject: req(60), key: str(40).optional(), text: req(240) })), { max: 6 }).optional(),
+  })).optional()),
 }));
 export const ScriptSchema = z.object({ scenes: looseArray(ScriptSceneSchema, { min: 1 }) });
 

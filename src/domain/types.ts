@@ -234,7 +234,7 @@ export interface ShotMotion { direction?: 'LEFT_TO_RIGHT' | 'RIGHT_TO_LEFT' | 'T
  *  - `changes`: persistent changes to a person, a prop or a place ("Karim's left arm is in a sling", "the window is
  *    broken") — carried into every later shot that shows them until a later change replaces them (same `key`);
  *  - `relationships`: how a relationship stands after the scene. */
-export interface StoryFact { id: string; text: string; atShotId?: string }
+export interface StoryFact { id: string; text: string; atShotId?: string; /** SCRIPT: written by the script writer (replaced when the scene is rewritten); absent: the producer's */ source?: 'SCRIPT' }
 export interface KnowledgeFact extends StoryFact { characterId: string }
 export interface PersistentChange extends StoryFact { /** what it applies to */ subject: { kind: 'CHARACTER'; characterId: string } | { kind: 'PROP'; name: string } | { kind: 'LOCATION'; locationId: string }; /** facts with the same key replace each other (e.g. "arm" healed later) */ key?: string; /** ends a previous change with the same key without a new state */ cleared?: boolean }
 export interface RelationshipFact extends StoryFact { characterIds: string[] }
@@ -1016,7 +1016,16 @@ export interface WorldBible {
   songs: WorldSong[];
   openStorylines: string[];
   audio: WorldAudioPolicy;
+  /** What each character has learned, in story order across the scope's productions (Episode N+1 inherits Episode
+   *  N's): a character never acts on what they cannot know yet, and never forgets what they learned. */
+  knowledge?: WorldKnowledge[];
+  /** The persistent changes still in force after every earlier scene (a wound, a broken window, a lamp now fixed): a
+   *  later change with the same key replaces an earlier one, a cleared one ends it. */
+  changesInForce?: WorldCarriedChange[];
 }
+
+export interface WorldKnowledge { id: string; characterId: string; text: string; productionId: string; sceneId: string }
+export interface WorldCarriedChange { id: string; subject: PersistentChange['subject']; key?: string; text: string; productionId: string; sceneId: string }
 
 export interface WorldChange { op: 'ADD' | 'UPDATE' | 'REMOVE'; path: string; detail?: string }
 

@@ -389,14 +389,15 @@ timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NI
 
 // ------------------------------------------------------------------------------------------------------ script
 
-export interface ScriptResult { scenes: Array<{ sceneId: string; beats: Array<{ action: string; lines: Array<{ characterName: string; text: string; textAr?: string; delivery?: string }> }> }> }
+export interface ScriptFacts { events?: string[]; knowledge?: Array<{ characterName: string; text: string }>; changes?: Array<{ subject: string; key?: string; text: string }> }
+export interface ScriptResult { scenes: Array<{ sceneId: string; beats: Array<{ action: string; lines: Array<{ characterName: string; text: string; textAr?: string; delivery?: string }> }>; facts?: ScriptFacts }> }
 
 /** What the script writer is told from the World Bible: the world's rules, the relationships, the latest timeline
  *  facts and the open storylines (the same block story development reads, from the production's pinned revision). */
 export function scriptWorld(bible: WorldBible | undefined): string {
   if (!bible) return '';
   const w = worldForStory(bible);
-  return `World Bible (respect every fact; nobody contradicts it): ${compact({ rules: w.rules, relationships: w.relationships, timeline: w.timeline, openStorylines: w.openStorylines, styleNotes: w.styleNotes })}`;
+  return `World Bible (respect every fact; nobody contradicts it): ${compact({ rules: w.rules, relationships: w.relationships, timeline: w.timeline, openStorylines: w.openStorylines, styleNotes: w.styleNotes, stillTrue: w.stillTrue, knownBy: w.knownBy })}`;
 }
 
 export async function writeScript(_s: StudioState, p: Production, scenes: Scene[], cast: Character[], world: Location[], opts: EngineOptions = {}, bible?: WorldBible): Promise<ScriptResult> {
@@ -411,7 +412,8 @@ Places: ${compact(world.map(locationSummary))}
 Scenes to write (keep sceneId): ${compact(sceneCards)}
 Each scene plays for about ${perScene} seconds, so 2–6 beats per scene; a beat is one piece of action (what we see, present tense, specific and filmable in a few seconds) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
 If a scene already has beats, improve and complete them rather than discarding what is there.
-Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }] }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
+For each scene also record what it establishes for the rest of the series, in "facts" (English): events (1–3 things that happened and matter later), knowledge (who now knows something they did not before: characterName + what they know), changes (lasting physical changes later scenes must show: subject is a character's exact name, a prop or the place's exact name; key is the aspect that a later change would replace, e.g. "left arm", "shop window"; text is the new state). Only real story facts; empty arrays when the scene establishes none.
+Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }], facts: { events: [], knowledge: [{ characterName, text }], changes: [{ subject, key, text }] } }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
   const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
   opts.onResult?.(r.result);

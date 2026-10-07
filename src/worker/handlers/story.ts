@@ -21,7 +21,7 @@ import type { LlmResult } from '@/server/providers/llm';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightPlan } from '@/server/org/preflight';
 import { recordEpisode, syncWorld, worldOfProduction } from '@/server/world';
-import { summarizeChanges } from '@/domain/world';
+import { sceneStoryFromScript, summarizeChanges } from '@/domain/world';
 import type { WorldBible } from '@/domain/types';
 
 /** THE STORY HANDLERS — Manual Brief development, script writing, shot planning. Each runs the engine,
@@ -253,7 +253,9 @@ export const writeScript: Handler = async (ctx) => {
       if (!scene) continue;
       const beats = sc.beats.map((b) => ({ id: nid('beat'), action: b.action, lines: b.lines.map((l) => { const c = byName(l.characterName); return c ? { id: nid('line'), characterId: c.id, text: l.text, textAr: l.textAr || undefined, delivery: l.delivery } : null; }).filter((x): x is NonNullable<typeof x> => Boolean(x)) }));
       const speakers = new Set(beats.flatMap((b) => b.lines.map((l) => l.characterId)));
-      await command('updateScene', [p.id, scene.id, { beats, characterIds: Array.from(new Set([...scene.characterIds, ...speakers])) }], 'worker');
+      // what the scene establishes (who learns what, what lasts) is carried into later episodes by the World Bible
+      const story = sceneStoryFromScript(scene.story, sc.facts, cast, world, nid);
+      await command('updateScene', [p.id, scene.id, { beats, characterIds: Array.from(new Set([...scene.characterIds, ...speakers])), story }], 'worker');
       written++;
     }
   }

@@ -1,4 +1,4 @@
-import type { Asset, Character, Location, Production, Scene, Shot, StudioState, Take, WorldAudioPolicy, WorldBible, WorldChange, WorldCharacter, WorldEvent, WorldLocation, WorldPlate, WorldProp, WorldRead, WorldRelationship, WorldRule, WorldSceneState, WorldScope, WorldSong, WorldWardrobe } from './types';
+import type { Asset, Character, KnowledgeFact, Location, PersistentChange, Production, Scene, SceneStory, Shot, StoryFact, StudioState, Take, WorldAudioPolicy, WorldBible, WorldCarriedChange, WorldChange, WorldCharacter, WorldEvent, WorldKnowledge, WorldLocation, WorldPlate, WorldProp, WorldRead, WorldRelationship, WorldRule, WorldSceneState, WorldScope, WorldSong, WorldWardrobe } from './types';
 import type { Framing, TimeOfDay } from './vocabulary';
 import { canonical, hashString } from './hash';
 import { usableImage } from './identity';
@@ -134,6 +134,55 @@ function timelineOf(prev: WorldEvent[], state: Pick<StudioState, 'seasons' | 'lo
   return events.filter((e) => (seen.has(e.id) ? false : (seen.add(e.id), true))).sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
 
+/** WHAT LASTS ACROSS EPISODES (producer directive: Episode N+1 inherits Episode N's state). In story order over the
+ *  scope's productions: every character's learned facts, and the persistent changes still in force — the same rule as
+ *  inside one production (production-context.ts changesInForce): a later change with the same key (or the same subject
+ *  and words) replaces an earlier one, a `cleared` change ends it, a wordless fact is never carried. Pure (tested). */
+export function carriedStoryOf(prods: Production[]): { knowledge: WorldKnowledge[]; changesInForce: WorldCarriedChange[] } {
+  const words = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim();
+  const lower = (s?: string) => words(s).toLowerCase();
+  const knowledge: WorldKnowledge[] = [];
+  const changes = new Map<string, WorldCarriedChange>();
+  for (const p of prods) {
+    for (const sc of scenesInOrder(p)) {
+      const st = sc.story;
+      if (!st) continue;
+      for (const k of st.knowledge ?? []) if (k && words(k.text)) knowledge.push({ id: `kn-${sc.id}-${k.id}`, characterId: k.characterId, text: words(k.text), productionId: p.id, sceneId: sc.id });
+      for (const c of st.changes ?? []) {
+        if (!c || (!words(c.text) && !c.cleared)) continue;
+        const subj = c.subject.kind === 'CHARACTER' ? `c:${c.subject.characterId}` : c.subject.kind === 'PROP' ? `p:${lower(c.subject.name)}` : `l:${c.subject.locationId}`;
+        const key = `${subj}|${lower(c.key) || lower(c.text)}`;
+        if (c.cleared) changes.delete(key);
+        else changes.set(key, { id: `ch-${sc.id}-${c.id}`, subject: c.subject, ...(c.key ? { key: c.key } : {}), text: words(c.text), productionId: p.id, sceneId: sc.id });
+      }
+    }
+  }
+  return { knowledge, changesInForce: [...changes.values()] };
+}
+
+/** A scene's story facts after the script writer reported them (WRITE_SCRIPT): names resolve to the cast and places
+ *  (a fact about someone or somewhere unknown is dropped; a change about neither is a prop), the writer's earlier
+ *  facts are replaced, the producer's own facts are kept. Pure (tested); `newId` makes the fact ids. */
+export function sceneStoryFromScript(existing: SceneStory | undefined, facts: { events?: string[]; knowledge?: Array<{ characterName: string; text: string }>; changes?: Array<{ subject: string; key?: string; text: string }> } | undefined,
+  people: Array<Pick<Character, 'id' | 'name' | 'nameAr'>>, places: Array<Pick<Location, 'id' | 'name' | 'nameAr'>>, newId: (prefix: string) => string): SceneStory | undefined {
+  const words = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim();
+  const same = (a: string, b?: string) => Boolean(b) && words(a).toLowerCase() === words(b).toLowerCase();
+  const person = (n: string) => people.find((c) => same(n, c.name) || same(n, c.nameAr));
+  const place = (n: string) => places.find((l) => same(n, l.name) || same(n, l.nameAr));
+  const own = <T extends StoryFact>(xs?: T[]) => (xs ?? []).filter((x) => x.source !== 'SCRIPT');
+  const events: StoryFact[] = (facts?.events ?? []).map(words).filter(Boolean).map((text) => ({ id: newId('fact'), text, source: 'SCRIPT' }));
+  const knowledge: KnowledgeFact[] = (facts?.knowledge ?? []).flatMap((k) => { const c = person(k.characterName); return c && words(k.text) ? [{ id: newId('fact'), characterId: c.id, text: words(k.text), source: 'SCRIPT' as const }] : []; });
+  const changes: PersistentChange[] = (facts?.changes ?? []).flatMap((ch) => {
+    if (!words(ch.text) || !words(ch.subject)) return [];
+    const c = person(ch.subject); const l = c ? undefined : place(ch.subject);
+    const subject: PersistentChange['subject'] = c ? { kind: 'CHARACTER', characterId: c.id } : l ? { kind: 'LOCATION', locationId: l.id } : { kind: 'PROP', name: words(ch.subject) };
+    return [{ id: newId('fact'), subject, ...(words(ch.key) ? { key: words(ch.key) } : {}), text: words(ch.text), source: 'SCRIPT' as const }];
+  });
+  const out: SceneStory = { ...existing, events: [...own(existing?.events), ...events], knowledge: [...own(existing?.knowledge), ...knowledge], changes: [...own(existing?.changes), ...changes] };
+  for (const k of ['events', 'knowledge', 'changes'] as const) if (!out[k]?.length) delete out[k];
+  return Object.keys(out).length ? out : undefined;
+}
+
 /** The bible of a scope from the studio records, on top of the previous revision (see the module note). */
 export function deriveWorld(state: StudioState, scope: WorldScope, previous: WorldBible | undefined, now: string): WorldBible {
   const show = scope.kind === 'SHOW' ? state.shows.find((s) => s.id === scope.showId) : undefined;
@@ -171,6 +220,7 @@ export function deriveWorld(state: StudioState, scope: WorldScope, previous: Wor
     songs,
     openStorylines: show?.bible?.unresolved ?? [],
     audio: previous?.audio ?? DEFAULT_AUDIO_POLICY,
+    ...carriedStoryOf(prods),
   };
 }
 
@@ -391,6 +441,12 @@ export function worldForPlanner(bible: WorldBible, p: Production, scene: Scene):
     return last ? `${c.name}: ${last}` : '';
   }).filter(Boolean);
   if (worn.length) parts.push(`Last worn (keep unless the story changes the day): ${worn.join('; ')}.`);
+  // from EARLIER productions only (this production's own facts reach the planner through production-context.ts)
+  const earlierChanges = (bible.changesInForce ?? []).filter((c) => c.productionId !== p.id && ((c.subject.kind === 'CHARACTER' && present.has(c.subject.characterId)) || (c.subject.kind === 'LOCATION' && c.subject.locationId === scene.locationId) || c.subject.kind === 'PROP'));
+  if (earlierChanges.length) parts.push(`Still true from earlier episodes (show it, unless this scene changes it): ${earlierChanges.map((c) => carriedChangeText(bible, c)).join('; ')}.`);
+  const nameOf = (id: string) => bible.characters.find((c) => c.characterId === id)?.name ?? id;
+  const known = (bible.knowledge ?? []).filter((k) => k.productionId !== p.id && present.has(k.characterId));
+  if (known.length) parts.push(`What the people here already know from earlier episodes (they act on it): ${known.map((k) => `${nameOf(k.characterId)}: ${k.text}`).join('; ')}.`);
   return parts.join('\n');
 }
 
@@ -404,7 +460,17 @@ export function worldForStory(bible: WorldBible) {
     openStorylines: bible.openStorylines,
     places: bible.locations.map((l) => ({ name: l.name, fixedFeatures: l.canon.fixedFeatures, architecture: l.canon.architecture, established: l.plates.some((x) => x.role === 'ESTABLISHED') })),
     styleNotes: bible.styleNotes,
+    // what earlier episodes left behind: lasting changes and what each person has learned (the next story builds on them)
+    stillTrue: (bible.changesInForce ?? []).map((c) => carriedChangeText(bible, c)),
+    knownBy: (bible.knowledge ?? []).map((k) => `${bible.characters.find((c) => c.characterId === k.characterId)?.name ?? k.characterId} knows: ${k.text}`),
   };
+}
+
+/** A carried change as a planner reads it: whom or what it is about, the aspect, the state ("Omar (left arm): in a sling"). */
+export function carriedChangeText(bible: WorldBible, c: WorldCarriedChange): string {
+  const who = c.subject.kind === 'CHARACTER' ? bible.characters.find((x) => x.characterId === (c.subject as { characterId: string }).characterId)?.name
+    : c.subject.kind === 'LOCATION' ? bible.locations.find((x) => x.locationId === (c.subject as { locationId: string }).locationId)?.name : c.subject.name;
+  return who ? `${who}${c.key ? ` (${c.key})` : ''}: ${c.text}` : c.text;
 }
 
 // --------------------------------------------------------------------------------------------- establishing
