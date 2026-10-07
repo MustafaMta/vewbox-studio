@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { msaInIraqi, songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
+import { applyDialectReview, dialectHints, msaInIraqi, songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
 import { levelTrimDb, scaleSections, settleSections, songSingers } from '@/worker/handlers/music';
 import { seed } from '@/domain/sample';
 import { recordSongListening, singingCast, songVerdict, updateSong } from '@/domain/actions';
@@ -47,21 +47,32 @@ describe('the song plan', () => {
     expect(() => songFromPlan(plan([{ kind: 'VERSE', lyrics: 'a line', singers: [] }, { kind: 'CHORUS', lyrics: 'b', singers: ['Hana'] }, { kind: 'VERSE', lyrics: 'c', singers: ['Hana'] }]), performers, 60)).toThrow(/without a singer/);
   });
 
-  it('an IRAQI song is sung in Baghdadi Arabic script with an English gloss: MSA words and Latin letters are sent back', () => {
+  it('an IRAQI song is sung in Arabic script with an English gloss; an MSA-associated word is NOT a failure (a hint for the contextual review)', () => {
     const iraqi = { language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const };
     const sec = (lyrics: string, gloss = 'a gloss') => ({ kind: 'VERSE', lyrics, gloss, singers: ['Hana'] });
     const good = { ...plan([]), sections: [sec('باچر نلتقي يا گلبي\nهسه وين إنت'), sec('شلونك يا عيوني'), sec('ماكو غيرك')] };
     expect(songPlanSchema(90, iraqi).safeParse(good).success).toBe(true);
-    // MSA slipped in: refused with the Baghdadi word to use
-    const msa = songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('سوف أراك غداً'), sec('لماذا رحلت'), sec('ماكو غيرك')] });
-    expect(msa.success).toBe(false);
-    expect(JSON.stringify(msa.error?.issues)).toMatch(/«سوف» → «راح».*«لماذا» → «ليش»/);
+    // formal words do not fail the plan: they become hints for the planner's contextual dialect review
+    const formal = { ...good, sections: [sec('سوف أراك غداً'), sec('لماذا رحلت'), sec('ماكو غيرك')] };
+    expect(songPlanSchema(90, iraqi).safeParse(formal).success).toBe(true);
+    expect(dialectHints(formal as SongPlan)).toEqual([{ word: 'سوف', say: 'راح' }, { word: 'لماذا', say: 'ليش' }]);
+    expect(dialectHints(good as SongPlan)).toEqual([]);
     // English lyrics tagged as Arabic: refused
     expect(songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('Hold me close'), sec('شلونك'), sec('ماكو')] }).success).toBe(false);
     // a sung section without its English gloss: refused
     expect(songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('شلونك', ''), sec('شلونك'), sec('ماكو')] }).success).toBe(false);
     // an English song is untouched by the Arabic rules
     expect(songPlanSchema(90).safeParse(plan([{ kind: 'VERSE', lyrics: 'a', singers: ['Hana'] }, { kind: 'CHORUS', lyrics: 'b', singers: ['Hana'] }, { kind: 'OUTRO', lyrics: '', singers: [] }])).success).toBe(true);
+  });
+
+  it('the dialect review replaces only reviewed lyrics, keeps kinds and singers, and may not change a section\'s line count', () => {
+    const p = { ...plan([]), sections: [{ kind: 'INTRO', lyrics: '', singers: [] }, { kind: 'VERSE', lyrics: 'سوف أراك\nيا گلبي', gloss: 'I will see you\nmy heart', singers: ['Hana'] }, { kind: 'CHORUS', lyrics: 'شلونك', gloss: 'How are you', singers: ['Hana'] }] } as SongPlan;
+    const review = { overall: 'BAGHDADI' as const, notes: 'سوف → راح', sections: [{ index: 1, lyrics: 'راح اشوفك\nيا گلبي', gloss: 'I will see you\nmy heart', changes: [{ from: 'سوف أراك', to: 'راح اشوفك', why: 'MSA future' }], kept: [] }] };
+    const out = applyDialectReview(p, review);
+    expect(out.sections.map((s) => [s.kind, s.lyrics, s.singers])).toEqual([['INTRO', '', []], ['VERSE', 'راح اشوفك\nيا گلبي', ['Hana']], ['CHORUS', 'شلونك', ['Hana']]]);
+    expect(() => applyDialectReview(p, { ...review, sections: [{ ...review.sections[0], lyrics: 'راح اشوفك' }] })).toThrow(/number of lines in section 2/);
+    // the review goes through its tool contract
+    expect(CONTRACTS['story.structured_answer'].outputFor!({ task: 'song-dialect' })!.safeParse(review).success).toBe(true);
   });
 
   it('MSA in an Iraqi lyric is found as whole words, also with an attached و/ف, and never inside a Baghdadi word', () => {

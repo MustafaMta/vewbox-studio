@@ -54,15 +54,17 @@ export interface SongLanguage { language: 'EN' | 'AR'; dialect?: Dialect }
 export const songLanguageOf = (p: Pick<Production, 'language' | 'dialect'>): SongLanguage => (p.language === 'AR' ? { language: 'AR', dialect: p.dialect } : { language: 'EN' });
 const isIraqiSong = (l: SongLanguage) => l.language === 'AR' && l.dialect === 'IRAQI_BAGHDADI';
 
-/** Unmistakable Modern Standard Arabic words and the Baghdadi a singer would say instead — an Iraqi song that uses
- *  them has slipped into MSA (the producer: "no accidental MSA substitution"). Conservative on purpose: only words a
- *  Baghdadi lyric would not sing; matched as whole words, also with an attached و/ف. */
+/** Words strongly associated with Modern Standard Arabic, and the Baghdadi a singer would usually say instead. These
+ *  are HINTS, never a verdict (producer correction 2026-10-07): formal words can be right in context — a poetic
+ *  register, a quotation, a character's voice — so a hint asks the planner for a contextual dialect review
+ *  (reviewIraqiDialect); it never fails a song by itself. Matched as whole words, also with an attached و/ف. */
 export const MSA_IN_IRAQI: Record<string, string> = {
   'سوف': 'راح', 'لماذا': 'ليش', 'ماذا': 'شنو', 'الآن': 'هسه', 'ليس': 'مو', 'ليست': 'مو', 'لن': 'ما راح', 'لم': 'ما',
   'لكي': 'حتى', 'هكذا': 'هيچي', 'هذه': 'هاي', 'هؤلاء': 'هذوله', 'أيضا': 'هم', 'أيضاً': 'هم', 'إنني': 'آني', 'حيث': 'وين',
 };
 const plainArabic = (w: string) => w.replace(/[ً-ْٰـ]/g, '');
-/** The MSA words in an Iraqi lyric, each with its Baghdadi counterpart. Pure (tested). */
+/** The MSA-associated words in an Iraqi lyric, each with its usual Baghdadi counterpart — dialect-drift HINTS for the
+ *  contextual review, not a failure. Pure (tested). */
 export function msaInIraqi(text: string): Array<{ word: string; say: string }> {
   const found = new Map<string, string>();
   for (const raw of text.split(/[\s\p{P}]+/u)) {
@@ -92,13 +94,58 @@ export function songPlanSchema(seconds: number, lang: SongLanguage = { language:
     .refine((p) => p.sections.reduce((n, s) => n + sungLines(s.lyrics), 0) <= b.maxLines, { message: `at most ${b.maxLines} sung lines in total for a ${Math.round(seconds)}-second song (aim for about ${b.lines})`, path: ['sections'] })
     // an Arabic song is sung in Arabic script throughout (never English lyrics tagged as Arabic), with its English gloss
     .refine((p) => lang.language !== 'AR' || sung(p).every((s) => arabicLetters.test(s.lyrics) && !latinWord.test(s.lyrics)), { message: 'every sung section\'s lyrics must be in Arabic script only (no Latin letters); put the English translation in "gloss"', path: ['sections'] })
-    .refine((p) => lang.language !== 'AR' || sung(p).every((s) => (s.gloss ?? '').trim().length > 0), { message: 'every sung section needs "gloss": a faithful English translation of its lyrics', path: ['sections'] })
-    // an Iraqi song stays Baghdadi: an MSA word goes back with the word a Baghdadi singer would use
-    .superRefine((p, ctx) => {
-      if (!isIraqiSong(lang)) return;
-      const msa = msaInIraqi(sung(p).map((s) => s.lyrics).join('\n'));
-      if (msa.length) ctx.addIssue({ code: 'custom', path: ['sections'], message: `the lyrics slipped into Modern Standard Arabic — sing it in Baghdadi: ${msa.map((m) => `«${m.word}» → «${m.say}»`).join(', ')}` });
-    });
+    .refine((p) => lang.language !== 'AR' || sung(p).every((s) => (s.gloss ?? '').trim().length > 0), { message: 'every sung section needs "gloss": a faithful English translation of its lyrics', path: ['sections'] });
+  // the DIALECT is judged in context (reviewIraqiDialect), never by a word list in the schema
+}
+
+/** THE CONTEXTUAL DIALECT REVIEW of an Iraqi song (producer correction 2026-10-07): the whole lyric is judged for
+ *  Iraqi vocabulary, grammar, Baghdadi constructions, pronouns, negation, question forms, contractions, the spelling
+ *  of گ/چ, context and register. Formal or poetic wording the song's context justifies STAYS; only phrases that drift
+ *  from the requested Baghdadi are rewritten, keeping meaning, rhythm and line count. The planner does the rewrite;
+ *  the producer's Iraqi listening remains the authority. */
+export const DialectReviewSchema = z.object({
+  overall: z.enum(['BAGHDADI', 'MOSTLY_BAGHDADI', 'DRIFTED']),
+  notes: z.string().trim().max(1200),
+  sections: z.array(z.object({
+    index: z.coerce.number().int().min(0),
+    lyrics: linesOf,
+    gloss: linesOf,
+    changes: z.array(z.object({ from: z.string().trim().max(200), to: z.string().trim().max(200), why: z.string().trim().max(300) })).max(20).default([]),
+    kept: z.array(z.object({ word: z.string().trim().max(80), why: z.string().trim().max(300) })).max(20).default([]),
+  })).max(10),
+});
+export type DialectReview = z.infer<typeof DialectReviewSchema>;
+
+/** The hints that ask for a review: MSA-associated words in the sung lyrics (none = no review needed). Pure (tested). */
+export function dialectHints(plan: SongPlan): Array<{ word: string; say: string }> {
+  return msaInIraqi(plan.sections.filter((s) => s.kind !== 'INSTRUMENTAL').map((s) => s.lyrics).join('\n'));
+}
+
+/** Apply a review to a plan: each reviewed section's lyrics and gloss replace the plan's, keeping its kind and
+ *  singers; a section whose line count changed is refused (the rhythm and the budget were planned on it). Pure. */
+export function applyDialectReview(plan: SongPlan, review: DialectReview): SongPlan {
+  const sections = plan.sections.map((s, i) => {
+    const r = review.sections.find((x) => x.index === i);
+    if (!r || s.kind === 'INSTRUMENTAL' || !s.lyrics.trim()) return s;
+    if (sungLines(r.lyrics) !== sungLines(s.lyrics)) throw new StudioError('PROVIDER', `The dialect review changed the number of lines in section ${i + 1} (${sungLines(s.lyrics)} → ${sungLines(r.lyrics)}).`, { failureClass: 'PROVIDER' });
+    return { ...s, lyrics: r.lyrics, gloss: r.gloss };
+  });
+  return { ...plan, sections };
+}
+
+/** Ask the planner for the contextual review of an Iraqi song's lyrics (only when hints exist). */
+export async function reviewIraqiDialect(plan: SongPlan, hints: Array<{ word: string; say: string }>, opts: LlmOptions & { onResult?: (r: LlmResult) => void } = {}): Promise<DialectReview> {
+  const system: LlmMessage = { role: 'system', content: 'You are a Baghdadi Arabic lyric editor at Vewbox Studio. You review a song written to be sung in natural Iraqi (Baghdadi) Arabic. Judge the WHOLE lyric in context — vocabulary, grammar, Baghdadi constructions, pronouns, negation, question forms, contractions, the spelling of گ and چ, register — and rewrite ONLY the phrases that drift away from Baghdadi. Formal or poetic words that the song\'s context and register justify STAY (say why in "kept"). Never rewrite merely to avoid a word; keep the meaning, the rhythm and the number of lines of every section. Answer with ONE JSON object only.' };
+  const lyrics = plan.sections.map((s, i) => (s.kind === 'INSTRUMENTAL' || !s.lyrics.trim() ? null : `#${i} ${s.kind}\n${s.lyrics}`)).filter(Boolean).join('\n\n');
+  const user = `Song: "${plan.title}" — ${plan.concept}
+Lyrics:
+${lyrics}
+
+Words a checker flagged as often Modern Standard Arabic (hints only — decide in context): ${hints.map((h) => `«${h.word}» (Baghdadi usually «${h.say}»)`).join('، ')}.
+Return JSON: { overall: BAGHDADI | MOSTLY_BAGHDADI | DRIFTED (the lyric AFTER your edits), notes (in English: what you changed or kept and why), sections: [ { index (the # number), lyrics (the section's lines, revised or unchanged, one per line, same line count), gloss (its faithful English translation, one per line), changes: [ { from, to, why } ], kept: [ { word, why } ] } ] } — one entry for every sung section.`;
+  const r = await llmJson(DialectReviewSchema, [system, { role: 'user', content: user }], { ...opts, maxTokens: 4000, temperature: 0.3 });
+  opts.onResult?.(r.result);
+  return r.data;
 }
 
 /** Ask the planner for the song. `brief`: the producer's words for this song (optional). */
@@ -113,7 +160,7 @@ export async function writeSongPlan(p: Production, performers: SongPerformer[], 
   const system: LlmMessage = { role: 'system', content: `You are the songwriter of Vewbox Studio, an AI film studio. You write ONE original, singable ${tongue} song for a production: a clear concept, a strong memorable chorus, natural rhymes and stresses, lines a singer can breathe through. Never quote or imitate an existing song, artist or lyric. Answer with ONE JSON object only.` };
   // an Iraqi song is written the way a Baghdadi singer sings it (skills/iraqi-dialogue): dialect words, never MSA
   const dialect = iraqi ? `
-WRITE IN BAGHDADI ARABIC, as a Baghdadi singer would sing it — never Modern Standard Arabic. Use Iraqi words: شلونك، هسه، شنو، ليش، وين، هواية، ماكو، اكو، باچر، گلبي، عيوني، يمّه، حبيبي، آني، إنت/إنتي، هاي، هيچي، راح، مو، ما. Write the Iraqi letters as they are sung: گ (as in گلبي، گلت) and چ (as in باچر، چا، شچان، هيچي). Never: سوف، لماذا، ماذا، الآن، ليس، لن، لم، لكي، هكذا، هذه، أيضاً. Keep the lyrics in Arabic script only (no Latin letters).
+WRITE IN BAGHDADI ARABIC, as a Baghdadi singer would sing it — never Modern Standard Arabic. Use Iraqi words: شلونك، هسه، شنو، ليش، وين، هواية، ماكو، اكو، باچر، گلبي، عيوني، يمّه، حبيبي، آني، إنت/إنتي، هاي، هيچي، راح، مو، ما. Write the Iraqi letters as they are sung: گ (as in گلبي، گلت) and چ (as in باچر، چا، شچان، هيچي). Use Baghdadi grammar — its pronouns, negation (ما، مو), question words (شنو، ليش، شلون، وين) and contractions — rather than Modern Standard Arabic constructions; a formal or poetic word is fine where the song's register truly calls for it. Keep the lyrics in Arabic script only (no Latin letters).
 The music should feel Iraqi unless the producer asks otherwise — for example Iraqi maqam colours, oud, qanun, santur or joza, Iraqi percussion — said in the caption, in English.` : lang.language === 'AR' ? `
 Write the lyrics in Arabic script only (no Latin letters).` : '';
   const lyricsSpec = lang.language === 'AR'

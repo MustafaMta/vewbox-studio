@@ -28,6 +28,14 @@ describe('the Iraqi phonology gate', () => {
     expect(judgeWord(w('گلبي', 'q a l b iː')).verdict).toBe('FAIL'); // the MSA qaf where Iraqi has g
   });
 
+  it('REGRESSION /ɡ/: Iraqi گ words («گال», «گاعد», «گلبي») must be heard with /ɡ/; the MSA /q/ or a /k/ fails', () => {
+    expect(judgeWord(w('گال', 'ɡ aː l')).verdict).toBe('PASS');
+    expect(judgeWord(w('گال', 'q aː l'))).toMatchObject({ verdict: 'FAIL', detail: expect.stringContaining('گ /ɡ/ not heard') });
+    expect(judgeWord(w('گاعد', 'ɡ aː ʕ ɪ d')).verdict).toBe('PASS');
+    expect(judgeWord(w('گاعد', 'k aː ʕ ɪ d')).verdict).toBe('FAIL');
+    expect(judgeLine([w('شلونك', 'ʃ l oː n a k'), { ...w('گلبي', 'q a l b iː'), index: 1 }, { ...w('باچر', 'b aː tʃ ɪ r'), index: 2 }]).verdict).toBe('FAIL');
+  });
+
   it('two dialect letters need two sounds: one /tʃ/ is not enough for «چچ»', () => {
     expect(judgeWord(w('چچ', 'tʃ a dʒ')).verdict).toBe('FAIL');
     expect(judgeWord(w('چچ', 'tʃ a tʃ')).verdict).toBe('PASS');

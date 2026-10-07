@@ -244,6 +244,18 @@ export async function embedVoice(file: string, timeoutMs = 120_000): Promise<{ e
   return { embedding: j.embedding, model: j.model, version: j.version, durationSeconds: j.duration };
 }
 
+/** What a voice sounds like beyond the speaker embedding: pitch (median, 10th–90th percentile, range in semitones),
+ *  voiced share, tone (spectral centroid) and the first three formants — the cross-language identity evidence
+ *  (Phase 3). Supporting evidence only; listening decides. */
+export interface VoiceProfile { voicedRatio: number; f0MedianHz?: number; f0P10Hz?: number; f0P90Hz?: number; f0RangeSemitones?: number; centroidMedianHz?: number; f1Hz?: number; f2Hz?: number; f3Hz?: number; durationSeconds: number }
+const ProfileSchema = z.object({ voiced_ratio: z.number(), f0_median_hz: z.number().optional(), f0_p10_hz: z.number().optional(), f0_p90_hz: z.number().optional(), f0_range_semitones: z.number().optional(), centroid_median_hz: z.number().optional(), f1_hz: z.number().optional(), f2_hz: z.number().optional(), f3_hz: z.number().optional(), duration: z.number() }).passthrough();
+export async function voiceProfile(file: string, timeoutMs = 120_000): Promise<VoiceProfile> {
+  const fd = new FormData();
+  fd.set('audio', await audioBlob(file), path.basename(file));
+  const j = await json(await call(`${base()}/voice-profile`, { method: 'POST', body: fd }, timeoutMs), ProfileSchema, '/voice-profile');
+  return { voicedRatio: j.voiced_ratio, f0MedianHz: j.f0_median_hz, f0P10Hz: j.f0_p10_hz, f0P90Hz: j.f0_p90_hz, f0RangeSemitones: j.f0_range_semitones, centroidMedianHz: j.centroid_median_hz, f1Hz: j.f1_hz, f2Hz: j.f2_hz, f3Hz: j.f3_hz, durationSeconds: j.duration };
+}
+
 /** ECAPA cosine similarity of two recordings (1 = same vector; VoxCeleb-trained, so relative, never an identity proof). */
 export async function voiceSimilarity(a: string, b: string, timeoutMs = 120_000): Promise<{ cosine: number; model: string; version: string }> {
   const fd = new FormData();

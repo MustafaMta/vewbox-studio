@@ -56,8 +56,15 @@ metadata:
   FORCED language can translate instead of transcribe, so it is never the check) beside the Arabic-dialect Whisper;
   and the phonology gate (`/qa/phonemes` → `src/server/media/iraqi-phonology.ts`): each چ/گ word's aligned span is read
   as phonemes and must contain /tʃ/ or /ɡ/. «باچر» without /tʃ/ (the historical «باسر») FAILS — never weaken it.
-- **An Iraqi song** (`src/server/story/song.ts`): Baghdadi lyrics in Arabic script with an English gloss; MSA words
-  (سوف، لماذا، ماذا، الآن، ليس…) are refused with the Baghdadi word to sing instead. Raw WER is reported next to it, not gated: it charges Whisper's MSA
+- **An Iraqi song** (`src/server/story/song.ts`): Baghdadi lyrics in Arabic script with an English gloss. Dialect is
+  judged IN CONTEXT, never by a word list: MSA-associated words (سوف، لماذا، ماذا، الآن، ليس…) are only hints that
+  ask the planner for a contextual review of the whole lyric (vocabulary, grammar, pronouns, negation, questions,
+  contractions, گ/چ spelling, register). It keeps formal or poetic words the context justifies, rewrites only drift
+  (same meaning, rhythm and line count) and records what it changed and kept; only a lyric still judged DRIFTED
+  fails. Never optimise lyrics to satisfy a checker; the producer's Iraqi listening decides.
+- **Cross-language identity is measured, not assumed:** an Iraqi character's Habibi (Arabic) and MOSS (English) lines
+  come from the same consented reference but two engines — the identity is compared (speaker embedding, pitch range,
+  timbre, apparent age and presentation, then listening) before the character is called bilingual. Raw WER is reported next to it, not gated: it charges Whisper's MSA
   spellings («گلتلي» → «قلتلي») as errors.
 
 ## The suite

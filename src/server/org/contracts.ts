@@ -17,7 +17,7 @@ const bytes = z.custom<Buffer>((v) => Buffer.isBuffer(v), 'a byte buffer');
 
 // --------------------------------------------------------------------------------------- story.structured_answer
 
-export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan', 'audience-analysis', 'concepts', 'idea-draft', 'idea-review', 'song'] as const;
+export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan', 'audience-analysis', 'concepts', 'idea-draft', 'idea-review', 'song', 'song-dialect'] as const;
 export type StoryTask = (typeof STORY_TASKS)[number];
 
 /** What the story handlers ask the model for (the engine function and the records it works on). */
@@ -70,6 +70,8 @@ const PlannedShotOut = z.looseObject({
 const ShotPlanOut = z.looseObject({ shots: z.array(PlannedShotOut).min(1), budget: z.number().positive(), maxShot: z.number().positive() });
 /** WRITE_SONG: the song plan (src/server/story/song.ts SongPlanSchema) — every sung section names its singers. */
 const SongOut = z.looseObject({ title: z.string().min(1), concept: z.string(), genre: z.string(), mood: z.string(), bpm: z.number().int().min(50).max(200), key: z.string(), caption: z.string().min(1), sections: z.array(z.looseObject({ kind: z.string(), lyrics: z.string(), singers: z.array(z.string()) })).min(3).max(10) });
+/** WRITE_SONG, an Iraqi song: the planner's contextual dialect review (src/server/story/song.ts DialectReviewSchema). */
+const SongDialectOut = z.looseObject({ overall: z.enum(['BAGHDADI', 'MOSTLY_BAGHDADI', 'DRIFTED']), notes: z.string(), sections: z.array(z.looseObject({ index: z.number().int(), lyrics: z.string(), gloss: z.string() })) });
 const PerformancePlanOut = z.array(z.looseObject({ sectionId: z.string(), mode: z.enum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL']), singerIds: z.array(z.string()), lines: z.array(z.looseObject({ singerId: z.string(), text: z.string() })).optional() }));
 
 // the research-driven Auto Idea's stages (src/server/story/development/engine.ts), after the studio's own checks
@@ -88,8 +90,8 @@ const StoryReviewOut = z.looseObject({ reviewer: z.enum(['STORY_EDITOR', 'AUDIEN
   // the verdict rule: a MAJOR issue means REVISE
   .refine((r) => r.verdict === 'REVISE' || !r.issues.some((i) => i.severity === 'MAJOR'), 'a MAJOR issue means REVISE');
 
-const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut, 'audience-analysis': AudienceStageOut, concepts: ConceptSetOut, 'idea-draft': DraftContentOut, 'idea-review': StoryReviewOut, song: SongOut };
-export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut, AudienceStageOut, ConceptSetOut, DraftContentOut, StoryReviewOut, SongOut]);
+const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut, 'audience-analysis': AudienceStageOut, concepts: ConceptSetOut, 'idea-draft': DraftContentOut, 'idea-review': StoryReviewOut, song: SongOut, 'song-dialect': SongDialectOut };
+export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut, AudienceStageOut, ConceptSetOut, DraftContentOut, StoryReviewOut, SongOut, SongDialectOut]);
 
 // ---------------------------------------------------------------------------------------------------- research
 

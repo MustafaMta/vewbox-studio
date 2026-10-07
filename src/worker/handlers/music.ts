@@ -15,9 +15,9 @@ import * as comfy from '@/server/providers/comfy';
 import { aceStepSong } from '@/server/workflows';
 import { ACE_VARIANTS, type AceVariant } from '@/server/workflows/music';
 import { joinLyrics, splitLyrics } from '@/domain/lyrics';
-import type { Character, Production, StudioState } from '@/domain/types';
+import type { Character, Production, Song, StudioState } from '@/domain/types';
 import { sings } from '@/domain/vocabulary';
-import { songFromPlan, songLanguageOf, songPerformers, timeByContent, vocalTag, writeSongPlan } from '@/server/story/song';
+import { applyDialectReview, dialectHints, reviewIraqiDialect, songFromPlan, songLanguageOf, songPerformers, timeByContent, vocalTag, writeSongPlan } from '@/server/story/song';
 import { loudness, speechRegions } from '@/server/media/voice-check';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -63,9 +63,27 @@ export const writeSong: Handler = async (ctx) => {
   const performers = songPerformers(castOf(state, p), singerIds);
   const seconds = Math.min(300, Math.max(15, Math.round(p.song?.durationSeconds || p.targetSeconds)));
   await ctx.progress('GENERATING', { phase: 'writing', message: `Writing the song for ${performers.map((s) => s.name).join(' and ') || 'the cast'}`, percent: null });
-  const plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, characterIds: performers.map((s) => s.id) } });
+  let plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, characterIds: performers.map((s) => s.id) } });
   await ctx.checkpoint();
-  const song = songFromPlan(plan, performers, seconds, p.song, songLanguageOf(p));
+  // AN IRAQI SONG'S DIALECT, judged in context: MSA-associated words are hints that ask the planner to review the whole
+  // lyric (keeping formal wording the register justifies, rewriting only drift); only a lyric the review still judges
+  // DRIFTED fails. The review is kept on the song for the producer, whose Iraqi listening decides.
+  const lang = songLanguageOf(p);
+  let dialectReview: Song['dialectReview'];
+  if (lang.language === 'AR' && lang.dialect === 'IRAQI_BAGHDADI') {
+    const hints = dialectHints(plan);
+    if (!hints.length) dialectReview = { hints, overall: 'NOT_REVIEWED', notes: 'no MSA-associated word in the lyric', changes: [], kept: [], at: new Date().toISOString() };
+    else {
+      await ctx.progress('GENERATING', { phase: 'dialect', message: 'Reviewing the Baghdadi dialect of the lyrics', percent: null });
+      const review = await ctx.tool('story.structured_answer', () => reviewIraqiDialect(plan, hints, { jobId: ctx.job.id }), { label: 'dialect review', input: { task: 'song-dialect', productionId: p.id } });
+      if (review.overall === 'DRIFTED') throw new StudioError('PROVIDER', `The lyrics drifted away from Baghdadi Arabic even after the dialect review: ${review.notes}`, { failureClass: 'PROVIDER', hints });
+      plan = applyDialectReview(plan, review);
+      dialectReview = { hints, overall: review.overall, notes: review.notes, changes: review.sections.flatMap((s) => s.changes.map((c) => ({ section: s.index, ...c }))), kept: review.sections.flatMap((s) => s.kept.map((k) => ({ section: s.index, ...k }))), at: new Date().toISOString() };
+      await ctx.event('info', `dialect review: ${review.overall}, ${dialectReview.changes.length} change(s), ${dialectReview.kept.length} word(s) kept in context`, { review: dialectReview });
+    }
+    await ctx.checkpoint();
+  }
+  const song = { ...songFromPlan(plan, performers, seconds, p.song, lang), ...(dialectReview ? { dialectReview } : {}) };
   await command(p.song ? 'updateSong' : 'setSong', p.song ? [p.id, { ...song, assetId: undefined, stems: undefined, provider: undefined, model: undefined, requestId: undefined, jobId: ctx.job.id }] : [p.id, { ...song, jobId: ctx.job.id }], 'worker');
   await ctx.activity('SONG_WRITTEN', `“${song.title}” written: ${song.sections.length} sections, ${song.bpm} BPM${song.key ? `, ${song.key}` : ''}, sung by ${performers.filter((s) => song.singerIds.includes(s.id)).map((s) => s.name).join(' and ')}`, { productionId: p.id, sections: song.sections.length });
   return { title: song.title, sections: song.sections.length, singerIds: song.singerIds, bpm: song.bpm, key: song.key, concept: song.concept, caption: song.caption };

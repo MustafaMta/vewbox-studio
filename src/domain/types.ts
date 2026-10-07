@@ -335,6 +335,9 @@ export interface Song {
   /** The producer's listening verdicts, newest last. Each names the recording it judged, so a later recording is never
    *  taken as accepted. Machine checks are evidence; this is the acceptance. */
   listening?: SongListeningRecord[];
+  /** An Iraqi song's contextual dialect review by the planner (hints → review → the edits it made and the words it
+   *  kept, and why). Evidence for the producer, whose Iraqi listening decides. */
+  dialectReview?: { hints: Array<{ word: string; say: string }>; overall: 'BAGHDADI' | 'MOSTLY_BAGHDADI' | 'DRIFTED' | 'NOT_REVIEWED'; notes: string; changes: Array<{ section: number; from: string; to: string; why: string }>; kept: Array<{ section: number; word: string; why: string }>; at: string };
 }
 
 /** "I listened to the whole song": accepted, or not yet right, with what was heard. */

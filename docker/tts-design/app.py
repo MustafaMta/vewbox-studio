@@ -532,6 +532,60 @@ def embed(audio: UploadFile = File(...)):
     return {"ok": True, "model": SpeakerEncoder.model, "version": ecapa_version(), "dim": int(v.shape[0]), "embedding": [round(float(a), 6) for a in v], "duration": round(seconds, 3), "ms": int((time.time() - t0) * 1000)}
 
 
+def voice_profile_of(x: np.ndarray, sr: int = 16000) -> dict[str, Any]:
+    """What a voice sounds like beyond the speaker embedding (Phase 3 cross-language identity, producer directive
+    2026-10-07): pitch (pYIN median and 10th–90th percentile range, in Hz and semitones), how much of the clip is
+    voiced, tone (median spectral centroid of voiced frames) and the first three formants (LPC, median over voiced
+    frames) — evidence that two engines give the same person a similar pitch range, timbre and apparent age and
+    presentation. Supporting evidence only; listening decides."""
+    import librosa  # type: ignore
+
+    f0, voiced, _ = librosa.pyin(x, fmin=60.0, fmax=500.0, sr=sr, frame_length=1024, hop_length=160)
+    f = f0[np.isfinite(f0)] if f0 is not None else np.array([])
+    out: dict[str, Any] = {"voiced_ratio": round(float(np.mean(voiced)) if voiced is not None and len(voiced) else 0.0, 3)}
+    if f.size >= 10:
+        p10, med, p90 = (float(np.percentile(f, q)) for q in (10, 50, 90))
+        out.update({"f0_median_hz": round(med, 1), "f0_p10_hz": round(p10, 1), "f0_p90_hz": round(p90, 1), "f0_range_semitones": round(12 * float(np.log2(p90 / p10)), 2)})
+    cen = librosa.feature.spectral_centroid(y=x, sr=sr, n_fft=1024, hop_length=160)[0]
+    if voiced is not None and len(voiced):
+        n = min(len(cen), len(voiced))
+        vc = cen[:n][voiced[:n]]
+        if vc.size:
+            out["centroid_median_hz"] = round(float(np.median(vc)), 1)
+    # formants: LPC roots of 25 ms voiced frames (pre-emphasised, Hamming), the first three above 90 Hz
+    order = 2 + sr // 1000
+    frame, hop = int(0.025 * sr), 160
+    pre = np.append(x[0], x[1:] - 0.97 * x[:-1])
+    fs: list[list[float]] = []
+    for i in range(0, len(pre) - frame, hop * 4):
+        k = i // hop
+        if voiced is None or k >= len(voiced) or not voiced[k]:
+            continue
+        seg = pre[i:i + frame] * np.hamming(frame)
+        if float(np.max(np.abs(seg))) < 1e-4:
+            continue
+        try:
+            a = librosa.lpc(seg.astype(np.float64), order=order)
+        except Exception:  # noqa: BLE001
+            continue
+        roots = [r for r in np.roots(a) if np.imag(r) >= 0.01]
+        freqs = sorted(float(np.arctan2(np.imag(r), np.real(r)) * sr / (2 * np.pi)) for r in roots)
+        freqs = [q for q in freqs if q > 90]
+        if len(freqs) >= 3:
+            fs.append(freqs[:3])
+    if len(fs) >= 5:
+        m = np.median(np.array(fs), axis=0)
+        out.update({"f1_hz": round(float(m[0]), 0), "f2_hz": round(float(m[1]), 0), "f3_hz": round(float(m[2]), 0), "formant_frames": len(fs)})
+    return out
+
+
+@app.post("/voice-profile")
+def voice_profile(audio: UploadFile = File(...)):
+    t0 = time.time()
+    x, seconds = _read_upload(audio)
+    return {"ok": True, **voice_profile_of(x), "duration": round(seconds, 3), "ms": int((time.time() - t0) * 1000)}
+
+
 @app.post("/similarity")
 def similarity(a: UploadFile = File(...), b: UploadFile = File(...)):
     if not ecapa_weights_present():
