@@ -37,6 +37,14 @@ export function jobDeadline(type: JobType, env: Record<string, string | undefine
   return { ms, mode };
 }
 
+/** ONE LANGUAGE-MODEL ANSWER'S BOUND FROM ITS WORK: `answerTokens` (the call's token budget) at the model's measured
+ *  speed plus one prompt read, twice over (a repair round), plus a minute. The tool's flat 600 s cut off a scene's shot
+ *  plan at 13 tok/s (2026-10-07: 7,800 tokens is all 600 s holds; a scene's plan may take more). Never above 2 h. */
+export function llmCallMs(answerTokens: number, speed: { tokensPerSecond: number; promptSecondsPerPart: number }): number {
+  const tps = Math.max(1, speed.tokensPerSecond);
+  return Math.min(2 * HOUR, Math.round((2 * (Math.max(0, answerTokens) / tps + speed.promptSecondsPerPart) + 60) * 1000));
+}
+
 /** The longest a shot-planning attempt is ever given (a whole season's worth of scenes on the slowest local model). */
 export const PLAN_SHOTS_DEADLINE_CAP_MS = 8 * HOUR;
 

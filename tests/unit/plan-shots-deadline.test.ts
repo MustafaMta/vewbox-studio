@@ -29,6 +29,19 @@ describe('planShotsWorkMs', () => {
   });
 });
 
+describe('llmCallMs — one answer bounded by its own work', () => {
+  it('a scene plan at 13 tok/s gets more than the tool’s flat 600 s; small answers keep the floor; capped at 2 h', async () => {
+    const { llmCallMs } = await import('@/server/jobs/deadlines');
+    const qwen = { tokensPerSecond: 13, promptSecondsPerPart: 5 };
+    // 13,600 tokens (a 4-beat scene's budget): 1,046 s to answer → (1,046 + 5) × 2 + 60 s
+    expect(llmCallMs(13_600, qwen)).toBe(Math.round((2 * (13_600 / 13 + 5) + 60) * 1000));
+    expect(llmCallMs(13_600, qwen)).toBeGreaterThan(600_000);
+    expect(llmCallMs(9000 + 3000, qwen)).toBeGreaterThan(600_000);
+    expect(llmCallMs(0, qwen)).toBe(70_000);
+    expect(llmCallMs(1e7, qwen)).toBe(2 * 3_600_000);
+  });
+});
+
 describe('jobDeadline with the work', () => {
   it('takes the longer of the flat value and the work, then the scale', () => {
     expect(jobDeadline('PLAN_SHOTS', {}).ms).toBe(JOB_DEADLINE_MS.PLAN_SHOTS);

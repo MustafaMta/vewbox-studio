@@ -14,7 +14,10 @@ import { performanceFor, shotWindows } from '@/domain/timeline';
 import { command, commands, readState, stampCommands, type CommandSpec } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { recordMetric } from '@/server/jobs/queue';
-import { continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { ANSWER_TOKENS, continuityUpdate, designCharacter as design, developStory as develop, fitDurations, libraryGuests, planPerformance, planShotsDraft as plan, writeScript as write, type PlannedShot } from '@/server/story/engine';
+import { llmCallMs } from '@/server/jobs/deadlines';
+import { planShotsWork } from '@/server/jobs/work-deadline';
+import { llmSpeed, localContextLength, resolveProvider } from '@/server/providers/llm';
 import { planCoverage } from '@/server/story/beats';
 import { alignSongLyrics } from './music';
 import type { LlmResult } from '@/server/providers/llm';
@@ -23,6 +26,15 @@ import { preflightPlan } from '@/server/org/preflight';
 import { recordEpisode, syncWorld, worldOfProduction } from '@/server/world';
 import { sceneStoryFromScript, summarizeChanges } from '@/domain/world';
 import type { WorldBible } from '@/domain/types';
+
+/** A long story answer's bound, from its token budget at the planner's measured speed (the tool's flat 600 s is too
+ *  short at 13 tok/s), and a scene's shot plan's: its answer at the most shots it may take, in the parts it needs. */
+const answerMs = (tokens: number) => llmCallMs(tokens, llmSpeed(resolveProvider().model));
+function scenePlanMs(p: Parameters<typeof planShotsWork>[0], sceneId: string): number {
+  const w = planShotsWork(p, [sceneId], localContextLength())[0];
+  const speed = llmSpeed(resolveProvider().model);
+  return w ? llmCallMs(w.answerTokens, { ...speed, promptSecondsPerPart: speed.promptSecondsPerPart * Math.max(1, w.parts) }) : 0;
+}
 
 /** THE STORY HANDLERS — Manual Brief development, script writing, shot planning. Each runs the engine,
  *  then writes the result into the studio through commands (so the browser sees it like any other change). The
@@ -148,7 +160,7 @@ export const developStory: Handler = async (ctx) => {
   await ctx.progress('GENERATING', { phase: 'developing', message: 'Developing the story, cast and world' });
   // an episode is developed inside its show's World Bible (rules, relationships, timeline, established places)
   const bible = p.showId ? await readBible(ctx, p.id, 'before developing the story') : undefined;
-  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: 'develop', input: { task: 'develop', productionId: p.id } });
+  const out = await ctx.tool('story.structured_answer', () => develop(state, p, castOf(state, p), worldOf(state, p), { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: 'develop', input: { task: 'develop', productionId: p.id }, timeoutMs: answerMs(ANSWER_TOKENS.develop) });
   await ctx.checkpoint();
   await ctx.progress('POSTPROCESSING', { phase: 'saving', message: 'Saving characters, places and scenes' });
   // new characters and places first
@@ -245,7 +257,7 @@ export const writeScript: Handler = async (ctx) => {
   let written = 0;
   for (const [bi, batch] of batches.entries()) {
     await ctx.progress('GENERATING', { phase: 'writing', message: `Writing scenes ${batch[0].number}–${batch[batch.length - 1].number}`, step: bi + 1, total: batches.length });
-    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) } });
+    const out = await ctx.tool('story.structured_answer', () => write(state, p, batch, cast, world, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scenes ${batch[0].number}–${batch[batch.length - 1].number}`, input: { task: 'script', productionId: p.id, sceneIds: batch.map((sc) => sc.id) }, timeoutMs: answerMs(ANSWER_TOKENS.script + ANSWER_TOKENS.gloss) });
     await ctx.checkpoint();
     const byName = (n: string) => cast.find((c) => c.name.toLowerCase() === n.trim().toLowerCase() || c.nameAr === n.trim());
     for (const sc of out.scenes) {
@@ -304,7 +316,7 @@ export const planShots: Handler = async (ctx) => {
   let total = 0;
   for (const [i, scene] of targets.entries()) {
     await ctx.progress('GENERATING', { phase: 'planning', message: `Planning scene ${scene.number}: ${scene.title}`, step: i + 1, total: targets.length });
-    const draft = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scene ${scene.number}`, input: { task: 'shot-plan', productionId: p.id, sceneIds: [scene.id] } });
+    const draft = await ctx.tool('story.structured_answer', () => plan(state, p, scene, cast, world, previous, { jobId: ctx.job.id, agentId: ctx.agent.id, onResult: (r) => void metric(ctx.job.id, r) }, bible), { label: `scene ${scene.number}`, input: { task: 'shot-plan', productionId: p.id, sceneIds: [scene.id] }, timeoutMs: scenePlanMs(p, scene.id) });
     // TIMING FIT (the Shot Planner's step): the scene's shots stretched evenly to fill its running-time budget
     const shots = await step(ctx, 'shot-planner', `timing-fit: scene ${scene.number}`, async () => fitDurations(draft.shots, draft.budget, draft.maxShot));
     await ctx.checkpoint();

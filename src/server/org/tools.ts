@@ -11,7 +11,12 @@ import { raceAbort, withSignal } from '../jobs/context';
  *  the call (WRONG_PARAMETERS) and the result after it (OUTPUT_CORRUPTION, contracts.ts); the call is bounded by the
  *  tool's timeout, timed, logged and recorded on the agent run with its outcome and failure class. */
 
-export interface ToolOptions { label?: string; /** what the call is given (its contract's input); validated before the call */ input?: unknown }
+export interface ToolOptions {
+  label?: string; /** what the call is given (its contract's input); validated before the call */ input?: unknown;
+  /** this call's own bound when its work is larger than the tool's flat timeout (a language-model answer sized from its
+   *  token budget, src/server/jobs/deadlines.ts llmCallMs); never shortens the tool's timeout */
+  timeoutMs?: number;
+}
 export interface ToolRunner { <T>(toolId: string, fn: () => Promise<T>, opts?: ToolOptions): Promise<T> }
 
 const contractError = (message: string, failureClass: FailureClass, details: Record<string, unknown>) => Object.assign(new StudioError('INVALID', message, { ...details, failureClass }), { failureClass, retryable: false });
@@ -38,7 +43,8 @@ export function makeToolRunner(agent: AgentDef, runId: string, log: Logger): Too
     // so at the timeout its ffmpeg children are killed, its requests aborted and its ComfyUI prompt cancelled — the
     // GPU lease is not released while the engine still renders. Work that ignores the signal is let go of 2 s later.
     const toolCtrl = new AbortController();
-    const timer = setTimeout(() => toolCtrl.abort(Object.assign(new StudioError('UNAVAILABLE', `${def.name} did not finish within ${Math.round(def.timeoutMs / 1000)} s.`, { failureClass: 'INFRASTRUCTURE' }), { failureClass: 'INFRASTRUCTURE' })), def.timeoutMs);
+    const timeoutMs = Math.max(def.timeoutMs, opts.timeoutMs && Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : 0);
+    const timer = setTimeout(() => toolCtrl.abort(Object.assign(new StudioError('UNAVAILABLE', `${def.name} did not finish within ${Math.round(timeoutMs / 1000)} s.`, { failureClass: 'INFRASTRUCTURE' }), { failureClass: 'INFRASTRUCTURE' })), timeoutMs);
     let out: Awaited<ReturnType<typeof fn>>;
     try {
       out = await raceAbort(withSignal(toolCtrl.signal, fn), toolCtrl.signal, 2_000);

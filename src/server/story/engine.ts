@@ -382,12 +382,16 @@ ${p.kind === 'MUSIC_VIDEO' && p.song ? `The song (${p.song.title}, ${p.song.dura
 Return JSON: { logline, synopsis (3–6 paragraphs, present tense), genre, mood, titleAr?, newCharacters: [{name, role, sex, design:{build, face, hair, skin, eyes, distinguishing[], wardrobe, personality, ageYears, nameAr?, canon:{heightCm?, accessories[]?, visualRestrictions[]?, agePresentation?, speech?}}}], newLocations: [{name, design:{description, kind, landmarks[], props[], lighting[], nameAr?, layout:{geography?, architecture?, materials[]?, cameraZones[]?, entrances[]?, spatial?, light:{key (where the main light comes from and its quality), practicals[] (lamps, signs, windows that light the set), palette[] (3–5 colours), byTime:{<TIME_OF_DAY>: the light at that time, for each time in lighting[]}}}}}], scenes: [{title, locationName, timeOfDay, characterNames[], purpose, emotionalObjective, entryState, exitState, targetSeconds}] }.
 timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NIGHT. locationName must match an attached, library or new location exactly; characterNames likewise.`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
-  const r = await llmJson(DevelopSchema, messages, { ...opts, maxTokens: 8000, temperature: 0.8 });
+  const r = await llmJson(DevelopSchema, messages, { ...opts, maxTokens: ANSWER_TOKENS.develop, temperature: 0.8 });
   opts.onResult?.(r.result);
   return r.data;
 }
 
 // ------------------------------------------------------------------------------------------------------ script
+
+/** The answer budgets of the long story calls (tokens): the tool call around each is bounded from them at the
+ *  planner's measured speed (src/server/jobs/deadlines.ts llmCallMs). A script batch also asks for its glosses. */
+export const ANSWER_TOKENS = { develop: 8000, script: 9000, gloss: 3000 } as const;
 
 export interface ScriptFacts { events?: string[]; knowledge?: Array<{ characterName: string; text: string }>; changes?: Array<{ subject: string; key?: string; text: string }> }
 export interface ScriptResult { scenes: Array<{ sceneId: string; beats: Array<{ action: string; lines: Array<{ characterName: string; text: string; textAr?: string; delivery?: string }> }>; facts?: ScriptFacts }> }
@@ -415,7 +419,7 @@ If a scene already has beats, improve and complete them rather than discarding w
 For each scene also record what it establishes for the rest of the series, in "facts" (English): events (1–3 things that happened and matter later), knowledge (who now knows something they did not before: characterName + what they know), changes (lasting physical changes later scenes must show: subject is a character's exact name, a prop or the place's exact name; key is the aspect that a later change would replace, e.g. "left arm", "shop window"; text is the new state). Only real story facts; empty arrays when the scene establishes none.
 Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }], facts: { events: [], knowledge: [{ characterName, text }], changes: [{ subject, key, text }] } }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
   const messages: LlmMessage[] = [system(`${STUDIO_RULES}\n\n${STYLE_RULES(p.style)}\n\n${LANGUAGE_RULES(p.language, p.dialect)}\n\n${TIMELINE_RULES}${intentBlock(p)}`, opts), { role: 'user', content: user }];
-  const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: 9000, temperature: 0.8 });
+  const r = await llmJson(ScriptSchema, messages, { ...opts, maxTokens: ANSWER_TOKENS.script, temperature: 0.8 });
   opts.onResult?.(r.result);
   // Arabic that landed in the English slot moves to textAr; the English gloss is then asked for separately
   for (const sc of r.data.scenes) for (const b of sc.beats) for (const l of b.lines) if (ARABIC.test(l.text) && !l.textAr) l.textAr = l.text;
@@ -441,7 +445,7 @@ export async function glossLines(lines: Array<{ text: string; textAr?: string }>
     { role: 'user', content: `Translate every line. Return JSON: { lines: [{ n, english }] } with the same n values.\n${compact(todo)}` },
   ];
   try {
-    const r = await llmJson(GlossSchema, messages, { ...opts, maxTokens: 3000, temperature: 0.2 });
+    const r = await llmJson(GlossSchema, messages, { ...opts, maxTokens: ANSWER_TOKENS.gloss, temperature: 0.2 });
     opts.onResult?.(r.result);
     for (const g of r.data.lines) { const english = g.english.trim(); if (g.n >= 0 && g.n < out.length && english && !ARABIC.test(english)) out[g.n] = english; }
   } catch { /* the Arabic stays in the English slot */ }

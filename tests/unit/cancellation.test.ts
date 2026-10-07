@@ -114,4 +114,24 @@ describe('a tool timeout aborts the tool\'s work instead of racing it', () => {
     expect(ctrl.signal.aborted).toBe(false); // only the tool's own work was stopped, not the job
     vi.doUnmock('@/server/org/model'); vi.doUnmock('@/server/org/runs');
   }, 20_000);
+
+  it('a call sized larger than the flat timeout runs to its own bound; a smaller one never shortens the flat timeout', async () => {
+    vi.resetModules();
+    vi.doMock('@/server/org/model', async (orig) => {
+      const m = await orig<typeof import('@/server/org/model')>();
+      return { ...m, toolById: (id: string) => ({ ...(m.toolById(id) ?? { id, name: id, version: '1' }), timeoutMs: 200 }) };
+    });
+    vi.doMock('@/server/org/runs', async (orig) => ({ ...(await orig<typeof import('@/server/org/runs')>()), recordToolCall: async () => undefined }));
+    // only the bound is under test here, not the answer's contract
+    vi.doMock('@/server/org/contracts', async (orig) => ({ ...(await orig<typeof import('@/server/org/contracts')>()), CONTRACTS: {} }));
+    const { makeToolRunner } = await import('@/server/org/tools');
+    const { AGENTS } = await import('@/server/org/model');
+    const agent = AGENTS.find((a) => a.tools.includes('story.structured_answer'))!;
+    const tool = makeToolRunner(agent, 'run-test', { warn: () => {}, debug: () => {}, error: () => {}, info: () => {} } as never);
+    // work that outlasts the flat 200 ms and the 2 s the runner lets aborted work finish in
+    const slow = () => new Promise<string>((r) => setTimeout(() => r('done'), 2_600));
+    await expect(tool('story.structured_answer', slow, { timeoutMs: 5_000 })).resolves.toBe('done');
+    await expect(tool('story.structured_answer', slow, { timeoutMs: 50 })).rejects.toThrow(/did not finish within/);
+    vi.doUnmock('@/server/org/model'); vi.doUnmock('@/server/org/runs'); vi.doUnmock('@/server/org/contracts');
+  }, 20_000);
 });

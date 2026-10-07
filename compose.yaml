@@ -276,20 +276,20 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8023/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
-  # MOSS-SoundEffect (OpenMOSS, 8 B, Apache-2.0): ambience, crowds, footsteps, doors and cinematic effects OUTSIDE the
-  # song (PRODUCTION-STACK-DIRECTIVE 2026-10-06 §2–3). The tts-moss image (same architecture and audio tokenizer) with
-  # BENCH_ENGINE=sfx: POST /sfx { prompt, duration, seed } -> WAV. Weights: group sfx-moss-soundeffect (15.6 GB) + the
-  # MOSS audio tokenizer of eval-voice-moss. GPU family SFX (src/server/gpu/lease.ts): ≈ 20 GB loaded like MOSS-TTS;
-  # idle it holds nothing (lazy load), /unload drops it. Profile `sfx`.
+  # MOSS-SoundEffect v2.0 (OpenMOSS, 1.3 B DiT + flow matching, DAC VAE, Qwen3 text encoder, Apache-2.0): ambience,
+  # footsteps, rain, doors and effects OUTSIDE the song, 48 kHz, up to 30 s a call (docs/MASTER-PRODUCTION-PLAN.md frozen
+  # stack). Its own image (docker/sfx: upstream's isolated pins): POST /sfx { prompt, duration, seed } -> WAV. Weights:
+  # group sfx-moss-soundeffect-v2 (11.2 GB), linked into the diffusers layout at start. GPU family SFX
+  # (src/server/gpu/lease.ts); idle it holds nothing (lazy load), /unload drops it. Profile `sfx`.
   sfx-moss:
     logging: *logging
-    image: vewbox/tts-moss:${CODE_VERSION:-dev}
+    build: { context: ., dockerfile: docker/sfx/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/sfx-moss-v2:${CODE_VERSION:-dev}
     profiles: ["sfx"]
     restart: unless-stopped
     dns: *dns
-    environment: { NVIDIA_VISIBLE_DEVICES: all, BENCH_ENGINE: sfx }
-    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/bench/vewbox_tts_shared.py:ro", "./docker/tts-bench/app.py:/opt/bench/vewbox_bench_app.py:ro" ]
-    command: ["python", "-m", "uvicorn", "vewbox_bench_app:app", "--host", "0.0.0.0", "--port", "8024", "--workers", "1"]
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/sfx/vewbox_tts_shared.py:ro", "./docker/sfx/app.py:/opt/sfx/vewbox_sfx_app.py:ro" ]
     ports: [ "127.0.0.1:${SFX_PORT:-8024}:8024" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8024/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
@@ -446,6 +446,10 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
       # plain HTTPS range downloads (resumable) rather than xet chunking, which stalled on this network
       HF_HUB_DISABLE_XET: ${HF_HUB_DISABLE_XET:-1}
+      # the hub's 10 s read timeout gave up on this link's stalls mid-file every few minutes (a 5.7 GB file failed three
+      # whole attempts, 2026-10-07); a stall of up to 2 minutes is waited out instead
+      HF_HUB_DOWNLOAD_TIMEOUT: ${HF_HUB_DOWNLOAD_TIMEOUT:-120}
+      HF_HUB_ETAG_TIMEOUT: ${HF_HUB_ETAG_TIMEOUT:-60}
       # refuse a root without the store's .vewbox-models marker (docs/MODELS-STORAGE.md)
       MODELS_REQUIRE_MARKER: "1"
       HF_HOME: /models/cache/hf
