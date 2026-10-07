@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 16;
+export const ORG_VERSION = 17;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -113,7 +113,7 @@ export const PIPELINE: StageDef[] = [
   { id: 'SCRIPT', name: 'Script', department: 'STORY', dependsOn: ['STORY'], jobTypes: ['WRITE_SCRIPT'], handsTo: 'PREPRODUCTION' },
   { id: 'STORYBOARD', name: 'Storyboard', department: 'PREPRODUCTION', dependsOn: ['SCRIPT', 'CAST_WORLD'], jobTypes: ['SHOT_FRAMES'], handsTo: 'PREPRODUCTION' },
   { id: 'SHOT_PLAN', name: 'Shot plan', department: 'PREPRODUCTION', dependsOn: ['SCRIPT'], jobTypes: ['PLAN_SHOTS'], handsTo: 'SOUND' },
-  { id: 'AUDIO_PREP', name: 'Audio preparation', department: 'SOUND', dependsOn: ['SHOT_PLAN', 'CAST_WORLD'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'DIALOGUE_AUDIO'], handsTo: 'VIDEO' },
+  { id: 'AUDIO_PREP', name: 'Audio preparation', department: 'SOUND', dependsOn: ['SHOT_PLAN', 'CAST_WORLD'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG', 'DIALOGUE_AUDIO'], handsTo: 'VIDEO' },
   // PRODUCE is the Production Coordinator's orchestration across stages, not a stage job
   { id: 'VIDEO', name: 'Video generation', department: 'VIDEO', dependsOn: ['SHOT_PLAN', 'STORYBOARD', 'AUDIO_PREP'], jobTypes: ['GENERATE_TAKE', 'CORRECT_LIPSYNC'], handsTo: 'QA' },
   { id: 'QA', name: 'Quality assurance', department: 'QA', dependsOn: ['VIDEO'], jobTypes: [], handsTo: 'POST' },
@@ -355,10 +355,10 @@ export const AGENTS: AgentDef[] = [
     model: 'IndexTTS 2.5 / Habibi-TTS IRQ + faster-whisper', skills: ['audio-first-dialogue', 'iraqi-dialogue', 'voice-identity'], tools: ['speech.synthesize', 'speech.transcribe'], inputSchema: 'JOB_PAYLOADS.DIALOGUE_AUDIO', outputSchema: 'recorded lines', limits: { timeoutMs: 1_800_000, maxAttempts: 2, resource: 'TTS' }, version: '1.2.0',
     qualityRequirements: ['every line transcribed back'], jobTypes: ['DIALOGUE_AUDIO'], steps: [] },
   { id: 'music-director', name: 'Music Director', department: 'SOUND', role: 'Songs',
-    description: 'Executes WRITE_SONG (the planner writes the song: concept, structure, lyrics, tempo, key and who sings each section — only characters cast as singers) and GENERATE_SONG (ONE recording with ACE-Step 1.5 XL-SFT + the 5Hz LM 4B, the named singers’ vocal; stems; the written lines placed on the sung vocal; loudness and dead air measured); records the AUDIO_PREP handoff.',
+    description: 'Executes WRITE_SONG (the planner writes the song: concept, structure, lyrics, tempo, key and who sings each section — only characters cast as singers) and GENERATE_SONG (ONE recording with ACE-Step 1.5 XL-SFT + the 5Hz LM 4B, the named singers’ vocal; stems; the written lines placed on the sung vocal; loudness and dead air measured, a true peak above −1 dBTP trimmed in the open) and CHECK_SONG (the same checks on the existing recording, never composing again); records the AUDIO_PREP handoff.',
     systemInstructions: S(`Write one original singable song for the named singers only; then record it once with ACE-Step 1.5 XL-SFT; stems; align the written lines to the sung vocal; measure, never hide.`),
-    model: 'Qwen3.8-27B-NVFP4 (vLLM) for the song plan; ACE-Step 1.5 XL-SFT + 5Hz LM 4B (ComfyUI) + Demucs + faster-whisper', skills: ['singing-performance'], tools: ['story.structured_answer', 'music.generate', 'audio.separate_stems', 'speech.transcribe', 'lyrics.align'], inputSchema: 'JOB_PAYLOADS.WRITE_SONG / GENERATE_SONG', outputSchema: 'song plan / song asset + stems', limits: { timeoutMs: 1_800_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '2.0.0',
-    qualityRequirements: ['every sung section names a singer who sings', 'stems present', 'lyrics placed on the vocal', 'loudness −20…−8 LUFS, true peak ≤ 0 dBTP'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG'], steps: [] },
+    model: 'Qwen3.8-27B-NVFP4 (vLLM) for the song plan; ACE-Step 1.5 XL-SFT + 5Hz LM 4B (ComfyUI) + Demucs + faster-whisper', skills: ['singing-performance'], tools: ['story.structured_answer', 'music.generate', 'audio.separate_stems', 'speech.transcribe', 'lyrics.align'], inputSchema: 'JOB_PAYLOADS.WRITE_SONG / GENERATE_SONG / CHECK_SONG', outputSchema: 'song plan / song asset + stems', limits: { timeoutMs: 1_800_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '2.0.0',
+    qualityRequirements: ['every sung section names a singer who sings', 'stems present', 'lyrics placed on the vocal', 'loudness −20…−8 LUFS, true peak ≤ 0 dBTP'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG'], steps: [] },
   { id: 'singing-performance', name: 'Singing Performance Agent', department: 'SOUND', role: 'Who sings which section',
     description: 'Executes PLAN_SHOTS with performanceOnly on a music video: aligns the lyrics to the vocal stem, assigns each section to its singers (solo, duet, alternating, ensemble, instrumental) and copies the assignment onto the shots by song window.',
     systemInstructions: S(`A wizard's "everyone sings everything" is a placeholder, not a decision: decide from the lyrics and the story; only an assigned performer sings in a shot.`),

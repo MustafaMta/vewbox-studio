@@ -61,14 +61,20 @@ export function alignLyrics(sections: LyricSection[], words: Word[], lang: 'EN' 
   const out: AlignedLine[] = [];
   const wtok = words.map((w) => norm(w.word, lang));
   let cursor = 0; // transcript words are consumed in order
-  for (const sec of sections) {
+  const hasWords = (s: LyricSection) => Boolean(((lang === 'AR' ? s.textAr || s.text : s.text) || '').trim());
+  for (const [k, sec] of sections.entries()) {
+    // a window reaches over the wordless sections after it (an outro, a break) up to the next sung section: no other
+    // lyrics compete for those words, and a singer who runs into the planned outro is still found (Harbour Lights' last
+    // line, sung at 86 s of a chorus planned to end at 84)
+    const next = sections.slice(k + 1).find(hasWords);
+    const end = next ? next.from : Math.max(sec.to, ...sections.slice(k + 1).map((s) => s.to));
     const source = (lang === 'AR' ? sec.textAr || sec.text : sec.text) || '';
     const lines = source.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     const en = sec.text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     const span = Math.max(0.001, sec.to - sec.from) / Math.max(1, lines.length);
     // only words that fall inside (a padded) section window are candidates
     const lo = Math.max(cursor, words.findIndex((w) => w.end >= sec.from - 1.5));
-    const hi = (() => { const k = words.findIndex((w) => w.start > sec.to + 1.5); return k < 0 ? words.length : k; })();
+    const hi = (() => { const j = words.findIndex((w) => w.start > Math.max(sec.to, end) + 1.5); return j < 0 ? words.length : j; })();
     let local = Math.max(0, lo);
     lines.forEach((text, i) => {
       const toks = tokens(text, lang);

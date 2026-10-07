@@ -23,6 +23,18 @@ describe('alignLyrics', () => {
     expect(out[3].to).toBeCloseTo(18.1 + 4 * 0.4, 1);
     for (let i = 1; i < out.length; i++) expect(out[i].from).toBeGreaterThanOrEqual(out[i - 1].to);
   });
+  it('a singer who runs into the planned outro is still found; the window never reaches into the next sung section', () => {
+    // Harbour Lights: the last chorus was planned to end at 84; its last line was sung at 85.5–88.8, in the "outro"
+    const late = 'youre my home beneath the sky'.split(' ').map((w, i) => ({ word: w, start: 85.5 + i * 0.5, end: 85.9 + i * 0.5 }));
+    const chorus = { id: 'c3', kind: 'CHORUS', from: 71, to: 84, singerIds: ['a'], text: 'You’re my home beneath the sky' } as LyricSection;
+    const outro = { id: 'o', kind: 'OUTRO', from: 84, to: 90, singerIds: [], text: '' } as LyricSection;
+    expect(alignLyrics([chorus, outro], late, 'EN')[0]).toMatchObject({ method: 'ALIGNED', from: 85.5 });
+    // with a sung section after it, the same words belong to that section, not this one
+    const verse = { id: 'v', kind: 'VERSE', from: 84, to: 90, singerIds: ['a'], text: 'You’re my home beneath the sky' } as LyricSection;
+    const out = alignLyrics([{ ...chorus, text: 'Hold me close until the dawn' }, verse], late, 'EN');
+    expect(out.map((l) => [l.sectionId, l.method])).toEqual([['c3', 'SPREAD'], ['v', 'ALIGNED']]);
+  });
+
   it('falls back to an even spread when the transcript has nothing credible', () => {
     const out = alignLyrics([section], [{ word: 'la', start: 1, end: 1.2 }], 'EN');
     expect(out.every((l) => l.method === 'SPREAD')).toBe(true);

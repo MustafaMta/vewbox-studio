@@ -7,7 +7,7 @@ import { command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, fileFor } from '@/server/media';
 import { committedOutput, jobOutputs, stableSeed } from '@/server/jobs/outputs';
-import { tmpDir } from '@/server/media/ffmpeg';
+import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
 import { separateStems, transcribe } from '@/server/providers/speech';
 import { alignLyrics, linesFromForcedAlignment } from '@/server/media/lyrics';
 import { alignScript, isQaUnavailable, scriptWords } from '@/server/providers/qa-service';
@@ -17,7 +17,7 @@ import { ACE_VARIANTS, type AceVariant } from '@/server/workflows/music';
 import { joinLyrics, splitLyrics } from '@/domain/lyrics';
 import type { Character, Production, StudioState } from '@/domain/types';
 import { sings } from '@/domain/vocabulary';
-import { songFromPlan, songPerformers, vocalTag, writeSongPlan } from '@/server/story/song';
+import { songFromPlan, songPerformers, timeByContent, vocalTag, writeSongPlan } from '@/server/story/song';
 import { loudness, speechRegions } from '@/server/media/voice-check';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -108,6 +108,19 @@ async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: Production
   return finishSong(ctx, { p: a.p, file, model: `${ACE_VARIANTS[ace.variant].label}${ace.variant === 'xl-turbo' ? ' (draft: chosen by MUSIC_ACE_VARIANT)' : ''}`, requestId: run.promptId, workflowVersion: run.workflowVersion, engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, t0: a.t0, dir, seed, singerIds: a.singerIds, bpm: a.bpm, key: a.key });
 }
 
+/** The gain that brings a true peak above −1 dBTP down to −1 dBTP (0 when it is already there). Pure (tested). */
+export function levelTrimDb(truePeakDbtp: number): number {
+  return truePeakDbtp > -1 ? -(truePeakDbtp + 1) : 0;
+}
+
+/** The planned sections over the recording's real length: their planned proportions kept (the plan times them by
+ *  what they hold), never re-spread evenly — the windows the lyric alignment searches come from these. Pure (tested). */
+export function scaleSections<T extends { from: number; to: number }>(sections: T[], duration: number): T[] {
+  const planned = sections[sections.length - 1]?.to ?? 0;
+  const k = planned > 0 ? duration / planned : 1;
+  return sections.map((s) => ({ ...s, from: Math.round(s.from * k), to: Math.round(s.to * k) }));
+}
+
 async function finishSong(ctx: Parameters<Handler>[0], a: { p: Production; file: string; model: string; requestId?: string; workflowVersion?: string; engine: Engine; caption: string; lyrics: string; seconds: number; t0: number; dir: string; seed: number; singerIds: string[]; bpm?: number; key?: string }) {
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the recording' });
   // the song's asset id is the job's (step 6/7): a retry that finds it recorded reuses it instead of a second copy
@@ -118,29 +131,64 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Production; file:
     await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
     await ctx.event('info', `the song was already recorded by an earlier attempt of this job (${id}); reused`, { assetId: id });
   } else {
-    const st = await jobOutputs(ctx.job).adopt('song', a.file, { expectKind: 'AUDIO' });
+    const made = { provider: 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id, seed: a.seed, singerIds: a.singerIds, bpm: a.bpm, key: a.key, creativeAttempt: 1 };
+    const t = await levelTrim(ctx, a.file, a.dir);
+    let trim: Record<string, unknown> | undefined;
+    if (t.trim) {
+      // the raw recording is kept as its own asset; the song is the trimmed copy, the trim in its provenance
+      const r = await jobOutputs(ctx.job).adopt('song-raw', a.file, { expectKind: 'AUDIO' });
+      await command('addAsset', [assetFromStored(r.id, r.stored, { label: `${a.p.song?.title ?? a.p.title} — raw recording`, tags: ['song', 'raw', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: made })], 'worker');
+      trim = { ...t.trim, rawAssetId: r.id };
+    }
+    const st = await jobOutputs(ctx.job).adopt('song', t.file, { expectKind: 'AUDIO' });
     id = st.id; const stored = st.stored;
     await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
     duration = stored.probe?.durationSeconds ?? a.seconds;
-    await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { provider: 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id, seed: a.seed, singerIds: a.singerIds, bpm: a.bpm, key: a.key, creativeAttempt: 1 } })], 'worker');
+    await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { ...made, ...(trim ? { levelTrim: trim } : {}) } })], 'worker');
   }
   const genMs = Date.now() - a.t0;
   // re-time the sections over the real duration, keeping singer assignments (the song's own — never "the whole cast")
   const fresh = (await readState()).state.productions.find((x) => x.id === a.p.id)!;
   const singers = fresh.song?.singerIds?.length ? fresh.song.singerIds : a.singerIds;
   const old = fresh.song?.sections ?? [];
-  const sections = (old.length ? old : splitLyrics(a.lyrics, duration).map((s) => ({ ...s, singerIds: singers }))).map((s, i, arr) => ({ ...s, from: Math.round((i / arr.length) * duration), to: Math.round(((i + 1) / arr.length) * duration) }));
+  const sections = old.length ? scaleSections(old, duration) : splitLyrics(a.lyrics, duration).map((s) => ({ ...s, singerIds: singers }));
   await command('updateSong', [a.p.id, { source: 'GENERATED', assetId: id, durationSeconds: Math.round(duration), lyrics: a.lyrics, caption: a.caption, provider: a.engine, model: a.model, requestId: a.requestId, jobId: ctx.job.id, sections }], 'worker');
   await recordMetric('song.generation_ms', genMs, 'ms', { engine: a.engine, seconds: Math.round(duration) }, ctx.job.id);
   const stems = await makeStems(ctx, a.p.id, id, `${a.p.song?.title ?? a.p.title}`);
   const aligned = stems?.vocals ? await alignSongLyrics(ctx, a.p.id, stems.vocals) : undefined;
-  // the song is handed to Video Production with its proof: a recording of the right length, stems, and lyrics heard
-  // SONG CHECK (the Audio Synchronization Inspector's step): the length as planned, the stems, the lyrics heard, the
-  // level (integrated loudness and true peak: measured, never normalised behind the producer) and dead air
-  const { alignedRatio, lengthOk, levelOk, silenceOk } = await step(ctx, 'audio-sync-inspector', `song-check: “${a.p.song?.title ?? a.p.title}”`, async () => {
+  const { alignedRatio, lengthOk, levelOk, silenceOk } = await inspectSong(ctx, { p: a.p, id, duration, seconds: a.seconds, stems, aligned });
+  await recordHandoff({ productionId: a.p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(stems ? Object.values(stems).filter((x): x is string => Boolean(x)) : [])], outputVersions: { song: id, seconds: Math.round(duration) }, validation: { ok: lengthOk && Boolean(stems?.vocals), checks: [{ name: 'song-recorded', ok: true, detail: `${a.model}, ${Math.round(duration)} s` }, { name: 'duration-as-planned', ok: lengthOk }, { name: 'stems-separated', ok: Boolean(stems?.vocals) }, { name: 'lyrics-aligned', ok: alignedRatio >= 0.5, detail: `${Math.round(alignedRatio * 100)} % of the lines placed on the vocal` }] }, jobId: ctx.job.id });
+  await ctx.activity('SONG_COMPOSED', `“${a.p.song?.title ?? a.p.title}” composed with ${a.model} (${Math.round(duration)} s)${aligned ? `; ${aligned.aligned} of ${aligned.lines} lyric lines placed on the vocal` : ''}`, { assetId: id, engine: a.engine, seconds: Math.round(duration), aligned });
+  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned, singerIds: a.singerIds, checks: { lengthOk, levelOk, silenceOk, alignedRatio }, awaitingReview: !(lengthOk && alignedRatio >= 0.5 && levelOk && silenceOk) };
+}
+
+/** THE LEVEL TRIM, in the open: ACE-Step's raw output can peak above 0 dBTP (Harbour Lights: +0.3), which clips once
+ *  encoded. A plain gain cut brings the true peak to −1 dBTP and changes nothing else — no limiter, no loudness
+ *  target. Returns the file the song is (a trimmed copy in `dir`, or the input untouched) and the trim made. */
+async function levelTrim(ctx: Parameters<Handler>[0], file: string, dir: string): Promise<{ file: string; trim?: { gainDb: number; rawTruePeakDbtp: number; rawLufs: number } }> {
+  const raw = await loudness(file).catch(async (e) => { await ctx.event('warn', `the recording's level could not be measured, so it was not trimmed: ${(e as Error).message}`); return undefined; });
+  const gainDb = raw ? levelTrimDb(raw.truePeakDbtp) : 0;
+  if (!raw || gainDb >= 0) return { file };
+  const out = path.join(dir, 'song-trimmed.flac');
+  await ffmpeg(['-y', '-i', file, '-af', `volume=${gainDb.toFixed(2)}dB`, '-c:a', 'flac', out]);
+  const trim = { gainDb: Number(gainDb.toFixed(2)), rawTruePeakDbtp: Number(raw.truePeakDbtp.toFixed(2)), rawLufs: Number(raw.integratedLufs.toFixed(2)) };
+  await ctx.event('info', `level trim ${trim.gainDb} dB: the raw recording peaked at ${trim.rawTruePeakDbtp} dBTP`, trim);
+  return { file: out, trim };
+}
+
+type SongChecks = { alignedRatio: number; lengthOk: boolean; levelOk: boolean; silenceOk: boolean };
+
+/** SONG CHECK (the Audio Synchronization Inspector's step): the length as planned, the stems, the lyrics heard, the
+ *  level (integrated loudness and true peak: measured, never normalised behind the producer — the only change is the
+ *  open level trim, reported here with the raw peak) and dead air. The song is handed to Video Production with it. */
+async function inspectSong(ctx: Parameters<Handler>[0], a: { p: Production; id: string; duration: number; seconds: number; stems?: { vocals?: string; instrumental?: string }; aligned?: { lines: number; aligned: number } }): Promise<SongChecks> {
+  const { id, duration, stems, aligned } = a;
+  return step(ctx, 'audio-sync-inspector', `song-check: “${a.p.song?.title ?? a.p.title}”`, async () => {
     const alignedRatio = aligned && aligned.lines ? aligned.aligned / aligned.lines : 0;
     const lengthOk = Math.abs(duration - a.seconds) <= Math.max(5, a.seconds * 0.15);
-    const songFile = assetFile((await readState()).state.assets.find((x) => x.id === id)!);
+    const songAsset = (await readState()).state.assets.find((x) => x.id === id)!;
+    const songFile = assetFile(songAsset);
+    const trim = songAsset.provenance?.levelTrim as { gainDb: number; rawTruePeakDbtp: number } | undefined;
     const level = await loudness(songFile).catch(() => undefined);
     const sound = await speechRegions(songFile, { noiseDb: -50, minSilence: 2, durationSeconds: duration }).catch(() => undefined);
     const silentSeconds = sound ? Math.max(0, duration - sound.speechSeconds) : undefined;
@@ -150,14 +198,75 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Production; file:
       { name: 'duration-as-planned', ok: lengthOk, value: Number(duration.toFixed(1)), threshold: a.seconds },
       { name: 'stems-separated', ok: Boolean(stems?.vocals), detail: stems ? 'vocals + accompaniment' : 'no stems' },
       { name: 'lyrics-heard-in-vocal', ok: alignedRatio >= 0.5, value: Number(alignedRatio.toFixed(2)), threshold: 0.5, detail: aligned ? `${aligned.aligned} of ${aligned.lines} lines placed` : 'not aligned' },
-      { name: 'loudness-and-peak', ok: levelOk, value: level ? Number(level.integratedLufs.toFixed(1)) : undefined, detail: level ? `${level.integratedLufs.toFixed(1)} LUFS integrated, true peak ${level.truePeakDbtp.toFixed(1)} dBTP (−20…−8 LUFS, ≤ 0 dBTP)` : 'not measured' },
+      { name: 'loudness-and-peak', ok: levelOk, value: level ? Number(level.integratedLufs.toFixed(1)) : undefined, detail: level ? `${level.integratedLufs.toFixed(1)} LUFS integrated, true peak ${level.truePeakDbtp.toFixed(1)} dBTP (−20…−8 LUFS, ≤ 0 dBTP)${trim ? `; level trim ${trim.gainDb} dB from a raw true peak of ${trim.rawTruePeakDbtp} dBTP` : ''}` : 'not measured' },
       { name: 'no-dead-air', ok: silenceOk, value: silentSeconds !== undefined ? Number(silentSeconds.toFixed(1)) : undefined, detail: silentSeconds !== undefined ? `${silentSeconds.toFixed(1)} s below −50 dB in stretches of 2 s or more` : 'not measured' },
     ], decision: lengthOk && alignedRatio >= 0.5 && levelOk && silenceOk ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id, ...(stems?.vocals ? [stems.vocals] : [])], jobId: ctx.job.id, failureClass: lengthOk ? undefined : 'WRONG_PARAMETERS' });
     return { alignedRatio, lengthOk, levelOk, silenceOk };
   });
-  await recordHandoff({ productionId: a.p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(stems ? Object.values(stems).filter((x): x is string => Boolean(x)) : [])], outputVersions: { song: id, seconds: Math.round(duration) }, validation: { ok: lengthOk && Boolean(stems?.vocals), checks: [{ name: 'song-recorded', ok: true, detail: `${a.model}, ${Math.round(duration)} s` }, { name: 'duration-as-planned', ok: lengthOk }, { name: 'stems-separated', ok: Boolean(stems?.vocals) }, { name: 'lyrics-aligned', ok: alignedRatio >= 0.5, detail: `${Math.round(alignedRatio * 100)} % of the lines placed on the vocal` }] }, jobId: ctx.job.id });
-  await ctx.activity('SONG_COMPOSED', `“${a.p.song?.title ?? a.p.title}” composed with ${a.model} (${Math.round(duration)} s)${aligned ? `; ${aligned.aligned} of ${aligned.lines} lyric lines placed on the vocal` : ''}`, { assetId: id, engine: a.engine, seconds: Math.round(duration), aligned });
-  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned, singerIds: a.singerIds, checks: { lengthOk, levelOk, silenceOk, alignedRatio }, awaitingReview: !(lengthOk && alignedRatio >= 0.5 && levelOk && silenceOk) };
+}
+
+/** CHECK_SONG — check the recording again, without composing again (composing is a new seed: a second creative
+ *  attempt). The song's own recording gets what a fresh recording gets today: the open level trim (the recording it
+ *  was cut from stays as the raw one), its sections timed by what they hold over its real length, stems, the lyrics
+ *  placed on the vocal, and the song check. */
+export const checkSong: Handler = async (ctx) => {
+  const { productionId } = ctx.job.payload as { productionId: string };
+  const { state } = await readState();
+  const p = state.productions.find((x) => x.id === productionId);
+  if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
+  const recorded = state.assets.find((x) => x.id === p.song?.assetId);
+  if (!p.song || !recorded) throw new StudioError('INVALID', 'There is no recording to check: generate the song first.', { productionId, failureClass: 'INVALID_INPUT' });
+  await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the recording again' });
+  let id = recorded.id;
+  if (!recorded.provenance?.levelTrim) {
+    const earlier = await committedOutput(ctx.job.id, 'song');
+    if (earlier) id = earlier.id;
+    else {
+      const dir = await tmpDir('song-check');
+      try {
+        const t = await levelTrim(ctx, assetFile(recorded), dir);
+        if (t.trim) {
+          const st = await jobOutputs(ctx.job).adopt('song', t.file, { expectKind: 'AUDIO' });
+          await command('addAsset', [assetFromStored(st.id, st.stored, { label: recorded.label, tags: recorded.tags.filter((x) => x !== 'raw'), origin: 'DERIVED', jobId: ctx.job.id, provenance: { ...(recorded.provenance ?? {}), from: recorded.id, levelTrim: { ...t.trim, rawAssetId: recorded.id } } })], 'worker');
+          id = st.id;
+        }
+      } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
+    }
+  }
+  const duration = recorded.durationSeconds ?? p.song.durationSeconds;
+  await command('updateSong', [p.id, { assetId: id, sections: timeByContent(p.song.sections, duration) }], 'worker');
+  // stems are cut from the song as it is: a trimmed song gets its own
+  const stems = id !== recorded.id || !p.song.stems?.vocals ? await makeStems(ctx, p.id, id, p.song.title || p.title) : p.song.stems;
+  const aligned = stems?.vocals ? await alignSongLyrics(ctx, p.id, stems.vocals) : undefined;
+  const checks = await inspectSong(ctx, { p, id, duration, seconds: p.song.durationSeconds, stems, aligned });
+  const passed = checks.lengthOk && checks.alignedRatio >= 0.5 && checks.levelOk && checks.silenceOk;
+  await ctx.activity('SONG_CHECKED', `“${p.song.title || p.title}” checked again${aligned ? `: ${aligned.aligned} of ${aligned.lines} lyric lines placed on the vocal` : ''}${passed ? '; every check passed' : '; it needs your review'}`, { assetId: id, aligned });
+  return { assetId: id, stems, aligned, checks, awaitingReview: !passed };
+};
+
+/** The song's sections after its lines are placed on the vocal: the lines run forward through the whole song (a
+ *  section's first line never starts before the previous section's last line ends — the forced aligner's padded
+ *  window can reach into the section before: Harbour Lights' second chorus began 1.6 s early); a sung section spans
+ *  its own lines; the sections without words take the gaps between; and together they cover 0…duration exactly,
+ *  in order, nothing past the end (the outro read 90–91 s of a 90 s song). Pure (tested). */
+export function settleSections<T extends { from: number; to: number; text?: string; lineTimes?: Array<{ from: number; to: number }> }>(sections: T[], duration: number): T[] {
+  let last = 0;
+  const lined = sections.map((s) => {
+    if (!s.lineTimes?.length) return s;
+    const lineTimes = s.lineTimes.map((l) => { const from = Math.max(l.from, last); const to = Math.min(duration, Math.max(l.to, from + 0.3)); last = to; return { ...l, from: Number(from.toFixed(3)), to: Number(to.toFixed(3)) }; });
+    return { ...s, lineTimes, from: lineTimes[0].from, to: lineTimes[lineTimes.length - 1].to };
+  });
+  // the boundaries: a sung section starts at its first line (whole seconds, never before the previous boundary); the
+  // gap before it belongs to the wordless section before it when there is one, else to the sung one
+  const bounds: number[] = [0];
+  for (let i = 1; i < lined.length; i++) {
+    const s = lined[i]; const prev = lined[i - 1];
+    const sung = Boolean(s.lineTimes?.length); const prevSung = Boolean(prev.lineTimes?.length);
+    const at = sung ? Math.floor(s.from) : prevSung ? Math.ceil(prev.to) : s.from;
+    bounds.push(Math.min(duration, Math.max(bounds[i - 1], at)));
+  }
+  bounds.push(duration);
+  return lined.map((s, i) => ({ ...s, from: bounds[i], to: Math.max(bounds[i], bounds[i + 1]) }));
 }
 
 /** Place the written lines on the real vocal: transcribe the vocal stem with word timings and align each line
@@ -199,14 +308,15 @@ export async function alignSongLyrics(ctx: Parameters<Handler>[0], productionId:
       const mine = out.filter((l) => l.sectionId === sec.id).sort((x, y) => x.index - y.index);
       if (!mine.length) return sec;
       const ctc = forced.get(sec.id) ?? [];
-      const timed = mine.map((l) => { const c = ctc[l.index]; return c ? { ...l, from: c.from, to: c.to, method: 'ALIGNED' as const, confidence: c.aligned / c.total, source: 'CTC' as const } : { ...l, source: l.method === 'ALIGNED' ? ('TRANSCRIPT' as const) : undefined }; });
+      // the forced aligner refines a line the transcript placed, never moves it: it is held to its window and reports
+      // full confidence even where the window was wrong (Harbour Lights: the bridge placed 5 s early), so a CTC time
+      // more than 2 s from the heard one is set aside
+      const timed = mine.map((l) => { const c0 = ctc[l.index]; const c = c0 && (l.method !== 'ALIGNED' || Math.abs(c0.from - l.from) <= 2) ? c0 : undefined; return c ? { ...l, from: c.from, to: c.to, method: 'ALIGNED' as const, confidence: c.aligned / c.total, source: 'CTC' as const } : { ...l, source: l.method === 'ALIGNED' ? ('TRANSCRIPT' as const) : undefined }; });
       const alignedOnes = timed.filter((l) => l.method === 'ALIGNED');
       const extent = alignedOnes.length * 2 >= timed.length ? { from: Math.min(sec.from, Math.floor(alignedOnes[0].from)), to: Math.max(sec.to, Math.ceil(alignedOnes[alignedOnes.length - 1].to)) } : {};
       return { ...sec, ...extent, lineTimes: timed.map((l) => ({ index: l.index, from: Number(l.from.toFixed(3)), to: Number(l.to.toFixed(3)), method: l.method, confidence: Number(l.confidence.toFixed(2)), ...(l.source ? { source: l.source } : {}) })) };
     });
-    // sections must stay in order without overlap after taking their sung extents
-    for (let i = 1; i < sections.length; i++) if (sections[i].from < sections[i - 1].to) sections[i] = { ...sections[i], from: sections[i - 1].to, to: Math.max(sections[i].to, sections[i - 1].to + 1) };
-    await command('updateSong', [productionId, { sections }], 'worker');
+    await command('updateSong', [productionId, { sections: settleSections(sections, p.song.durationSeconds) }], 'worker');
     const aligned = out.filter((l) => l.method === 'ALIGNED').length;
     const byCtc = [...forced.values()].flat().filter(Boolean).length;
     await ctx.event('info', 'lyrics aligned to the vocal track', { lines: out.length, aligned, forcedAligned: byCtc, heard: t.text.slice(0, 300) });

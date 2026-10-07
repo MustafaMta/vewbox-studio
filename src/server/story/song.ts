@@ -82,22 +82,28 @@ Every sung section names at least one singer from the list. Choruses repeat thei
   return r.data;
 }
 
+/** The first timing of a song's sections, before the recording is aligned: each section by what it holds — its sung
+ *  lines, or the room of two lines for a section without words (an intro, an outro, a break) — over `seconds`.
+ *  Pure (tested). */
+export function timeByContent<T extends { kind: string; text: string; from: number; to: number }>(sections: T[], seconds: number): T[] {
+  const weights = sections.map((s) => (s.kind !== 'INSTRUMENTAL' && s.text.trim() ? sungLines(s.text) : 2));
+  const total = weights.reduce((a, w) => a + w, 0) || 1;
+  const at = (i: number) => Math.round((seconds * weights.slice(0, i).reduce((a, w) => a + w, 0)) / total);
+  return sections.map((s, i) => ({ ...s, from: at(i), to: at(i + 1) }));
+}
+
 /** The plan as the production's Song: sections with their singers (names resolved to the cast who sing — an unknown
  *  or non-singing name is refused, never guessed), the lead first; lyrics tagged for the engine; the key valid for
  *  the engine (or dropped). Pure (tested). */
 export function songFromPlan(plan: SongPlan, performers: SongPerformer[], seconds: number, previous?: Song): Song {
   const byName = (n: string) => performers.find((s) => s.name.toLowerCase() === n.trim().toLowerCase()) ?? performers.find((s) => s.name.split(' ')[0].toLowerCase() === n.trim().split(' ')[0].toLowerCase());
-  // the first timing, before the recording is aligned: each section by how much it holds — its sung lines, or the
-  // room of two lines for a section without words (an intro, an outro, a break)
-  const weights = plan.sections.map((s) => (s.kind !== 'INSTRUMENTAL' && s.lyrics.trim() ? sungLines(s.lyrics) : 2));
-  const total = weights.reduce((a, w) => a + w, 0);
-  const at = (i: number) => Math.round((seconds * weights.slice(0, i).reduce((a, w) => a + w, 0)) / total);
-  const sections: LyricSection[] = plan.sections.map((s, i) => {
+  const untimed: LyricSection[] = plan.sections.map((s, i) => {
     const sung = s.kind !== 'INSTRUMENTAL' && Boolean(s.lyrics.trim());
     const ids = s.singers.map((n) => { const hit = byName(n); if (!hit && sung) throw new StudioError('PROVIDER', `The song plan gives a section to “${n}”, who is not one of this song's singers (${performers.map((x) => x.name).join(', ')}).`, { failureClass: 'PROVIDER' }); return hit?.id; }).filter((x): x is string => Boolean(x));
     if (sung && !ids.length) throw new StudioError('PROVIDER', `The song plan leaves section ${i + 1} (${s.kind.toLowerCase()}) without a singer.`, { failureClass: 'PROVIDER' });
-    return { id: nid('sec'), kind: s.kind, text: sung ? s.lyrics.trim() : '', singerIds: [...new Set(ids)], from: at(i), to: at(i + 1) };
+    return { id: nid('sec'), kind: s.kind, text: sung ? s.lyrics.trim() : '', singerIds: [...new Set(ids)], from: 0, to: 0 };
   });
+  const sections = timeByContent(untimed, seconds);
   const order = [...new Set(sections.flatMap((s) => s.singerIds))];
   const key = ACE_KEYS.find((k) => k.toLowerCase() === plan.key.trim().toLowerCase());
   return {

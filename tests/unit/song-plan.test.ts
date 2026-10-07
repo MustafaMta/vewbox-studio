@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
-import { songSingers } from '@/worker/handlers/music';
+import { levelTrimDb, scaleSections, settleSections, songSingers } from '@/worker/handlers/music';
 import { seed } from '@/domain/sample';
 import { singingCast } from '@/domain/actions';
 import { CONTRACTS } from '@/server/org/contracts';
@@ -84,6 +84,39 @@ describe('the song plan', () => {
   it('a new song is given to the cast members who sing, never to an actor', () => {
     expect(singingCast([walter, hana, marcus], ['walter', 'marcus', 'hana', 'nobody'])).toEqual(['marcus', 'hana']);
     expect(singingCast([walter], ['walter'])).toEqual([]);
+  });
+
+  it('the level trim is a plain gain to a −1 dBTP true peak, and only when the peak is above it', () => {
+    expect(levelTrimDb(0.3)).toBeCloseTo(-1.3); // Harbour Lights' raw recording
+    expect(levelTrimDb(-0.4)).toBeCloseTo(-0.6);
+    expect(levelTrimDb(-1)).toBe(0);
+    expect(levelTrimDb(-6)).toBe(0);
+  });
+
+  it('after the recording, the planned sections keep their proportions over the real length (never re-spread evenly)', () => {
+    // Harbour Lights as planned for 90 s: intro 0–6, verse 6–19 … outro 84–90; the recording is 90 s → unchanged
+    const planned = [[0, 6], [6, 19], [19, 32], [32, 45], [45, 58], [58, 71], [71, 84], [84, 90]].map(([from, to]) => ({ from, to }));
+    expect(scaleSections(planned, 90)).toEqual(planned);
+    expect(scaleSections(planned, 99).map((s) => [s.from, s.to]).slice(-2)).toEqual([[78, 92], [92, 99]]);
+    expect(scaleSections([], 90)).toEqual([]);
+  });
+
+  it('after the lyrics are placed, lines run forward and the sections cover 0…duration exactly (Harbour Lights)', () => {
+    const L = (...xs: Array<[number, number]>) => xs.map(([from, to], index) => ({ index, from, to }));
+    const settled = settleSections([
+      { from: 0, to: 6 },
+      { from: 6, to: 20, lineTimes: L([6.24, 9.3], [16.26, 19.2]) },
+      { from: 20, to: 33, lineTimes: L([18.8, 22.56], [29.76, 32.46]) }, // the chorus's first line reached back into the verse
+      { from: 33, to: 47, lineTimes: L([31.5, 35.96], [43.1, 46.4]) },
+      { from: 47, to: 60, lineTimes: L([44.06, 49.24], [56.48, 59.08]) }, // 1.6 s early
+      { from: 73, to: 90, lineTimes: L([72.54, 78.96], [86, 89.02]) },
+      { from: 90, to: 91 }, // the outro past the end
+    ], 90);
+    const lines = settled.flatMap((s) => s.lineTimes ?? []);
+    for (let i = 1; i < lines.length; i++) expect(lines[i].from).toBeGreaterThanOrEqual(lines[i - 1].to);
+    expect(settled[2].lineTimes![0].from).toBe(19.2);
+    expect(settled[4].lineTimes![0].from).toBe(46.4);
+    expect(settled.map((s) => [s.from, s.to])).toEqual([[0, 6], [6, 19], [19, 32], [32, 46], [46, 72], [72, 90], [90, 90]]);
   });
 
   it('a recording is refused when its song names an actor, or nobody, as a singer', () => {

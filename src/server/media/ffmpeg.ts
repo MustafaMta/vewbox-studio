@@ -58,7 +58,8 @@ export interface LoudnessStats { integrated: number; range: number; truePeak: nu
 export async function measureLoudness(input: string): Promise<LoudnessStats | null> {
   try {
     const { stderr } = await ffmpeg(['-i', input, '-af', 'loudnorm=I=-23:LRA=7:TP=-1:print_format=json', '-f', 'null', '-'], { timeoutMs: 10 * 60_000 });
-    const m = /\{[\s\S]*"input_i"[\s\S]*\}/.exec(stderr);
+    // the loudnorm block itself: an input's tags are printed first and can hold JSON (ComfyUI's workflow in a FLAC)
+    const m = /\{\s*"input_i"[\s\S]*?\}/.exec(stderr);
     if (!m) return null;
     const j = JSON.parse(m[0]) as Record<string, string>;
     return { integrated: Number(j.input_i), range: Number(j.input_lra), truePeak: Number(j.input_tp), threshold: Number(j.input_thresh) };

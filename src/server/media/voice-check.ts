@@ -75,7 +75,9 @@ export async function engineOutputTag(file: string): Promise<string | null> { re
  *  measures -Infinity. */
 export async function loudness(file: string, window?: { from: number; to: number }, opts: { /** the container when it is known (a file this module wrote), so ffmpeg does not have to probe it */ format?: string } = {}): Promise<Loudness> {
   const { stderr } = await ffmpeg([...seek(window), ...(opts.format ? ['-f', opts.format] : []), '-i', file, '-vn', '-af', `loudnorm=I=${REFERENCE_RULES.targetLufs}:TP=${REFERENCE_RULES.ceilingDbtp}:LRA=9:print_format=json`, '-f', 'null', '-'], { timeoutMs: 5 * 60_000 });
-  const m = /\{[\s\S]*"input_i"[\s\S]*?\}/.exec(stderr);
+  // the loudnorm block itself, which opens with "input_i": a file's own tags are printed first and can hold JSON
+  // (ComfyUI writes its workflow into every FLAC it saves), so the first brace in stderr is not necessarily ours
+  const m = /\{\s*"input_i"[\s\S]*?\}/.exec(stderr);
   if (!m) throw new StudioError('PROVIDER', 'ffmpeg did not report loudness.');
   const j = JSON.parse(m[0]) as Record<string, string>;
   const num = (v: string | undefined) => { if (v === undefined) return NaN; if (/^-?inf$/i.test(v.trim())) return v.trim().startsWith('-') ? -Infinity : Infinity; return Number(v); };
