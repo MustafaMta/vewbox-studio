@@ -339,6 +339,18 @@
       ]
     },
     {
+      "name": "qa-phoneme-espeak",
+      "purpose": "THE IRAQI PHONOLOGY GATE (Phase 3, 2026-10-07): wav2vec2 XLSR-53 fine-tuned for multilingual phoneme recognition (IPA, eSpeak set; Apache-2.0), run on the CTC-aligned span of a dialect word to hear WHICH consonant was spoken: چ must come back as tʃ (the historical «باچر» → «باسر» failure is the regression case), گ as ɡ. Spelling-based ASR cannot do this: neither Qwen3-ASR nor Whisper writes چ (Whisper: 0 of 36). Used by the asr service (/qa/phonemes); never generates anything. Revision and sha256 from the Hugging Face API (LFS oid) and the downloaded small files.",
+      "files": [
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "config.json", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 1856, "sha256": "4609fb49b7e1d28aecb2840da1926c40bd915bc6f1120a940afacf7159bbfb13", "license": "Apache-2.0" },
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "preprocessor_config.json", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 212, "sha256": "a2254a5b58f72cd4de3632f8eee64f3f098b7c1402128d2f419e7d00ae13e335", "license": "Apache-2.0" },
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "special_tokens_map.json", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 85, "sha256": "bb7068de1150661a10b55f9e4b12a0e77af8bf91f5e45e1b58afaf1d0e17f675", "license": "Apache-2.0" },
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "tokenizer_config.json", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 412, "sha256": "d663833dacef7d29f563e23029d448fe41415dbe5e8e6d5a98b598a5258c18d8", "license": "Apache-2.0" },
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "vocab.json", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 4637, "sha256": "d732ab2456c0c017930001dc9af0b41b3b93d25b2eb9740bf9d925508d7d87d0", "license": "Apache-2.0" },
+        { "repo": "facebook/wav2vec2-xlsr-53-espeak-cv-ft", "revision": "2c733782da5604684829819a5eb744c193fe9398", "file": "pytorch_model.bin", "folder": "qa/wav2vec2-xlsr-53-espeak-cv-ft", "bytes": 1263535127, "sha256": "04366b6c8d24099ef313cf02f0e58d26f5dddfda16edbfc8eb2c713d94a9f551", "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "tts-habibi-irq",
       "purpose": "THE IRAQI SPEECH ENGINE (producer decision 2026-10-07): Habibi-TTS Specialized IRQ (F5-TTS v1 Base, 100k steps) for the tts-habibi service, cloned from a character's consented Baghdadi reference. ONLY the Specialized IRQ checkpoint: the model card states Unified, SAU and UAE are CC-BY-NC-SA-4.0 and ALG, EGY, IRQ, MAR, MSA are Apache 2.0 (read 2026-10-07; repo-level tag cc-by-nc-sa-4.0 covers the Unified model). Revision and sha256 from the files already in the store (the HF download metadata's LFS oid matches). Provenance note kept for legal review: the checkpoint is fine-tuned from F5-TTS v1 Base, whose pretraining data (Emilia) is CC-BY-NC — recorded, not treated as the checkpoint's licence.",
       "files": [

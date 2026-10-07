@@ -51,6 +51,22 @@ try:
 except Exception as _e:  # noqa: BLE001
     qa_mod = None  # type: ignore[assignment]
     _qa_import_error = f"{type(_e).__name__}: {_e}"
+# Qwen3-ASR-1.7B, the primary recogniser (qwen3asr.py); Whisper stays as the reference
+try:
+    import qwen3asr as qwen_mod  # type: ignore
+    _qwen_import_error: str | None = None
+except Exception as _e:  # noqa: BLE001
+    qwen_mod = None  # type: ignore[assignment]
+    _qwen_import_error = f"{type(_e).__name__}: {_e}"
+# the Iraqi phonology gate's ear (phonemes.py): which consonant a dialect word was spoken with
+try:
+    import phonemes as phon_mod  # type: ignore
+    _phon_import_error: str | None = None
+except Exception as _e:  # noqa: BLE001
+    phon_mod = None  # type: ignore[assignment]
+    _phon_import_error = f"{type(_e).__name__}: {_e}"
+# the letters whose sound the gate checks: Iraqi چ (/tʃ/) and گ (/ɡ/)
+DIALECT_LETTERS = ("چ", "گ")
 
 MODEL_DIR = os.environ.get("ASR_MODEL_DIR", "/models/asr/faster-whisper-large-v3")
 MODEL_NAME = os.environ.get("ASR_MODEL_NAME", "large-v3")
@@ -184,6 +200,8 @@ def capabilities() -> dict[str, Any]:
             out["qa_mouth"], out["qa_identity"], out["syncnet"] = st["mouth"], st["identity"], st["syncnet"]
         except Exception as e:  # noqa: BLE001
             out["qa_mouth"] = out["qa_identity"] = out["syncnet"] = {"available": False, "reason": f"status failed: {e}"}
+    out["qwen3_asr"] = qwen_mod.status() if qwen_mod is not None else {"available": False, "reason": f"qwen3asr.py could not be imported ({_qwen_import_error})"}
+    out["phonemes"] = phon_mod.status() if phon_mod is not None else {"available": False, "reason": f"phonemes.py could not be imported ({_phon_import_error})"}
     return out
 
 
@@ -269,7 +287,7 @@ def unload():
         _model_key = None
     with _demucs_lock:
         _demucs = None
-    for mod in (align_mod, qa_mod):
+    for mod in (align_mod, qa_mod, qwen_mod, phon_mod):
         if mod is not None:
             try:
                 mod.unload()
@@ -317,6 +335,42 @@ async def transcribe(file: UploadFile = File(...), language: str = Form("auto"),
             for s in segments:
                 out.append({"start": round(s.start, 3), "end": round(s.end, 3), "text": s.text.strip(), "avg_logprob": round(s.avg_logprob, 3), "no_speech_prob": round(s.no_speech_prob, 3), "words": [{"start": round(w.start, 3), "end": round(w.end, 3), "word": w.word, "probability": round(w.probability, 3)} for w in (s.words or [])]})
         return JSONResponse({"language": info.language, "language_probability": round(info.language_probability, 3), "duration": round(info.duration, 3), "segments": out, "text": " ".join(x["text"] for x in out).strip(), "ms": int((time.time() - t0) * 1000), "model": MODELS[key]["name"]})
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+@app.post("/transcribe_qwen")
+async def transcribe_qwen(file: UploadFile = File(...), language: str = Form("auto")):
+    """Qwen3-ASR-1.7B: the text and the language the model DETECTED (language=auto, the default and the check), or a
+    forced language (ar|en; detected_language is then null — a forced run can translate, never trust it as a check).
+    Text only: word times come from /align (CTC) or Whisper."""
+    if qwen_mod is None:
+        raise HTTPException(status_code=503, detail=f"Qwen3-ASR is not available: {_qwen_import_error}")
+    if not qwen_mod.weights_present():
+        raise HTTPException(status_code=503, detail=qwen_mod.status()["reason"])
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty file")
+    with tempfile.NamedTemporaryFile(suffix=os.path.splitext(file.filename or "a.wav")[1] or ".wav", delete=False) as f:
+        f.write(data)
+        path = f.name
+    try:
+        import numpy as np  # type: ignore
+
+        pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", path, "-f", "f32le", "-ac", "1", "-ar", "16000", "-"], check=True, capture_output=True, timeout=600).stdout
+        audio = np.frombuffer(pcm, dtype=np.float32)
+        if audio.size == 0:
+            raise HTTPException(status_code=400, detail="no audio could be decoded from the file")
+        lang = None if language in ("", "auto") else language
+        if lang not in (None, "ar", "en"):
+            raise HTTPException(status_code=400, detail="language must be auto, ar or en")
+        out = await run_in_threadpool(qwen_mod.transcribe, audio, lang)
+        return JSONResponse({**out, "duration": round(audio.size / 16000, 3)})
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
     finally:
@@ -391,6 +445,47 @@ async def align_endpoint(file: UploadFile = File(...), text: str = Form(...), la
         if chars != "1":
             out.pop("chars", None)
         return JSONResponse(out)
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@app.post("/qa/phonemes")
+async def qa_phonemes(file: UploadFile = File(...), text: str = Form(...), language: str = Form("ar"), every: str = Form("0")):
+    """The phonemes heard in each dialect word of a KNOWN Arabic line: the line is force-aligned (align.py) and the
+    span of every word holding چ or گ (every=1: every word) is read by the phoneme recogniser (phonemes.py). Reports
+    only what was heard; the studio judges it (src/server/media/iraqi-phonology.ts)."""
+    if phon_mod is None:
+        raise HTTPException(status_code=503, detail=f"phoneme recognition unavailable: {_phon_import_error}")
+    if not phon_mod.weights_present():
+        raise HTTPException(status_code=503, detail=phon_mod.status()["reason"])
+    if align_mod is None:
+        raise HTTPException(status_code=503, detail=f"alignment unavailable: {_align_import_error}")
+    if (language or "").strip().lower() != "ar":
+        raise HTTPException(status_code=400, detail="the phonology gate reads Arabic lines (language=ar)")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="text is empty")
+    work = tempfile.mkdtemp(prefix="phon-")
+    try:
+        src = await _save(file, work, "in")
+        import numpy as np  # type: ignore
+
+        pcm = subprocess.run(["ffmpeg", "-v", "error", "-i", src, "-vn", "-f", "f32le", "-ac", "1", "-ar", "16000", "-"], check=True, capture_output=True, timeout=600).stdout
+        audio = np.frombuffer(pcm, dtype=np.float32)
+        if audio.size == 0:
+            raise HTTPException(status_code=400, detail="no audio could be decoded from the file")
+        try:
+            al = await run_in_threadpool(align_mod.align_audio, audio, text, "ar", 0.0)
+        except align_mod.AlignmentUnavailable as e:
+            raise HTTPException(status_code=503, detail=f"alignment (ar) unavailable: {e}") from e
+        except align_mod.AlignmentError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        words = al["words"]
+        want = None if every == "1" else [k for k, w in enumerate(words) if any(ch in (w.get("text") or "") for ch in DIALECT_LETTERS)]
+        t0 = time.time()
+        heard = await run_in_threadpool(phon_mod.word_phonemes, audio, words, want)
+        return JSONResponse({"model": phon_mod.NAME, "align_model": al.get("model"), "coverage": al.get("coverage"), "words": heard, "duration": round(audio.size / 16000, 3), "ms": int((time.time() - t0) * 1000)})
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=400, detail=f"the file could not be decoded: {e.stderr.decode(errors='ignore')[:200]}") from e
     finally:

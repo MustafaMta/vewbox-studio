@@ -130,6 +130,32 @@ export async function alignScript(file: string, text: string, language: 'en' | '
   return call<AlignResult>('/align', fd, opts.timeoutMs ?? 5 * 60_000);
 }
 
+/** Qwen3-ASR-1.7B (the primary recogniser): the text and the language the model DETECTED. `language` forces one —
+ *  never a check: forced to Arabic on English speech it translated the line (measured 2026-10-07), so a forced
+ *  answer has `detectedLanguage: null`. */
+export interface QwenTranscript { model: string; detectedLanguage: string | null; forcedLanguage: string | null; text: string; ms: number; duration: number }
+export async function transcribeQwen(file: string, opts: { language?: 'ar' | 'en'; timeoutMs?: number } = {}): Promise<QaAnswer<QwenTranscript>> {
+  const fd = new FormData();
+  const [b, name] = await blob(file, 'transcribeQwen');
+  fd.set('file', b, name);
+  fd.set('language', opts.language ?? 'auto');
+  return call<QwenTranscript>('/transcribe_qwen', fd, opts.timeoutMs ?? 5 * 60_000);
+}
+
+/** The phonemes heard in each dialect word (چ/گ) of a KNOWN Arabic line — the Iraqi phonology gate's evidence
+ *  (judged by src/server/media/iraqi-phonology.ts). */
+export interface PhonemeAnswer { model: string; alignModel?: string; coverage?: number; words: import('@/server/media/iraqi-phonology').HeardWord[]; duration: number; ms: number }
+export async function dialectPhonemes(file: string, text: string, opts: { every?: boolean; timeoutMs?: number } = {}): Promise<QaAnswer<PhonemeAnswer>> {
+  if (typeof text !== 'string' || !text.trim()) throw new StudioError('INVALID', 'dialectPhonemes: the text is empty');
+  const fd = new FormData();
+  const [b, name] = await blob(file, 'dialectPhonemes');
+  fd.set('file', b, name);
+  fd.set('text', text);
+  fd.set('language', 'ar');
+  fd.set('every', opts.every ? '1' : '0');
+  return call<PhonemeAnswer>('/qa/phonemes', fd, opts.timeoutMs ?? 5 * 60_000);
+}
+
 export interface MouthOptions {
   /** The audio that will play in the cut (the authoritative line or the vocal stem); default: the video's own track. */
   audio?: string;
