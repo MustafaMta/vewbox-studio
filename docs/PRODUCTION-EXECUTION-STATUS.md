@@ -153,3 +153,37 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   groups are removed; every current production model is intact.
 - **Not touched** (outside the approved list; for a later decision): evaluation weights still in the store —
   `joyai_image_edit`, `qwen_image_2.1` with its VAE, `qwen3vl_8b` (two), `wan_2.1_vae`.
+## Phase 3 — Iraqi Arabic voice + Iraqi song — IN PROGRESS, waiting for the consented reference (2026-10-07)
+
+- **Decisions (producer, 2026-10-07):**
+  - **Habibi-TTS Specialized IRQ** is the Iraqi/Baghdadi production engine, cloned from one consented Baghdadi
+    reference. Never the Unified checkpoint.
+  - **MOSS-TTS v1.5** stays the English/general engine; at most a controlled Iraqi comparison later.
+  - No synthetic or designed Iraqi voice; no voice from an MSA prompt.
+  - First-attempt rule: one result per request.
+  - Machine checks are evidence only; the producer's ear accepts.
+  - No Music Video until Iraqi speech AND the Iraqi song both pass by listening.
+- **Licence corrected:** the Specialized IRQ checkpoint is Apache-2.0 per the model card. Unified, SAU and UAE are
+  CC-BY-NC-SA-4.0 and are not used. The F5-TTS/Emilia lineage is kept as a separate provenance note for legal review.
+  Pinned in manifest group `tts-habibi-irq`: SWivid/Habibi-TTS @ 3ad11a15, sha256 1801bcc5…f500.
+- **Dialect setting, verified against upstream:** upstream's own CLI (`--model Specialized --dialect IRQ`) and its
+  evaluation pass NO dialect token to a Specialized checkpoint; only Unified takes one (IRQ = ⑤). So dialect=IRQ selects
+  `Specialized/IRQ/model_100000` with no token. tts-habibi declares and reports this in /health.
+- **Routing:** an Iraqi voice's Latin-script and mixed lines go to MOSS (same reference) instead of the retired
+  IndexTTS. MOSS's documented Arabic is now in its capability list.
+- **Qwen3-ASR-1.7B wired** (`/transcribe_qwen`), from the original release already in the store, on transformers
+  5.18's native model: config from `thinker_config`, 708 tensors renamed and checked at load, the official prompt.
+  - English line: exact, auto-detected English, 3.2 s on the GPU.
+  - **Measured hazard:** forced to Arabic on English speech, it TRANSLATED the line. A forced run is never a check.
+  - On upstream's real Iraqi clip, Qwen3-ASR heard «من نقدر نأخذ» where the dialect Whisper heard «ما نقدر ناخذ»
+    exactly. Both readings are reported.
+- **Iraqi phonology gate:** spelling cannot confirm چ/گ (no recogniser writes چ). `/qa/phonemes` aligns the known
+  line and reads each dialect word's span with wav2vec2-xlsr-53-espeak-cv-ft (IPA, Apache-2.0; group
+  `qa-phoneme-espeak`, queued). `iraqi-phonology.ts` requires /tʃ/ for چ and /ɡ/ for گ. «باچر» without /tʃ/ fails —
+  it is a regression test. Unverifiable words go to REVIEW, never PASS.
+- **Iraqi songs:** the planner writes Baghdadi lyrics in Arabic script with an English gloss (`textAr` is what ACE-Step
+  sings). MSA words are sent back with the Baghdadi word to use.
+- **Waiting for:** the producer's consented 5–12 s natural Baghdadi reference, in
+  `D:\vewbox-data\inbox\phase3-iraqi-reference\`. The character (male or female realistic Baghdadi Actor + Singer)
+  is created only after the speaker is confirmed from the recording. The producer uploads it and gives consent in the
+  character's Voice panel.
