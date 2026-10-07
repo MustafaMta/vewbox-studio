@@ -211,7 +211,8 @@ export function momentEditPrompt(x: { emotion?: string; condition?: string } | u
   const condition = clean(x?.condition ?? '').toLowerCase();
   if (!emotion && !condition) return undefined;
   const parts = [emotion && `the expression becomes ${emotion}`, condition && `the person is ${condition}, and it shows on the face, hair and clothes`].filter(Boolean);
-  return `Edit this picture. Change only the person's face and condition: ${parts.join('; ')}. Keep everything else exactly as it is: the same person and face shape, every mark on the face, the same clothes, place, framing, light and colours.`;
+  // facial hair and hair colour named: "every mark on the face" kept the scar but shaved the beard (2026-10-08, 1.1)
+  return `Edit this picture. Change only the person's face and condition: ${parts.join('; ')}. Keep everything else exactly as it is: the same person and face shape, the same facial hair and hair colour, every mark on the face, the same clothes, place, framing, light and colours.`;
 }
 
 /** The continuity of a storyboard frame: each person named by the reference picture that shows them ("the person of
