@@ -53,10 +53,8 @@ describe('chooseAceVariant', () => {
   it('XL-SFT when its DiT and the 4B LM are installed', () => {
     expect(chooseAceVariant(dms, tes)).toEqual({ variant: 'xl-sft' });
   });
-  it('a missing SFT file is a NAMED fallback to turbo, refused when SFT is required, and turbo can be forced', () => {
-    const r = chooseAceVariant(dms.slice(0, 1), tes.slice(0, 2));
-    expect(r.variant).toBe('xl-turbo');
-    expect(r.fallback).toMatch(/acestep_v1.5_xl_sft_bf16.safetensors.*qwen_4b_ace15.safetensors/);
+  it('a missing SFT file is a configuration error naming the files — never a silent drop to turbo; turbo only when chosen', () => {
+    expect(() => chooseAceVariant(dms.slice(0, 1), tes.slice(0, 2))).toThrow(/acestep_v1.5_xl_sft_bf16.safetensors and qwen_4b_ace15.safetensors/);
     expect(() => chooseAceVariant(dms, tes.slice(0, 2), 'xl-sft')).toThrow(/qwen_4b_ace15/);
     expect(chooseAceVariant(dms, tes, 'xl-turbo')).toEqual({ variant: 'xl-turbo' });
   });

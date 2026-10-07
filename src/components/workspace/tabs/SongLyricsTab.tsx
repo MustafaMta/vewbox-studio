@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Production, Song } from '@/domain/types';
-import { LYRIC_KINDS, type LyricKind } from '@/domain/vocabulary';
+import { LYRIC_KINDS, sings, type LyricKind } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
 import { nid } from '@/domain/actions';
 import { assetById, castOf } from '@/studio/selectors';
@@ -14,7 +14,7 @@ import { PlayerNotice, SongPlayer } from '@/components/players/Controls';
 import { ReplaceSong } from '../ReplaceSong';
 import { trackOf } from '../MusicWorkspace';
 import { GenButton, type StudioGate } from '../gate';
-import { IconDelete, IconGenerate, IconPlay, IconPlus, IconVoice } from '@/components/ui/icons';
+import { IconAuto, IconDelete, IconGenerate, IconPlay, IconPlus, IconVoice } from '@/components/ui/icons';
 import { fmtSeconds, words } from '@/lib/format';
 
 /** SONG & LYRICS — the song as a card (title, source, length, the brief), the waveform drawn from the file, and the
@@ -30,7 +30,12 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
   const audio = assetById(state, song?.assetId);
   const artworkSrc = art?.src;
   const track = trackOf(p, audio && !audio.unavailable ? audio.src : undefined, artworkSrc);
-  const performers = cast.filter((c) => song?.singerIds.includes(c.id) || p.castIds.includes(c.id));
+  // the artist is who sings this song; before a song exists, the cast members who sing
+  const performers = song?.singerIds.length ? song.singerIds.map((id) => cast.find((c) => c.id === id)).filter((c): c is NonNullable<typeof c> => !!c) : cast.filter((c) => sings(c.kind));
+  const writeSong = (label: string) => (
+    <GenButton gate={gate} engine="story" type="WRITE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconAuto aria-hidden />}
+      disabled={!cast.some((c) => sings(c.kind))} reason="Cast a singer first: only a Singer or an Actor + Singer sings.">{label}</GenButton>
+  );
   const artist = p.artist || performers.map((c) => c.name).join(' & ') || 'No artist yet';
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const st = useTrackState(track);
@@ -40,7 +45,8 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
     <div className="ws-main">
       <div className="ws-pane-head"><h1 className="t-section">Song and lyrics</h1></div>
       <p className="t-body ws-empty">No song yet: write it or bring the track.</p>
-      <div className="ws-gen-row"><ReplaceSong p={p} /></div>
+      <div className="ws-gen-row">{writeSong('Write the song')}<ReplaceSong p={p} /></div>
+      <p className="t-meta">The planner writes the concept, the lyrics, the sections and who sings each one, for the singers in the cast.</p>
     </div>
   );
   const mine = st.mine;
@@ -72,7 +78,7 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
 
           <section className="ws-sec" aria-labelledby="ws-lyr-h">
             <SectionHead id="ws-lyr-h" title="Lyrics" count={song.sections.length || null} description="Write the lyrics as sections. Select a section to set who sings it and when." action={<Button size="sm" icon={<IconPlus aria-hidden />} onClick={addSection}>Add a section</Button>} />
-            <div className="ws-gen-row"><GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton></div>
+            <div className="ws-gen-row">{writeSong('Rewrite the song')}<GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton></div>
             {song.sections.length === 0 ? <p className="t-body ws-empty">No sections yet.</p> : (
               <ol className="ws-lyrics" aria-label="Sections">
                 {song.sections.map((sec) => {
@@ -125,7 +131,7 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
               )}
               <fieldset className="ws-fieldset">
                 <legend className="t-label">Sung by</legend>
-                {cast.length === 0 ? <p className="t-meta">Nobody in the cast yet.</p> : <div className="ws-checks">{cast.map((c) => <Checkbox key={c.id} label={<bdi>{c.name}</bdi>} checked={selected.singerIds.includes(c.id)} onChange={(e) => setSec(selected.id, { singerIds: e.target.checked ? [...selected.singerIds, c.id] : selected.singerIds.filter((x) => x !== c.id) })} />)}</div>}
+                {!cast.some((c) => sings(c.kind)) ? <p className="t-meta">Nobody in the cast sings. Cast a Singer or an Actor + Singer.</p> : <div className="ws-checks">{cast.filter((c) => sings(c.kind)).map((c) => <Checkbox key={c.id} label={<bdi>{c.name}</bdi>} checked={selected.singerIds.includes(c.id)} onChange={(e) => setSec(selected.id, { singerIds: e.target.checked ? [...selected.singerIds, c.id] : selected.singerIds.filter((x) => x !== c.id) })} />)}</div>}
               </fieldset>
               <fieldset className="ws-fieldset">
                 <legend className="t-label">Timing (seconds)</legend>

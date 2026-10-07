@@ -323,6 +323,10 @@ export interface Song {
   genre?: string;
   mood?: string;
   bpm?: number;
+  /** The key the song is in ("D minor"), as the planner wrote it and the song engine reads it. */
+  key?: string;
+  /** What the song is about and how it feels, in the planner's words. */
+  concept?: string;
   provider?: string;
   model?: string;
   requestId?: string;

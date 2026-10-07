@@ -346,18 +346,6 @@ const COPY = {
   // final cut
 
   // shot editor
-  // ---- music ---------------------------------------------------------------------------------------------------------
-  // songs
-  'song.title': 'Song',
-  'song.generated': 'Generated song',
-  'song.notRecorded': 'Not recorded yet',
-  'song.uploaded': 'Uploaded track',
-  'song.sections': 'Sections',
-  'song.lyrics': 'Lyrics',
-  'song.noSong': 'No song yet.',
-  'song.replace': 'Replace song',
-  // music video workspace
-  'song.noWordsYet': 'No words yet — select to write them.',
   // ---- cast ----------------------------------------------------------------------------------------------------------
   // later — where generation would happen
 

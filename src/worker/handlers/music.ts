@@ -12,104 +12,103 @@ import { separateStems, transcribe } from '@/server/providers/speech';
 import { alignLyrics, linesFromForcedAlignment } from '@/server/media/lyrics';
 import { alignScript, isQaUnavailable, scriptWords } from '@/server/providers/qa-service';
 import * as comfy from '@/server/providers/comfy';
-import * as minimax from '@/server/providers/minimax';
-import { aceStepSong, minimaxMusic3Song } from '@/server/workflows';
+import { aceStepSong } from '@/server/workflows';
 import { ACE_VARIANTS, type AceVariant } from '@/server/workflows/music';
 import { joinLyrics, splitLyrics } from '@/domain/lyrics';
+import type { Character, Production, StudioState } from '@/domain/types';
+import { sings } from '@/domain/vocabulary';
+import { songFromPlan, songPerformers, vocalTag, writeSongPlan } from '@/server/story/song';
+import { loudness, speechRegions } from '@/server/media/voice-check';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 
-/** THE SONG — written lyrics and a musical caption become a recording. Engines, in order of preference: MiniMax
- *  Music (hosted, when the account still has access), ACE-Step 1.5 XL in ComfyUI (local, MIT), MiniMax Music 3 in
- *  ComfyUI (local). MUSIC_ENGINE selects one explicitly. Section timings are spread over the real duration; the
- *  transcription service refines them later when available. */
+/** THE SONG — ONE engine (master plan Phase 2): ACE-Step 1.5 XL-SFT with the 5Hz LM 4B in ComfyUI (MIT). No hosted
+ *  API, no turbo or MiniMax Music 3 fallback: when the production engine cannot run, the job says why. WRITE_SONG has
+ *  the planner write the song (concept, structure, lyrics, tempo, key, who sings what); GENERATE_SONG records it as
+ *  ONE authoritative song (one graph, batch 1, the job's seed: a retry re-attaches, never a second take), sung by the
+ *  singers the song names — their own singing profiles set the vocal. Section timings are spread over the real
+ *  duration, then placed on the sung vocal when the transcription service can hear it. */
 
-type Engine = 'minimax-api' | 'ace-step' | 'minimax-music3';
+type Engine = 'ace-step';
 
-async function pickLocalEngine(): Promise<Exclude<Engine, 'minimax-api'>> {
-  const h = await comfy.health();
-  if (!h.ok) throw new StudioError('UNAVAILABLE', 'No music engine is reachable: set MINIMAX_API_KEY or start the comfyui service with ACE-Step weights.');
-  const models = await comfy.listModels('diffusion_models').catch(() => [] as string[]);
-  if (models.some((m) => m.startsWith('acestep'))) return 'ace-step';
-  if (models.some((m) => m.startsWith('minimax_music3'))) return 'minimax-music3';
-  throw new StudioError('NOT_CONFIGURED', 'No music weights are downloaded yet (see docker/models: music-ace-step).');
-}
-
-/** Which ACE-Step XL variant this machine can run: XL-SFT with the 5Hz LM 4B (the production song generator) when both
- *  files are in ComfyUI's folders, else XL turbo — named as a fallback, never silently (the job warns and the song's
- *  provenance records it). MUSIC_ACE_VARIANT forces one (`xl-turbo` for a quick draft). Pure, tested. */
-export function chooseAceVariant(diffusionModels: string[], textEncoders: string[], want: 'auto' | AceVariant = 'auto'): { variant: AceVariant; fallback?: string } {
-  const sft = diffusionModels.includes(ACE_VARIANTS['xl-sft'].dit) && textEncoders.includes(ACE_VARIANTS['xl-sft'].lm);
+/** Which ACE-Step XL variant a song is made with: XL-SFT with the 5Hz LM 4B, the production song generator. Its files
+ *  missing is a configuration error with the files named — never a silent drop to turbo. MUSIC_ACE_VARIANT=xl-turbo is
+ *  an explicit draft choice of the producer's, recorded on the song. Pure, tested. */
+export function chooseAceVariant(diffusionModels: string[], textEncoders: string[], want: 'auto' | AceVariant = 'auto'): { variant: AceVariant } {
   if (want === 'xl-turbo') return { variant: 'xl-turbo' };
-  if (sft) return { variant: 'xl-sft' };
   const missing = [ACE_VARIANTS['xl-sft'].dit, ACE_VARIANTS['xl-sft'].lm].filter((f) => !diffusionModels.includes(f) && !textEncoders.includes(f));
-  if (want === 'xl-sft') throw new StudioError('NOT_CONFIGURED', `MUSIC_ACE_VARIANT=xl-sft but ComfyUI does not have ${missing.join(' and ')} (manifest group music-ace-step-xl)`);
-  return { variant: 'xl-turbo', fallback: `ACE-Step XL-SFT is not installed (${missing.join(', ')} missing: manifest group music-ace-step-xl); made with XL turbo instead` };
+  if (missing.length) throw new StudioError('NOT_CONFIGURED', `The song engine (ACE-Step 1.5 XL-SFT + 5Hz LM 4B) is not installed: ComfyUI does not have ${missing.join(' and ')} (manifest group music-ace-step-xl).`, { missing, failureClass: 'NOT_CONFIGURED' });
+  return { variant: 'xl-sft' };
 }
 
-async function pickEngine(): Promise<Engine> {
-  const want = env().MUSIC_ENGINE as Engine | 'auto';
-  if (want !== 'auto') return want;
-  if (env().MINIMAX_API_KEY) return 'minimax-api';
-  return pickLocalEngine();
+/** The singers a song names, as characters; refused when it names nobody who sings, or a cast member who does not
+ *  sing (an actor never sings the lead of a song made in their name). */
+export function songSingers(state: StudioState, p: Production): Character[] {
+  const ids = p.song?.singerIds?.length ? p.song.singerIds : [...new Set((p.song?.sections ?? []).flatMap((s) => s.singerIds))];
+  const chars = ids.map((id) => state.characters.find((c) => c.id === id)).filter((c): c is Character => Boolean(c));
+  const silent = chars.filter((c) => !sings(c.kind ?? 'ACTOR'));
+  if (silent.length) throw new StudioError('INVALID', `${silent.map((c) => c.name).join(' and ')} ${silent.length === 1 ? 'is' : 'are'} cast as an actor, not a singer: make them a Singer or an Actor + Singer (their page › Performs), or give their sections to someone who sings.`, { characterIds: silent.map((c) => c.id), failureClass: 'INVALID_INPUT' });
+  if (!chars.length) throw new StudioError('INVALID', 'Nobody sings this song yet: write the song (it names its singers) or assign a singer to its sections.', { productionId: p.id, failureClass: 'INVALID_INPUT' });
+  return chars;
 }
+
+/** WRITE_SONG — the planner writes the production's song (src/server/story/song.ts): ONE plan, validated; the
+ *  production's Song becomes it (its earlier recording, if any, stays in the library). */
+export const writeSong: Handler = async (ctx) => {
+  const { productionId, brief, singerIds } = ctx.job.payload as { productionId: string; brief?: string; singerIds?: string[] };
+  const { state } = await readState();
+  const p = state.productions.find((x) => x.id === productionId);
+  if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
+  const performers = songPerformers(castOf(state, p), singerIds);
+  const seconds = Math.min(300, Math.max(15, Math.round(p.song?.durationSeconds || p.targetSeconds)));
+  await ctx.progress('GENERATING', { phase: 'writing', message: `Writing the song for ${performers.map((s) => s.name).join(' and ') || 'the cast'}`, percent: null });
+  const plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, singers: performers.map((s) => s.id) } });
+  await ctx.checkpoint();
+  const song = songFromPlan(plan, performers, seconds, p.song);
+  await command(p.song ? 'updateSong' : 'setSong', p.song ? [p.id, { ...song, assetId: undefined, stems: undefined, provider: undefined, model: undefined, requestId: undefined, jobId: ctx.job.id }] : [p.id, { ...song, jobId: ctx.job.id }], 'worker');
+  await ctx.activity('SONG_WRITTEN', `“${song.title}” written: ${song.sections.length} sections, ${song.bpm} BPM${song.key ? `, ${song.key}` : ''}, sung by ${performers.filter((s) => song.singerIds.includes(s.id)).map((s) => s.name).join(' and ')}`, { productionId: p.id, sections: song.sections.length });
+  return { title: song.title, sections: song.sections.length, singerIds: song.singerIds, bpm: song.bpm, key: song.key, concept: song.concept, caption: song.caption };
+};
 
 export const generateSong: Handler = async (ctx) => {
   const { productionId, instrumental } = ctx.job.payload as { productionId: string; instrumental?: boolean };
   const { state } = await readState();
   const p = state.productions.find((x) => x.id === productionId);
   if (!p) throw new StudioError('NOT_FOUND', 'Production not found');
-  if (!p.song) throw new StudioError('INVALID', 'This production has no song yet: write the caption and lyrics first.');
+  if (!p.song) throw new StudioError('INVALID', 'This production has no song yet: write the song first.');
   const song = p.song;
-  const lyrics = song.lyrics?.trim() || joinLyrics(song.sections);
-  if (!instrumental && !lyrics.trim()) throw new StudioError('INVALID', 'The song has no lyrics. Add lyrics or choose an instrumental.');
+  // the sections ARE the song (edited in the Song & Lyrics tab); the stored text is only for a song without sections
+  const lyrics = song.sections.some((s) => (s.text || s.textAr || '').trim()) ? joinLyrics(song.sections) : (song.lyrics?.trim() ?? '');
+  if (!instrumental && !lyrics.trim()) throw new StudioError('INVALID', 'The song has no lyrics: write the song first, or choose an instrumental.');
+  const singers = instrumental ? [] : songSingers(state, p);
   const seconds = Math.min(300, Math.max(15, Math.round(song.durationSeconds || p.targetSeconds)));
-  const caption = song.caption?.trim() || `${p.genre ?? 'pop'}, ${p.mood ?? ''}`.trim();
-  const engine = await pickEngine();
-  await ctx.progress('GENERATING', { phase: 'composing', message: `Composing with ${engine === 'minimax-api' ? 'MiniMax Music' : engine === 'ace-step' ? 'ACE-Step 1.5' : 'MiniMax Music 3'}`, percent: null });
-  const t0 = Date.now();
-  const dir = await tmpDir('song');
-  let file: string; let model: string; let requestId: string | undefined; let workflowVersion: string | undefined;
-  if (engine === 'minimax-api') {
-    let r;
-    try { r = await ctx.tool('music.generate', () => minimax.generateMusic({ prompt: caption, lyrics, instrumental, format: 'mp3' }), { label: 'minimax-api', input: { engine: 'minimax-api', caption, lyrics, instrumental } }); }
-    catch (e) {
-      // the hosted music API is closed to new accounts; say so and let the local engines take over on retry
-      const m = (e as Error).message;
-      if (/not available|permission|2049|1004/i.test(m) && (await comfy.health()).ok) { await ctx.event('warn', `MiniMax Music API refused (${m.slice(0, 120)}); using the local engine`); return generateSongLocal(ctx, { p, caption, lyrics, seconds, instrumental: Boolean(instrumental), language: p.language, t0 }); }
-      throw e;
-    }
-    file = path.join(dir, `song.${r.format}`); await fsp.writeFile(file, r.bytes); model = env().MINIMAX_MUSIC_MODEL; requestId = r.traceId;
-  } else {
-    return generateSongLocal(ctx, { p, caption, lyrics, seconds, instrumental: Boolean(instrumental), language: p.language, t0, engine });
-  }
-  return finishSong(ctx, { p, file, model, requestId, workflowVersion, engine, caption, lyrics, seconds, t0, dir });
+  // the vocal is the named singers' own (their singing profiles), said to the engine — never an unnamed voice
+  const vocal = vocalTag(singers.map((c) => ({ sex: c.sex, voiceType: c.singing?.voiceType })));
+  const caption = [song.caption?.trim() || `${p.genre ?? 'pop'}, ${p.mood ?? ''}`.trim(), vocal].filter(Boolean).join(', ');
+  await ctx.progress('GENERATING', { phase: 'composing', message: `Composing with ACE-Step 1.5 XL-SFT${singers.length ? ` for ${singers.map((c) => c.name).join(' and ')}` : ''}`, percent: null });
+  return generateSongLocal(ctx, { p, caption, lyrics, seconds, instrumental: Boolean(instrumental), language: p.language, t0: Date.now(), bpm: song.bpm, key: song.key, singerIds: singers.map((c) => c.id) });
 };
 
-async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: NonNullable<Awaited<ReturnType<typeof readState>>['state']['productions'][number]>; caption: string; lyrics: string; seconds: number; instrumental: boolean; language: string; t0: number; engine?: Engine }) {
-  const engine = a.engine && a.engine !== 'minimax-api' ? a.engine : await pickLocalEngine();
+async function generateSongLocal(ctx: Parameters<Handler>[0], a: { p: Production; caption: string; lyrics: string; seconds: number; instrumental: boolean; language: string; t0: number; bpm?: number; key?: string; singerIds: string[] }) {
+  const engine: Engine = 'ace-step';
+  if (!(await comfy.health()).ok) throw new StudioError('UNAVAILABLE', 'The song engine is not reachable: start the comfyui service.', { failureClass: 'INFRASTRUCTURE' });
   // the song's seed and prompt key are the job's (audit H8, step 7): every attempt builds the same graph, and a restarted
   // attempt re-attaches to the composition it already asked for instead of composing a second one
   const seed = stableSeed(ctx.job.id, `song:${engine}`);
-  // ACE-Step: XL-SFT + the 5Hz LM 4B by default; a fallback to turbo is said, not hidden
-  let ace: { variant: AceVariant; fallback?: string } | undefined;
-  if (engine === 'ace-step') {
-    const [dms, tes] = await Promise.all([comfy.listModels('diffusion_models').catch(() => [] as string[]), comfy.listModels('text_encoders').catch(() => [] as string[])]);
-    ace = chooseAceVariant(dms, tes, env().MUSIC_ACE_VARIANT);
-    if (ace.fallback) await ctx.event('warn', ace.fallback, { variant: ace.variant });
-  }
-  const graph = engine === 'minimax-music3' ? minimaxMusic3Song({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, seed }) : aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en', seed, variant: ace!.variant });
-  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { promptKey: `:song:${engine}${ace ? `:${ace.variant}` : ''}`, timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental } }), { jobId: ctx.job.id });
+  const [dms, tes] = await Promise.all([comfy.listModels('diffusion_models').catch(() => [] as string[]), comfy.listModels('text_encoders').catch(() => [] as string[])]);
+  const ace = chooseAceVariant(dms, tes, env().MUSIC_ACE_VARIANT);
+  const graph = aceStepSong({ caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, language: a.language === 'AR' ? 'ar' : 'en', seed, variant: ace.variant, bpm: a.bpm, key: a.key });
+  const run = await ctx.gpu('MUSIC', 20000, () => ctx.tool('music.generate', () => comfy.run(graph, { promptKey: `:song:${engine}:${ace.variant}`, timeoutMs: 30 * 60_000, shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } }, onProgress: (q) => ctx.progress('GENERATING', { phase: 'composing', message: q.queue ? `waiting behind ${q.queue} in the GPU queue` : 'composing', percent: null }) }), { label: engine, input: { engine, variant: ace.variant, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, instrumental: a.instrumental, bpm: a.bpm, key: a.key, seed } }), { jobId: ctx.job.id });
   const out = comfy.firstOutput(run.outputs, 'audio');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI produced no audio.');
   const dir = await tmpDir('song');
   const file = path.join(dir, out.filename);
   await fsp.writeFile(file, await comfy.view(out));
-  return finishSong(ctx, { p: a.p, file, model: engine === 'minimax-music3' ? 'MiniMax-Music3 (local int8)' : `${ACE_VARIANTS[ace!.variant].label}${ace!.fallback ? ' (fallback: XL-SFT not installed)' : ''}`, requestId: run.promptId, workflowVersion: run.workflowVersion, engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, t0: a.t0, dir });
+  return finishSong(ctx, { p: a.p, file, model: `${ACE_VARIANTS[ace.variant].label}${ace.variant === 'xl-turbo' ? ' (draft: chosen by MUSIC_ACE_VARIANT)' : ''}`, requestId: run.promptId, workflowVersion: run.workflowVersion, engine, caption: a.caption, lyrics: a.lyrics, seconds: a.seconds, t0: a.t0, dir, seed, singerIds: a.singerIds, bpm: a.bpm, key: a.key });
 }
 
-async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnType<typeof readState>>['state']['productions'][number]; file: string; model: string; requestId?: string; workflowVersion?: string; engine: Engine; caption: string; lyrics: string; seconds: number; t0: number; dir: string }) {
+async function finishSong(ctx: Parameters<Handler>[0], a: { p: Production; file: string; model: string; requestId?: string; workflowVersion?: string; engine: Engine; caption: string; lyrics: string; seconds: number; t0: number; dir: string; seed: number; singerIds: string[]; bpm?: number; key?: string }) {
   await ctx.progress('VALIDATING', { phase: 'validating', message: 'Checking the recording' });
   // the song's asset id is the job's (step 6/7): a retry that finds it recorded reuses it instead of a second copy
   const earlier = await committedOutput(ctx.job.id, 'song');
@@ -123,12 +122,12 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnTyp
     id = st.id; const stored = st.stored;
     await fsp.rm(a.dir, { recursive: true, force: true }).catch(() => {});
     duration = stored.probe?.durationSeconds ?? a.seconds;
-    await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { provider: a.engine.startsWith('minimax') ? 'MINIMAX' : 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id } })], 'worker');
+    await command('addAsset', [assetFromStored(id, stored, { label: `${a.p.song?.title ?? a.p.title} — song`, tags: ['song', a.engine], origin: 'GENERATED', jobId: ctx.job.id, provenance: { provider: 'ACE-STEP', model: a.model, requestId: a.requestId, caption: a.caption, lyrics: a.lyrics, workflowVersion: a.workflowVersion, productionId: a.p.id, seed: a.seed, singerIds: a.singerIds, bpm: a.bpm, key: a.key, creativeAttempt: 1 } })], 'worker');
   }
   const genMs = Date.now() - a.t0;
-  // re-time the sections over the real duration, keeping singer assignments
+  // re-time the sections over the real duration, keeping singer assignments (the song's own — never "the whole cast")
   const fresh = (await readState()).state.productions.find((x) => x.id === a.p.id)!;
-  const singers = fresh.song?.singerIds ?? castOf((await readState()).state, fresh).map((c) => c.id);
+  const singers = fresh.song?.singerIds?.length ? fresh.song.singerIds : a.singerIds;
   const old = fresh.song?.sections ?? [];
   const sections = (old.length ? old : splitLyrics(a.lyrics, duration).map((s) => ({ ...s, singerIds: singers }))).map((s, i, arr) => ({ ...s, from: Math.round((i / arr.length) * duration), to: Math.round(((i + 1) / arr.length) * duration) }));
   await command('updateSong', [a.p.id, { source: 'GENERATED', assetId: id, durationSeconds: Math.round(duration), lyrics: a.lyrics, caption: a.caption, provider: a.engine, model: a.model, requestId: a.requestId, jobId: ctx.job.id, sections }], 'worker');
@@ -136,16 +135,29 @@ async function finishSong(ctx: Parameters<Handler>[0], a: { p: Awaited<ReturnTyp
   const stems = await makeStems(ctx, a.p.id, id, `${a.p.song?.title ?? a.p.title}`);
   const aligned = stems?.vocals ? await alignSongLyrics(ctx, a.p.id, stems.vocals) : undefined;
   // the song is handed to Video Production with its proof: a recording of the right length, stems, and lyrics heard
-  // SONG CHECK (the Audio Synchronization Inspector's step): the length as planned, the stems, the lyrics heard
-  const { alignedRatio, lengthOk } = await step(ctx, 'audio-sync-inspector', `song-check: “${a.p.song?.title ?? a.p.title}”`, async () => {
+  // SONG CHECK (the Audio Synchronization Inspector's step): the length as planned, the stems, the lyrics heard, the
+  // level (integrated loudness and true peak: measured, never normalised behind the producer) and dead air
+  const { alignedRatio, lengthOk, levelOk, silenceOk } = await step(ctx, 'audio-sync-inspector', `song-check: “${a.p.song?.title ?? a.p.title}”`, async () => {
     const alignedRatio = aligned && aligned.lines ? aligned.aligned / aligned.lines : 0;
     const lengthOk = Math.abs(duration - a.seconds) <= Math.max(5, a.seconds * 0.15);
-    await recordQaReport({ productionId: a.p.id, subjectKind: 'SONG', subjectId: id, inspectorId: 'audio-sync-inspector', checks: [{ name: 'duration-as-planned', ok: lengthOk, value: Number(duration.toFixed(1)), threshold: a.seconds }, { name: 'stems-separated', ok: Boolean(stems?.vocals), detail: stems ? 'vocals + accompaniment' : 'no stems' }, { name: 'lyrics-heard-in-vocal', ok: alignedRatio >= 0.5, value: Number(alignedRatio.toFixed(2)), threshold: 0.5, detail: aligned ? `${aligned.aligned} of ${aligned.lines} lines placed` : 'not aligned' }], decision: lengthOk && alignedRatio >= 0.5 ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id, ...(stems?.vocals ? [stems.vocals] : [])], jobId: ctx.job.id, failureClass: lengthOk ? undefined : 'WRONG_PARAMETERS' });
-    return { alignedRatio, lengthOk };
+    const songFile = assetFile((await readState()).state.assets.find((x) => x.id === id)!);
+    const level = await loudness(songFile).catch(() => undefined);
+    const sound = await speechRegions(songFile, { noiseDb: -50, minSilence: 2, durationSeconds: duration }).catch(() => undefined);
+    const silentSeconds = sound ? Math.max(0, duration - sound.speechSeconds) : undefined;
+    const levelOk = level ? level.integratedLufs >= -20 && level.integratedLufs <= -8 && level.truePeakDbtp <= 0 : false;
+    const silenceOk = silentSeconds !== undefined && silentSeconds <= Math.max(4, duration * 0.08);
+    await recordQaReport({ productionId: a.p.id, subjectKind: 'SONG', subjectId: id, inspectorId: 'audio-sync-inspector', checks: [
+      { name: 'duration-as-planned', ok: lengthOk, value: Number(duration.toFixed(1)), threshold: a.seconds },
+      { name: 'stems-separated', ok: Boolean(stems?.vocals), detail: stems ? 'vocals + accompaniment' : 'no stems' },
+      { name: 'lyrics-heard-in-vocal', ok: alignedRatio >= 0.5, value: Number(alignedRatio.toFixed(2)), threshold: 0.5, detail: aligned ? `${aligned.aligned} of ${aligned.lines} lines placed` : 'not aligned' },
+      { name: 'loudness-and-peak', ok: levelOk, value: level ? Number(level.integratedLufs.toFixed(1)) : undefined, detail: level ? `${level.integratedLufs.toFixed(1)} LUFS integrated, true peak ${level.truePeakDbtp.toFixed(1)} dBTP (−20…−8 LUFS, ≤ 0 dBTP)` : 'not measured' },
+      { name: 'no-dead-air', ok: silenceOk, value: silentSeconds !== undefined ? Number(silentSeconds.toFixed(1)) : undefined, detail: silentSeconds !== undefined ? `${silentSeconds.toFixed(1)} s below −50 dB in stretches of 2 s or more` : 'not measured' },
+    ], decision: lengthOk && alignedRatio >= 0.5 && levelOk && silenceOk ? 'ACCEPT' : 'REVIEW', evidenceAssetIds: [id, ...(stems?.vocals ? [stems.vocals] : [])], jobId: ctx.job.id, failureClass: lengthOk ? undefined : 'WRONG_PARAMETERS' });
+    return { alignedRatio, lengthOk, levelOk, silenceOk };
   });
   await recordHandoff({ productionId: a.p.id, stage: 'AUDIO_PREP', producerDepartment: 'SOUND', receiverDepartment: 'VIDEO', artifactIds: [id, ...(stems ? Object.values(stems).filter((x): x is string => Boolean(x)) : [])], outputVersions: { song: id, seconds: Math.round(duration) }, validation: { ok: lengthOk && Boolean(stems?.vocals), checks: [{ name: 'song-recorded', ok: true, detail: `${a.model}, ${Math.round(duration)} s` }, { name: 'duration-as-planned', ok: lengthOk }, { name: 'stems-separated', ok: Boolean(stems?.vocals) }, { name: 'lyrics-aligned', ok: alignedRatio >= 0.5, detail: `${Math.round(alignedRatio * 100)} % of the lines placed on the vocal` }] }, jobId: ctx.job.id });
   await ctx.activity('SONG_COMPOSED', `“${a.p.song?.title ?? a.p.title}” composed with ${a.model} (${Math.round(duration)} s)${aligned ? `; ${aligned.aligned} of ${aligned.lines} lyric lines placed on the vocal` : ''}`, { assetId: id, engine: a.engine, seconds: Math.round(duration), aligned });
-  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned, awaitingReview: !(lengthOk && alignedRatio >= 0.5) };
+  return { assetId: id, durationSeconds: duration, engine: a.engine, model: a.model, generationMs: genMs, stems, aligned, singerIds: a.singerIds, checks: { lengthOk, levelOk, silenceOk, alignedRatio }, awaitingReview: !(lengthOk && alignedRatio >= 0.5 && levelOk && silenceOk) };
 }
 
 /** Place the written lines on the real vocal: transcribe the vocal stem with word timings and align each line

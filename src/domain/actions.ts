@@ -1063,7 +1063,8 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
     // copied (case-, spacing-, apostrophe- and Arabic-spelling-insensitive, on the name and the Arabic name)
     const known = findByName(st.characters, c.name);
     if (known) { castIds.push(known.id); continue; }
-    const r = addCharacter(st, { name: c.name, role: c.role, style: pr.style, sex: c.sex ?? 'FEMALE', ageYears: c.ageYears ?? 30, build: '', face: c.appearance ?? '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: c.personality ?? c.reason, language: pr.language, dialect: pr.dialect, notes: pr.sample ? 'Proposed by Auto Idea (sample proposal).' : `Proposed by Auto Idea for “${pr.title}”: ${c.reason}` });
+    // someone proposed to perform a music video is proposed to sing it
+    const r = addCharacter(st, { name: c.name, role: c.role, kind: input.kind === 'MUSIC_VIDEO' ? 'SINGER' : undefined, style: pr.style, sex: c.sex ?? 'FEMALE', ageYears: c.ageYears ?? 30, build: '', face: c.appearance ?? '', hair: '', skin: '', eyes: '', distinguishing: [], wardrobe: '', personality: c.personality ?? c.reason, language: pr.language, dialect: pr.dialect, notes: pr.sample ? 'Proposed by Auto Idea (sample proposal).' : `Proposed by Auto Idea for “${pr.title}”: ${c.reason}` });
     st = r.state; castIds.push(r.character.id);
   }
   for (const l of pr.locations.filter((x) => input.keepLocations.includes(x.key))) {
@@ -1105,11 +1106,18 @@ export function acceptProposal(s: S, input: { kind: 'SHOW' | 'SEASON' | 'EPISODE
     return { state: grown, production: ep.production };
   }
   const kind: Kind = input.kind === 'MUSIC_VIDEO' ? 'MUSIC_VIDEO' : input.kind === 'SHORT' ? 'SHORT' : 'EPISODE';
-  const song: Song | undefined = input.kind === 'MUSIC_VIDEO' && pr.song ? { id: nid('song'), title: pr.song.title, source: 'GENERATED_EXAMPLE', durationSeconds: pr.durationSeconds, caption: pr.song.caption, lyrics: pr.song.lyrics, sections: splitLyrics(pr.song.lyrics, pr.durationSeconds).map((x) => ({ ...x, singerIds: castIds })), singerIds: castIds } : undefined;
+  const singerIds = singingCast(st.characters, castIds);
+  const song: Song | undefined = input.kind === 'MUSIC_VIDEO' && pr.song ? { id: nid('song'), title: pr.song.title, source: 'GENERATED_EXAMPLE', durationSeconds: pr.durationSeconds, caption: pr.song.caption, lyrics: pr.song.lyrics, sections: splitLyrics(pr.song.lyrics, pr.durationSeconds).map((x) => ({ ...x, singerIds })), singerIds } : undefined;
   const r = addProduction(st, { ...common, kind, title: pr.title, titleAr: pr.titleAr, logline: pr.logline, synopsis: pr.premise, showId: input.showId, seasonId: input.seasonId, castIds, locationIds, song });
   let next = updateProduction(r.state, r.production.id, { genre: pr.genre, mood: pr.mood, ...(kind === 'MUSIC_VIDEO' ? { concept: pr.concept, artist: st.characters.filter((c) => castIds.includes(c.id)).map((c) => c.name).join(' & ') || undefined } : {}) });
   if (kind !== 'MUSIC_VIDEO') next = withStructure(next, r.production.id, pr.structure);
   return { state: next, production: next.productions.find((x) => x.id === r.production.id)! };
+}
+
+/** Who may sing a song by default: of the given cast, only those cast as a Singer or an Actor + Singer, in order. An
+ *  actor is never handed a song. */
+export function singingCast(characters: readonly Pick<Character, 'id' | 'kind'>[], ids: readonly string[]): string[] {
+  return ids.filter((id) => { const c = characters.find((x) => x.id === id); return !!c && sings(c.kind); });
 }
 
 // ---------------------------------------------------------------------------------------------------- settings

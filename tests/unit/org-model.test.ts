@@ -101,14 +101,15 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 15)', () => {
+describe('the studio organisation (ORG_VERSION 16)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
     // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first
     //     take) and the drift-check step (the take's place measured against its plate)
     // 14: the Lip-Sync Corrector (Video): CORRECT_LIPSYNC with the video.lipsync_correct tool (directive 2026-10-06 §16)
     // 15: the story agents run on the one planner, Qwen3.8-27B-NVFP4 (vLLM); no Ollama or hosted LLM (Phase 0)
-    expect(ORG_VERSION).toBe(15);
+    // 16: the Music Director writes the song (WRITE_SONG, the planner) and records it with ACE-Step XL-SFT only (Phase 2)
+    expect(ORG_VERSION).toBe(16);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -271,7 +272,7 @@ describe('skills', () => {
   });
 
   it('only the agents that call the model receive instructions and skills', () => {
-    expect(AGENTS.filter(callsModel).map((a) => a.id).sort()).toEqual(['audience-experience', 'audience-research', 'casting-director', 'continuity-writer', 'creative-concept', 'film-director', 'head-of-story', 'screenwriter', 'singing-performance', 'story-editor']);
+    expect(AGENTS.filter(callsModel).map((a) => a.id).sort()).toEqual(['audience-experience', 'audience-research', 'casting-director', 'continuity-writer', 'creative-concept', 'film-director', 'head-of-story', 'music-director', 'screenwriter', 'singing-performance', 'story-editor']);
     // the Trend Research Agent calls no model: its instructions document the rules its code applies
     expect(callsModel(AGENTS.find((a) => a.id === 'trend-research')!)).toBe(false);
   });

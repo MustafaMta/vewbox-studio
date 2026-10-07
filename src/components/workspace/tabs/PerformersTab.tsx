@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
+import { singingCast } from '@/domain/actions';
 import { artVars } from '@/studio/presentation';
 import { assetById, castOf, primaryImageOf, showById } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
@@ -23,7 +24,7 @@ export function PerformersTab({ p, gate }: { p: Production; gate: StudioGate }) 
   const toast = useToast();
   const cast = castOf(state, p);
   const song = p.song;
-  const setCast = (ids: string[]) => { act('updateProduction', p.id, { castIds: ids }); if (song) act('updateSong', p.id, { singerIds: ids }); toast.ok('Saved.'); };
+  const setCast = (ids: string[]) => { act('updateProduction', p.id, { castIds: ids }); if (song) act('updateSong', p.id, { singerIds: singingCast(state.characters, ids) }); toast.ok('Saved.'); };
   return (
     <div className="ws-main">
       <div className="ws-pane-head"><h1 className="t-section">Performers</h1></div>

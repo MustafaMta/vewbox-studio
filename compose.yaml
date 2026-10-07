@@ -36,7 +36,7 @@ x-app-env: &app-env
   MINIMAX_SPEECH_MODEL: ${MINIMAX_SPEECH_MODEL:-speech-2.8-hd}
   MINIMAX_MUSIC_MODEL: ${MINIMAX_MUSIC_MODEL:-music-3.0}
   VIDEO_BACKEND: ${VIDEO_BACKEND:-auto}
-  MUSIC_ENGINE: ${MUSIC_ENGINE:-auto}
+  MUSIC_ACE_VARIANT: ${MUSIC_ACE_VARIANT:-auto}
   # THE PLANNER — the only one: Qwen3.8-27B-NVFP4 on the local vLLM server (service llm-vllm, below). No hosted or
   # fallback planner: when it is not reachable the story jobs fail with the reason.
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm-vllm:8000/v1}
@@ -454,7 +454,7 @@ services:
       - ./docker/models/fetch.py:/app/fetch.py:ro
       - ./docker/models/manifest.json:/app/manifest.json:ro
       - ./docker/models/layout.json:/app/layout.json:ro
-    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design}"]
+    command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,music-ace-step-xl,video-minimax-h3-reference,voice-design}"]
 
 # An extra public root certificate the asr and models builds trust, for a network that inspects TLS (an antivirus's
 # HTTPS scanning re-signs pypi.org and huggingface.co with its own root). EXTRA_CA_FILE in .env points at it (kept outside Git, e.g. var/certs/extra-ca.pem);

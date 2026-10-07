@@ -19,7 +19,8 @@ export const JOB_TYPES = [
   'VOICE_BUILD',        // character → voice identity + sample
   'VOICE_PREVIEW',      // character + text → one line of speech
   'DIALOGUE_AUDIO',     // production → every line spoken
-  'GENERATE_SONG',      // music video → song (MiniMax music)
+  'WRITE_SONG',         // production + its singers → the song plan: concept, structure, lyrics, tempo, key, who sings what (the planner)
+  'GENERATE_SONG',      // the song plan → ONE authoritative recording (ACE-Step 1.5 XL-SFT)
   'ASSEMBLE',           // chosen takes + sound → assembled cut
   'EXPORT',             // assembled cut → export file
   'PRODUCE',            // orchestrate: frames → takes for every shot without a chosen take
@@ -147,6 +148,7 @@ export const JOB_PAYLOADS = {
   VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
   /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),
+  WRITE_SONG: z.object({ productionId: id, brief: z.string().trim().max(2000).optional(), singerIds: z.array(id).max(4).optional() }),
   GENERATE_SONG: z.object({ productionId: id, instrumental: z.boolean().optional() }),
   ASSEMBLE: z.object({ productionId: id, /** assemble a stale continuation join anyway (as a hard cut) */ allowStaleJoins: z.boolean().optional() }),
   EXPORT: z.object({ productionId: id, format: z.enum(['mp4-h264', 'mp4-h265', 'mov-prores']), resolution: z.enum(['720', '1080', '2160']), subtitles: z.enum(['none', 'ar', 'en', 'both']), /** end the export on a credit card listing the AI engines (the container metadata always discloses them) */ credits: z.boolean().optional() }),
@@ -188,7 +190,7 @@ export type JobPayloadParsed<T extends JobType> = z.output<(typeof JOB_PAYLOADS)
 
 /** Which jobs want the local GPU (the worker serialises them against a VRAM budget) and which call a hosted service. */
 export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
-  AUTO_IDEA: 'LLM', DEVELOP_STORY: 'LLM', WRITE_SCRIPT: 'LLM', PLAN_SHOTS: 'LLM',
+  AUTO_IDEA: 'LLM', DEVELOP_STORY: 'LLM', WRITE_SCRIPT: 'LLM', PLAN_SHOTS: 'LLM', WRITE_SONG: 'LLM',
   CHARACTER_APPEARANCE: 'GPU', CHARACTER_REFS: 'GPU', LOCATION_PLATES: 'GPU', SHOT_FRAMES: 'GPU', VOICE_BUILD: 'GPU', VOICE_PREVIEW: 'GPU', DIALOGUE_AUDIO: 'GPU',
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
@@ -213,6 +215,7 @@ export const JOB_LABELS: Record<JobType, string> = {
   VOICE_BUILD: 'Build the voice',
   VOICE_PREVIEW: 'Voice preview',
   DIALOGUE_AUDIO: 'Record the dialogue',
+  WRITE_SONG: 'Write the song',
   GENERATE_SONG: 'Generate the song',
   ASSEMBLE: 'Assemble the cut',
   EXPORT: 'Export',

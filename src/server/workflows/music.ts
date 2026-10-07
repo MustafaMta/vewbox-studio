@@ -15,7 +15,7 @@ export const ACE_VARIANTS: Record<AceVariant, { dit: string; lm: string; steps: 
   'xl-turbo': { dit: 'acestep_v1.5_xl_turbo_bf16.safetensors', lm: 'qwen_1.7b_ace15.safetensors', steps: 8, cfg: 1, shift: 3, lmCfg: 2, temperature: 0.85, topP: 0.9, label: 'ACE-Step 1.5 XL turbo + 5Hz LM 1.7B' },
 };
 
-export interface SongInput { caption: string; lyrics: string; seconds: number; seed?: number; language?: string; bpm?: number; instrumental?: boolean; filenamePrefix?: string; variant?: AceVariant }
+export interface SongInput { caption: string; lyrics: string; seconds: number; seed?: number; language?: string; bpm?: number; key?: string; instrumental?: boolean; filenamePrefix?: string; variant?: AceVariant }
 
 /** The ACE-Step encoder wants a tempo (10–300), a time signature, a language code and a key; none may be left open.
  *  Tempo and key are read from the caption when the writer gave them ("68 BPM", "in D minor"), else sensible defaults. */
@@ -30,7 +30,7 @@ const keyGuess = (caption: string) => (/\b(melanchol|sad|mournful|bittersweet|mi
 export function aceStepSong(i: SongInput): Graph {
   const lyrics = i.instrumental ? '[Instrumental]' : i.lyrics;
   const bpm = i.bpm && i.bpm >= 10 && i.bpm <= 300 ? i.bpm : bpmFromCaption(i.caption) ?? bpmGuess(i.caption);
-  const keyscale = keyFromCaption(i.caption) ?? keyGuess(i.caption);
+  const keyscale = (i.key && ACE_KEYS.includes(i.key) ? i.key : undefined) ?? keyFromCaption(i.caption) ?? keyGuess(i.caption);
   const v = ACE_VARIANTS[i.variant ?? 'xl-sft'];
   return {
     // mirrors ComfyUI's own ACE-Step 1.5 XL templates: dual encoder (the 0.6B text encoder + the 5Hz language model that

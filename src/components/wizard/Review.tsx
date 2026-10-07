@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { IdeaPreferences, IdeaProposal, Season, Show, Song } from '@/domain/types';
 import { ASPECTS, DIALECTS, type Aspect, type Dialect, type Language } from '@/domain/vocabulary';
-import { nid } from '@/domain/actions';
+import { nid, singingCast } from '@/domain/actions';
 import { splitLyrics } from '@/domain/lyrics';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
@@ -56,7 +56,9 @@ export function Review({ kind, show, season, initial, proposalJobId, prefs, song
         const prod = r.production;
         const lyrics = song.lyrics.trim();
         const dur = uploaded.duration ?? p.durationSeconds;
-        const s: Song = { id: nid('song'), title: p.song?.title || p.title, source: 'UPLOADED', assetId: uploaded.assetId, durationSeconds: dur, caption: p.song?.caption ?? '', lyrics: lyrics || undefined, sections: lyrics ? splitLyrics(lyrics, dur).map((x) => ({ ...x, singerIds: prod.castIds })) : [], singerIds: prod.castIds };
+        // the accepted production already knows who sings (its cast's singers, the newly proposed performers among them)
+        const singerIds = prod.song?.singerIds ?? singingCast(state.characters, prod.castIds);
+        const s: Song = { id: nid('song'), title: p.song?.title || p.title, source: 'UPLOADED', assetId: uploaded.assetId, durationSeconds: dur, caption: p.song?.caption ?? '', lyrics: lyrics || undefined, sections: lyrics ? splitLyrics(lyrics, dur).map((x) => ({ ...x, singerIds })) : [], singerIds };
         act('updateProduction', prod.id, { song: s, targetSeconds: dur });
       }
       toast.ok(`${p.title.trim()} is created as a draft`);

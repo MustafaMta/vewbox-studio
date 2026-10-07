@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Production, Season, Show, Song } from '@/domain/types';
 import { ASPECTS, DIALECTS, type Aspect, type Dialect, type Language, type Style } from '@/domain/vocabulary';
-import { nid } from '@/domain/actions';
+import { nid, singingCast } from '@/domain/actions';
 import { splitLyrics } from '@/domain/lyrics';
 import { useStudio } from '@/studio/store';
 import { productionHref } from '@/studio/selectors';
@@ -83,9 +83,10 @@ export function ManualFlow({ kind, show, season, song, setSong, onPreview }: { k
       const prodKind: Production['kind'] = isMV ? 'MUSIC_VIDEO' : kind === 'short' ? 'SHORT' : 'EPISODE';
       const length = seconds ?? info.durations?.[1] ?? 60;
       const lyrics = song.lyrics.trim();
+      const singers = singingCast(state.characters, cast);
       const songRecord: Song | undefined = !isMV ? undefined : song.source === 'upload' && song.upload
-        ? { id: nid('song'), title: finalTitle, source: 'UPLOADED', assetId: song.upload.assetId, durationSeconds: song.upload.duration ?? length, caption: song.about.trim(), lyrics: lyrics || undefined, sections: lyrics ? splitLyrics(lyrics, song.upload.duration ?? length).map((s) => ({ ...s, singerIds: cast })) : [], singerIds: cast }
-        : { id: nid('song'), title: finalTitle, source: 'GENERATED_EXAMPLE', durationSeconds: length, caption: song.about.trim() || line.trim(), lyrics: lyrics || undefined, sections: splitLyrics(lyrics, length).map((s) => ({ ...s, singerIds: cast })), singerIds: cast };
+        ? { id: nid('song'), title: finalTitle, source: 'UPLOADED', assetId: song.upload.assetId, durationSeconds: song.upload.duration ?? length, caption: song.about.trim(), lyrics: lyrics || undefined, sections: lyrics ? splitLyrics(lyrics, song.upload.duration ?? length).map((s) => ({ ...s, singerIds: singers })) : [], singerIds: singers }
+        : { id: nid('song'), title: finalTitle, source: 'GENERATED_EXAMPLE', durationSeconds: length, caption: song.about.trim() || line.trim(), lyrics: lyrics || undefined, sections: splitLyrics(lyrics, length).map((s) => ({ ...s, singerIds: singers })), singerIds: singers };
       const r = act('addProduction', { ...common, kind: prodKind, showId: show?.id, seasonId: season?.id, targetSeconds: length, song: songRecord });
       if (isMV || genre.trim()) act('updateProduction', r.production.id, { genre: genre.trim() || undefined, ...(isMV ? { concept, artist: state.characters.filter((c) => cast.includes(c.id)).map((c) => c.name).join(' & ') || undefined } : {}) });
       toast.ok(`${r.production.title} is created as a draft`);

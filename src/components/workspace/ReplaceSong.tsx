@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { Production } from '@/domain/types';
 import { useStudio } from '@/studio/store';
-import { nid } from '@/domain/actions';
+import { nid, singingCast } from '@/domain/actions';
 import { useToast } from '@/components/ui/toast';
 import { Button, Field, Input, Modal, Notice, Segmented, Textarea } from '@/components/ui/kit';
 import { splitLyrics } from '@/domain/lyrics';
@@ -13,21 +13,22 @@ import { IconUpload } from '@/components/ui/icons';
 export function ReplaceSong({ p }: { p: Production }) {
   const { state, act, addFile } = useStudio(); const toast = useToast();
   const [mode, setMode] = useState<'GENERATE' | 'UPLOAD'>('GENERATE');
+  const singerIds = singingCast(state.characters, p.castIds);
   const [caption, setCaption] = useState(p.song?.caption ?? ''); const [lyrics, setLyrics] = useState(''); const [title, setTitle] = useState(p.song?.title ?? p.title);
   const submit = (close: () => void) => {
     if (!caption.trim()) return;
     const sections = lyrics.trim() ? splitLyrics(lyrics, p.targetSeconds) : p.song?.sections ?? [];
-    act('setSong', p.id, { id: nid('song'), title: title.trim() || p.title, source: 'GENERATED_EXAMPLE', durationSeconds: p.targetSeconds, caption: caption.trim(), sections: sections.map((x) => ({ ...x, singerIds: x.singerIds.length ? x.singerIds : p.castIds })), singerIds: p.castIds });
+    act('setSong', p.id, { id: nid('song'), title: title.trim() || p.title, source: 'GENERATED_EXAMPLE', durationSeconds: p.targetSeconds, caption: caption.trim(), sections: sections.map((x) => ({ ...x, singerIds: x.singerIds.length ? x.singerIds : singerIds })), singerIds });
     toast.ok('Saved.'); close();
   };
   const onFile = async (f: File, close: () => void) => {
     const r = await addFile(f, { label: f.name, tags: ['song', 'upload'] });
     if (!r.ok) { toast.bad(r.error); return; }
-    act('setSong', p.id, { id: nid('song'), title: title.trim() || f.name, source: 'UPLOADED', assetId: r.asset.id, durationSeconds: p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds: p.castIds });
+    act('setSong', p.id, { id: nid('song'), title: title.trim() || f.name, source: 'UPLOADED', assetId: r.asset.id, durationSeconds: p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds });
     toast.ok('Saved.'); close();
   };
   const sampleTrack = state.assets.find((x) => x.id === 'song-uploaded');
-  const useSample = (close: () => void) => { if (!sampleTrack) return; act('setSong', p.id, { id: nid('song'), title: title.trim() || p.title, source: 'UPLOADED', assetId: sampleTrack.id, durationSeconds: sampleTrack.durationSeconds ?? p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds: p.castIds }); toast.ok('Saved.'); close(); };
+  const useSample = (close: () => void) => { if (!sampleTrack) return; act('setSong', p.id, { id: nid('song'), title: title.trim() || p.title, source: 'UPLOADED', assetId: sampleTrack.id, durationSeconds: sampleTrack.durationSeconds ?? p.targetSeconds, caption: '', sections: p.song?.sections ?? [], singerIds }); toast.ok('Saved.'); close(); };
   return (
     <Modal title={p.song ? 'Replace song' : 'The song'} trigger={(open) => <Button size="sm" onClick={open}>{p.song ? 'Replace song' : 'Add'}</Button>}>
       {(close) => (
