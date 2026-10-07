@@ -4,8 +4,8 @@ import { StudioError } from '@/domain/errors';
 import { env } from '../env';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
 
-/** SOUND EFFECTS AND AMBIENCE — MOSS-SoundEffect (OpenMOSS, 8 B, Apache-2.0) in the `sfx-moss` service: an ambience bed,
- *  a crowd, footsteps, a door, a cinematic hit, from a text description (PRODUCTION-STACK-DIRECTIVE 2026-10-06 §2–3).
+/** SOUND EFFECTS AND AMBIENCE — MOSS-SoundEffect v2.0 (OpenMOSS, 1.3 B DiT, Apache-2.0) in the `sfx-moss` service
+ *  (docker/sfx): an ambience bed, a crowd, footsteps, a door, rain, from a text description, 48 kHz, up to 30 s a call.
  *  For narrative sections and scenes OUTSIDE the song: a music video's song stays the one authoritative soundtrack, so
  *  an effect is never generated over sung vocals (the mix places it). Run it under the GPU lease, family SFX. */
 
@@ -22,12 +22,14 @@ export function sfxHeaders(h: { get(name: string): string | null }): Omit<SfxRes
   return { seconds, sampleRate: num('x-sample-rate'), ms: num('x-ms'), model: h.get('x-model') ?? 'MOSS-SoundEffect', engineVersion: h.get('x-engine-version') ?? '', seed: num('x-seed'), peakVramMb: Number.isFinite(peak) ? peak : null };
 }
 
-/** One ambience or effect from a description, `seconds` long (0.5–60; the model's token budget), into `out` (WAV). */
+export const SFX_MAX_SECONDS = 30;
+
+/** One ambience or effect from a description, `seconds` long (0.5–30, the model's window), into `out` (WAV). */
 export async function generateSoundEffect(prompt: string, out: string, opts: { seconds?: number; seed?: number; timeoutMs?: number } = {}): Promise<SfxResult> {
   if (!sfxConfigured()) throw new StudioError('NOT_CONFIGURED', 'SFX_URL is not set (compose profile sfx: the sfx-moss service)');
   const text = prompt.trim();
   if (!text || text.length > 600) throw new StudioError('INVALID', 'generateSoundEffect: the description must be 1–600 characters');
-  if (opts.seconds !== undefined && !(opts.seconds >= 0.5 && opts.seconds <= 60)) throw new StudioError('INVALID', 'generateSoundEffect: seconds must be within 0.5–60');
+  if (opts.seconds !== undefined && !(opts.seconds >= 0.5 && opts.seconds <= SFX_MAX_SECONDS)) throw new StudioError('INVALID', `generateSoundEffect: seconds must be within 0.5–${SFX_MAX_SECONDS}`);
   const fd = new FormData();
   fd.set('prompt', text);
   if (opts.seconds !== undefined) fd.set('duration', String(opts.seconds));
