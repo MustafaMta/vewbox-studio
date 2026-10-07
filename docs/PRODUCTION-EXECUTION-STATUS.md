@@ -325,4 +325,34 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   - The script was written before the scene-facts change. It is kept, not rewritten for facts, because a rewrite
     would be a hidden creative retry.
   - Story approval is left to the producer: `WAITING_FOR_USER`. Shot planning does not depend on it.
-  - PLAN_SHOTS was started from the storyboard in the real UI. Next: 2–3 shots of scene 1, then inspect the media.
+  - **PLAN_SHOTS:** 26 shots, 176 s of 180, on attempt 3.
+    - Attempts 1–2 were cut off by the flat 600 s tool bound (fixed, ab76fa6).
+    - The worker was restarted mid-job: the WORKER_LOST takeover was observed.
+    - Inspected: scene 1 was padded with five near-identical "prepares to act" shots. The root cause was the script's
+      flat "2–6 beats"; fixed for later episodes (ea80043). This plan is kept: a replan would be a second creative
+      attempt.
+  - **Planner 4× faster** (430f275): decode CUDA graphs, 53–56 tok/s instead of 13.4.
+    - A KV cache sized by utilisation could not cold-start beside the other services' idle CUDA contexts (2.6 GB).
+    - Fixed KV 1.8 GiB: measured to start beside 2.6 GB held by others, and sleep/wake works.
+  - **Dialogue:** 5 of 5 lines recorded (MOSS), 0 flagged, 0 unverified.
+  - **The place was the wrong style.**
+    - The realistic show held the cartoon short's lantern room, so its plate came out as an animated-feature still.
+    - Fixed in the domain (one style per production, 1e98f6d) and in the pickers (59ad0fe).
+    - "Make a realistic version" (05d5566) made the place in this production's style.
+    - The show, episode and four scenes were moved to it through the real UI; realistic night plates are drawn.
+  - **Ambience:** the first real bed (MOSS-SFX v2, attempt 1) was carried to both productions at the place.
+    `WAITING_FOR_USER_ACCEPTANCE` (listening).
+  - **Opening frames 1.1–1.3, inspected:**
+    - 1.3 (wide, back to camera) is right.
+    - 1.1 and 1.2 showed Marcus smiling and dry, where the plan says strained, soaked and out of breath.
+    - The frame lab (scripts/frame-expression-lab.ts) found that prompt text cannot override the portrait's
+      expression.
+    - One edit pass on the drawn frame can override it, at SFace 0.44 (the same person; REVIEW band).
+    - Built: the moment's expression and condition as one edit stage (52998a5, 0895843), the face measured and gated
+      (FAIL refused, REVIEW shown).
+    - Fixed: a hidden creative retry in frame drawing (dd2cf83).
+    - Fixed: a close-up framing that drew a giant second face in the lens, which the people count missed. The face
+      count is now part of the check (1f3113a).
+    - Open: the edit pass loses the grey beard (SFace about 0.44 each time).
+    - Open: the identity judge scores a back-to-camera frame as FAIL; it should be not applicable.
+  - Filming 1.2 and 1.3 (H3, first takes) and redrawing 1.1. Next: inspect the takes.
