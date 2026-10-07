@@ -615,8 +615,9 @@ export interface VoiceIdentity {
   provider: 'LOCAL_TTS' | 'MINIMAX';
   /** The primary engine (`indextts`, `habibi`, or the hosted model name). Never changed by a per-line fallback. */
   model: string;
-  /** The engine Latin-script tokens of an Arabic voice fall back to; the switch is logged per line. */
-  fallbackModel?: 'indextts';
+  /** The engine Latin-script lines of an Arabic voice are spoken by, from the same reference (an Iraqi voice: MOSS-TTS,
+   *  the English engine; earlier identities: IndexTTS); the switch is logged per line. */
+  fallbackModel?: 'indextts' | 'moss';
   mode: VoiceIdentityMode;
   /** The UPLOADED sample the voice was cloned from, and its ORIGINAL asset. */
   referenceSampleId?: string;

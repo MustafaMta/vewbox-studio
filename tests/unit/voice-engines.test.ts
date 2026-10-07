@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { VOICE_ENGINES, englishEngine, isLocalTtsEngine, pinnable } from '@/server/providers/voice-engines';
-import { enginesToUnloadForTts, pickEngine, routeLine } from '@/server/providers/speech';
+import { enginesToUnloadForTts, latinFallbackOf, pickEngine, routeLine } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
 
 /** The voice-engine capability layer (docs/research/VOICE-BENCH-2026-10.md §5): candidates are selectable by
@@ -32,11 +32,14 @@ describe('voice engines', () => {
     expect(pickEngine('AR', undefined, undefined, 'dots')).toBe('indextts');
   });
 
-  it('routes Latin lines to the voice’s own engine when it speaks English, and Habibi voices to IndexTTS', () => {
+  it('routes Latin lines to the voice’s own engine when it speaks English, and a Habibi (Iraqi) voice’s to the English engine', () => {
     expect(routeLine('Where were you?', 'EN', undefined, 'dots')).toMatchObject({ engine: 'dots', asrLanguage: 'en' });
     expect(routeLine('Where were you?', 'EN', undefined, undefined, 'indextts')).toMatchObject({ engine: 'indextts' });
-    expect(routeLine('OK, ready', 'AR', 'IRAQI_BAGHDADI', 'habibi').engine).toBe('indextts');
-    expect(routeLine('شغّل الـ wifi', 'AR', 'IRAQI_BAGHDADI', 'habibi').engine).toBe('indextts');
+    // one character, one consented reference, both languages: Habibi has no English, MOSS (the English engine) speaks it
+    expect(routeLine('OK, ready', 'AR', 'IRAQI_BAGHDADI', 'habibi', 'moss').engine).toBe('moss');
+    expect(routeLine('شغّل الـ wifi', 'AR', 'IRAQI_BAGHDADI', 'habibi', 'moss').engine).toBe('moss');
+    expect(latinFallbackOf('moss')).toBe('moss');
+    expect(latinFallbackOf('indextts')).toBe('indextts');
   });
 
   it('pins only an engine that speaks the character’s language', () => {

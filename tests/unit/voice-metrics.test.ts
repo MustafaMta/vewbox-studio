@@ -89,19 +89,19 @@ describe('lineScript / routeLine (routing parity)', () => {
     expect(lineScript('  …؟! ')).toBe('EMPTY');
     expect(lineScript('')).toBe('EMPTY');
   });
-  it('sends Arabic script to the character engine and Latin or mixed lines to IndexTTS, naming the fallback', () => {
-    expect(routeLine('هسه وين نروح؟', 'AR', 'IRAQI_BAGHDADI')).toEqual({ script: 'AR', engine: 'habibi', asrLanguage: 'ar' });
-    const mixed = routeLine('شغّل الـ wifi', 'AR', 'IRAQI_BAGHDADI');
-    expect(mixed.engine).toBe('indextts'); expect(mixed.asrLanguage).toBe('ar'); expect(mixed.fallback).toMatch(/habibi/);
-    const latin = routeLine('Hello there.', 'AR', 'IRAQI_BAGHDADI');
-    expect(latin.engine).toBe('indextts'); expect(latin.asrLanguage).toBe('en'); expect(latin.fallback).toBeDefined();
+  it('sends Arabic script to the character engine; an Iraqi voice’s Latin or mixed lines to the English engine, naming the fallback', () => {
+    expect(routeLine('هسه وين نروح؟', 'AR', 'IRAQI_BAGHDADI', undefined, 'moss')).toEqual({ script: 'AR', engine: 'habibi', asrLanguage: 'ar' });
+    const mixed = routeLine('شغّل الـ wifi', 'AR', 'IRAQI_BAGHDADI', undefined, 'moss');
+    expect(mixed.engine).toBe('moss'); expect(mixed.asrLanguage).toBe('ar'); expect(mixed.fallback).toMatch(/habibi/);
+    const latin = routeLine('Hello there.', 'AR', 'IRAQI_BAGHDADI', undefined, 'moss');
+    expect(latin.engine).toBe('moss'); expect(latin.asrLanguage).toBe('en'); expect(latin.fallback).toBeDefined();
     // an English character with an Arabic line: its own engine, Arabic ASR, no fallback
     expect(routeLine('شكراً', 'EN', undefined, undefined, 'indextts')).toEqual({ script: 'AR', engine: 'indextts', asrLanguage: 'ar' });
     expect(routeLine('Hello.', 'EN', undefined, undefined, 'indextts').fallback).toBeUndefined();
-    // the MOSS route (the default since 2026-10-06): English lines on MOSS; an Arabic-script line of an English voice
-    // goes to IndexTTS until MOSS is proven on Arabic (the Iraqi phase), and the switch is named
+    // MOSS (the English/general engine) documents Arabic (language="Arabic"): an Arabic-script line of an English
+    // MOSS voice stays on MOSS; an IRAQI voice is never MOSS's — it is Habibi's by pickEngine
     expect(routeLine('Hello.', 'EN', undefined, undefined, 'moss')).toEqual({ script: 'LATIN', engine: 'moss', asrLanguage: 'en' });
-    expect(routeLine('شكراً', 'EN', undefined, undefined, 'moss')).toMatchObject({ script: 'AR', engine: 'indextts', asrLanguage: 'ar', fallback: expect.stringContaining('moss') });
+    expect(routeLine('شكراً', 'EN', undefined, undefined, 'moss')).toEqual({ script: 'AR', engine: 'moss', asrLanguage: 'ar' });
     // the pinned model is respected for Arabic script
     expect(routeLine('هلا', 'AR', 'IRAQI_BAGHDADI', 'indextts').engine).toBe('indextts');
   });
@@ -109,8 +109,10 @@ describe('lineScript / routeLine (routing parity)', () => {
     expect(lineScript('Hello، world')).toBe('LATIN');
     expect(routeLine('Hello، world', 'EN', undefined, undefined, 'indextts')).toEqual({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
     expect(routeLine('Hello، world', 'EN', undefined, undefined, 'moss')).toMatchObject({ script: 'LATIN', engine: 'moss', asrLanguage: 'en' });
-    expect(routeLine('Meet me at ٢٥:٣٠، OK?', 'AR', 'IRAQI_BAGHDADI')).toMatchObject({ script: 'LATIN', engine: 'indextts', asrLanguage: 'en' });
-    expect(routeLine('I said مرحبا to her twice', 'EN')).toMatchObject({ script: 'MIXED', engine: 'indextts', asrLanguage: 'en' }); // mixed lines stay on IndexTTS whatever the English engine
+    expect(routeLine('Meet me at ٢٥:٣٠، OK?', 'AR', 'IRAQI_BAGHDADI', undefined, 'moss')).toMatchObject({ script: 'LATIN', engine: 'moss', asrLanguage: 'en' });
+    // a mixed line of a voice whose engine speaks both scripts stays on it; of an IndexTTS voice, on IndexTTS
+    expect(routeLine('I said مرحبا to her twice', 'EN', undefined, undefined, 'moss')).toMatchObject({ script: 'MIXED', engine: 'moss', asrLanguage: 'en' });
+    expect(routeLine('I said مرحبا to her twice', 'EN', undefined, undefined, 'indextts')).toMatchObject({ script: 'MIXED', engine: 'indextts', asrLanguage: 'en' });
     expect(routeLine('OK سمير، هسه نسوي test للخيط', 'AR', 'IRAQI_BAGHDADI').asrLanguage).toBe('ar');
   });
 });

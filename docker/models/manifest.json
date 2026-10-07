@@ -337,6 +337,14 @@
       "files": [
         { "repo": "Comfy-Org/ace_step_1.5_ComfyUI_files", "revision": "6707deb277e9e0907fd9c14ce6b6f1d695c6a3fc", "file": "split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors", "folder": "diffusion_models", "bytes": 9974719930, "sha256": "56bf816fc9a69a5f45635e867b2ad742e1e648eb51fadb7d124cb8332d2e0940", "license": "MIT (ACE-Step 1.5 XL-Base)" }
       ]
+    },
+    {
+      "name": "tts-habibi-irq",
+      "purpose": "THE IRAQI SPEECH ENGINE (producer decision 2026-10-07): Habibi-TTS Specialized IRQ (F5-TTS v1 Base, 100k steps) for the tts-habibi service, cloned from a character's consented Baghdadi reference. ONLY the Specialized IRQ checkpoint: the model card states Unified, SAU and UAE are CC-BY-NC-SA-4.0 and ALG, EGY, IRQ, MAR, MSA are Apache 2.0 (read 2026-10-07; repo-level tag cc-by-nc-sa-4.0 covers the Unified model). Revision and sha256 from the files already in the store (the HF download metadata's LFS oid matches). Provenance note kept for legal review: the checkpoint is fine-tuned from F5-TTS v1 Base, whose pretraining data (Emilia) is CC-BY-NC — recorded, not treated as the checkpoint's licence.",
+      "files": [
+        { "repo": "SWivid/Habibi-TTS", "revision": "3ad11a152851245c002156526c5e1d0b12f2b9d5", "file": "Specialized/IRQ/model_100000.safetensors", "folder": "tts/habibi/Specialized/IRQ", "bytes": 1348775729, "sha256": "1801bcc5f7baea63bd74bc8424821ad1f0f06200138380a47921113cb1c7f500", "license": "Apache-2.0 (Habibi-TTS Specialized IRQ, per the model card)" },
+        { "repo": "SWivid/Habibi-TTS", "revision": "3ad11a152851245c002156526c5e1d0b12f2b9d5", "file": "Specialized/IRQ/vocab.txt", "folder": "tts/habibi/Specialized/IRQ", "bytes": 11829, "sha256": "55484bc3dda8b8e6a7fbf04261b47a8788d4b553a85b93dc46dac6fd39c9fd88", "license": "Apache-2.0 (Habibi-TTS Specialized IRQ, per the model card)" }
+      ]
     }
   ],
   "service_fetched": {

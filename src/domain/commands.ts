@@ -97,7 +97,7 @@ const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), 
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const measure = z.object({ cer: z.number().min(0).optional(), coverage: z.number().min(0).max(1).optional(), lufs: z.number().optional(), truePeakDbtp: z.number().optional() });
 const VoiceIdentitySchema = z.object({
-  provider: z.enum(['LOCAL_TTS', 'MINIMAX']), model: z.string().min(1).max(120), fallbackModel: z.literal('indextts').optional(),
+  provider: z.enum(['LOCAL_TTS', 'MINIMAX']), model: z.string().min(1).max(120), fallbackModel: z.enum(['indextts', 'moss']).optional(),
   mode: z.enum(['REFERENCE', 'AUTOMATIC', 'MANUAL', 'DESIGN']), referenceSampleId: id.optional(), referenceAssetId: id.optional(),
   referenceWindow: z.object({ from: z.number().nonnegative(), to: z.number().positive(), assetId: id }).optional(), referenceText: short(4000).optional(), providerVoiceId: short(200).optional(),
   language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(),

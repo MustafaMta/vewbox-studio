@@ -280,9 +280,30 @@ class IndexEngine:
         return wav.astype(np.float32) / 32768.0, int(sr)
 
 
+# THE IRAQI ENGINE (producer decision 2026-10-07): Habibi-TTS Specialized IRQ — never the Unified checkpoint (Unified,
+# SAU and UAE are CC-BY-NC-SA-4.0; the Specialized IRQ checkpoint is Apache-2.0 per the SWivid/Habibi-TTS model card).
+# SWivid/Habibi-TTS @ 3ad11a152851245c002156526c5e1d0b12f2b9d5, Specialized/IRQ/model_100000.safetensors
+# sha256 1801bcc5f7baea63bd74bc8424821ad1f0f06200138380a47921113cb1c7f500 (manifest group tts-habibi-irq).
+HABIBI_MODEL = "Specialized"
+HABIBI_DIALECT = "IRQ"
+
+
+def habibi_dialect_token(model: str, dialect: str) -> str | None:
+    """The dialect token upstream puts before the text: only the Unified model was trained with one (IRQ = ⑤); a
+    Specialized checkpoint IS its dialect and takes none — upstream's own CLI (`--model Specialized --dialect IRQ`)
+    picks Specialized/IRQ and passes dialect_id=None (habibi_tts/infer/infer_cli.py), as does its evaluation
+    (eval/1_infer_habibi.py: wrap_text_with_dialect_id=False). Feeding the token to the specialized model would be
+    input it never saw in training."""
+    if model == "Unified":
+        from habibi_tts.model.utils import dialect_id_map  # type: ignore
+
+        return dialect_id_map[dialect]
+    return None
+
+
 class HabibiEngine:
     name = "habibi"
-    model = "Habibi-TTS IRQ (F5-TTS v1)"
+    model = f"Habibi-TTS {HABIBI_MODEL} {HABIBI_DIALECT} (F5-TTS v1)"
     sample_rate = 24000
 
     def __init__(self) -> None:
@@ -292,7 +313,10 @@ class HabibiEngine:
         from hydra.utils import get_class  # type: ignore
         from omegaconf import OmegaConf  # type: ignore
 
-        hb = os.path.join(MODEL_ROOT, "habibi", "Specialized", "IRQ")
+        if HABIBI_MODEL != "Specialized":
+            raise RuntimeError("Vewbox uses only the Specialized IRQ checkpoint of Habibi-TTS (the Unified model is CC-BY-NC-SA)")
+        hb = os.path.join(MODEL_ROOT, "habibi", HABIBI_MODEL, HABIBI_DIALECT)
+        self.dialect_id = habibi_dialect_token(HABIBI_MODEL, HABIBI_DIALECT)
         cfg = OmegaConf.load(str(files("f5_tts").joinpath("configs/F5TTS_v1_Base.yaml")))
         model_cls = get_class(f"f5_tts.model.{cfg.model.backbone}")
         self.vocoder = load_vocoder(vocoder_name="vocos", is_local=False, local_path="", device="cuda")
@@ -306,7 +330,7 @@ class HabibiEngine:
         # F5 has no emotion input: delivery comes from the reference. `emotion`/`alpha` are accepted for API parity.
         ref_audio, ref_txt = preprocess_ref_audio_text(ref, ref_text or "")
         seed_everything(int(params["seed"]))  # after preprocessing, which may run Whisper when no reference text was given
-        wav, sr, _ = infer_process(ref_audio, ref_txt, text, self.net, self.vocoder, mel_spec_type="vocos", nfe_step=int(params["nfe_step"]), cfg_strength=float(params["cfg_strength"]), sway_sampling_coef=float(params["sway_sampling_coef"]), speed=float(params["speed"]), cross_fade_duration=0.15, target_rms=0.1, device="cuda", dialect_id=None)
+        wav, sr, _ = infer_process(ref_audio, ref_txt, text, self.net, self.vocoder, mel_spec_type="vocos", nfe_step=int(params["nfe_step"]), cfg_strength=float(params["cfg_strength"]), sway_sampling_coef=float(params["sway_sampling_coef"]), speed=float(params["speed"]), cross_fade_duration=0.15, target_rms=0.1, device="cuda", dialect_id=self.dialect_id)
         return np.asarray(wav, dtype=np.float32), int(sr)
 
 
@@ -323,12 +347,15 @@ def engine():
 def weights_present() -> bool:
     if ENGINE == "indextts":
         return os.path.exists(os.path.join(MODEL_ROOT, "indextts-2.5", "gpt.pth"))
-    return os.path.exists(os.path.join(MODEL_ROOT, "habibi", "Specialized", "IRQ", "model_100000.safetensors"))
+    return os.path.exists(os.path.join(MODEL_ROOT, "habibi", HABIBI_MODEL, HABIBI_DIALECT, "model_100000.safetensors"))
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": ENGINE, "engines": [ENGINE], "engine_version": ENGINE_VERSION, "loaded": _engine is not None, "weights_present": weights_present(), "gpu": gpu_mem(), "peak_ceiling_dbtp": PEAK_CEILING_DBTP}
+    out = {"ok": True, "engine": ENGINE, "engines": [ENGINE], "engine_version": ENGINE_VERSION, "loaded": _engine is not None, "weights_present": weights_present(), "gpu": gpu_mem(), "peak_ceiling_dbtp": PEAK_CEILING_DBTP}
+    if ENGINE == "habibi":
+        out["checkpoint"] = {"model": HABIBI_MODEL, "dialect": HABIBI_DIALECT, "dialect_token": "none (specialized checkpoint)", "revision": "3ad11a152851245c002156526c5e1d0b12f2b9d5"}
+    return out
 
 
 def release_host_memory() -> dict[str, Any]:

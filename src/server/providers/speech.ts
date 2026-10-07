@@ -101,8 +101,9 @@ export function wavProblem(buf: Buffer): string | null {
   return 'no audio data chunk';
 }
 
-/** Which engine speaks this character: the pinned one when given; Iraqi Arabic → Habibi (IRQ model); English → the
- *  configured English engine (`VOICE_ENGINE_EN`, default IndexTTS 2.5); other Arabic → IndexTTS 2.5. */
+/** Which engine speaks this character: the pinned one when given; Iraqi Arabic → Habibi Specialized IRQ (the Iraqi
+ *  production engine, producer decision 2026-10-07); English → the configured English engine (`VOICE_ENGINE_EN`,
+ *  MOSS-TTS v1.5); other Arabic → IndexTTS 2.5 (not yet re-decided). */
 export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine, english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine {
   if (preferred && preferred !== 'auto') return preferred;
   if (language === 'AR' && dialect === 'IRAQI_BAGHDADI') return 'habibi';
@@ -110,9 +111,16 @@ export function pickEngine(language: Language, dialect?: Dialect, preferred?: Tt
   return 'indextts';
 }
 
+/** The engine for the Latin-script and mixed lines of a Habibi (Iraqi) voice, which has no English: the English
+ *  engine (MOSS-TTS), cloned from the same consented reference — one character, one reference, both languages. */
+export function latinFallbackOf(english: string | undefined = env().VOICE_ENGINE_EN): 'indextts' | 'moss' {
+  return englishEngine(english) === 'moss' ? 'moss' : 'indextts';
+}
+
 /** The engine for a Latin-script line of a voice whose own engine is `base`: the voice's engine when it speaks
- *  English (a pinned candidate keeps its timbre on English lines), otherwise IndexTTS (Habibi has no English). */
-const latinEngine = (base: LocalTtsEngine): LocalTtsEngine => (base !== 'habibi' && VOICE_ENGINES[base].languages.includes('EN') ? base : 'indextts');
+ *  English (a pinned candidate keeps its timbre on English lines); a Habibi voice → its Latin fallback (the English
+ *  engine); otherwise IndexTTS. */
+const latinEngine = (base: LocalTtsEngine, english?: string): LocalTtsEngine => (base !== 'habibi' && VOICE_ENGINES[base].languages.includes('EN') ? base : base === 'habibi' ? latinFallbackOf(english) : 'indextts');
 
 /** What a line is written in, for routing and for the ASR language — THE one implementation (the worker's handlers,
  *  take.ts and scripts/iraqi-voice-suite.mjs all route through it). Punctuation, symbols and digits are not script:
@@ -137,14 +145,20 @@ export function lineScript(text: string): LineScript {
 const mostlyArabic = (text: string) => (text.match(/(?=\p{L})\p{Script=Arabic}/gu)?.length ?? 0) >= (text.match(/[A-Za-zÀ-ɏ]/g)?.length ?? 0);
 
 /** Routing parity for voice.ts, take.ts and the suite: the engine and the ASR language follow the line's script.
- *  Arabic script → the character's engine; Latin-only or mixed → IndexTTS (Habibi has no English), with `fallback`
- *  naming the switch so the job can log it; a mixed line is heard in the language most of its letters are in. The
- *  identity's model is never changed by this. */
+ *  Arabic script → the character's engine; Latin-only or mixed lines of a Habibi (Iraqi) voice → the English engine
+ *  (MOSS-TTS, same reference; Habibi has no English — keep Iraqi lines all-Arabic-script to stay in dialect), with
+ *  `fallback` naming the switch so the job can log it; a mixed line is heard in the language most of its letters are
+ *  in. The identity's model is never changed by this. */
 export function routeLine(text: string, language: Language, dialect?: Dialect, preferred?: TtsEngine, english?: string): { script: LineScript; engine: LocalTtsEngine; asrLanguage: 'ar' | 'en'; fallback?: string } {
   const script = lineScript(text);
   const base = pickEngine(language, dialect, preferred, english);
-  if (script === 'MIXED') return { script, engine: 'indextts', asrLanguage: mostlyArabic(text) ? 'ar' : 'en', fallback: base !== 'indextts' ? `mixed Arabic/Latin line: ${base} has no English, spoken by indextts` : undefined };
-  if (script === 'LATIN') { const e = latinEngine(base); return { script, engine: e, asrLanguage: 'en', fallback: base !== e ? `Latin-script line: spoken by ${e}, not ${base}` : undefined }; }
+  if (script === 'MIXED') {
+    // an engine that speaks both scripts keeps the line; Habibi hands it to the English engine; the rest to IndexTTS
+    const both = VOICE_ENGINES[base].languages.includes('AR') && VOICE_ENGINES[base].languages.includes('EN');
+    const e: LocalTtsEngine = both ? base : base === 'habibi' ? latinFallbackOf(english) : 'indextts';
+    return { script, engine: e, asrLanguage: mostlyArabic(text) ? 'ar' : 'en', fallback: e !== base ? `mixed Arabic/Latin line: ${base} has no English, spoken by ${e}` : undefined };
+  }
+  if (script === 'LATIN') { const e = latinEngine(base, english); return { script, engine: e, asrLanguage: 'en', fallback: base !== e ? `Latin-script line: spoken by ${e}, not ${base}` : undefined }; }
   // an Arabic-script line of a voice whose engine is not proven on Arabic (MOSS until the Iraqi phase) → IndexTTS
   if (script === 'AR') return VOICE_ENGINES[base].languages.includes('AR') ? { script, engine: base, asrLanguage: 'ar' } : { script, engine: 'indextts', asrLanguage: 'ar', fallback: `Arabic-script line: ${base} is not used for Arabic yet, spoken by indextts` };
   return { script, engine: base, asrLanguage: language === 'AR' ? 'ar' : 'en' };

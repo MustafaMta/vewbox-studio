@@ -35,13 +35,15 @@ export interface VoiceEngineCaps {
 
 export const VOICE_ENGINES: Record<LocalTtsEngine, VoiceEngineCaps> = {
   indextts: { id: 'indextts', label: 'IndexTTS 2.5', urlEnv: 'TTS_URL', defaultUrl: 'http://tts:8020', languages: ['EN', 'AR'], durationControl: 'speed', emotion: 'vector', usesReferenceText: false, oneWordLeadIn: true, licence: 'bilibili Model Use License (commercial below 100M MAU / RMB 1bn; §3.4c)', vramMb: 6000 },
-  habibi: { id: 'habibi', label: 'Habibi-TTS IRQ', urlEnv: 'TTS_HABIBI_URL', defaultUrl: 'http://tts-habibi:8021', languages: ['AR'], durationControl: 'speed', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0 per licensor; data-provenance risk (F5-TTS / Emilia)', vramMb: 2000 },
+  // THE IRAQI ENGINE (producer decision 2026-10-07): the Specialized IRQ checkpoint only (Apache-2.0 per the model card)
+  habibi: { id: 'habibi', label: 'Habibi-TTS Specialized IRQ', urlEnv: 'TTS_HABIBI_URL', defaultUrl: 'http://tts-habibi:8021', languages: ['AR'], durationControl: 'speed', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0 (Specialized IRQ checkpoint; F5-TTS/Emilia lineage noted for legal review)', vramMb: 2000 },
   // the candidates' defaults are HOST ports (like TTS_DESIGN_URL): the worker runs on the host; compose passes the service names.
-  // Their cards list Arabic, but none is measured on Arabic here: 'AR' joins `languages` only with the Iraqi phase's
-  // listener verdict (docs/voice/IRAQI-ENGINE-COMPARISON-2026-10.md); until then an Arabic-script line falls back to IndexTTS
+  // VoxCPM2 and dots list Arabic on their cards but are bench engines only. MOSS-TTS v1.5 documents Arabic among its 31
+  // languages (language="Arabic"; no Arabic dialect is documented): it is the English/general engine and speaks Arabic
+  // script for its voices; Iraqi voices are Habibi's (pickEngine), MOSS only a controlled comparison if ever needed
   voxcpm2: { id: 'voxcpm2', label: 'VoxCPM2 (clone)', urlEnv: 'TTS_VOXCPM2_URL', defaultUrl: 'http://127.0.0.1:8040', languages: ['EN'], durationControl: 'none', emotion: 'style', usesReferenceText: false, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 7700 },
   dots: { id: 'dots', label: 'dots.tts-soar', urlEnv: 'TTS_DOTS_URL', defaultUrl: 'http://127.0.0.1:8041', languages: ['EN'], durationControl: 'none', emotion: 'reference', usesReferenceText: true, oneWordLeadIn: false, licence: 'Apache-2.0', vramMb: 8000 },
-  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://127.0.0.1:8023', languages: ['EN'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, oneWordBudgetSeconds: 0.9, licence: 'Apache-2.0', vramMb: 24000 /* measured: torch peak 23,986 MB, bf16 + SDPA, 2026-10-06 focused run */ },
+  moss: { id: 'moss', label: 'MOSS-TTS v1.5', urlEnv: 'TTS_MOSS_URL', defaultUrl: 'http://127.0.0.1:8023', languages: ['EN', 'AR'], durationControl: 'tokens', emotion: 'reference', usesReferenceText: false, oneWordLeadIn: false, oneWordBudgetSeconds: 0.9, licence: 'Apache-2.0', vramMb: 24000 /* measured: torch peak 23,986 MB, bf16 + SDPA, 2026-10-06 focused run */ },
 };
 
 export const isLocalTtsEngine = (x: unknown): x is LocalTtsEngine => typeof x === 'string' && Object.prototype.hasOwnProperty.call(VOICE_ENGINES, x);

@@ -14,7 +14,7 @@ import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
 import { engineOutputTag, formatTags, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
 import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
-import { VOICE_GATES, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
+import { VOICE_GATES, latinFallbackOf, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
 import { VOICE_ENGINES, durationFor, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
@@ -396,7 +396,8 @@ export const voiceBuild: Handler = async (ctx) => {
     }
   } else {
     const model = pickEngine(c.language, c.dialect);
-    head = { provider: 'LOCAL_TTS', model, fallbackModel: model === 'habibi' ? 'indextts' : undefined };
+    // an Iraqi voice speaks its English lines with the English engine, cloned from the same consented reference
+    head = { provider: 'LOCAL_TTS', model, fallbackModel: model === 'habibi' ? latinFallbackOf() : undefined };
   }
   // the character as the proof line will see it: the identity-to-be, so routing and parameters are the ones pinned
   const trial: Character = { ...c, voice: { ...c.voice, identity: { ...head, mode, origin, language: c.language, dialect: c.dialect, params, status: 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: new Date().toISOString() } } };
