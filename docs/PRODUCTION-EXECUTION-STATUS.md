@@ -278,3 +278,51 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - Its weights are .pt pickles, so they are loaded only in an isolated evaluation container.
   - Pinned as manifest group `eval-svc-soulx-singer` (2.98 GB), queued after the phoneme model.
   - NOT production-approved. Seed-VC stays excluded (archived, GPL-3.0).
+
+## Phase 5 — Shows / Seasons / Episodes — IN PROGRESS (2026-10-07)
+
+- **Gaps found against the directive, and what was done:**
+  - **Dead air:** export validation now fails a stretch below −50 dB longer than 4 s, unless the plan declared it
+    intentional (be14814).
+  - **Storyboard as pre-production:** each card shows how the shot joins the one before, the opening line and its
+    speaker, whether every speaker has a voice, and the continuity it carries.
+  - **Episode N+1 inherits Episode N:**
+    - WRITE_SCRIPT now returns what each scene establishes: events, who learns what, and lasting changes.
+    - The World Bible carries the knowledge and the changes still in force. The next episode's writer, story
+      development and shot planner are told them, with the subject ("Omar (left arm): in a sling").
+    - A rewrite replaces the writer's earlier facts; the producer's own facts are kept (5633d53).
+  - **Sound design, stage 1: ambience beds** (2746042).
+    - Every place can carry a bed: the AMBIENCE job, run by the new Sound Designer agent with MOSS-SoundEffect v2.
+    - The description comes from the place and the time and weather its scenes are written in; the bed is recorded
+      once.
+    - The stored bed loops without a seam; a silent or clipped bed is refused.
+    - The World Bible carries it, and the cut loops it under the place's scenes.
+    - The location page plays it and can make a new one.
+    - The real sound test waits for the service image to build.
+  - **MOSS-SFX v2 service** (7e39d53): its own image on upstream's pinned stack, with the flat store linked into the
+    diffusers layout.
+    - All 16 weight files are sha256-verified.
+    - A fetcher fix (ab76fa6): the hub's 10 s read timeout made a 5.7 GB file fail three whole attempts on this link.
+  - **Root cause fixed: shot planning could never finish a normal scene** (ab76fa6).
+    - At the planner's 13 tok/s, the tool's flat 600 s holds 7,800 answer tokens; a 4-beat scene's plan budget is
+      13,600.
+    - Every attempt of this episode's PLAN_SHOTS was cut off.
+    - Each story call is now bounded by its own token budget at the measured speed.
+  - **Restart recovery observed live:** the worker was killed mid-PLAN_SHOTS. After 90 s without a heartbeat the job
+    recorded "attempt 2 lost … WORKER_LOST; attempt 3 took the job over" and continued under the new bound.
+  - **Planner speed:** 13 tok/s (`--enforce-eager`) is now the long-form bottleneck, about 12 min per scene plan.
+    Decode-only CUDA graphs are to be tried when the LLM is idle, measured against this baseline.
+  - **Still open:**
+    - spot effects per shot (footsteps, doors), on top of the beds
+    - no film score
+    - no automatic chain from idea to cut
+    - no frozen input snapshot
+    - a voice heard only over a radio has no character
+    - long-scale runs are untested
+- **Progressive test, step 1: "The Last Crossing"** (Episode 1 of The Night Ferry; English; realistic; 180 s target).
+  - DEVELOP_STORY and WRITE_SCRIPT ran first time: 4 scenes, Marcus Bell alone in a lighthouse in a storm, 12 beats,
+    5 short lines. The radio voice is never heard, so the missing character does not block this episode.
+  - The script was written before the scene-facts change. It is kept, not rewritten for facts, because a rewrite
+    would be a hidden creative retry.
+  - Story approval is left to the producer: `WAITING_FOR_USER`. Shot planning does not depend on it.
+  - PLAN_SHOTS was started from the storyboard in the real UI. Next: 2–3 shots of scene 1, then inspect the media.
