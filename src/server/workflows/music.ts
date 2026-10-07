@@ -14,7 +14,11 @@ export const ACE_VARIANTS: Record<AceVariant, { dit: string; lm: string; steps: 
   'xl-turbo': { dit: 'acestep_v1.5_xl_turbo_bf16.safetensors', lm: 'qwen_1.7b_ace15.safetensors', steps: 8, cfg: 1, shift: 3, lmCfg: 2, temperature: 0.85, topP: 0.9, label: 'ACE-Step 1.5 XL turbo + 5Hz LM 1.7B' },
 };
 
-export interface SongInput { caption: string; lyrics: string; seconds: number; seed?: number; language?: string; bpm?: number; key?: string; instrumental?: boolean; filenamePrefix?: string; variant?: AceVariant }
+export interface SongInput { caption: string; lyrics: string; seconds: number; seed?: number; language?: string; bpm?: number; key?: string; instrumental?: boolean; filenamePrefix?: string; variant?: AceVariant;
+  /** A ComfyUI input file (comfy.uploadInput) whose voice the song is sung in — ACE-Step 1.5's text2music reference
+   *  audio, given to the timbre encoder only (docker/comfyui/custom_nodes/vewbox_ace_timbre.py): the LM still writes the
+   *  song. Whether the singer then sounds like the reference is measured, never assumed (Phase 3 singer identity). */
+  timbreReference?: string }
 
 /** The ACE-Step encoder wants a tempo (10–300), a time signature, a language code and a key; none may be left open.
  *  Tempo and key are read from the caption when the writer gave them ("68 BPM", "in D minor"), else sensible defaults. */
@@ -31,17 +35,26 @@ export function aceStepSong(i: SongInput): Graph {
   const bpm = i.bpm && i.bpm >= 10 && i.bpm <= 300 ? i.bpm : bpmFromCaption(i.caption) ?? bpmGuess(i.caption);
   const keyscale = (i.key && ACE_KEYS.includes(i.key) ? i.key : undefined) ?? keyFromCaption(i.caption) ?? keyGuess(i.caption);
   const v = ACE_VARIANTS[i.variant ?? 'xl-sft'];
+  // with a timbre reference: the reference audio → the ACE VAE → the timbre node, on both sides of the guidance (the
+  // reference conditions the voice, it is not a direction to push away from); without one, the graph is unchanged
+  const ref: Graph = i.timbreReference ? {
+    '12': { class_type: 'LoadAudio', inputs: { audio: i.timbreReference }, _meta: { title: 'timbre reference' } },
+    '13': { class_type: 'VAEEncodeAudio', inputs: { audio: ['12', 0], vae: ['3', 0] } },
+    '11': { class_type: 'VewboxAceTimbreReference', inputs: { conditioning: ['4', 0], latent: ['13', 0] } },
+  } : {};
+  const cond: [string, number] = i.timbreReference ? ['11', 0] : ['4', 0];
   return {
+    ...ref,
     // mirrors ComfyUI's own ACE-Step 1.5 XL templates: dual encoder (the 0.6B text encoder + the 5Hz language model that
     // writes the audio codes), AuraFlow shift 3; XL-SFT at 50 steps / cfg 7, turbo at 8 steps / cfg 1
     '1': { class_type: 'UNETLoader', inputs: { unet_name: v.dit, weight_dtype: 'default' }, _meta: { title: v.label } },
     '2': { class_type: 'DualCLIPLoader', inputs: { clip_name1: MODELS.aceTextEncoder, clip_name2: v.lm, type: 'ace', device: 'default' } },
     '3': { class_type: 'VAELoader', inputs: { vae_name: MODELS.aceVae } },
     '4': { class_type: 'TextEncodeAceStepAudio1.5', inputs: { clip: ['2', 0], tags: i.caption, lyrics, seed: seed32(i.seed), bpm, duration: Math.round(i.seconds), timesignature: '4', language: aceLanguage(i.language), keyscale, generate_audio_codes: true, cfg_scale: v.lmCfg, temperature: v.temperature, top_p: v.topP, top_k: 0, min_p: 0.0 } },
-    '5': { class_type: 'ConditioningZeroOut', inputs: { conditioning: ['4', 0] } },
+    '5': { class_type: 'ConditioningZeroOut', inputs: { conditioning: cond } },
     '6': { class_type: 'EmptyAceStep1.5LatentAudio', inputs: { seconds: Math.round(i.seconds), batch_size: 1 } },
     '10': { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['1', 0], shift: v.shift } },
-    '7': { class_type: 'KSampler', inputs: { model: ['10', 0], positive: ['4', 0], negative: ['5', 0], latent_image: ['6', 0], seed: seed32(i.seed), steps: v.steps, cfg: v.cfg, sampler_name: 'euler', scheduler: 'simple', denoise: 1.0 } },
+    '7': { class_type: 'KSampler', inputs: { model: ['10', 0], positive: cond, negative: ['5', 0], latent_image: ['6', 0], seed: seed32(i.seed), steps: v.steps, cfg: v.cfg, sampler_name: 'euler', scheduler: 'simple', denoise: 1.0 } },
     '8': { class_type: 'VAEDecodeAudio', inputs: { samples: ['7', 0], vae: ['3', 0] } },
     '9': { class_type: 'SaveAudio', inputs: { audio: ['8', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/song' } },
   };

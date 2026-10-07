@@ -28,7 +28,8 @@ const NEEDED = {
   PreviewAny: ['source'],
   // reading an uploaded reference picture: Qwen3.5-4B in core TextGenerate (the canonical image's Image Reference mode)
   TextGenerate: ['clip', 'prompt', 'max_length', 'sampling_mode', 'image', 'thinking', 'use_default_template', 'system_prompt'], PrimitiveStringMultiline: ['value'],
-  // music: ACE-Step 1.5
+  // music: ACE-Step 1.5 (+ the timbre reference: docker/comfyui/custom_nodes/vewbox_ace_timbre.py)
+  VewboxAceTimbreReference: ['conditioning', 'latent'], LoadAudio: ['audio'], VAEEncodeAudio: ['audio', 'vae'],
   'TextEncodeAceStepAudio1.5': ['clip', 'tags', 'lyrics', 'seed', 'bpm', 'duration', 'timesignature', 'language', 'keyscale', 'generate_audio_codes', 'cfg_scale', 'temperature', 'top_p', 'top_k', 'min_p'],
   ConditioningZeroOut: ['conditioning'], 'EmptyAceStep1.5LatentAudio': ['seconds', 'batch_size'], SaveAudio: ['audio', 'filename_prefix'],
 };

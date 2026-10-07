@@ -161,6 +161,8 @@ services:
       - ${LIBRARY_DIR:-./var/library}:/data/library:ro
       # mounted from the repo (like the voice services' scripts) so a new model folder needs a restart, not a rebuild
       - ./docker/comfyui/extra_model_paths.yaml:/opt/comfyui/extra_model_paths.yaml:ro
+      # ACE-Step 1.5 timbre reference the official text2music way (Phase 3 singer-identity test; the file says why)
+      - ./docker/comfyui/custom_nodes/vewbox_ace_timbre.py:/opt/comfyui/custom_nodes/vewbox_ace_timbre.py:ro
     ports:
       - "127.0.0.1:${COMFYUI_PORT:-8188}:8188"
     deploy:

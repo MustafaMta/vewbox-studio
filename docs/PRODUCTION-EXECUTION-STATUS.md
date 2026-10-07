@@ -187,3 +187,48 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   `D:\vewbox-data\inbox\phase3-iraqi-reference\`. The character (male or female realistic Baghdadi Actor + Singer)
   is created only after the speaker is confirmed from the recording. The producer uploads it and gives consent in the
   character's Voice panel.
+### Phase 3 — corrections and the first engineering evidence (2026-10-07, later)
+
+- **Corrections applied (producer):**
+  - Cross-language identity is measured, not assumed: `cross-language-identity.ts`, tts-design `/voice-profile`, and
+    `scripts/cross-language-identity.ts`.
+  - Dialect is judged in context, not by a word list: MSA-associated words are hints for a Qwen3.8 contextual review
+    that rewrites only drift and keeps register-justified formal words. Only a lyric still judged DRIFTED fails.
+  - The phoneme gate is kept, with /ɡ/ regressions added.
+- **The reference clip the producer sent** (`src_habibi_tts_assets_IRQ.wav`) is byte-identical to the upstream Habibi
+  IRQ demo asset (sha256 D6180049…59FCA4): 5.54 s, one adult female speaker (pitch median 226 Hz), natural Baghdadi,
+  −27.9 LUFS, noise floor −67 dB. The speaker's permission is unknown.
+  - **Producer decision:** LAB TEST ONLY — no character, no promotion, no acceptance. Every output is labelled
+    "LAB TEST — NOT PRODUCTION / NO SPEAKER PERMISSION".
+- **Lab run 1** (`scripts/iraqi-lab.ts`, var/eval/LAB-TEST-iraqi-20261007-2230). 13 Iraqi eval lines spoken once each
+  by Habibi Specialized IRQ, and 2 English lines by MOSS, all from that clip.
+  - **«باچر» → «باسر» in 3 of 3 lines, by BOTH recognisers.** Also «الحچاية» → «الحساء/الحسايا», «نحچي» →
+    «نحثي/نحسي», «چاي» → «هاي», «چنت» → «هنت». The historical failure reproduces on Habibi IRQ even with a real
+    Iraqi reference. The phoneme gate (model still downloading) will make it a formal FAIL or clear it.
+  - **Root-cause checks so far:** چ is in Habibi IRQ's vocabulary (token 2563); our text preparation changes
+    nothing; the service does no normalisation; upstream's formatter passes the text through untouched. So text
+    handling is ruled out. Remaining: the reference has no چ in it; model capability or training orthography
+    (untested — the dataset query failed). Next diagnostic, once the phoneme model is present: one line each with
+    «باچر», «باجر» and «باكر», read phonetically. Diagnosis only, never a production respelling.
+  - **گ:** the dialect Whisper heard «گوم» and «گلتلك» correctly. Elsewhere both wrote غ/ق (an orthographic
+    convention for /g/) — the phoneme gate will decide.
+  - **Other slips:** «وام حسين» → «ومحسن», «لمن چنت» → «اللي من هنت», MOSS's «I told you» → «It all/Itola». The
+    second MOSS line was exact.
+  - **Speaker evidence (machine only):** ECAPA to the reference 0.61–0.83 (Habibi) and 0.66–0.71 (MOSS); pitch 239 Hz
+    (Arabic) vs 241 Hz (English) vs 226 Hz (reference). Across-language similarity 0.60 vs within-language
+    0.68/0.71, so no flags: CONSISTENT by machine. The producer's listening decides.
+  - Listening files were sent to the producer, labelled as lab tests.
+- **Singer identity — ACE-Step timbre reference:**
+  - ComfyUI's own "Set Reference Audio" turns a reference into a COVER (it drops the LM's audio codes and takes the
+    song's content from the reference). The official text2music `reference_audio` keeps the LM. Built
+    `docker/comfyui/custom_nodes/vewbox_ace_timbre.py`: the reference goes to the timbre encoder only, and the LM
+    still writes the song.
+  - **Pre-check** on Hana's synthetic studio voice (engineering only, controlled pair, same seed):
+    - Both vocals sang the lyrics clearly.
+    - ECAPA to Hana: 0.005 without the reference, −0.044 with it.
+    - Pitch moved toward Hana (390 → 356 Hz vs her 330), but the tone got darker (centroid 1181 → 739 Hz vs her 1319).
+    - **No evidence that the reference transfers identity.** One hypothesis, untested: the timbre encoder expects a
+      musical reference, not speech.
+  - The controlled test with the consented reference still decides. If ACE-Step fails it, singing voice conversion
+    gets evaluated (maintenance, licences, provenance, singing quality). No such model is approved; Seed-VC is
+    archived and GPL-3.0.

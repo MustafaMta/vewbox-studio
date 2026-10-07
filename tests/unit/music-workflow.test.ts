@@ -43,6 +43,20 @@ describe('ACE-Step workflow inputs', () => {
   });
 });
 
+describe('the timbre reference (singer identity test)', () => {
+  it('without a reference the graph is unchanged; with one, the reference reaches the timbre node on both sides of the guidance and the LM still writes the song', () => {
+    const plain = aceStepSong({ caption: 'pop', lyrics: '[verse]\nla', seconds: 30 });
+    expect(Object.keys(plain).sort()).toEqual(['1', '10', '2', '3', '4', '5', '6', '7', '8', '9']);
+    const g = aceStepSong({ caption: 'pop', lyrics: '[verse]\nla', seconds: 30, timbreReference: 'vb-abc.wav' });
+    expect(g['12']).toMatchObject({ class_type: 'LoadAudio', inputs: { audio: 'vb-abc.wav' } });
+    expect(g['13']).toMatchObject({ class_type: 'VAEEncodeAudio', inputs: { audio: ['12', 0], vae: ['3', 0] } });
+    expect(g['11']).toMatchObject({ class_type: 'VewboxAceTimbreReference', inputs: { conditioning: ['4', 0], latent: ['13', 0] } });
+    expect(g['7'].inputs).toMatchObject({ positive: ['11', 0], negative: ['5', 0] });
+    expect(g['5'].inputs).toMatchObject({ conditioning: ['11', 0] });
+    expect(g['4'].inputs).toMatchObject({ generate_audio_codes: true }); // the 5Hz LM still composes
+  });
+});
+
 describe('chooseAceVariant', () => {
   it('the variant table names the same files as MODELS', () => {
     expect(ACE_VARIANTS['xl-sft']).toMatchObject({ dit: MODELS.aceDitSft, lm: MODELS.aceLm4b });
