@@ -426,7 +426,8 @@ export const generateTake: Handler = async (ctx) => {
   };
   const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
     ...request,
-    onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: `MiniMax task ${id} created`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
+    // the local engine's id is its ComfyUI prompt: "MiniMax task … created" read as the hosted API (2026-10-08)
+    onTaskCreated: async (id) => { await ctx.progress('GENERATING', { phase: 'generating', message: backend === 'api' ? `MiniMax task ${id} created` : `local MiniMax H3: queued (prompt ${id.slice(0, 8)})`, providerStatus: 'queued', percent: null }, { providerTaskId: id }); },
     onStatus: async (s) => { if (s.status !== lastStatus) { lastStatus = s.status; await ctx.progress(s.status === 'downloading' ? 'DOWNLOADING' : 'GENERATING', { phase: s.status, message: s.queue ? `waiting behind ${s.queue} in the GPU queue` : backend === 'api' ? `MiniMax: ${s.status}` : `local MiniMax H3: ${s.status}`, providerStatus: s.status, percent: null }); } else await ctx.checkpoint(); },
     shouldStop: async () => { try { await ctx.checkpoint(); return false; } catch { return true; } },
   }), { label: backend, input: request }));
