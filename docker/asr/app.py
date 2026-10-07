@@ -201,6 +201,7 @@ def capabilities() -> dict[str, Any]:
         except Exception as e:  # noqa: BLE001
             out["qa_mouth"] = out["qa_identity"] = out["syncnet"] = {"available": False, "reason": f"status failed: {e}"}
     out["qwen3_asr"] = qwen_mod.status() if qwen_mod is not None else {"available": False, "reason": f"qwen3asr.py could not be imported ({_qwen_import_error})"}
+    out["qwen3_aligner"] = qwen_mod.aligner_status() if qwen_mod is not None else {"available": False, "reason": f"qwen3asr.py could not be imported ({_qwen_import_error})"}
     out["phonemes"] = phon_mod.status() if phon_mod is not None else {"available": False, "reason": f"phonemes.py could not be imported ({_phon_import_error})"}
     return out
 
@@ -405,6 +406,39 @@ async def _save(upload: UploadFile, work: str, name: str) -> str:
     return path
 
 
+def _key(w: str) -> str:
+    return "".join(c for c in w.lower() if c.isalnum())
+
+
+def qwen_align_as_script(audio, text: str, offset: float) -> dict[str, Any]:
+    """English word times from Qwen3-ForcedAligner (the stack's English aligner), in align.py's answer shape and on the
+    SCRIPT's own words (align.split_script): the aligner splits off punctuation, so each script word takes the run of
+    aligner words whose letters and digits spell it. A script that cannot be paired word for word raises — the caller
+    then uses the CTC aligner and says so; times are never guessed onto the wrong words."""
+    out = qwen_mod.align(audio, text, "en", offset)
+    script = align_mod.split_script(text)
+    q = [w for w in out["words"] if _key(w["text"])]
+    words: list[dict[str, Any]] = []
+    k = 0
+    for raw in script:
+        want = _key(raw)
+        got, run = "", []
+        while k < len(q) and len(got) < len(want):
+            got += _key(q[k]["text"])
+            run.append(q[k])
+            k += 1
+        if got != want or not run:
+            raise ValueError(f"the forced aligner's words do not pair with the script at «{raw}»")
+        ok = [w for w in run if w["aligned"]]
+        words.append({"text": raw, "norm": want, "start": ok[0]["start"] if ok else None, "end": ok[-1]["end"] if ok else None, "score": None, "aligned": bool(ok)})
+    if k != len(q):
+        raise ValueError("the forced aligner returned more words than the script has")
+    n = sum(1 for w in words if w["aligned"])
+    return {"words": words, "chars": [], "coverage": round(n / len(words), 4) if words else 0.0, "char_coverage": 1.0, "mean_score": None, "unaligned_words": [w["text"] for w in words if not w["aligned"]],
+            "score_floor": getattr(align_mod, "SCORE_FLOOR_START", 0.0), "frame_seconds": 0.08, "frames": int(len(audio) / 16000 / 0.08), "tokens": len(q),
+            "language": "en", "model": out["model"], "device": "cuda", "vocab_mode": "qwen3-forced-aligner", "duration": out["duration"], "ms": out["ms"]}
+
+
 @app.post("/align")
 async def align_endpoint(file: UploadFile = File(...), text: str = Form(...), language: str = Form("en"), start: str = Form(""), end: str = Form(""), chars: str = Form("1")):
     """Word and character times of the KNOWN text in the audio (CTC forced alignment, align.py)."""
@@ -436,12 +470,24 @@ async def align_endpoint(file: UploadFile = File(...), text: str = Form(...), la
         audio = np.frombuffer(pcm, dtype=np.float32)
         if audio.size == 0:
             raise HTTPException(status_code=400, detail="no audio could be decoded from the file (or the window is empty)")
-        try:
-            out = await run_in_threadpool(align_mod.align_audio, audio, text, lang, t_start or 0.0)
-        except align_mod.AlignmentUnavailable as e:
-            raise HTTPException(status_code=503, detail=f"alignment ({lang}) unavailable: {e}") from e
-        except align_mod.AlignmentError as e:
-            raise HTTPException(status_code=422, detail=str(e)) from e
+        # English: Qwen3-ForcedAligner (the production stack's English aligner); Arabic, or when it cannot pair the
+        # script: the CTC aligner (WhisperX-style), with the reason in `fallback`
+        out = None
+        fallback = None
+        if lang == "en" and qwen_mod is not None and qwen_mod.aligner_present():
+            try:
+                out = await run_in_threadpool(qwen_align_as_script, audio, text, t_start or 0.0)
+            except Exception as e:  # noqa: BLE001
+                fallback = f"Qwen3-ForcedAligner not used: {e}"
+        if out is None:
+            try:
+                out = await run_in_threadpool(align_mod.align_audio, audio, text, lang, t_start or 0.0)
+            except align_mod.AlignmentUnavailable as e:
+                raise HTTPException(status_code=503, detail=f"alignment ({lang}) unavailable: {e}") from e
+            except align_mod.AlignmentError as e:
+                raise HTTPException(status_code=422, detail=str(e)) from e
+            if fallback:
+                out["fallback"] = fallback
         if chars != "1":
             out.pop("chars", None)
         return JSONResponse(out)

@@ -14,6 +14,7 @@ import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
 import { engineOutputTag, formatTags, pickReferenceWindow, speechRegions, trimReference } from '@/server/media/voice-check';
 import { unconfirmableCh } from '@/server/media/arabic-align';
 import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
+import { isQaUnavailable, transcribeQwen } from '@/server/providers/qa-service';
 import { VOICE_GATES, latinFallbackOf, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
 import { VOICE_ENGINES, durationFor, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
@@ -258,7 +259,9 @@ async function cutOneWordLeadIn(ctx: HandlerContext, file: string, line: string,
 
 /** What hearing a line back proved. `ok` only on PASS (coverage AND CER within the gate); `status` is the contract's
  *  verdict — FAIL is flagged for the producer (no automatic re-take), REVIEW (just below the gate) goes to a person. */
-export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string }
+export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reasons: string[]; wer: number; cer: number; coverage: number; heard: string;
+  /** the Whisper reference reading beside the primary (Qwen3-ASR) one; the language Qwen3-ASR detected; which judged */
+  heardReference?: string; detectedLanguage?: string; asr?: 'qwen3-asr' | 'whisper' }
 
 /** THE GATE (contract §1.4, v2 §4) on a line and what was heard: word coverage (Arabic on the space-insensitive
  *  alignment of src/server/media/arabic-align.ts — «گلتلك» written «قلت لك» is heard, «باچر» written «باسر» is not),
@@ -282,18 +285,54 @@ export function judgeHeard(text: string, heard: string, language: Language, cont
   return { ok: status === 'PASS', status, reasons, wer: m.wer, cer: m.cer, coverage: m.coverage, heard };
 }
 
-/** A heard line that failed the gate outright is spoken once more; one just below the gate is kept and flagged for a
- *  person to listen to; an unheard one (null) is flagged too. */
-export const shouldRegenerate = (check: LineCheck | null): boolean => check?.status === 'FAIL';
+/** A heard line that failed the gate outright. It is KEPT and flagged for the producer like every other line below the
+ *  gate — never spoken again automatically (the first-attempt rule; the old name "shouldRegenerate" is gone because no
+ *  caller may regenerate). An unheard one (null) is flagged as unverified. */
+export const isFailedCheck = (check: LineCheck | null): boolean => check?.status === 'FAIL';
 
-/** Say the line back: transcribe in the line's language and judge it (`judgeHeard`). `null` means the line could not
- *  be heard back (the transcription service was away): callers treat that as unverified — flagged, never passed. */
+/** TWO READINGS, ONE VERDICT (the production stack: Qwen3-ASR-1.7B primary, Whisper the reference). The verdict is
+ *  Qwen3-ASR's (auto language — a forced language can translate instead of transcribe); the Whisper reading (the
+ *  Arabic-dialect model for Arabic) stands beside it, and where one passes the line and the other fails it the line
+ *  goes to REVIEW for a listener — neither reading alone accepts or condemns it. A language Qwen3-ASR detected that
+ *  is not the line's own is flagged too. With only one reading available, that one judges, and the reason says so.
+ *  Pure (tested). */
+export function combineReadings(text: string, language: Language, context: 'line' | 'take', primary: { text: string; detected: string | null } | null, reference: string | null): LineCheck | null {
+  if (!primary && reference === null) return null;
+  if (!primary) { const r = judgeHeard(text, reference!, language, context); return { ...r, reasons: [...r.reasons, 'heard by Whisper alone (Qwen3-ASR unavailable)'], asr: 'whisper' }; }
+  const p = judgeHeard(text, primary.text, language, context);
+  const r = reference !== null ? judgeHeard(text, reference, language, context) : null;
+  let status = p.status;
+  const reasons = [...p.reasons];
+  if (r && ((p.status === 'FAIL' && r.status === 'PASS') || (p.status === 'PASS' && r.status === 'FAIL'))) {
+    status = 'REVIEW';
+    reasons.push(`the recognisers disagree — Qwen3-ASR heard «${primary.text}», Whisper heard «${reference}»: a listener decides`);
+  }
+  const want = language === 'AR' ? 'Arabic' : 'English';
+  if (primary.detected && primary.detected !== want && status === 'PASS') { status = 'REVIEW'; reasons.push(`Qwen3-ASR detected ${primary.detected}, not ${want}`); }
+  else if (primary.detected && primary.detected !== want) reasons.push(`Qwen3-ASR detected ${primary.detected}, not ${want}`);
+  if (!r) reasons.push('no Whisper reference reading');
+  return { ...p, ok: status === 'PASS', status, reasons, heardReference: reference ?? undefined, detectedLanguage: primary.detected ?? undefined, asr: 'qwen3-asr' };
+}
+
+/** Say the line back with both recognisers and judge it (`combineReadings`). `null` means the line could not be heard
+ *  back at all (both services away): callers treat that as unverified — flagged, never passed. */
 export async function verifyLine(ctx: HandlerContext, file: string, text: string, language: Language, context: 'line' | 'take' = 'line'): Promise<LineCheck | null> {
+  const lang = language === 'AR' ? ('ar' as const) : ('en' as const);
+  let primary: { text: string; detected: string | null } | null = null;
   try {
-    const asr = { file, language: language === 'AR' ? ('ar' as const) : ('en' as const) };
-    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'verify line', input: asr }), { jobId: ctx.job.id });
-    return judgeHeard(text, t.text, language, context);
-  } catch (e) { await ctx.event('warn', `transcription unavailable; the line is flagged for review: ${(e as Error).message}`); return null; }
+    const q = await ctx.gpu('ASR', 6000, () => ctx.tool('speech.transcribe_qwen', () => transcribeQwen(file), { label: 'verify line (Qwen3-ASR)', input: { file, language: 'auto' } }), { jobId: ctx.job.id });
+    if (isQaUnavailable(q)) await ctx.event('warn', `Qwen3-ASR unavailable (${q.reason}); the line is checked by Whisper alone`);
+    else primary = { text: q.text, detected: q.detectedLanguage };
+  } catch (e) { await ctx.event('warn', `Qwen3-ASR failed (${(e as Error).message}); the line is checked by Whisper alone`); }
+  let reference: string | null = null;
+  try {
+    const asr = { file, language: lang };
+    const t = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe', () => transcribe(asr.file, { language: asr.language }), { label: 'verify line (Whisper reference)', input: asr }), { jobId: ctx.job.id });
+    reference = t.text;
+  } catch (e) { await ctx.event('warn', `Whisper unavailable (${(e as Error).message}); no reference reading`); }
+  const check = combineReadings(text, language, context, primary, reference);
+  if (!check) await ctx.event('warn', 'neither recogniser could hear the line back; it is flagged for review');
+  return check;
 }
 
 // ------------------------------------------------------------------------------------------------ VOICE_BUILD
@@ -518,7 +557,7 @@ export const dialogueAudio: Handler = async (ctx) => {
     const check = await verifyLine(ctx, line.file, text, line.language);
     // ONE recording per line (first-attempt policy): a line that fails its gate is kept and flagged for the producer,
     // never re-spoken behind their back; re-recording it is an explicit request (lineIds)
-    if (shouldRegenerate(check)) await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}): kept and flagged for review`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer, lineId: d.id });
+    if (isFailedCheck(check)) await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}): kept and flagged for review`, { heard: check!.heard, coverage: check!.coverage, cer: check!.cer, lineId: d.id });
     if (check === null) unverified++; else if (!check.ok) flagged++;
     const id = nid('gen');
     const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });

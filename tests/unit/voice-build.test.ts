@@ -48,7 +48,7 @@ vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f
 
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording, addVoiceSample, selectVoiceSample, updateCharacter } from '@/domain/actions';
-import { judgeHeard, lineLanguage, lineRecordingCurrent, lineScript, minimaxCloneProblem, pickReference, routeLine, shouldRegenerate, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
+import { judgeHeard, lineLanguage, lineRecordingCurrent, lineScript, minimaxCloneProblem, pickReference, routeLine, isFailedCheck, speakLine, speedForPace, voiceBuild, dialogueAudio } from '@/worker/handlers/voice';
 import { lineScript as suiteLineScript, routeLine as suiteRoute } from '@/server/providers/speech';
 import type { HandlerContext } from '@/worker/handlers';
 
@@ -122,9 +122,9 @@ describe('the CER gate (contract §1.4)', () => {
     const iraqiSpelling = judgeHeard('ليش ما گلتلي من البداية؟', 'ليش ماقلتلي من البداية؟', 'AR');
     expect(iraqiSpelling).toMatchObject({ ok: true, status: 'PASS', cer: 0, coverage: 1 });
     expect(judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR')).toMatchObject({ ok: false, status: 'FAIL' });
-    expect(shouldRegenerate(judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR'))).toBe(true);
-    expect(shouldRegenerate(padded)).toBe(padded.status === 'FAIL');
-    expect(shouldRegenerate(null)).toBe(false);
+    expect(isFailedCheck(judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR'))).toBe(true);
+    expect(isFailedCheck(padded)).toBe(padded.status === 'FAIL');
+    expect(isFailedCheck(null)).toBe(false);
     // a take's clip passes at a lower coverage than a recorded line
     expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'take').status).toBe('PASS');
     expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'line').status).toBe('REVIEW');

@@ -20,7 +20,7 @@ import { generateVideo, chooseBackend } from '@/server/providers/video';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
-import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, shouldRegenerate, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
+import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, isFailedCheck, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
 import { bindNamesOutsideDialogue, h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
@@ -198,9 +198,11 @@ export const generateTake: Handler = async (ctx) => {
         continue;
       }
       const ref = voices.get(d.characterId)!;
-      let line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery });
-      let check = await verifyLine(ctx, line.file, text, line.language);
-      if (shouldRegenerate(check)) { await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}), regenerating once`, { lineId: d.id, heard: check!.heard, coverage: check!.coverage, cer: check!.cer }); line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery }); check = await verifyLine(ctx, line.file, text, line.language); }
+      const line = await speakLine(ctx, c, text, ref, work, { delivery: d.delivery });
+      const check = await verifyLine(ctx, line.file, text, line.language);
+      // THE FIRST-ATTEMPT RULE: a line that fails its check is kept and flagged for the producer — never spoken again
+      // behind their back (this was a hidden "regenerate once", removed 2026-10-07 as DIALOGUE_AUDIO's was in Phase 1)
+      if (isFailedCheck(check)) await ctx.event('warn', `line failed the gate (${check!.reasons.join('; ')}): kept and flagged for review`, { lineId: d.id, heard: check!.heard, coverage: check!.coverage, cer: check!.cer });
       // a line recording is committed on its own (it is kept even if the take fails); its id is this attempt's, and a
       // crash before its commit leaves a file of this job the next attempt's GC removes
       const { id, stored: st } = await out.adopt(`line:${d.id}:a${ctx.job.attempts}`, line.file, { expectKind: 'AUDIO' });

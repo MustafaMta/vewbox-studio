@@ -25,10 +25,12 @@ export const GET = route(async () => {
   const [video, comfyHealth, tts, asr, design, habibi] = await Promise.all([videoBackendStatus(), comfy.health(), probe(`${voiceUrl}/health`), probe(`${e.ASR_URL}/health`), probe(`${e.TTS_DESIGN_URL}/health`), probe(`${e.TTS_HABIBI_URL}/health`)]);
   // THE LOCAL HELPERS THE CHECKS AND VOICES NEED (the engine room says which one is offline, with the service's own
   // reason): word timing and picture QA from the asr service's capabilities, voice design and the Iraqi voice engine
-  const cap = (asr.data?.capabilities ?? {}) as { align?: { en?: { available?: boolean; reason?: string | null; model?: string }; ar?: { available?: boolean; reason?: string | null; model?: string } }; qa_mouth?: { available?: boolean; reason?: string | null; model?: string }; qa_identity?: { available?: boolean; reason?: string | null; model?: string }; syncnet?: { available?: boolean; reason?: string | null } };
+  const cap = (asr.data?.capabilities ?? {}) as { align?: { en?: { available?: boolean; reason?: string | null; model?: string }; ar?: { available?: boolean; reason?: string | null; model?: string } }; qa_mouth?: { available?: boolean; reason?: string | null; model?: string }; qa_identity?: { available?: boolean; reason?: string | null; model?: string }; syncnet?: { available?: boolean; reason?: string | null }; qwen3_asr?: { available?: boolean; reason?: string | null; model?: string }; qwen3_aligner?: { available?: boolean; reason?: string | null; model?: string }; phonemes?: { available?: boolean; reason?: string | null; model?: string } };
   const helper = (c: { available?: boolean; reason?: string | null; model?: string } | undefined, down: string) => (!asr.ok ? { ok: false, detail: `transcription service ${asr.detail ?? 'unreachable'}` } : !c ? { ok: false, detail: down } : { ok: Boolean(c.available), detail: c.available ? c.model ?? 'ready' : c.reason ?? down });
   const checks = {
-    alignEn: { name: 'Word timing, English', does: 'Times each word of a recorded line', ...helper(cap.align?.en, 'not offered by this transcription service') },
+    // English word timing is Qwen3-ForcedAligner's when present (the asr service falls back to the CTC aligner itself)
+    alignEn: { name: 'Word timing, English', does: 'Times each word of a recorded line', ...helper(cap.qwen3_aligner?.available ? cap.qwen3_aligner : cap.align?.en, 'not offered by this transcription service') },
+    iraqiPhonemes: { name: 'Iraqi sounds', does: 'Hears whether چ and گ were spoken as /tʃ/ and /ɡ/', ...helper(cap.phonemes, 'not offered by this transcription service') },
     alignAr: { name: 'Word timing, Arabic', does: 'Times each word of an Arabic line', ...helper(cap.align?.ar, 'not offered by this transcription service') },
     lipSync: { name: 'Lip-sync check', does: 'Mouth movement against the recorded lines', ...helper(cap.qa_mouth, 'not offered by this transcription service') },
     faceIdentity: { name: 'Face check', does: 'Faces against their canonical images', ...helper(cap.qa_identity, 'not offered by this transcription service') },
@@ -58,7 +60,8 @@ export const GET = route(async () => {
     story, images: { ...images, where: 'local' },
     // the engine new English voices are built and spoken with (VOICE_ENGINE_EN: MOSS-TTS), not the retired default
     voice: { ok: tts.ok, detail: tts.ok ? `${VOICE_ENGINES[voiceEngine].label}${tts.data?.loaded === false ? ' (loads on first use)' : ''}` : `${VOICE_ENGINES[voiceEngine].label} ${tts.detail}`, where: 'local' },
-    transcription: { ok: asr.ok, detail: asr.ok ? String(asr.data?.model ?? 'ready') : `transcription service ${asr.detail}`, where: 'local' },
+    // the primary recogniser is Qwen3-ASR-1.7B; Whisper is the reference reading beside it
+    transcription: { ok: asr.ok, detail: asr.ok ? (cap.qwen3_asr?.available ? `Qwen3-ASR-1.7B (Whisper ${String(asr.data?.model ?? 'large-v3')} as reference)` : `Whisper ${String(asr.data?.model ?? 'large-v3')} (Qwen3-ASR: ${cap.qwen3_asr?.reason ?? 'not offered'})`) : `transcription service ${asr.detail}`, where: 'local' },
     music: { ...music, where: e.MINIMAX_API_KEY ? 'hosted' : 'local' },
     gpu: comfyHealth.ok ? { device: comfyHealth.device, vramTotal: comfyHealth.vramTotal, vramFree: comfyHealth.vramFree } : null,
     minimaxConfigured: caps.minimax,

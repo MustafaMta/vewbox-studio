@@ -116,7 +116,7 @@ vi.mock('@/worker/gpu', () => ({ registerUnloader: () => {}, gpuLease: async (_f
 import { seed } from '@/domain/sample';
 import { addAsset, addVoiceRecording } from '@/domain/actions';
 import { CALIBRATION_TEXT, DESIGN_LABEL, IRAQI_NEEDS_RECORDING, MSA_ACCENT_PENDING, PREVIEW_SENTENCES, describeVoiceFromProfile } from '@/domain/voice-identity';
-import { judgeHeard, proofLineFor, shouldRegenerate, voiceBuild, voicePreview, voiceSeedOf } from '@/worker/handlers/voice';
+import { judgeHeard, proofLineFor, isFailedCheck, voiceBuild, voicePreview, voiceSeedOf } from '@/worker/handlers/voice';
 import { voiceDesign } from '@/worker/handlers/voice-design';
 import type { HandlerContext } from '@/worker/handlers';
 
@@ -332,10 +332,10 @@ describe('the voice check for Arabic (contract §4) and «چ» (the Iraqi A/B)',
   it('spacing passes, a wrong word fails, a line failing only on چ-words is REVIEW with the reason, never FAIL', () => {
     expect(judgeHeard('گلتلك لا تتأخر.', 'قلت لك لا تتأخر.', 'AR')).toMatchObject({ status: 'PASS', coverage: 1 });
     const wrong = judgeHeard('هسه وين نروح؟', 'شي ثاني تماما', 'AR');
-    expect(wrong.status).toBe('FAIL'); expect(shouldRegenerate(wrong)).toBe(true);
+    expect(wrong.status).toBe('FAIL'); expect(isFailedCheck(wrong)).toBe(true);
     const ch1 = judgeHeard('باچر نروح', 'باسر نروح', 'AR');
     expect(ch1).toMatchObject({ status: 'REVIEW', ok: false, coverage: 0.5, reasons: ['چ not confirmable by ASR: «باچر» heard «باسر» — a listener decides'] });
-    expect(shouldRegenerate(ch1)).toBe(false);
+    expect(isFailedCheck(ch1)).toBe(false);
     // چ and another word wrong: the other word decides
     const both = judgeHeard('الچاي حار هواية، انطيني شوية مي بارد.', 'الفاي حار هواية، اعطيني شوية ماي حار.', 'AR');
     expect(both.status).not.toBe('PASS');

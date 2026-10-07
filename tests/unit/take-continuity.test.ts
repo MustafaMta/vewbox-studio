@@ -66,7 +66,7 @@ vi.mock('@/server/providers/speech', () => ({ VOICE_GATES: { cer: 0.15 }, transc
 vi.mock('@/worker/handlers/voice', () => ({
   TAKE_COVERAGE: 0.7,
   judgeHeard: () => ({ ok: true, coverage: 1, wer: 0, cer: 0, reasons: [] }),
-  lineLanguage: () => 'EN', lineRecordingCurrent: () => true, referenceWav: async () => null, shouldRegenerate: () => false,
+  lineLanguage: () => 'EN', lineRecordingCurrent: () => true, referenceWav: async () => null, isFailedCheck: () => false,
   speakLine: async () => { throw new Error('no line is recorded: it is stored'); }, verifyLine: async () => null,
 }));
 vi.mock('@/server/media/lyrics', () => ({ alignLyrics: () => [{ from: 0.5, to: 2.1, method: 'ALIGNED', confidence: 0.9 }] }));

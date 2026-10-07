@@ -186,6 +186,14 @@ export const SynthesizeOutput = z.union([
 export const CloneVoiceInput = z.object({ file, voiceId: z.string().min(1), languageBoost: z.string().optional() });
 export const CloneVoiceOutput = z.looseObject({ voiceId: z.string().min(1), demoUrl: z.string().optional() });
 export const TranscribeInput = z.object({ file, language: z.enum(['ar', 'en', 'auto']).optional(), prompt: z.string().optional() });
+/** transcribeQwen(): Qwen3-ASR-1.7B, the primary recogniser — text and the language it detected (auto: the check; a
+ *  forced language can translate, so a forced answer reports no detected language). An unavailable answer is
+ *  `{ available: false, reason }` (qa-service's convention). */
+export const QwenTranscribeInput = z.object({ file, language: z.enum(['ar', 'en', 'auto']).optional() });
+export const QwenTranscribeOutput = z.union([
+  z.looseObject({ available: z.literal(true), model: z.string(), detectedLanguage: z.string().nullable(), forcedLanguage: z.string().nullable(), text: z.string(), ms: z.number(), duration: z.number() }),
+  z.looseObject({ available: z.literal(false), reason: z.string() }),
+]);
 /** transcribe(): the ASR service's JSON (docker/asr/app.py), mapped to camelCase. */
 export const TranscribeOutput = z.looseObject({
   language: z.string(), languageProbability: z.number(), duration: z.number(), text: z.string(),
@@ -272,7 +280,7 @@ export interface ToolContract {
 /** The named schemas, so a ToolDef's `inputSchema`/`outputSchema` names a real schema (a test checks it). */
 export const SCHEMAS: Record<string, z.ZodType> = {
   StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, LipsyncCorrectInput, LipsyncCorrectOutput, SynthesizeInput, SynthesizeOutput,
-  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
+  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, QwenTranscribeInput, QwenTranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
   ResearchPlanInput, ResearchPlanOutput, ResearchQueryInput, ResearchQueryOutput, ResearchStoreInput, ResearchRunOutput,
@@ -288,6 +296,7 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'speech.synthesize': { input: SynthesizeInput, output: SynthesizeOutput },
   'speech.clone_voice': { input: CloneVoiceInput, output: CloneVoiceOutput },
   'speech.transcribe': { input: TranscribeInput, output: TranscribeOutput },
+  'speech.transcribe_qwen': { input: QwenTranscribeInput, output: QwenTranscribeOutput },
   'speech.design_voice': { input: DesignVoiceInput, output: DesignVoiceOutput },
   'speech.embed_voice': { input: FileInput, output: EmbedVoiceOutput },
   'audio.separate_stems': { input: StemsInput, output: StemsOutput },
