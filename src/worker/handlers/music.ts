@@ -17,7 +17,7 @@ import { ACE_VARIANTS, type AceVariant } from '@/server/workflows/music';
 import { joinLyrics, splitLyrics } from '@/domain/lyrics';
 import type { Character, Production, StudioState } from '@/domain/types';
 import { sings } from '@/domain/vocabulary';
-import { songFromPlan, songPerformers, timeByContent, vocalTag, writeSongPlan } from '@/server/story/song';
+import { songFromPlan, songLanguageOf, songPerformers, timeByContent, vocalTag, writeSongPlan } from '@/server/story/song';
 import { loudness, speechRegions } from '@/server/media/voice-check';
 import { env } from '@/server/env';
 import { recordMetric } from '@/server/jobs/queue';
@@ -65,7 +65,7 @@ export const writeSong: Handler = async (ctx) => {
   await ctx.progress('GENERATING', { phase: 'writing', message: `Writing the song for ${performers.map((s) => s.name).join(' and ') || 'the cast'}`, percent: null });
   const plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, characterIds: performers.map((s) => s.id) } });
   await ctx.checkpoint();
-  const song = songFromPlan(plan, performers, seconds, p.song);
+  const song = songFromPlan(plan, performers, seconds, p.song, songLanguageOf(p));
   await command(p.song ? 'updateSong' : 'setSong', p.song ? [p.id, { ...song, assetId: undefined, stems: undefined, provider: undefined, model: undefined, requestId: undefined, jobId: ctx.job.id }] : [p.id, { ...song, jobId: ctx.job.id }], 'worker');
   await ctx.activity('SONG_WRITTEN', `“${song.title}” written: ${song.sections.length} sections, ${song.bpm} BPM${song.key ? `, ${song.key}` : ''}, sung by ${performers.filter((s) => song.singerIds.includes(s.id)).map((s) => s.name).join(' and ')}`, { productionId: p.id, sections: song.sections.length });
   return { title: song.title, sections: song.sections.length, singerIds: song.singerIds, bpm: song.bpm, key: song.key, concept: song.concept, caption: song.caption };

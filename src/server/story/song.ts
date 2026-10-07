@@ -3,7 +3,7 @@ import { StudioError } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import { joinLyrics } from '@/domain/lyrics';
 import type { Character, LyricSection, Production, Song } from '@/domain/types';
-import { LYRIC_KINDS, sings, type VoiceType } from '@/domain/vocabulary';
+import { LYRIC_KINDS, sings, type Dialect, type VoiceType } from '@/domain/vocabulary';
 import { json as llmJson, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { ACE_KEYS } from '../workflows/music';
 
@@ -42,11 +42,38 @@ const SongPlanSchema = z.object({
   bpm: z.coerce.number().int().min(50).max(200),
   key: z.string().trim().max(20),
   caption: z.string().trim().min(10).max(300),
-  sections: z.array(z.object({ kind: kindOf, lyrics: linesOf, singers: z.array(z.string().trim().min(1).max(80)).max(4).default([]) })).min(3).max(10),
+  // `gloss`: an Arabic song's faithful English translation of the section, for review and subtitles (never sung)
+  sections: z.array(z.object({ kind: kindOf, lyrics: linesOf, gloss: linesOf.optional(), singers: z.array(z.string().trim().min(1).max(80)).max(4).default([]) })).min(3).max(10),
 });
 export type SongPlan = z.infer<typeof SongPlanSchema>;
 
 const sungLines = (lyrics: string) => lyrics.split('\n').filter((l) => l.trim()).length;
+
+/** The language a production's song is written in: its own (Arabic with its dialect, or English). */
+export interface SongLanguage { language: 'EN' | 'AR'; dialect?: Dialect }
+export const songLanguageOf = (p: Pick<Production, 'language' | 'dialect'>): SongLanguage => (p.language === 'AR' ? { language: 'AR', dialect: p.dialect } : { language: 'EN' });
+const isIraqiSong = (l: SongLanguage) => l.language === 'AR' && l.dialect === 'IRAQI_BAGHDADI';
+
+/** Unmistakable Modern Standard Arabic words and the Baghdadi a singer would say instead — an Iraqi song that uses
+ *  them has slipped into MSA (the producer: "no accidental MSA substitution"). Conservative on purpose: only words a
+ *  Baghdadi lyric would not sing; matched as whole words, also with an attached و/ف. */
+export const MSA_IN_IRAQI: Record<string, string> = {
+  'سوف': 'راح', 'لماذا': 'ليش', 'ماذا': 'شنو', 'الآن': 'هسه', 'ليس': 'مو', 'ليست': 'مو', 'لن': 'ما راح', 'لم': 'ما',
+  'لكي': 'حتى', 'هكذا': 'هيچي', 'هذه': 'هاي', 'هؤلاء': 'هذوله', 'أيضا': 'هم', 'أيضاً': 'هم', 'إنني': 'آني', 'حيث': 'وين',
+};
+const plainArabic = (w: string) => w.replace(/[ً-ْٰـ]/g, '');
+/** The MSA words in an Iraqi lyric, each with its Baghdadi counterpart. Pure (tested). */
+export function msaInIraqi(text: string): Array<{ word: string; say: string }> {
+  const found = new Map<string, string>();
+  for (const raw of text.split(/[\s\p{P}]+/u)) {
+    const w = plainArabic(raw);
+    const base = MSA_IN_IRAQI[w] !== undefined ? w : /^[وف]/.test(w) && MSA_IN_IRAQI[w.slice(1)] !== undefined ? w.slice(1) : undefined;
+    if (base) found.set(base, MSA_IN_IRAQI[base]);
+  }
+  return [...found].map(([word, say]) => ({ word, say }));
+}
+const arabicLetters = /(?=\p{L})\p{Script=Arabic}/u;
+const latinWord = /[A-Za-z]{2,}/;
 
 /** What a song of this length holds: at most this many sections (intro and outro count), and about `lines` sung lines
  *  — one line every ~4.5 s leaves the singers room to breathe and the band its fills; more than `maxLines` (one every
@@ -57,11 +84,21 @@ export function songBudget(seconds: number): { maxSections: number; lines: numbe
 
 /** The plan's schema for a song of this length: the budget is part of the answer's validity, so an over-long plan is
  *  sent back with the reason (a format repair of the same answer), never trimmed or guessed at. */
-export function songPlanSchema(seconds: number) {
+export function songPlanSchema(seconds: number, lang: SongLanguage = { language: 'EN' }) {
   const b = songBudget(seconds);
+  const sung = (p: SongPlan) => p.sections.filter((s) => s.kind !== 'INSTRUMENTAL' && s.lyrics.trim());
   return SongPlanSchema
     .refine((p) => p.sections.length <= b.maxSections, { message: `at most ${b.maxSections} sections for a ${Math.round(seconds)}-second song`, path: ['sections'] })
-    .refine((p) => p.sections.reduce((n, s) => n + sungLines(s.lyrics), 0) <= b.maxLines, { message: `at most ${b.maxLines} sung lines in total for a ${Math.round(seconds)}-second song (aim for about ${b.lines})`, path: ['sections'] });
+    .refine((p) => p.sections.reduce((n, s) => n + sungLines(s.lyrics), 0) <= b.maxLines, { message: `at most ${b.maxLines} sung lines in total for a ${Math.round(seconds)}-second song (aim for about ${b.lines})`, path: ['sections'] })
+    // an Arabic song is sung in Arabic script throughout (never English lyrics tagged as Arabic), with its English gloss
+    .refine((p) => lang.language !== 'AR' || sung(p).every((s) => arabicLetters.test(s.lyrics) && !latinWord.test(s.lyrics)), { message: 'every sung section\'s lyrics must be in Arabic script only (no Latin letters); put the English translation in "gloss"', path: ['sections'] })
+    .refine((p) => lang.language !== 'AR' || sung(p).every((s) => (s.gloss ?? '').trim().length > 0), { message: 'every sung section needs "gloss": a faithful English translation of its lyrics', path: ['sections'] })
+    // an Iraqi song stays Baghdadi: an MSA word goes back with the word a Baghdadi singer would use
+    .superRefine((p, ctx) => {
+      if (!isIraqiSong(lang)) return;
+      const msa = msaInIraqi(sung(p).map((s) => s.lyrics).join('\n'));
+      if (msa.length) ctx.addIssue({ code: 'custom', path: ['sections'], message: `the lyrics slipped into Modern Standard Arabic — sing it in Baghdadi: ${msa.map((m) => `«${m.word}» → «${m.say}»`).join(', ')}` });
+    });
 }
 
 /** Ask the planner for the song. `brief`: the producer's words for this song (optional). */
@@ -70,14 +107,25 @@ export async function writeSongPlan(p: Production, performers: SongPerformer[], 
   const who = performers.map((s) => `- ${s.name}: ${s.sex === 'FEMALE' ? 'woman' : 'man'}${s.voiceType ? `, ${s.voiceType.toLowerCase().replace('_', '-')}` : ''}${s.styles.length ? `, sings ${s.styles.join(', ')}` : ''}`).join('\n');
   const b = songBudget(req.seconds);
   const sectionsFor = `${req.seconds <= 75 ? '3–5 sections (verse, chorus, verse or bridge, chorus)' : req.seconds <= 150 ? '5–8 sections (intro optional, verse, chorus, verse, chorus, bridge, final chorus)' : '6–10 sections'} and about ${b.lines} sung lines in all (never more than ${b.maxLines}; the intro, outro and instrumental breaks need time too)`;
-  const system: LlmMessage = { role: 'system', content: 'You are the songwriter of Vewbox Studio, an AI film studio. You write ONE original, singable English song for a production: a clear concept, a strong memorable chorus, natural rhymes and stresses, lines a singer can breathe through. Never quote or imitate an existing song, artist or lyric. Answer with ONE JSON object only.' };
+  const lang = songLanguageOf(p);
+  const iraqi = isIraqiSong(lang);
+  const tongue = lang.language === 'EN' ? 'English' : iraqi ? 'Iraqi (Baghdadi) Arabic' : 'Arabic';
+  const system: LlmMessage = { role: 'system', content: `You are the songwriter of Vewbox Studio, an AI film studio. You write ONE original, singable ${tongue} song for a production: a clear concept, a strong memorable chorus, natural rhymes and stresses, lines a singer can breathe through. Never quote or imitate an existing song, artist or lyric. Answer with ONE JSON object only.` };
+  // an Iraqi song is written the way a Baghdadi singer sings it (skills/iraqi-dialogue): dialect words, never MSA
+  const dialect = iraqi ? `
+WRITE IN BAGHDADI ARABIC, as a Baghdadi singer would sing it — never Modern Standard Arabic. Use Iraqi words: شلونك، هسه، شنو، ليش، وين، هواية، ماكو، اكو، باچر، گلبي، عيوني، يمّه، حبيبي، آني، إنت/إنتي، هاي، هيچي، راح، مو، ما. Write the Iraqi letters as they are sung: گ (as in گلبي، گلت) and چ (as in باچر، چا، شچان، هيچي). Never: سوف، لماذا، ماذا، الآن، ليس، لن، لم، لكي، هكذا، هذه، أيضاً. Keep the lyrics in Arabic script only (no Latin letters).
+The music should feel Iraqi unless the producer asks otherwise — for example Iraqi maqam colours, oud, qanun, santur or joza, Iraqi percussion — said in the caption, in English.` : lang.language === 'AR' ? `
+Write the lyrics in Arabic script only (no Latin letters).` : '';
+  const lyricsSpec = lang.language === 'AR'
+    ? `lyrics (the lines, one per line, in ${tongue}; empty for an instrumental section), gloss (a faithful English translation of those lines, one per line)`
+    : 'lyrics (the lines, one per line, in English; empty for an instrumental section)';
   const user = `Write the song for "${p.title}" (${p.kind === 'MUSIC_VIDEO' ? 'a music video' : 'a production'}).
 ${p.logline ? `Logline: ${p.logline}\n` : ''}${req.brief?.trim() ? `The producer asks: """${req.brief.trim()}"""\n` : ''}Length: about ${Math.round(req.seconds)} seconds, so ${sectionsFor}.
 The singers — ONLY these may sing, by these exact names:
-${who}
-Return JSON: { title, concept (2–3 sentences: what the song is about and how it feels), genre, mood, bpm (a whole number), key (like "D minor"), caption (one line for the music engine: genre, instruments, production and feel — no names, no lyrics), sections: [ { kind: one of ${LYRIC_KINDS.join('|')}, lyrics (the lines, one per line, in English; empty for an instrumental section), singers: [names from the list who sing this section; the first is the lead] } ] }.
+${who}${dialect}
+Return JSON: { title${lang.language === 'AR' ? ' (in Arabic)' : ''}, concept (2–3 sentences in English: what the song is about and how it feels), genre, mood, bpm (a whole number), key (like "D minor"), caption (one line in English for the music engine: genre, instruments, production and feel — no names, no lyrics), sections: [ { kind: one of ${LYRIC_KINDS.join('|')}, ${lyricsSpec}, singers: [names from the list who sing this section; the first is the lead] } ] }.
 Every sung section names at least one singer from the list. Choruses repeat their words. Keep each line under 12 words.`;
-  const r = await llmJson(songPlanSchema(req.seconds), [system, { role: 'user', content: user }], { ...opts, maxTokens: 3000, temperature: 0.8 });
+  const r = await llmJson(songPlanSchema(req.seconds, lang), [system, { role: 'user', content: user }], { ...opts, maxTokens: lang.language === 'AR' ? 4000 : 3000, temperature: 0.8 });
   opts.onResult?.(r.result);
   return r.data;
 }
@@ -85,8 +133,10 @@ Every sung section names at least one singer from the list. Choruses repeat thei
 /** The first timing of a song's sections, before the recording is aligned: each section by what it holds — its sung
  *  lines, or the room of two lines for a section without words (an intro, an outro, a break) — over `seconds`.
  *  Pure (tested). */
-export function timeByContent<T extends { kind: string; text: string; from: number; to: number }>(sections: T[], seconds: number): T[] {
-  const weights = sections.map((s) => (s.kind !== 'INSTRUMENTAL' && s.text.trim() ? sungLines(s.text) : 2));
+export function timeByContent<T extends { kind: string; text: string; textAr?: string; from: number; to: number }>(sections: T[], seconds: number): T[] {
+  // the sung words: an Arabic section's are its textAr (its text is the English gloss)
+  const sungText = (s: T) => (s.textAr ?? '').trim() || s.text;
+  const weights = sections.map((s) => (s.kind !== 'INSTRUMENTAL' && sungText(s).trim() ? sungLines(sungText(s)) : 2));
   const total = weights.reduce((a, w) => a + w, 0) || 1;
   const at = (i: number) => Math.round((seconds * weights.slice(0, i).reduce((a, w) => a + w, 0)) / total);
   return sections.map((s, i) => ({ ...s, from: at(i), to: at(i + 1) }));
@@ -95,12 +145,15 @@ export function timeByContent<T extends { kind: string; text: string; from: numb
 /** The plan as the production's Song: sections with their singers (names resolved to the cast who sing — an unknown
  *  or non-singing name is refused, never guessed), the lead first; lyrics tagged for the engine; the key valid for
  *  the engine (or dropped). Pure (tested). */
-export function songFromPlan(plan: SongPlan, performers: SongPerformer[], seconds: number, previous?: Song): Song {
+export function songFromPlan(plan: SongPlan, performers: SongPerformer[], seconds: number, previous?: Song, lang: SongLanguage = { language: 'EN' }): Song {
+  const arabic = lang.language === 'AR';
   const byName = (n: string) => performers.find((s) => s.name.toLowerCase() === n.trim().toLowerCase()) ?? performers.find((s) => s.name.split(' ')[0].toLowerCase() === n.trim().split(' ')[0].toLowerCase());
   const untimed: LyricSection[] = plan.sections.map((s, i) => {
     const sung = s.kind !== 'INSTRUMENTAL' && Boolean(s.lyrics.trim());
     const ids = s.singers.map((n) => { const hit = byName(n); if (!hit && sung) throw new StudioError('PROVIDER', `The song plan gives a section to “${n}”, who is not one of this song's singers (${performers.map((x) => x.name).join(', ')}).`, { failureClass: 'PROVIDER' }); return hit?.id; }).filter((x): x is string => Boolean(x));
     if (sung && !ids.length) throw new StudioError('PROVIDER', `The song plan leaves section ${i + 1} (${s.kind.toLowerCase()}) without a singer.`, { failureClass: 'PROVIDER' });
+    // an Arabic song: the sung words are textAr (what ACE-Step sings, joinLyrics prefers it); text is the English gloss
+    if (arabic) return { id: nid('sec'), kind: s.kind, text: sung ? (s.gloss ?? '').trim() : '', ...(sung ? { textAr: s.lyrics.trim() } : {}), singerIds: [...new Set(ids)], from: 0, to: 0 };
     return { id: nid('sec'), kind: s.kind, text: sung ? s.lyrics.trim() : '', singerIds: [...new Set(ids)], from: 0, to: 0 };
   });
   const sections = timeByContent(untimed, seconds);

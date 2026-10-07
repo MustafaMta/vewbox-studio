@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
+import { msaInIraqi, songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
 import { levelTrimDb, scaleSections, settleSections, songSingers } from '@/worker/handlers/music';
 import { seed } from '@/domain/sample';
 import { recordSongListening, singingCast, songVerdict, updateSong } from '@/domain/actions';
@@ -45,6 +45,37 @@ describe('the song plan', () => {
     const performers = songPerformers([hana]);
     expect(() => songFromPlan(plan([{ kind: 'VERSE', lyrics: 'a line', singers: ['Walter Finch'] }, { kind: 'CHORUS', lyrics: 'b', singers: ['Hana'] }, { kind: 'VERSE', lyrics: 'c', singers: ['Hana'] }]), performers, 60)).toThrow(/Walter Finch.*not one of this song's singers/);
     expect(() => songFromPlan(plan([{ kind: 'VERSE', lyrics: 'a line', singers: [] }, { kind: 'CHORUS', lyrics: 'b', singers: ['Hana'] }, { kind: 'VERSE', lyrics: 'c', singers: ['Hana'] }]), performers, 60)).toThrow(/without a singer/);
+  });
+
+  it('an IRAQI song is sung in Baghdadi Arabic script with an English gloss: MSA words and Latin letters are sent back', () => {
+    const iraqi = { language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const };
+    const sec = (lyrics: string, gloss = 'a gloss') => ({ kind: 'VERSE', lyrics, gloss, singers: ['Hana'] });
+    const good = { ...plan([]), sections: [sec('باچر نلتقي يا گلبي\nهسه وين إنت'), sec('شلونك يا عيوني'), sec('ماكو غيرك')] };
+    expect(songPlanSchema(90, iraqi).safeParse(good).success).toBe(true);
+    // MSA slipped in: refused with the Baghdadi word to use
+    const msa = songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('سوف أراك غداً'), sec('لماذا رحلت'), sec('ماكو غيرك')] });
+    expect(msa.success).toBe(false);
+    expect(JSON.stringify(msa.error?.issues)).toMatch(/«سوف» → «راح».*«لماذا» → «ليش»/);
+    // English lyrics tagged as Arabic: refused
+    expect(songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('Hold me close'), sec('شلونك'), sec('ماكو')] }).success).toBe(false);
+    // a sung section without its English gloss: refused
+    expect(songPlanSchema(90, iraqi).safeParse({ ...good, sections: [sec('شلونك', ''), sec('شلونك'), sec('ماكو')] }).success).toBe(false);
+    // an English song is untouched by the Arabic rules
+    expect(songPlanSchema(90).safeParse(plan([{ kind: 'VERSE', lyrics: 'a', singers: ['Hana'] }, { kind: 'CHORUS', lyrics: 'b', singers: ['Hana'] }, { kind: 'OUTRO', lyrics: '', singers: [] }])).success).toBe(true);
+  });
+
+  it('MSA in an Iraqi lyric is found as whole words, also with an attached و/ف, and never inside a Baghdadi word', () => {
+    expect(msaInIraqi('ولماذا تركتني؟ الآن')).toEqual([{ word: 'لماذا', say: 'ليش' }, { word: 'الآن', say: 'هسه' }]);
+    expect(msaInIraqi('شلونك هسه؟ ماكو شي')).toEqual([]);
+    expect(msaInIraqi('لمّا اجيت')).toEqual([]); // «لمّا» is not «لم»
+  });
+
+  it('an Arabic plan becomes sections whose SUNG words are textAr (what ACE-Step sings) and whose text is the gloss', () => {
+    const iraqi = { language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const };
+    const song = songFromPlan({ ...plan([]), sections: [{ kind: 'INTRO', lyrics: '', singers: [] }, { kind: 'VERSE', lyrics: 'باچر نلتقي\nيا گلبي', gloss: 'Tomorrow we meet\nmy heart', singers: ['Hana'] }, { kind: 'CHORUS', lyrics: 'شلونك', gloss: 'How are you', singers: ['Hana'] }] }, songPerformers([hana]), 60, undefined, iraqi);
+    expect(song.sections.map((s) => [s.kind, s.textAr ?? null, s.text])).toEqual([['INTRO', null, ''], ['VERSE', 'باچر نلتقي\nيا گلبي', 'Tomorrow we meet\nmy heart'], ['CHORUS', 'شلونك', 'How are you']]);
+    expect(song.lyrics).toBe('[Intro]\n\n[Verse]\nباچر نلتقي\nيا گلبي\n\n[Chorus]\nشلونك');
+    expect(song.sections.map((s) => [s.from, s.to])).toEqual([[0, 24], [24, 48], [48, 60]]); // timed by the sung Arabic lines
   });
 
   it('a song of this length holds this much: sections and sung lines are budgeted, not crammed', () => {

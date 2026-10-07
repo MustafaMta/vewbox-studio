@@ -4,10 +4,10 @@ description: Iraqi (Baghdadi) Arabic as a first-class production language — wo
 license: Proprietary to this studio
 allowed-tools: story.structured_answer speech.synthesize speech.transcribe
 metadata:
-  version: "1.2.1"
+  version: "1.3.0"
   kind: "PROCEDURE"
-  source: this studio; docs/CONTRACTS-CHARACTER-VOICE.md §1.4–1.5; docs/research/VOICE-STACK.md; suite scripts/iraqi-voice-suite.mjs → docs/evidence/iraqi-suite-v2.md (plan: docs/evidence/iraqi-suite-phase2-plan.md)
-  models: Qwen3.8-27B-NVFP4, Habibi-TTS IRQ (F5-TTS v1), IndexTTS 2.5, faster-whisper large-v3
+  source: this studio; docs/CONTRACTS-CHARACTER-VOICE.md §1.4–1.5; docs/research/VOICE-STACK.md; suite scripts/iraqi-voice-suite.mjs → docs/evidence/iraqi-suite-v2.md (plan: docs/evidence/iraqi-suite-phase2-plan.md); Phase 3 decisions 2026-10-07 (docs/PRODUCTION-EXECUTION-STATUS.md)
+  models: Qwen3.8-27B-NVFP4, Habibi-TTS Specialized IRQ (F5-TTS v1), MOSS-TTS v1.5, Qwen3-ASR-1.7B, faster-whisper large-v3 (+ the Arabic-dialect model), wav2vec2 Arabic CTC, wav2vec2-xlsr-53-espeak-cv-ft
 ---
 
 # Iraqi Arabic dialogue
@@ -39,15 +39,25 @@ metadata:
 ## Recording
 
 - Routing follows the **line's script**, identically in the worker and the suite (`routeLine`): Arabic script → the
-  character's engine (Iraqi dialect → Habibi-TTS IRQ); two or more Latin letters next to Arabic (`MIXED`) or a Latin-only
-  line → IndexTTS 2.5, with a job event naming the fallback. The identity's `model` is never changed by a fallback.
+  character's engine (Iraqi dialect → **Habibi-TTS Specialized IRQ** — the Iraqi production engine, producer decision
+  2026-10-07; never the Unified checkpoint); two or more Latin letters next to Arabic (`MIXED`) or a Latin-only line →
+  the English engine (**MOSS-TTS v1.5**, cloned from the same consented reference), with a job event naming the
+  fallback. The identity's `model` is never changed by a fallback. Keep Iraqi lines all-Arabic-script to stay in dialect.
+- **One request, one result.** A line is spoken once; a line that fails its checks is kept and flagged for the
+  producer, never regenerated automatically (the first-attempt policy).
 - Every line is spoken with the identity's pinned `seed`, `speed` and `emotionAlpha`; the service reports the engine
   version, the seed it used, and the true peak after its limiter (−1 dBTP, no clipping).
 - Verification (`verifyLine` → `judgeHeard`): transcribe in the line's language, then **CER ≤ 0.15 and coverage ≥
   0.85** after the Iraqi fold (`normalizeIraqi`: گ/ق/ك and چ/ج as one class each, hamza forms, ة/ه, ى/ي, diacritics,
   attached ما/و, spelled numbers, the Iraqi/MSA word table — اني/انا, هسه/الان, شلون/كيف, باچر/بكرة…). `verdict()` gives
-  PASS / REVIEW / FAIL; FAIL regenerates once, REVIEW is kept and flagged for a person, and an ASR outage flags the
-  line as unverified — never a silent pass. Raw WER is reported next to it, not gated: it charges Whisper's MSA
+  PASS / REVIEW / FAIL; FAIL and REVIEW are kept and flagged for a person (never regenerated), and an ASR outage flags
+  the line as unverified — never a silent pass.
+- **Two readings and the sound of the dialect letters** (Phase 3): Qwen3-ASR-1.7B (primary, `language: auto` — a
+  FORCED language can translate instead of transcribe, so it is never the check) beside the Arabic-dialect Whisper;
+  and the phonology gate (`/qa/phonemes` → `src/server/media/iraqi-phonology.ts`): each چ/گ word's aligned span is read
+  as phonemes and must contain /tʃ/ or /ɡ/. «باچر» without /tʃ/ (the historical «باسر») FAILS — never weaken it.
+- **An Iraqi song** (`src/server/story/song.ts`): Baghdadi lyrics in Arabic script with an English gloss; MSA words
+  (سوف، لماذا، ماذا، الآن، ليس…) are refused with the Baghdadi word to sing instead. Raw WER is reported next to it, not gated: it charges Whisper's MSA
   spellings («گلتلي» → «قلتلي») as errors.
 
 ## The suite
