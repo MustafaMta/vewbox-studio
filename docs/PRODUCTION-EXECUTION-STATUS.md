@@ -232,3 +232,25 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   - The controlled test with the consented reference still decides. If ACE-Step fails it, singing voice conversion
     gets evaluated (maintenance, licences, provenance, singing quality). No such model is approved; Seed-VC is
     archived and GPL-3.0.
+### Phase 3 — lab verdicts and gates (2026-10-07, later)
+
+- **Producer listening, lab run 1 (Habibi IRQ + MOSS English): FAIL.** "None of the generated voices are right; they
+  are not like the reference, which is professional, clear and Iraqi."
+- **Configuration ruled out:**
+  - Our sampling settings equal upstream's defaults (nfe 32, cfg 2, sway −1, speed 1).
+  - The service passes the reference unchanged; the limiter took 0.0 dB off every line.
+  - چ is Habibi's token 2563 and nothing rewrites it.
+  - **Upstream's own `habibi-tts_infer-cli --model Specialized --dialect IRQ`**, run on the same reference and lines
+    with none of our code, reproduces «باچر» → «الباسر» and «الحچاية» → «الحسايا».
+  - Conclusion: with this reference, Habibi Specialized IRQ does not produce /tʃ/. That is a model capability, not
+    an integration defect.
+- **Controlled comparison** (same reference, same 13 sentences, one take each): MOSS-TTS v1.5 with language=Arabic.
+  - The dialect Whisper heard چ in «چاي», «باچر» (2 of 3) and «چنت». It heard none in the Habibi set.
+  - But «الحچاية … لباچر» was garbled («الحتشاية … لبطر»), and گ → ق in several lines.
+  - Machine evidence only. Listening files were sent.
+- **Gates:**
+  - Iraqi production voice: `WAITING_FOR_USER` (a consented Baghdadi reference).
+  - Lab listening of the MOSS Arabic comparison: `WAITING_FOR_USER_ACCEPTANCE`.
+  - Iraqi engine decision, given that Habibi failed with a verified integration: `WAITING_FOR_USER`. The frozen stack
+    keeps Habibi IRQ until the producer decides; nothing was switched silently.
+  - Phoneme gate formal run: waiting for its model download (queued behind MOSS-SFX v2 and htdemucs_ft).

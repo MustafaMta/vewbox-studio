@@ -20,6 +20,8 @@ async function main() {
   const ref = opt('ref'); const refText = opt('ref-text'); const out = opt('out');
   if (!ref || !refText || !out) throw new Error('--ref, --ref-text and --out are required');
   const seed = Number(opt('seed', '7'));
+  // --engine moss: the controlled comparison (same reference, same sentences) after Habibi failed with a verified integration
+  const forced = opt('engine') as 'habibi' | 'moss' | undefined;
   const ids = (opt('lines', 'conv-02,conv-04,conv-07,q-02,q-06,num-07,name-02,name-04,emo-anger-01,emo-tender-02,emo-humour-03,long-01,short-01') ?? '').split(',').filter(Boolean);
   const english = (opt('english', 'I told you the ferry would be late again, so we wait by the lights.|Stay here with me for a minute, I will be right back.') ?? '').split('|').filter(Boolean);
   const set = JSON.parse(await fs.readFile('tests/fixtures/voice/iraqi-eval-set.json', 'utf8')) as { lines: Array<{ id: string; textAr?: string; text?: string; features?: string[]; emotion?: string }> };
@@ -36,13 +38,13 @@ async function main() {
   type Row = { id: string; language: 'AR' | 'EN'; text: string; features?: string[]; emotion?: string; engine?: string; file?: string; seconds?: number; prepared?: string[]; error?: string; qwen?: unknown; whisper?: unknown; phonology?: unknown; speaker?: unknown };
   const rows: Row[] = [
     ...ids.map((id) => { const l = set.lines.find((x) => x.id === id); if (!l) throw new Error(`no eval line ${id}`); return { id, language: 'AR' as const, text: (l.textAr ?? l.text)!, features: l.features, emotion: l.emotion }; }),
-    ...english.map((t, i) => ({ id: `en-${i + 1}`, language: 'EN' as const, text: t })),
+    ...(forced ? [] : english.map((t, i) => ({ id: `en-${i + 1}`, language: 'EN' as const, text: t }))),
   ];
 
   // 1) SPEECH: each line ONCE (the first-attempt rule), Arabic script → Habibi IRQ, Latin → the English engine (MOSS)
   await gpuLease('TTS', 24000, async () => {
     for (const r of rows) {
-      const route = routeLine(r.text, 'AR', 'IRAQI_BAGHDADI');
+      const route = forced && r.language === 'AR' ? { engine: forced } : routeLine(r.text, 'AR', 'IRAQI_BAGHDADI');
       const prep = prepareLineText(r.text, { engine: route.engine === 'habibi' ? 'habibi' : 'indextts', language: r.language, dialect: r.language === 'AR' ? 'IRAQI_BAGHDADI' : undefined });
       try {
         const s = await synthesize({ text: prep.text, language: r.language, dialect: r.language === 'AR' ? 'IRAQI_BAGHDADI' : undefined, referenceWav: ref, referenceText: refText, engine: route.engine, seed }, out);
