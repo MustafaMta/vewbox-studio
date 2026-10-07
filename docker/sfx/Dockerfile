@@ -12,6 +12,9 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::http
  && apt-get install -y --no-install-recommends curl ca-certificates git ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=secret,id=extra_ca,required=false if [ -s /run/secrets/extra_ca ]; then cp /run/secrets/extra_ca /usr/local/share/ca-certificates/extra-ca.crt && update-ca-certificates; fi
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1 UV_NO_CACHE=1
+# this link stalls for tens of seconds mid-file: uv's 30 s read timeout failed the CUDA wheels four builds in a row
+# (2026-10-07); wait a stall out, retry a dropped wheel, and fetch two at a time
+ENV UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 UV_CONCURRENT_DOWNLOADS=2
 RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
 ENV PATH=/root/.local/bin:$PATH
 RUN uv python install 3.12 && uv venv --python 3.12 /opt/venv
