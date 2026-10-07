@@ -7,7 +7,7 @@ metadata:
   version: "1.2.0"
   kind: "PROCEDURE"
   source: src/server/media/lyrics.ts (alignLyrics), src/worker/handlers/music.ts (alignSongLyrics), src/server/story/engine.ts (planPerformance)
-  models: qwen3:14b, faster-whisper large-v3, ACE-Step 1.5, MiniMax Music 3
+  models: Qwen3.8-27B-NVFP4, faster-whisper large-v3, ACE-Step 1.5, MiniMax Music 3
 ---
 
 # Singing performance and lyric timing

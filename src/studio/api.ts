@@ -7,7 +7,7 @@ import type { VoiceReferenceResult } from '@/components/character/contract';
 /** THE BROWSER'S VIEW OF THE API — thin typed fetchers. Every error becomes a StudioError with the server's code
  *  and message, so pages can show the reason rather than "request failed". */
 
-export interface Capabilities { minimax: boolean; llm: string | null; llmModel?: string; anthropic: boolean; openaiCompatible: boolean; comfyui: string; tts: string; asr: string; videoModel: string; videoResolution: string }
+export interface Capabilities { minimax: boolean; llm: string | null; llmModel?: string; openaiCompatible: boolean; comfyui: string; tts: string; asr: string; videoModel: string; videoResolution: string }
 /** Live engine health from GET /api/status: whether each engine is reachable right now, and where it runs. */
 export interface EngineHealth { ok: boolean; detail: string; where: 'hosted' | 'local' | null; backend?: string; model?: string }
 export interface EngineStatus { video: EngineHealth; story: EngineHealth; images: EngineHealth; voice: EngineHealth; transcription: EngineHealth; music: EngineHealth; gpu: { device?: string; vramTotal?: number; vramFree?: number } | null; minimaxConfigured: boolean; /** the local helpers the checks and voices need (word timing, lip-sync and face checks, voice design, Iraqi voices) */ checks?: Record<string, EngineCheck> }

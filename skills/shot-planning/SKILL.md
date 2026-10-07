@@ -7,7 +7,7 @@ metadata:
   version: "1.3.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (planShotsDraft, fitDurations, establishedAt); injected by src/server/org/skills.ts agentPrompt"
-  models: "qwen3:14b or the configured hosted LLM"
+  models: "Qwen3.8-27B-NVFP4"
 ---
 
 # Shot planning

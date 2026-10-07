@@ -50,11 +50,9 @@ describe('planShotsWork and the model speed', () => {
     expect(planShotsWork(episode as never, ['s2', 's3'], 16_384)).toHaveLength(2);
     expect(planShotsWork(episode as never, undefined, 65_536)[0].parts).toBe(1);
   });
-  it('measured models answer at their speed; an unmeasured local model is assumed slow; hosted is fast', async () => {
-    const { llmSpeed, UNMEASURED_LLM_SPEED, HOSTED_LLM_SPEED } = await import('@/server/providers/llm');
-    expect(llmSpeed('gemma4:31b-it-qat', 'openai-compatible', 'http://127.0.0.1:11434/v1').tokensPerSecond).toBe(52);
-    expect(llmSpeed('qwen3:14b').tokensPerSecond).toBe(100);
-    expect(llmSpeed('some-new-model:122b', 'openai-compatible', 'http://llm:11434/v1')).toEqual(UNMEASURED_LLM_SPEED);
-    expect(llmSpeed('MiniMax-M3', 'minimax')).toEqual(HOSTED_LLM_SPEED);
+  it('the planner answers at its measured speed; an unmeasured model is assumed slow', async () => {
+    const { llmSpeed, UNMEASURED_LLM_SPEED } = await import('@/server/providers/llm');
+    expect(llmSpeed('Qwen3.8-27B-NVFP4')).toEqual({ tokensPerSecond: 13, promptSecondsPerPart: 5 });
+    expect(llmSpeed('some-new-model')).toEqual(UNMEASURED_LLM_SPEED);
   });
 });

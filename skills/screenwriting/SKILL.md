@@ -7,7 +7,7 @@ metadata:
   version: "1.2.0"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (proposeIdea, developStory, writeScript, libraryGuests); injected by src/server/org/skills.ts agentPrompt"
-  models: "qwen3:14b or the configured hosted LLM"
+  models: "Qwen3.8-27B-NVFP4"
 ---
 
 # Screenwriting for generated film

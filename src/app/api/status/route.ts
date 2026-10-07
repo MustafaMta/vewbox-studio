@@ -2,7 +2,7 @@ import { capabilities, env } from '@/server/env';
 import { json, route } from '@/server/http';
 import { videoBackendStatus } from '@/server/providers/video';
 import * as comfy from '@/server/providers/comfy';
-import { llmRuntime, resolveProvider } from '@/server/providers/llm';
+import { plannerBase, resolveProvider } from '@/server/providers/llm';
 import { vllmSleeping } from '@/server/providers/vllm';
 import { llmDisplayName } from '@/domain/llm-names';
 
@@ -35,15 +35,11 @@ export const GET = route(async () => {
   let story: { ok: boolean; detail: string; where: 'hosted' | 'local' | null } = { ok: false, detail: 'not configured', where: null };
   try {
     const cfg = resolveProvider();
-    if (cfg.provider === 'openai-compatible') {
-      const p = await probe(`${cfg.baseUrl}/models`); const ids = ((p.data?.data as Array<{ id: string }> | undefined) ?? []).map((m) => m.id); const has = ids.some((id) => id === cfg.model || id.startsWith(cfg.model));
-      const name = llmDisplayName(cfg.model);
-      // the planner on vLLM sleeps while another family holds the card: it is ready, it wakes on the next story job
-      const vllm = llmRuntime(cfg.baseUrl) === 'vllm';
-      const asleep = vllm && p.ok ? await vllmSleeping(cfg.baseUrl.replace(/\/v1\/?$/, '')) : undefined;
-      story = { ok: p.ok && has, detail: p.ok ? (has ? `${name} (${vllm ? 'vLLM' : 'local'}${asleep ? ', asleep: wakes for the next story job' : ''})` : `${name} not ${vllm ? 'served' : 'pulled'} yet (${ids.length} models present)`) : `unreachable: ${p.detail}`, where: 'local' };
-    }
-    else story = { ok: true, detail: `${cfg.provider} ${cfg.model}`, where: 'hosted' };
+    const p = await probe(`${cfg.baseUrl}/models`); const ids = ((p.data?.data as Array<{ id: string }> | undefined) ?? []).map((m) => m.id); const has = ids.some((id) => id === cfg.model || id.startsWith(cfg.model));
+    const name = llmDisplayName(cfg.model);
+    // the planner sleeps while another family holds the card: it is ready, it wakes on the next story job
+    const asleep = p.ok ? await vllmSleeping(plannerBase(cfg.baseUrl)) : undefined;
+    story = { ok: p.ok && has, detail: p.ok ? (has ? `${name} (vLLM${asleep ? ', asleep: wakes for the next story job' : ''})` : `${name} not served (${ids.length} models present)`) : `unreachable: ${p.detail}`, where: 'local' };
   } catch (err) { story = { ok: false, detail: (err as Error).message, where: null }; }
   let images: { ok: boolean; detail: string } = { ok: false, detail: 'ComfyUI unreachable' };
   let music: { ok: boolean; detail: string } = { ok: Boolean(e.MINIMAX_API_KEY), detail: e.MINIMAX_API_KEY ? 'MiniMax Music (hosted)' : 'no engine' };

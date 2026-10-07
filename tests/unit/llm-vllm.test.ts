@@ -12,7 +12,7 @@ afterEach(() => { process.env = { ...saved }; vi.restoreAllMocks(); vi.doUnmock(
 
 async function withVllm(vars: Record<string, string | undefined> = {}) {
   vi.resetModules();
-  process.env = { ...saved, DATABASE_URL: saved.DATABASE_URL ?? 'postgres://u:p@127.0.0.1:1/vewbox', GPU_LEASE_DATABASE_URL: '', VEWBOX_FIXTURE_ENGINES: '1', MINIMAX_API_KEY: '', ANTHROPIC_API_KEY: '', LLM_PROVIDER: 'auto', OPENAI_COMPATIBLE_BASE_URL: 'http://127.0.0.1:8050/v1', OPENAI_COMPATIBLE_RUNTIME: '', OPENAI_COMPATIBLE_MODEL: '', LLM_CONTEXT_LENGTH: '16384', LLM_PRESENCE_PENALTY: '' };
+  process.env = { ...saved, DATABASE_URL: saved.DATABASE_URL ?? 'postgres://u:p@127.0.0.1:1/vewbox', GPU_LEASE_DATABASE_URL: '', VEWBOX_FIXTURE_ENGINES: '1', MINIMAX_API_KEY: '', OPENAI_COMPATIBLE_BASE_URL: 'http://127.0.0.1:8050/v1', OPENAI_COMPATIBLE_MODEL: '', LLM_CONTEXT_LENGTH: '16384', LLM_PRESENCE_PENALTY: '' };
   for (const [k, v] of Object.entries(vars)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
   const leases: Array<{ family: string; mb: number }> = [];
   vi.doMock('@/server/gpu/lease', () => ({ gpuLease: async (family: string, mb: number, fn: () => Promise<unknown>) => { leases.push({ family, mb }); return fn(); } }));
@@ -25,22 +25,19 @@ const sse = (content: string, usage = { prompt_tokens: 1200, completion_tokens: 
   `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`,
   `data: ${JSON.stringify({ choices: [], usage })}\n\n`, 'data: [DONE]\n\n'].join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } });
 
-describe('which server the base URL is', () => {
-  it('names it, or reads it from the URL', async () => {
+describe('one planner, no alternatives', () => {
+  it('is Qwen3.8-27B-NVFP4 on the local vLLM server (loopback or compose service)', async () => {
     const { llm } = await withVllm();
-    expect(llm.llmRuntime('http://127.0.0.1:8050/v1', '')).toBe('vllm');
-    expect(llm.llmRuntime('http://llm-vllm:8000/v1', '')).toBe('vllm');
-    expect(llm.llmRuntime('http://llm:11434/v1', '')).toBe('ollama');
-    expect(llm.llmRuntime('https://api.example.com/v1', '')).toBe('remote');
-    expect(llm.llmRuntime('http://127.0.0.1:8050/v1', 'ollama')).toBe('ollama');
-  });
-  it('the default local model is Qwen3.8-27B-NVFP4; Qwen3.6 is the rollback, only when named', async () => {
-    const { llm } = await withVllm();
-    expect(llm.resolveProvider().model).toBe('Qwen3.8-27B-NVFP4');
+    expect(llm.resolveProvider()).toMatchObject({ provider: 'openai-compatible', model: 'Qwen3.8-27B-NVFP4', baseUrl: 'http://127.0.0.1:8050/v1' });
     expect(llm.DEFAULT_LOCAL_LLM).toBe(PLANNER_MODEL);
-    expect(llm.FALLBACK_LOCAL_LLM).toBe('qwen3.6:27b-q8_0');
     expect(llmDisplayName('')).toBe('Qwen3.8-27B-NVFP4');
-    expect(llmDisplayName('qwen3.6:27b-q8_0')).toMatch(/rollback/);
+    expect((await withVllm({ OPENAI_COMPATIBLE_BASE_URL: 'http://llm-vllm:8000/v1' })).llm.resolveProvider().baseUrl).toBe('http://llm-vllm:8000/v1');
+  });
+  it('nothing configured, or a hosted URL, is refused with the reason — never replaced by another engine', async () => {
+    const none = await withVllm({ OPENAI_COMPATIBLE_BASE_URL: '' });
+    expect(() => none.llm.resolveProvider()).toThrow(/not configured/);
+    const hosted = await withVllm({ OPENAI_COMPATIBLE_BASE_URL: 'https://api.example.com/v1', MINIMAX_API_KEY: 'k' });
+    expect(() => hosted.llm.resolveProvider()).toThrow(/must be the local vLLM server/);
   });
 });
 

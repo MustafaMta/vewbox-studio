@@ -149,8 +149,6 @@ const STEPS = [
     } },
   { id: 'planner', name: 'The planner (vLLM, Qwen3.8-27B-NVFP4) loads from the store, answers /v1/models, then sleeps (the GPU lease wakes it)', cmd: `docker compose -p ${PROJECT} up -d llm-vllm; GET http://127.0.0.1:8050/v1/models; POST /sleep?level=2`,
     go: async () => {
-      // Ollama's `llm` (the Qwen3.6 rollback) stays stopped: two LLM servers would fight for the card
-      run('docker', compose('stop', 'llm'));
       const up = run('docker', compose('up', '-d', 'llm-vllm')); if (!up.ok) return { ok: false, detail: up.err };
       const h = await waitHealthy('llm-vllm', 60); if (!h.ok) return h;
       const m = await http('http://127.0.0.1:8050/v1/models');

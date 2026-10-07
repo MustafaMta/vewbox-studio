@@ -1,8 +1,7 @@
 import type { Job } from '@/domain/jobs';
 import type { Production } from '@/domain/types';
-import { env } from '../env';
 import { log } from '../log';
-import { llmSpeed, resolveProvider } from '../providers/llm';
+import { llmSpeed, localContextLength, resolveProvider } from '../providers/llm';
 import { planOutputTokens, sceneBudget } from '../story/engine';
 import { planShotsWorkMs } from './deadlines';
 
@@ -28,8 +27,8 @@ export async function workDeadlineMs(job: Pick<Job, 'type' | 'payload'>): Promis
     const { readState } = await import('../studio/engine');
     const p = (await readState()).state.productions.find((x) => x.id === productionId);
     if (!p) return undefined;
-    const cfg = resolveProvider();
-    return planShotsWorkMs(planShotsWork(p, sceneIds, env().OLLAMA_CONTEXT_LENGTH), llmSpeed(cfg.model, cfg.provider, cfg.baseUrl));
+    // sized on the planner's real window (vLLM --max-model-len), the same one the shot planner splits a scene by
+    return planShotsWorkMs(planShotsWork(p, sceneIds, localContextLength()), llmSpeed(resolveProvider().model));
   } catch (e) {
     log.warn({ err: (e as Error).message, type: job.type }, 'work deadline: could not size the job; the flat deadline applies');
     return undefined;

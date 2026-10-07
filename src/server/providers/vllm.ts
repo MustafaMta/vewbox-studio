@@ -1,21 +1,20 @@
 import { env } from '../env';
-import { engineGuardProblem } from '../gpu/lease-db';
+import { engineGuardProblem, isLocalEngine } from '../gpu/lease-db';
 import { log } from '../log';
 import { StudioError } from '@/domain/errors';
-import { llmRuntime } from './llm';
 
-/** THE vLLM PLANNER SERVER (compose service llm-vllm; docs/research/MODEL-EVAL-2026-10.md §12) and how it lets go of
- *  the card. Qwen3.8-27B-NVFP4 holds most of it (≈ 25 GB of weights plus its cache); MiniMax H3 needs the whole card, so on a family switch the GPU lease puts
- *  vLLM to SLEEP LEVEL 2 (weights and KV cache dropped from VRAM, nothing parked in host RAM — H3 needs that too), and
- *  the next LLM call WAKES it inside its own lease: the weights are reloaded from the store (`reload_weights`), then
- *  the cache is re-allocated. The sleep/wake endpoints are vLLM's dev endpoints (VLLM_SERVER_DEV_MODE=1; the port is
- *  bound to 127.0.0.1 only). Every call is bounded; an engine that is not running has nothing on the card. */
+/** THE vLLM PLANNER SERVER (compose service llm-vllm) and how it lets go of the card. Qwen3.8-27B-NVFP4 holds most of
+ *  it (24.2 GiB of weights plus its cache, ≈ 30 GB in all); on a family switch the GPU lease puts vLLM to SLEEP LEVEL 2
+ *  (weights and KV cache dropped from VRAM, nothing parked in host RAM: 0.4 s, ≈ 1.7 GB of CUDA context stays), and the
+ *  next LLM call WAKES it inside its own lease: the weights are reloaded from the store (`reload_weights`), then the
+ *  cache is re-allocated (≈ 6 s, measured 2026-10-07). The sleep/wake endpoints are vLLM's dev endpoints
+ *  (VLLM_SERVER_DEV_MODE=1; the port is bound to 127.0.0.1 only). Every call is bounded; an engine that is not running
+ *  has nothing on the card. */
 
-/** vLLM's base URL (without /v1) when the story model runs on vLLM here; undefined otherwise (or outside the live lease). */
+/** vLLM's base URL (without /v1) for the configured planner; undefined when none is configured (or outside the live lease). */
 export function localVllmBase(): string | undefined {
   const url = env().OPENAI_COMPATIBLE_BASE_URL;
-  if (!url) return undefined;
-  if (llmRuntime(url) !== 'vllm') return undefined;
+  if (!url || !isLocalEngine(url)) return undefined;
   const base = url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
   return engineGuardProblem(base) ? undefined : base;
 }

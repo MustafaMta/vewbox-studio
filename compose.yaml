@@ -33,25 +33,16 @@ x-app-env: &app-env
   MINIMAX_BASE_URL: ${MINIMAX_BASE_URL:-https://api.minimax.io}
   MINIMAX_VIDEO_MODEL: ${MINIMAX_VIDEO_MODEL:-MiniMax-H3}
   MINIMAX_VIDEO_RESOLUTION: ${MINIMAX_VIDEO_RESOLUTION:-768P}
-  MINIMAX_TEXT_MODEL: ${MINIMAX_TEXT_MODEL:-MiniMax-M3}
   MINIMAX_SPEECH_MODEL: ${MINIMAX_SPEECH_MODEL:-speech-2.8-hd}
   MINIMAX_MUSIC_MODEL: ${MINIMAX_MUSIC_MODEL:-music-3.0}
   VIDEO_BACKEND: ${VIDEO_BACKEND:-auto}
   MUSIC_ENGINE: ${MUSIC_ENGINE:-auto}
-  LLM_PROVIDER: ${LLM_PROVIDER:-auto}
-  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
-  # the local story model: Qwen3.8-27B-NVFP4 on vLLM (service llm-vllm) since 2026-10-06 (docs/research/MODEL-EVAL-2026-10.md
-  # §12). Rollback only (Qwen3.6-27B Q8_0 on Ollama): OPENAI_COMPATIBLE_BASE_URL=http://llm:11434/v1,
-  # OPENAI_COMPATIBLE_RUNTIME=ollama, OPENAI_COMPATIBLE_MODEL=qwen3.6:27b-q8_0 (and stop `llm-vllm`, start `llm` under profile fallback)
+  # THE PLANNER — the only one: Qwen3.8-27B-NVFP4 on the local vLLM server (service llm-vllm, below). No hosted or
+  # fallback planner: when it is not reachable the story jobs fail with the reason.
   OPENAI_COMPATIBLE_BASE_URL: ${OPENAI_COMPATIBLE_BASE_URL:-http://llm-vllm:8000/v1}
   OPENAI_COMPATIBLE_API_KEY: ${OPENAI_COMPATIBLE_API_KEY:-local}
   OPENAI_COMPATIBLE_MODEL: ${OPENAI_COMPATIBLE_MODEL:-Qwen3.8-27B-NVFP4}
-  OPENAI_COMPATIBLE_RUNTIME: ${OPENAI_COMPATIBLE_RUNTIME:-vllm}
   LLM_CONTEXT_LENGTH: ${LLM_CONTEXT_LENGTH:-32768}
-  # what the app asks the local Ollama for per request (num_ctx, keep_alive); the llm service gets the same values
-  OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
-  OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
   COMFYUI_URL: ${COMFYUI_URL:-http://comfyui:8188}
   TTS_URL: ${TTS_URL:-http://tts:8020}
   TTS_HABIBI_URL: ${TTS_HABIBI_URL:-http://tts-habibi:8021}
@@ -392,51 +383,6 @@ services:
         rm -rf "$$ASR_CT2_DIR" && mv "$$ASR_CT2_DIR.partial" "$$ASR_CT2_DIR"
         ls -la "$$ASR_CT2_DIR" && du -sh "$$ASR_CT2_DIR"
 
-  # Local story engine (OpenAI-compatible) so writing works without a hosted key. Weights are pulled once into the volume
-  # (llm-pull). Since Phase 1 (2026-10-06) this is the ROLLBACK ONLY: qwen3.6:27b-q8_0 (the previous planner; 28.4 GB
-  # loaded at 16K, card ≈ 31.5 GB of 32.6; docs/research/MODEL-EVAL-2026-10.md §9), kept in the store until the producer
-  # approves its removal. The production planner is llm-vllm below; never run both (each takes the whole card).
-  # Flash attention with a q8_0 KV cache halves the cache; OLLAMA_CONTEXT_LENGTH is the server default and what the app
-  # sends as num_ctx.
-  llm:
-    logging: *logging
-    image: ollama/ollama:0.35.1
-    dns: *dns
-    # the Qwen3.6 rollback only: not started by a plain `up` (`docker compose --profile fallback up -d llm`)
-    profiles: ["fallback"]
-    restart: unless-stopped
-    environment:
-      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
-      OLLAMA_NUM_PARALLEL: "1"
-      OLLAMA_MAX_LOADED_MODELS: "1"
-      OLLAMA_FLASH_ATTENTION: ${OLLAMA_FLASH_ATTENTION:-1}
-      OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
-      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-16384}
-      NVIDIA_VISIBLE_DEVICES: all
-      # Ollama (Go) trusts the system bundle plus every PEM file in these directories: the extra root (EXTRA_CA_FILE,
-      # secret extra_ca, empty by default) lets `ollama pull` through an antivirus that re-signs HTTPS; empty = no-op
-      SSL_CERT_DIR: /etc/ssl/certs:/run/secrets
-      # the weights: <store>/llm/ollama/models (the `ollama` volume is <store>/llm/ollama, mounted as /root/.ollama)
-      OLLAMA_MODELS: /root/.ollama/models
-    secrets: [extra_ca]
-    volumes:
-      - ollama:/root/.ollama
-    ports:
-      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
-      interval: 15s
-      timeout: 5s
-      start_period: 20s
-      retries: 5
-
   # THE PRODUCTION PLANNER (producer model-stack correction 2026-10-07): Inferact/Qwen3.8-27B-NVFP4 (ModelOpt NVFP4 of
   # Qwen/Qwen3.8-27B, Apache-2.0; manifest group llm-qwen3.8-27b-nvfp4 → <store>/llm/qwen3.8-27b-nvfp4, read-only) on
   # vLLM's OpenAI server, configured as vLLM's single-RTX-5090 recipe: TP 1, 32K context, FP8 KV cache, eager mode (CUDA
@@ -486,32 +432,6 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"], interval: 20s, timeout: 10s, start_period: 600s, retries: 10 }
     stop_grace_period: 30s
 
-  # One-shot: pull the story/vision models into the ollama volume (Ollama's own registry, not the fetcher; resumable).
-  # `docker compose --profile models run --rm llm-pull`. Runs its own short-lived server on the CPU (a pull loads nothing
-  # on the card), so the `llm` service need not be up; with `llm` up, `docker compose exec llm ollama pull <tag>` is the same.
-  llm-pull:
-    logging: *logging
-    image: ollama/ollama:0.35.1
-    dns: *dns
-    profiles: ["models"]
-    environment:
-      OLLAMA_PULL_MODELS: ${OLLAMA_PULL_MODELS:-qwen3.6:27b-q8_0}
-      OLLAMA_HOST: 127.0.0.1:11435
-      SSL_CERT_DIR: /etc/ssl/certs:/run/secrets # the extra root, as for `llm`
-      OLLAMA_MODELS: /root/.ollama/models
-    secrets: [extra_ca]
-    volumes:
-      - ollama:/root/.ollama
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        ollama serve >/tmp/serve.log 2>&1 &
-        for i in $$(seq 1 60); do ollama list >/dev/null 2>&1 && break; sleep 1; done
-        rc=0
-        for m in $$(echo "$$OLLAMA_PULL_MODELS" | tr ',' ' '); do echo "pull $$m"; ollama pull "$$m" || rc=1; done
-        ollama list
-        exit $$rc
-
   # One-shot: fetch pinned model weights into the shared volume (resumable, verified). `docker compose --profile models run --rm models`
   # MODEL_GROUPS is read from .env / the shell when compose parses this file, NOT from `run -e`: to fetch one group, pass the
   # arguments instead: `docker compose --profile models run --rm models --manifest manifest.json --root /models --groups stack-2026-10`
@@ -536,9 +456,8 @@ services:
       - ./docker/models/layout.json:/app/layout.json:ro
     command: ["--manifest", "manifest.json", "--root", "/models", "--groups", "${MODEL_GROUPS:-video-minimax-h3,images-qwen,asr-whisper,music-ace-step,video-minimax-h3-reference,music-minimax-3,voice-design}"]
 
-# An extra public root certificate the asr and models builds (and the llm / llm-pull containers, at run time) trust,
-# for a network that inspects TLS (an antivirus's HTTPS scanning re-signs pypi.org, huggingface.co and the Ollama
-# registry with its own root). EXTRA_CA_FILE in .env points at it (kept outside Git, e.g. var/certs/extra-ca.pem);
+# An extra public root certificate the asr and models builds trust, for a network that inspects TLS (an antivirus's
+# HTTPS scanning re-signs pypi.org and huggingface.co with its own root). EXTRA_CA_FILE in .env points at it (kept outside Git, e.g. var/certs/extra-ca.pem);
 # unset, an empty file is passed and nothing changes.
 secrets:
   extra_ca:
@@ -556,8 +475,4 @@ volumes:
     driver_opts: { type: none, o: bind, device: "${VEWBOX_MODELS_ROOT:-/run/desktop/mnt/host/wsl/models}" }
   comfyout:
   comfyin:
-  ollama:
-    name: vewbox_ollama_store
-    driver: local
-    driver_opts: { type: none, o: bind, device: "${VEWBOX_MODELS_ROOT:-/run/desktop/mnt/host/wsl/models}/llm/ollama" }
   nvjit:

@@ -1,5 +1,5 @@
-/** The story model's name as the studio shows it (Settings › Engines, the engine room). Pure. The production planner
- *  is Qwen3.8-27B-NVFP4 on vLLM (docs/research/MODEL-EVAL-2026-10.md §12); Qwen3.6-27B on Ollama is the rollback only. */
+/** The planner's name as the studio shows it (Settings › Engines, the engine room). Pure. The studio has ONE planner:
+ *  Qwen3.8-27B-NVFP4 on the local vLLM server; any other configured id is shown as it is. */
 export const PLANNER_MODEL = 'Qwen3.8-27B-NVFP4';
 
 export function llmDisplayName(model: string | undefined | null): string {
@@ -7,9 +7,5 @@ export function llmDisplayName(model: string | undefined | null): string {
   if (!m) return PLANNER_MODEL;
   const l = m.toLowerCase();
   if (l === PLANNER_MODEL.toLowerCase() || l.endsWith('/qwen3.8-27b-nvfp4')) return PLANNER_MODEL;
-  if (l === 'qwen3.8-27b-fp8' || l.endsWith('/qwen3.8-27b-fp8')) return 'Qwen3.8-27B-FP8 (inactive)';
-  if (l.startsWith('qwen3.6:27b')) return 'Qwen3.6-27B (rollback)';
-  if (l.startsWith('gemma4:31b')) return 'Gemma 4 31B (not in the frozen stack)';
-  if (l.startsWith('qwen3:14b')) return 'Qwen3 14B (preview)';
   return m;
 }

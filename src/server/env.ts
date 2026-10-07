@@ -22,27 +22,14 @@ const Schema = z.object({
   MINIMAX_BASE_URL: z.string().default('https://api.minimax.io'),
   MINIMAX_VIDEO_MODEL: z.string().default('MiniMax-H3'),
   MINIMAX_VIDEO_RESOLUTION: z.string().default('768P'),
-  MINIMAX_TEXT_MODEL: z.string().default('MiniMax-M3'),
   MINIMAX_SPEECH_MODEL: z.string().default('speech-2.8-hd'),
   MINIMAX_MUSIC_MODEL: z.string().default('music-3.0'),
-  /** Story engine. */
-  LLM_PROVIDER: z.enum(['minimax', 'anthropic', 'openai-compatible', 'auto']).default('auto'),
-  ANTHROPIC_API_KEY: z.string().optional().default(''),
-  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5-5'),
+  /** THE PLANNER (the only one): Qwen3.8-27B-NVFP4 on the local vLLM server (compose service llm-vllm). */
   OPENAI_COMPATIBLE_BASE_URL: z.string().optional().default(''),
   OPENAI_COMPATIBLE_API_KEY: z.string().optional().default(''),
   OPENAI_COMPATIBLE_MODEL: z.string().optional().default(''),
-  /** The local Ollama only (the OpenAI-compatible server on :11434): the context window asked for per request (num_ctx;
-   *  the llm service's OLLAMA_CONTEXT_LENGTH carries the same value) and how long a model stays loaded after a request
-   *  (keep_alive; the lease unloads it earlier with keep_alive 0 when another family takes the card). */
-  OLLAMA_CONTEXT_LENGTH: z.coerce.number().int().positive().default(16384),
-  OLLAMA_KEEP_ALIVE: z.string().default('2m'),
-  /** Which kind of server OPENAI_COMPATIBLE_BASE_URL is: `vllm` (the production planner, Qwen3.8-27B-NVFP4, compose
-   *  service llm-vllm), `ollama` (the Qwen3.6 rollback), `remote` (a hosted OpenAI-compatible API). Empty =
-   *  decided from the URL (:11434 → ollama; a local engine address → vllm; anything else → remote). */
-  OPENAI_COMPATIBLE_RUNTIME: z.enum(['', 'vllm', 'ollama', 'remote']).default(''),
-  /** The local model's context window (prompt + answer), the vLLM server's --max-model-len; empty = OLLAMA_CONTEXT_LENGTH. */
-  LLM_CONTEXT_LENGTH: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().positive().optional()),
+  /** The planner's context window (prompt + answer): the vLLM server's --max-model-len. */
+  LLM_CONTEXT_LENGTH: z.preprocess((v) => (v === '' ? undefined : v), z.coerce.number().int().positive().default(32768)),
   /** Local GPU services. */
   COMFYUI_URL: z.string().default('http://comfyui:8188'),
   TTS_URL: z.string().default('http://tts:8020'),
@@ -107,10 +94,10 @@ export function capabilities() {
   const e = env();
   return {
     minimax: Boolean(e.MINIMAX_API_KEY),
-    llm: e.LLM_PROVIDER === 'auto' ? (e.MINIMAX_API_KEY ? 'minimax' : e.ANTHROPIC_API_KEY ? 'anthropic' : e.OPENAI_COMPATIBLE_BASE_URL ? 'openai-compatible' : null) : e.LLM_PROVIDER,
-    anthropic: Boolean(e.ANTHROPIC_API_KEY),
+    /** the planner (the local vLLM server) when it is configured */
+    llm: e.OPENAI_COMPATIBLE_BASE_URL ? 'openai-compatible' : null,
     openaiCompatible: Boolean(e.OPENAI_COMPATIBLE_BASE_URL),
-    /** the local story model as shown (Qwen3.8-27B-NVFP4 unless OPENAI_COMPATIBLE_MODEL names the fallback) */
+    /** the planner's model as shown */
     llmModel: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL),
     comfyui: e.COMFYUI_URL,
     tts: e.TTS_URL,
