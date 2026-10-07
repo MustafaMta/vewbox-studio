@@ -39,6 +39,9 @@ export const CONTINUITY_QA = {
   /** a frame change is a cut when it is over `cutFloor` and over `cutFactor` × the take's median frame change */
   cutFloor: 18,
   cutFactor: 6,
+  /** …and only when the frame's structure changes too: 1 − correlation with the frame before over this (a new picture
+   *  correlates weakly with the old; a flash of light or a fade keeps the picture, correlation stays high) */
+  cutStructure: 0.35,
   /** a planned cut matches a measured one within this many seconds */
   cutTolerance: 0.5,
   /** a line is heard on time when its start is within this many seconds of where the take placed it, and its heard
@@ -48,14 +51,27 @@ export const CONTINUITY_QA = {
   basis: 'START values (docs/research/FILM-PIPELINE-RESEARCH-2026-10-05.md §D); calibrate over real H3 takes',
 } as const;
 
-export interface FrameSeries { means: number[]; diffs: number[]; fps: number }
+/** `structure`: 1 − the Pearson correlation of each frame with the one before (0 for the first) — blind to a change of
+ *  brightness or contrast over the whole picture, high when the picture itself changes. */
+export interface FrameSeries { means: number[]; diffs: number[]; fps: number; structure?: number[] }
 
 const median = (xs: number[]) => { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const mean = (a: Uint8Array) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i]; return a.length ? s / a.length : 0; };
 
-/** The per-frame series a take's checks read: each frame's mean luma and its difference from the previous frame. */
+/** Pearson correlation of two equal-length frames (1 for a flat frame pair: nothing to compare). */
+export function frameCorrelation(a: Uint8Array, b: Uint8Array): number {
+  const n = Math.min(a.length, b.length); if (!n) return 1;
+  let sa = 0, sb = 0; for (let i = 0; i < n; i++) { sa += a[i]; sb += b[i]; }
+  const ma = sa / n, mb = sb / n;
+  let cov = 0, va = 0, vb = 0;
+  for (let i = 0; i < n; i++) { const x = a[i] - ma, y = b[i] - mb; cov += x * y; va += x * x; vb += y * y; }
+  return va && vb ? cov / Math.sqrt(va * vb) : 1;
+}
+
+/** The per-frame series a take's checks read: each frame's mean luma, its difference from the previous frame, and how
+ *  much of its structure changed (`structure`). */
 export function frameSeries(frames: Uint8Array[], fps: number): FrameSeries {
-  return { means: frames.map(mean), diffs: frames.map((f, i) => (i ? meanAbsDiff(frames[i - 1], f) : 0)), fps };
+  return { means: frames.map(mean), diffs: frames.map((f, i) => (i ? meanAbsDiff(frames[i - 1], f) : 0)), structure: frames.map((f, i) => (i ? 1 - frameCorrelation(frames[i - 1], f) : 0)), fps };
 }
 
 /** The length of a ramp out of black at the start (or, reversed, into black at the end): frames rising steadily from
@@ -69,7 +85,14 @@ function rampFrames(means: number[], fromStart: boolean): number {
 }
 
 /** Fades in or out of black and black dips inside the take (after its `head` frames, which repeat another shot). */
-export function judgeFades(s: FrameSeries, head = 0): QaCheck {
+/** A shot whose own light goes dark on purpose — a flickering lamp, lightning, a blackout (its continuity says so) —
+ *  dips to black by design: the dip is reported, not flagged ("The Last Crossing" 1.3: "the bulb sputters, dimming to
+ *  near-black before flaring back" read as a fade). Pure (tested). */
+export function lightGoesDark(lighting: string | undefined): boolean {
+  return /\b(flicker\w*|sputter\w*|strob\w*|lightning|blackout|power cut|goes? (out|dark))\b/i.test(lighting ?? '');
+}
+
+export function judgeFades(s: FrameSeries, head = 0, opts: { lightGoesDark?: boolean } = {}): QaCheck {
   const body = s.means.slice(head);
   const rampIn = rampFrames(body, true), rampOut = rampFrames(body, false);
   // a ramp counts as a fade when it is long and climbs out of black into a lit picture
@@ -86,7 +109,9 @@ export function judgeFades(s: FrameSeries, head = 0): QaCheck {
   const problems: string[] = [];
   if (fadeIn >= CONTINUITY_QA.fadeMinFrames) problems.push(`fades in from black over ${fadeIn} frames`);
   if (fadeOut >= CONTINUITY_QA.fadeMinFrames) problems.push(`fades out to black over ${fadeOut} frames`);
-  for (const d of dips) problems.push(`dips to black at ${((d.from + head) / s.fps).toFixed(2)}–${((d.to + head + 1) / s.fps).toFixed(2)} s`);
+  const dipWords = dips.map((d) => `dips to black at ${((d.from + head) / s.fps).toFixed(2)}–${((d.to + head + 1) / s.fps).toFixed(2)} s`);
+  if (opts.lightGoesDark && dipWords.length && !problems.length) return { name: 'no-accidental-fade', ok: true, value: 0, threshold: 'the shot’s own light goes dark', detail: `${dipWords.join('; ')} — the shot’s light flickers or goes out by design, not a fade` };
+  problems.push(...dipWords);
   return { name: 'no-accidental-fade', ok: problems.length === 0, value: problems.length, threshold: `no ramp from or to luma < ${CONTINUITY_QA.blackLuma} over ≥ ${CONTINUITY_QA.fadeMinFrames} frames, no black dip`, detail: problems.length ? `${problems.join('; ')} — a fade never hides a continuity problem (review)` : 'no fade or black dip' };
 }
 
@@ -105,8 +130,14 @@ export function judgeDuplicates(s: FrameSeries, head = 0): QaCheck {
 export function measuredCuts(s: FrameSeries, head = 0): number[] {
   const body = s.diffs.slice(head + 1);
   const floor = Math.max(CONTINUITY_QA.cutFloor, CONTINUITY_QA.cutFactor * median(body));
+  // A CUT CHANGES THE PICTURE, NOT ONLY ITS LIGHT: lightning in a storm swung every pixel's level and read as two cuts
+  // in a continuous shot (2026-10-08, "The Last Crossing" 1.3); a change counts only when the frame's structure changes
+  const structure = s.structure?.slice(head + 1);
   const out: number[] = [];
-  body.forEach((x, i) => { if (x > floor && (!out.length || (i + head + 1) / s.fps - out[out.length - 1] > 0.25)) out.push((i + head + 1) / s.fps); });
+  body.forEach((x, i) => {
+    const restructured = !structure || structure[i] > CONTINUITY_QA.cutStructure;
+    if (x > floor && restructured && (!out.length || (i + head + 1) / s.fps - out[out.length - 1] > 0.25)) out.push((i + head + 1) / s.fps);
+  });
   return out;
 }
 
@@ -232,10 +263,10 @@ export async function colourJoin(previousFile: string, file: string, opts: { pre
 /** The model-free continuity checks of one take file. `head`: frames repeating the previous shot (a continuation);
  *  `plannedCuts`: seconds from the take's start; `script`/`heard`: for the repeated-speech check; `colour`: the shot
  *  before it in the same scene (its file, where its window ends), for the colour join. */
-export async function continuityChecks(file: string, opts: { fps: number; head: number; plannedCuts: number[]; script?: string[]; heard?: string; colour?: { previousFile: string; previousEndFrame?: number; relation: 'CONTINUATION' | 'CUT' } }): Promise<QaCheck[]> {
+export async function continuityChecks(file: string, opts: { fps: number; head: number; plannedCuts: number[]; script?: string[]; heard?: string; colour?: { previousFile: string; previousEndFrame?: number; relation: 'CONTINUATION' | 'CUT' }; lighting?: string }): Promise<QaCheck[]> {
   const frames = await greyFrames(file);
   const s = frameSeries(frames, opts.fps);
-  const checks = [judgeFades(s, opts.head), judgeDuplicates(s, opts.head), judgeCuts(s, opts.plannedCuts, opts.head)];
+  const checks = [judgeFades(s, opts.head, { lightGoesDark: lightGoesDark(opts.lighting) }), judgeDuplicates(s, opts.head), judgeCuts(s, opts.plannedCuts, opts.head)];
   if (opts.script?.length && opts.heard !== undefined) checks.push(judgeRepeatedSpeech(opts.script, opts.heard));
   if (opts.colour) {
     try { checks.push(await colourJoin(opts.colour.previousFile, file, { previousEndFrame: opts.colour.previousEndFrame, head: opts.head, relation: opts.colour.relation })); } catch (e) { checks.push({ name: 'colour-continuity', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` }); }

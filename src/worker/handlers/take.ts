@@ -611,7 +611,7 @@ export const generateTake: Handler = async (ctx) => {
     const headSeconds = trimStartFrames / H3_FPS;
     const plannedCuts = (sh.staging?.beats ?? []).filter((b) => b.cut && b.at > 0).map((b) => headSeconds + b.at);
     try {
-      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard, colour: colourAgainst(pack.context.shot.previous, relation) }));
+      const measured = await step(ctx, 'visual-quality-inspector', `continuity-check: shot ${sh.number}`, () => continuityChecks(result.file, { fps: H3_FPS, head: trimStartFrames, plannedCuts, script: p.kind === 'MUSIC_VIDEO' ? undefined : sh.dialogue.map(lineText).filter(Boolean), heard: scriptCheck?.heard, colour: colourAgainst(pack.context.shot.previous, relation), lighting: [sh.continuity?.environment?.lighting, sh.continuity?.environment?.weather, sh.action].filter(Boolean).join('; ') }));
       driftChecks.push(...measured);
     } catch (e) {
       driftChecks.push({ name: 'continuity-measured', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });

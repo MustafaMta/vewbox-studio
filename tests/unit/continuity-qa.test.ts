@@ -62,6 +62,27 @@ describe('cuts inside the take', () => {
     expect(c.detail).toMatch(/unplanned: 2\.00 s/);
     expect(judgeCuts(frameSeries(scene(96, 60), 24), [2]).detail).toMatch(/planned but not seen: 2\.00 s/);
   });
+  it('a flash of light keeps the picture: lightning is not a cut; a new picture at the same level still is', () => {
+    // a structured picture (a gradient with detail), lit normally, then a lightning frame (every pixel brighter), then
+    // normal again — and, separately, the same level but a different picture (mirrored)
+    const pic = (gain: number, mirror = false) => { const a = new Uint8Array(W); for (let i = 0; i < W; i++) { const x = mirror ? 63 - (i % 64) : i % 64; const y = Math.floor(i / 64); a[i] = Math.max(0, Math.min(255, Math.round((40 + x * 2 + ((x * 7 + y * 13) % 23)) * gain))); } return a; };
+    const flash = frameSeries([...Array.from({ length: 30 }, () => pic(1)), pic(2.2), pic(2.2), ...Array.from({ length: 30 }, () => pic(1))], 24);
+    expect(Math.max(...flash.diffs)).toBeGreaterThan(18); // the old luma test called it a cut
+    expect(measuredCuts(flash)).toEqual([]);
+    const cut = frameSeries([...Array.from({ length: 30 }, () => pic(1)), ...Array.from({ length: 30 }, () => pic(1, true))], 24);
+    expect(measuredCuts(cut)).toEqual([1.25]);
+  });
+  it('a dip to black in a shot whose light flickers or goes out is the shot’s light, reported, not flagged', async () => {
+    const { lightGoesDark } = await import('@/server/media/continuity-qa');
+    expect(lightGoesDark('Dim, flickering bulb inside lens casting long shadows, high contrast')).toBe(true);
+    expect(lightGoesDark('Heavy rain; lightning outside')).toBe(true);
+    expect(lightGoesDark('Warm morning light')).toBe(false);
+    const dip = [...moving(20), flat(2), flat(3), ...moving(20)];
+    expect(judgeFades(frameSeries(dip, 24), 0, { lightGoesDark: true })).toMatchObject({ ok: true, detail: expect.stringMatching(/dips to black at 0\.83–0\.92 s — the shot’s light flickers/) });
+    // a fade in from black is never excused by the light
+    const fade = [...Array.from({ length: 10 }, (_, i) => flat(i * 12)), ...moving(40)];
+    expect(judgeFades(frameSeries(fade, 24), 0, { lightGoesDark: true }).ok).toBe(false);
+  });
   it('the join out of a continuation head is not an in-take cut', () => {
     const s = frameSeries([...scene(22, 60), ...scene(60, 190)], 24);
     expect(judgeCuts(s, [], 22).ok).toBe(true);
