@@ -188,7 +188,12 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
     if (!who) return '';
     // no "wears": a character's wardrobe is its canonical image; the planner's words for it ("tweed jacket" for a man in
     // a cardigan) drew a third person into a two-shot (D30)
-    const bits = [x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`].filter(Boolean);
+    // HOW THEY ARE IN THIS MOMENT, said, never left to the reference picture: the planner's emotion, condition and
+    // starting pose were dropped here, and the frames copied the canonical portrait's smile into a strained, soaked
+    // climb (2026-10-08, "The Last Crossing" 1.1–1.2). Wardrobe stays the canonical image's (D30); a state such as
+    // "soaked" arrives through the condition.
+    const pose = x.startPose || x.pose;
+    const bits = [pose && clean(pose).toLowerCase(), x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`, x.emotion && `with a ${clean(x.emotion).toLowerCase()} expression`, x.condition && `${clean(x.condition).toLowerCase()}`].filter(Boolean);
     return bits.length ? `${who} ${bits.join(', ')}.` : '';
   }).filter(Boolean);
   const props = c.props.filter((x) => x.position || x.state).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}${x.position ? ` ${clean(x.position)}` : ''}`);

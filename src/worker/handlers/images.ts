@@ -531,7 +531,9 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   for (const { c, a } of pictured) {
     refs.push(a); shown.push(refs.length); imageOf.set(c.id, refs.length);
     crops.push(close && a.width && a.height ? personCropFor(sh.framing, { width: a.width, height: a.height }) : undefined);
-    notes.push(close ? `image ${refs.length} is the person ${who(c)}, framed as this shot frames them — keep the face, hair, skin and wardrobe exactly` : `image ${refs.length} is the person ${who(c)} — keep the face, hair, skin and wardrobe exactly`);
+    // the picture gives WHO they are, not how they are now: its smile and pose were copied into a strained, soaked
+    // moment (2026-10-08, "The Last Crossing" 1.1–1.2); the expression, pose and condition are the moment's
+    notes.push(`${close ? `image ${refs.length} is the person ${who(c)}, framed as this shot frames them` : `image ${refs.length} is the person ${who(c)}`} — keep the face, hair, skin and wardrobe exactly; take the expression, pose and condition from this moment, not from the picture`);
   }
   if (close) addPlate();
   if (!close && people.length === 1 && refs.length < 3) {
@@ -579,15 +581,13 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // D30: the prompt alone did not hold the number of people (two strangers in 2 of 10 frames); the vision model
   // counted 10/10 frames right, the portrait on the wall excluded — so the frame is counted and drawn once more
   const expected = peopleExpected(sh, people);
-  let kept: Drawn | undefined; let counted: number | undefined;
-  for (let attempt = 0; attempt < 2 && !kept; attempt++) {
-    const r = await draw(ctx, { key: `frame:${sh.id}:${which}:${attempt}`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label: attempt ? `${label} (drawn again)` : label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
-    if (expected === undefined) { kept = r; break; }
-    counted = await countPeople(ctx, r.id, label);
-    if (counted === undefined || counted === expected || attempt === 1) kept = r;
-    else await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${r.id}) holds ${counted} people where the shot has ${expected}; drawing it once more`, { shotId: sh.id, assetId: r.id, expected, counted });
-    await ctx.checkpoint();
-  }
+  // ONE REQUEST, ONE FRAME (the first-attempt rule, docs/MASTER-PRODUCTION-PLAN.md): the frame is drawn once and its
+  // people counted; a wrong count is recorded on the frame and refused by the preflight until the producer redraws it
+  // — it is never drawn again silently (it was, once, until 2026-10-08)
+  let counted: number | undefined;
+  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, creativeAttempt: 1, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+  if (expected !== undefined) counted = await countPeople(ctx, kept.id, label);
+  await ctx.checkpoint();
   const wrong = expected !== undefined && counted !== undefined && counted !== expected;
   // THE COUNT IS KEPT ON THE FRAME (acceptance 2026-10-05, open item 5: a frame that failed the people count was kept
   // and the warning lived only in the job log): the shot page shows it beside the frame, and the preflight refuses to
@@ -602,7 +602,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
     await command('setShotFrames', [p.id, sh.id, { endingFrameAssetId: null }], 'worker');
     return undefined;
   }
-  if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) still holds ${counted} people where the shot has ${expected} — check it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
+  if (wrong) await ctx.event('warn', `shot ${scene?.number ?? '?'}.${sh.number}: the ${which} frame (${kept!.id}) holds ${counted} people where the shot has ${expected} — redraw it before filming`, { shotId: sh.id, assetId: kept!.id, expected, counted });
   // A ONE-PERSON CLOSE SHOT IS CUT TO ITS FRAMING (acceptance 2026-10-06, Tea 1.3): composed from the person, the edit
   // model still draws about a medium shot; the frame is cropped around the drawn face to the planned framing's extent
   // and scaled back to the take size — or kept as drawn (no face, or the crop would be too soft)
