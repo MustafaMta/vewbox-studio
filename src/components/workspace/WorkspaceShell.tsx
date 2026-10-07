@@ -95,7 +95,7 @@ function Outline({ p, shotId, tab, view }: { p: Production; shotId?: string; tab
           const shots = orderedShots(p).filter((sh) => sh.sceneId === sc.id);
           const chosen = shots.filter((sh) => sh.selectedTakeId).length;
           const open = !closed.has(sc.id);
-          const states = shots.map((sh) => shotState(p, sh, jobs));
+          const states = shots.map((sh) => shotState(p, sh, jobs, assetById(state, sh.openingFrameAssetId)));
           const tone = states.some((s) => s.kind === 'failed') ? 'failed' : states.some((s) => s.kind === 'running') ? 'running' : shots.length > 0 && chosen === shots.length ? 'done' : states.some((s) => s.tone === 'waiting') ? 'waiting' : 'idle';
           return (
             <div key={sc.id} className="ws-ol-scene">

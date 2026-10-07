@@ -52,7 +52,7 @@ export function ProduceTab({ p, gate }: { p: Production; gate: StudioGate }) {
           {p.shots.some((s) => s.takes.some((t) => t.provider === 'SAMPLE')) && <p className="t-meta">Takes marked as samples are bundled example clips; they show the flow, not this film.</p>}
           <ol className="ws-prod-list" role="list">
             {shots.map((sh) => {
-              const st = shotState(p, sh, jobs);
+              const st = shotState(p, sh, jobs, assetById(state, sh.openingFrameAssetId));
               return (
                 <li key={sh.id} className="ws-prod-row">
                   <div className="ws-prod-head">

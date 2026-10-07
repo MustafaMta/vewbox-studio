@@ -133,7 +133,7 @@ export function ProductionMap({ p, gate }: { p: Production; gate: StudioGate }) 
               {shots.length === 0 ? <p className="t-body ws-empty">No shots planned in this scene.</p> : (
                 <ul className="ws-strip" role="list" data-ratio={ratio}>
                   {shots.map((sh) => {
-                    const st = shotState(p, sh, jobs);
+                    const st = shotState(p, sh, jobs, assetById(state, sh.openingFrameAssetId));
                     const take = sh.takes.find((t) => t.id === sh.selectedTakeId);
                     const pic = assetById(state, take?.thumbnailAssetId) ?? assetById(state, sh.openingFrameAssetId);
                     return (

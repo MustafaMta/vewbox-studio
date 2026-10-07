@@ -2,6 +2,7 @@ import type { Asset, Location, Production, Shot, ShotBoundary, Take } from '@/do
 import { relationOf, type SceneState } from '@/domain/scene-state';
 import type { Job } from '@/domain/jobs';
 import { isActiveStatus } from '@/domain/jobs';
+import { frameCheckOf, frameIdentityOf } from '@/domain/frames';
 import type { Stage } from '@/domain/vocabulary';
 import type { Decision } from '@/studio/selectors/decisions';
 import { productionHref, shotLabel, stageIndex } from '@/studio/selectors';
@@ -96,7 +97,7 @@ export const activeShotJob = (p: Pick<Production, 'id'>, shotId: string, jobs: r
 export type ShotStateKind = 'selected' | 'sample' | 'running' | 'choose' | 'framed' | 'planned' | 'failed' | 'stale';
 export interface ShotState { kind: ShotStateKind; words: string; tone: 'done' | 'running' | 'waiting' | 'idle' | 'failed' }
 
-export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Job[]): ShotState {
+export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Job[], frame?: Pick<Asset, 'provenance'>): ShotState {
   const running = activeShotJob(p, sh.id, jobs);
   if (running) return { kind: 'running', words: running.type === 'SHOT_FRAMES' ? 'Drawing frames' : running.status === 'QUEUED' ? 'Waiting in the queue' : 'Filming', tone: 'running' };
   const newestTake = [...sh.takes].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -112,7 +113,15 @@ export function shotState(p: Pick<Production, 'id'>, sh: Shot, jobs: readonly Jo
   }
   const usable = sh.takes.filter((t) => t.status !== 'REJECTED' && t.rating !== 'REJECTED');
   if (usable.length) return { kind: 'choose', words: `${usable.length} ${usable.length === 1 ? 'take' : 'takes'} · choose one`, tone: 'waiting' };
-  if (sh.openingFrameAssetId) return { kind: 'framed', words: 'Opening frame drawn', tone: 'idle' };
+  if (sh.openingFrameAssetId) {
+    // what the frame's own checks found (the preflight refuses to film from a failed one): said in the list, not only
+    // on the shot page (2026-10-08: two refused frames read "Opening frame drawn")
+    const pc = frameCheckOf(frame); const fi = frameIdentityOf(frame);
+    if (pc && !pc.ok) return { kind: 'framed', words: 'Opening frame: wrong people · draw it again', tone: 'failed' };
+    if (fi?.verdict === 'FAIL') return { kind: 'framed', words: 'Opening frame: not the character’s face · draw it again', tone: 'failed' };
+    if (fi?.verdict === 'REVIEW') return { kind: 'framed', words: 'Opening frame drawn · check the face', tone: 'waiting' };
+    return { kind: 'framed', words: 'Opening frame drawn', tone: 'idle' };
+  }
   return { kind: 'planned', words: 'Planned', tone: 'idle' };
 }
 

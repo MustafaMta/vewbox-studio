@@ -53,7 +53,7 @@ export function StoryboardTab({ p, gate }: { p: Production; gate: StudioGate }) 
               <ol className="ws-strip ws-board-strip" role="list" data-ratio={ratio} onDragOver={(e) => e.preventDefault()}>
                 {shots.map((sh, i) => (
                   <BoardCard key={sh.id} p={p} sh={sh} first={i === 0} last={i === shots.length - 1} dragging={dragging === sh.id} over={over === sh.id && dragging !== sh.id}
-                    stateWords={shotState(p, sh, jobs)} pic={assetById(state, sh.takes.find((t) => t.id === sh.selectedTakeId)?.thumbnailAssetId) ?? assetById(state, sh.openingFrameAssetId)}
+                    stateWords={shotState(p, sh, jobs, assetById(state, sh.openingFrameAssetId))} pic={assetById(state, sh.takes.find((t) => t.id === sh.selectedTakeId)?.thumbnailAssetId) ?? assetById(state, sh.openingFrameAssetId)}
                     onDragStart={() => setDragging(sh.id)} onDragEnd={() => { setDragging(null); setOver(null); }} onDragOver={() => setOver(sh.id)} onDrop={() => drop(sh.id)}
                     onMove={(d) => act('moveShot', p.id, sh.id, d)} onDuplicate={() => { act('duplicateShot', p.id, sh.id); toast.ok('Shot duplicated.'); }}
                     onDelete={() => { if (window.confirm('Delete this shot and its takes?')) { act('deleteShot', p.id, sh.id); toast.ok('Deleted.'); } }} />
