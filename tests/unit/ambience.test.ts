@@ -22,7 +22,7 @@ describe('ambiencePrompt', () => {
     const p = ambiencePrompt(lantern, storm);
     expect(p).toMatch(/^Room tone and ambience inside: The lantern room of a Victorian lighthouse/);
     expect(p).toContain('cast iron, brass, glass');
-    expect(p).toContain('at night');
+    expect(p).toContain('glass. At night, quiet and still. A storm');
     expect(p).toContain('heavy rain');
     expect(p).toContain('the sea and waves below');
     expect(p).toContain('still, foggy air');
@@ -33,7 +33,7 @@ describe('ambiencePrompt', () => {
   it('an exterior with no scenes is the place alone; scenes at several times name none; a long description is cut to 600', () => {
     const out = ambiencePrompt({ kind: 'EXTERIOR', description: 'A quiet market street' });
     expect(out).toBe('Outdoor ambience at: A quiet market street. Continuous and steady, no voices, no speech, no music.');
-    expect(ambiencePrompt(lantern, [{ ...storm[0] }, { ...storm[1], timeOfDay: 'DAWN' }])).not.toMatch(/at night|at dawn/);
+    expect(ambiencePrompt(lantern, [{ ...storm[0] }, { ...storm[1], timeOfDay: 'DAWN' }])).not.toMatch(/at night|at dawn/i);
     expect(ambiencePrompt({ kind: 'EXTERIOR', description: 'x '.repeat(400), layout: { materials: Array.from({ length: 4 }, () => 'y'.repeat(100)) } }, storm).length).toBeLessThanOrEqual(600);
   });
 });
@@ -64,6 +64,10 @@ describe('ambienceVerdict', () => {
     expect(ambienceVerdict({ integratedLufs: -70, truePeakDbtp: -40 }).ok).toBe(false);
     expect(ambienceVerdict({ integratedLufs: Number.NEGATIVE_INFINITY, truePeakDbtp: Number.NaN }).reason).toMatch(/silent/);
     expect(ambienceVerdict({ integratedLufs: -20, truePeakDbtp: 0.2 }).reason).toMatch(/0\.20 dBTP/);
+    // voices, measured: three heard words refuse the bed; a stray word or an unverified check does not
+    expect(ambienceVerdict({ integratedLufs: -28, truePeakDbtp: -3 }, { words: 4, text: 'come back to me' }).reason).toMatch(/voices are heard/);
+    expect(ambienceVerdict({ integratedLufs: -28, truePeakDbtp: -3 }, { words: 1, text: 'uh' }).ok).toBe(true);
+    expect(ambienceVerdict({ integratedLufs: -28, truePeakDbtp: -3 }, null).ok).toBe(true);
   });
 });
 

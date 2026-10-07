@@ -19,6 +19,7 @@ import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
 import { locationIdentity } from '@/domain/location';
 import { LocationBible } from './LocationBible';
 import { AudioPlayer } from '@/components/players/Controls';
+import { usableAudio } from '@/domain/identity';
 
 const ROLE_WORD: Record<LocationRefRole, string> = { MASTER: 'Master plate', VIEW: 'View', STATE: 'Lighting state' };
 
@@ -196,7 +197,7 @@ function Ambience({ l }: { l: Location }) {
   };
   return (
     <CastSection id="ambience" title="Ambience" description="What the place sounds like: the bed the cut loops under every scene here, under the dialogue.">
-      {bed && a && usable(a) ? (
+      {bed && a && usableAudio(a) ? (
         <div className="card char-card loc-ambience">
           <AudioPlayer src={a.src} title={`${l.name} — ambience`} duration={bed.seconds} />
           <p className="t-body content-para" dir="auto">{bed.description}</p>

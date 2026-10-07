@@ -12,6 +12,7 @@ import { loudness } from '@/server/media/voice-check';
 import { generateSoundEffect, sfxConfigured, SFX_MAX_SECONDS } from '@/server/providers/sfx';
 import { ensurePin } from '@/server/world';
 import { recordQaReport } from '@/server/org/runs';
+import { isQaUnavailable, transcribeQwen } from '@/server/providers/qa-service';
 
 /** THE PLACES' AMBIENCE (master plan Phase 5 sound design) — the Sound Designer's AMBIENCE job: one bed per place, made
  *  with MOSS-SoundEffect v2 from what the place is and the time and weather its scenes play in, recorded ONCE (the job's
@@ -39,13 +40,14 @@ const WEATHER: ReadonlyArray<readonly [RegExp, string]> = [
  *  engine's limit). `scenes`: the scenes at this place in the production the bed is made for (none: the place alone). */
 export function ambiencePrompt(l: Pick<Location, 'kind' | 'description' | 'layout'>, scenes: Array<Pick<Scene, 'timeOfDay' | 'purpose' | 'beats'>> = []): string {
   const place = l.description.replace(/\s+/g, ' ').trim().replace(/\.$/, '').slice(0, 240);
-  const materials = l.layout?.materials?.length ? `; ${l.layout.materials.slice(0, 4).join(', ')}` : '';
+  const materials = l.layout?.materials?.length ? `; ${l.layout.materials.slice(0, 4).map((m) => m.toLowerCase()).join(', ')}` : '';
   const times = [...new Set(scenes.map((s) => s.timeOfDay))];
-  const when = times.length === 1 ? ` ${TIME_WORDS[times[0]]}` : '';
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const when = times.length === 1 ? ` ${cap(TIME_WORDS[times[0]])}.` : '';
   const text = scenes.map((s) => [s.purpose, ...s.beats.map((b) => b.action)].join(' ')).join(' ');
   const weather = WEATHER.filter(([re]) => re.test(text)).map(([, w]) => w);
   const room = l.kind === 'INTERIOR' ? 'Room tone and ambience inside' : 'Outdoor ambience at';
-  const out = `${room}: ${place}${materials}${when}.${weather.length ? ` ${weather.join(', ')}${l.kind === 'INTERIOR' ? ', heard from inside' : ''}.` : ''} Continuous and steady, no voices, no speech, no music.`;
+  const out = `${room}: ${place}${materials}.${when}${weather.length ? ` ${cap(weather.join(', '))}${l.kind === 'INTERIOR' ? ', heard from inside' : ''}.` : ''} Continuous and steady, no voices, no speech, no music.`;
   return out.length <= 600 ? out : `${out.slice(0, 560).replace(/\s+\S*$/, '')}. No voices, no music.`;
 }
 
@@ -60,11 +62,15 @@ export const LOOP_CROSSFADE_SECONDS = 2;
 
 /** A bed is kept only when it is heard and clean (pure, tested): integrated loudness above −60 LUFS (not silence) and
  *  the true peak at or under −1 dBTP (the service's limiter; above it something went wrong). */
-export function ambienceVerdict(m: { integratedLufs: number; truePeakDbtp: number }): { ok: boolean; reason?: string } {
+export function ambienceVerdict(m: { integratedLufs: number; truePeakDbtp: number }, heard?: { words: number; text: string } | null): { ok: boolean; reason?: string } {
   if (!Number.isFinite(m.integratedLufs) || m.integratedLufs < -60) return { ok: false, reason: `the bed is silent (${Number.isFinite(m.integratedLufs) ? m.integratedLufs.toFixed(1) : '−∞'} LUFS)` };
   if (Number.isFinite(m.truePeakDbtp) && m.truePeakDbtp > -0.9) return { ok: false, reason: `the bed peaks at ${m.truePeakDbtp.toFixed(2)} dBTP (over −1 dBTP)` };
+  // NO VOICES IN A BED, measured: a bed the speech model hears words in would put a stranger's voice under the scene
+  if (heard && heard.words >= VOICE_WORDS) return { ok: false, reason: `voices are heard in the bed (“${heard.text.slice(0, 80)}”)` };
   return { ok: true };
 }
+/** How many words the speech model may hear in a bed before it is refused (one stray word is noise read as speech). */
+export const VOICE_WORDS = 3;
 
 export const ambience: Handler = async (ctx) => {
   const { locationId, productionId, force } = ctx.job.payload as { locationId: string; productionId?: string; force?: boolean };
@@ -91,15 +97,20 @@ export const ambience: Handler = async (ctx) => {
     const dir = await tmpDir('ambience');
     try {
       const raw = path.join(dir, 'ambience-raw.wav');
-      const r = await ctx.gpu('SFX', 14000, () => ctx.tool('audio.generate_effect', () => generateSoundEffect(description, raw, { seconds, seed, timeoutMs: 14 * 60_000 }), { label: l.name, input: { prompt: description, seconds, seed } }), { jobId: ctx.job.id });
+      // 17 GB peak measured (2026-10-08: loaded 10.5 GB, 17.1 GB while generating 30 s)
+      const r = await ctx.gpu('SFX', 17500, () => ctx.tool('audio.generate_effect', () => generateSoundEffect(description, raw, { seconds, seed, timeoutMs: 14 * 60_000 }), { label: l.name, input: { prompt: description, seconds, seed } }), { jobId: ctx.job.id });
       await ctx.checkpoint();
       await ctx.progress('VALIDATING', { phase: 'validating', message: 'Measuring the bed' });
       // the stored bed loops without a seam (the generated recording's head cross-faded into its tail)
       const file = path.join(dir, 'ambience.wav');
       await ffmpeg(loopableArgs(raw, file, LOOP_CROSSFADE_SECONDS));
       const m = await loudness(file, undefined, { format: 'wav' });
-      const verdict = ambienceVerdict(m);
-      await recordQaReport({ id: outputId(ctx.job.id, 'qa:ambience', 'qa'), productionId, subjectKind: 'LOCATION', subjectId: l.id, inspectorId: 'technical-media-inspector', checks: [{ name: 'heard', ok: Number.isFinite(m.integratedLufs) && m.integratedLufs >= -60, value: m.integratedLufs, threshold: '≥ −60 LUFS' }, { name: 'true-peak', ok: !(m.truePeakDbtp > -0.9), value: m.truePeakDbtp, threshold: '≤ −1 dBTP' }], failureClass: verdict.ok ? undefined : 'OUTPUT_CORRUPTION', decision: verdict.ok ? 'ACCEPT' : 'REJECT', jobId: ctx.job.id, notes: `ambience bed of ${l.name}: ${description}` });
+      // what the speech model hears in the bed (Qwen3-ASR, language detected): a bed with voices is refused
+      const asr = await ctx.gpu('ASR', 4000, () => ctx.tool('speech.transcribe_qwen', () => transcribeQwen(file), { input: { file } }), { jobId: ctx.job.id });
+      const heard = isQaUnavailable(asr) ? null : { text: asr.text.trim(), words: asr.text.trim().split(/\s+/).filter(Boolean).length };
+      if (!heard) await ctx.event('warn', 'the speech check of the bed could not run (transcription service unavailable): recorded as unverified');
+      const verdict = ambienceVerdict(m, heard);
+      await recordQaReport({ id: outputId(ctx.job.id, 'qa:ambience', 'qa'), productionId, subjectKind: 'LOCATION', subjectId: l.id, inspectorId: 'technical-media-inspector', checks: [{ name: 'heard', ok: Number.isFinite(m.integratedLufs) && m.integratedLufs >= -60, value: m.integratedLufs, threshold: '≥ −60 LUFS' }, { name: 'true-peak', ok: !(m.truePeakDbtp > -0.9), value: m.truePeakDbtp, threshold: '≤ −1 dBTP' }, { name: 'no-voices', ok: heard ? heard.words < VOICE_WORDS : false, value: heard ? heard.words : 'unverified', threshold: `< ${VOICE_WORDS} words (Qwen3-ASR)`, detail: heard?.text ? heard.text.slice(0, 200) : undefined }], failureClass: verdict.ok ? undefined : 'OUTPUT_CORRUPTION', decision: verdict.ok ? (heard ? 'ACCEPT' : 'REVIEW') : 'REJECT', jobId: ctx.job.id, notes: `ambience bed of ${l.name}: ${description}` });
       if (!verdict.ok) throw new StudioError('PROVIDER', `The ambience bed was not kept: ${verdict.reason}.`, { failureClass: 'OUTPUT_CORRUPTION' });
       const st = await jobOutputs(ctx.job).adopt('ambience', file, { expectKind: 'AUDIO' });
       const provenance = { provider: 'MOSS-SOUNDEFFECT', model: r.model, engineVersion: r.engineVersion, prompt: description, seconds: r.seconds, seed: r.seed, loop: { crossfadeSeconds: LOOP_CROSSFADE_SECONDS }, ms: r.ms, peakVramMb: r.peakVramMb, locationId: l.id, productionId, lufs: m.integratedLufs, truePeakDbtp: m.truePeakDbtp, creativeAttempt: 1 };
