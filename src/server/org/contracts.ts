@@ -213,7 +213,7 @@ export const StemsOutput = z.looseObject({ files: z.record(z.string(), z.string(
 // ----------------------------------------------------------------------------------------------------- music
 
 export const MusicInput = z.object({ engine: z.literal('ace-step'), variant: z.enum(['xl-sft', 'xl-turbo']), caption: z.string(), lyrics: z.string(), seconds: z.number().positive().optional(), instrumental: z.boolean().optional(), bpm: z.number().int().optional(), key: z.string().optional() });
-/** minimax.generateMusic() returns the audio; the local engines return the ComfyUI run. */
+/** ACE-Step in ComfyUI: the run. */
 export const MusicOutput = ComfyRunOutput;
 
 // ----------------------------------------------------------------------------------------------------- media

@@ -18,10 +18,10 @@ vocals, instruments and BPM; lyric markers `[verse] [chorus] [bridge] [intro] [o
 with a local player into the user's music folder. It targets the hosted `music-2.5` model; its own guides disagree on
 whether prompts are sentences or comma-separated descriptors.
 
-**This studio.** `music.generate` composes locally with ACE-Step 1.5 (default) or MiniMax Music 3 in ComfyUI and calls
-the hosted Music API only when a key exists (that endpoint is closed to new accounts); the stems and the lyric
-alignment follow (see `singing-performance`). The prompt formula above is a candidate for later, after it is checked
-against the ACE-Step and Music 3 caption conventions.
+**This studio.** `music.generate` composes locally with ACE-Step 1.5 XL-SFT + the 5Hz LM 4B in ComfyUI — the only
+song engine; the hosted Music API and MiniMax Music 3 routes were removed (2026-10-07). The stems and the lyric
+alignment follow (see `singing-performance`). The prompt formula above is reference only, to be checked against the
+ACE-Step caption conventions before any use.
 
 **Trust.** Read, never executed: no CLI, no shell, no player, no credentials. Assigned to no agent. Status UNAVAILABLE:
 no MiniMax API key on this machine, and as reference knowledge it would not be executed even with one.

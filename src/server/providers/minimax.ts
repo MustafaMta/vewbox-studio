@@ -155,19 +155,6 @@ export async function dataUri(file: string, mime: string): Promise<string> {
   return `data:${mime};base64,${buf.toString('base64')}`;
 }
 
-// ---------------------------------------------------------------------------------------------------------- music
-
-export interface MusicInput { prompt: string; lyrics?: string; instrumental?: boolean; model?: string; format?: 'mp3' | 'wav'; sampleRate?: number; bitrate?: number }
-
-/** `POST /v1/music_generation` — closed to new accounts since 2026-08-20; existing paying accounts still work. */
-export async function generateMusic(input: MusicInput): Promise<{ bytes: Buffer; format: string; traceId?: string }> {
-  const body = { model: input.model ?? env().MINIMAX_MUSIC_MODEL, prompt: input.prompt, lyrics: input.lyrics ?? '', is_instrumental: Boolean(input.instrumental), stream: false, output_format: 'hex', audio_setting: { sample_rate: input.sampleRate ?? 44100, bitrate: input.bitrate ?? 256000, format: input.format ?? 'mp3' } };
-  const r = await call<{ data?: { audio?: string; status?: number }; trace_id?: string }>('/v1/music_generation', { method: 'POST', body: JSON.stringify(body), timeoutMs: 600_000 });
-  const hex = r.data?.audio;
-  if (!hex) throw new MinimaxError('MiniMax music returned no audio', { status: 200, retryable: true });
-  return { bytes: Buffer.from(hex, 'hex'), format: input.format ?? 'mp3', traceId: r.trace_id };
-}
-
 // --------------------------------------------------------------------------------------------------------- speech
 
 export interface SpeechInput { text: string; voiceId: string; model?: string; languageBoost?: string; emotion?: string; speed?: number; pitch?: number; format?: 'mp3' | 'wav' | 'flac'; sampleRate?: number }

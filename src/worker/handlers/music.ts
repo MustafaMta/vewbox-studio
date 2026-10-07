@@ -24,7 +24,7 @@ import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 
 /** THE SONG — ONE engine (master plan Phase 2): ACE-Step 1.5 XL-SFT with the 5Hz LM 4B in ComfyUI (MIT). No hosted
- *  API, no turbo or MiniMax Music 3 fallback: when the production engine cannot run, the job says why. WRITE_SONG has
+ *  API, no turbo fallback: when the production engine cannot run, the job says why. WRITE_SONG has
  *  the planner write the song (concept, structure, lyrics, tempo, key, who sings what); GENERATE_SONG records it as
  *  ONE authoritative song (one graph, batch 1, the job's seed: a retry re-attaches, never a second take), sung by the
  *  singers the song names — their own singing profiles set the vocal. Section timings are spread over the real

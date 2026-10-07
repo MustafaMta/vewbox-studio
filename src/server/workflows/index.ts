@@ -38,9 +38,6 @@ export const MODELS = {
   /** the ACE-Step 5Hz LM 4B (composition / audio codes), the production pairing with XL-SFT */
   aceLm4b: 'qwen_4b_ace15.safetensors',
   aceVae: 'ace_1.5_vae.safetensors',
-  music3Dit: 'minimax_music3_dit_int8_convrot.safetensors',
-  music3Clip: 'minimax_music3_text_encoder_pruned_int8_convrot.safetensors',
-  music3Vae: 'minimax_music3_dav.safetensors',
 } as const;
 
 /** A workflow's version: a hash of its structure (node classes, wiring and fixed parameters) with the per-run values
@@ -66,4 +63,4 @@ export * from './canonical-image';
 export { joyaiEdit, JOYAI_FILES, JOYAI_MAX_REFERENCES, JOYAI_DEFAULTS } from './joyai-image';
 export type { JoyaiEditInput, JoyaiReference } from './joyai-image';
 export { minimaxH3Video, h3FrameCount, h3GraphKind, H3_FPS } from './minimax-h3';
-export { aceStepSong, minimaxMusic3Song } from './music';
+export { aceStepSong } from './music';

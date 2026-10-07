@@ -45,13 +45,13 @@ export const GET = route(async () => {
     story = { ok: p.ok && has, detail: p.ok ? (has ? `${name} (vLLM${asleep ? ', asleep: wakes for the next story job' : ''})` : `${name} not served (${ids.length} models present)`) : `unreachable: ${p.detail}`, where: 'local' };
   } catch (err) { story = { ok: false, detail: (err as Error).message, where: null }; }
   let images: { ok: boolean; detail: string } = { ok: false, detail: 'ComfyUI unreachable' };
-  let music: { ok: boolean; detail: string } = { ok: Boolean(e.MINIMAX_API_KEY), detail: e.MINIMAX_API_KEY ? 'MiniMax Music (hosted)' : 'no engine' };
+  let music: { ok: boolean; detail: string } = { ok: false, detail: 'ComfyUI unreachable' };
   if (comfyHealth.ok) {
     const models = await comfy.listModels('diffusion_models').catch(() => [] as string[]);
     const q = models.some((m) => m.includes('qwen_image'));
     images = { ok: q, detail: q ? `Qwen-Image in ComfyUI ${comfyHealth.version ?? ''} on ${comfyHealth.device ?? 'GPU'}` : 'ComfyUI up; Qwen-Image weights not downloaded yet' };
-    const ace = models.some((m) => m.startsWith('acestep')); const m3 = models.some((m) => m.startsWith('minimax_music3'));
-    if (!e.MINIMAX_API_KEY) music = { ok: ace || m3, detail: ace ? 'ACE-Step 1.5 (local)' : m3 ? 'MiniMax Music 3 (local)' : 'music weights not downloaded yet' };
+    const sft = models.includes('acestep_v1.5_xl_sft_bf16.safetensors');
+    music = { ok: sft, detail: sft ? 'ACE-Step 1.5 XL-SFT (local)' : 'ACE-Step XL-SFT not downloaded yet (group music-ace-step-xl)' };
   }
   return json({
     video: { ok: video.ready, detail: video.detail, where: video.backend === 'api' ? 'hosted' : 'local', backend: video.backend, model: video.backend === 'api' ? caps.videoModel : 'MiniMax-H3 (open weights)' },

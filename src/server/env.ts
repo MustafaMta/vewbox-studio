@@ -23,7 +23,6 @@ const Schema = z.object({
   MINIMAX_VIDEO_MODEL: z.string().default('MiniMax-H3'),
   MINIMAX_VIDEO_RESOLUTION: z.string().default('768P'),
   MINIMAX_SPEECH_MODEL: z.string().default('speech-2.8-hd'),
-  MINIMAX_MUSIC_MODEL: z.string().default('music-3.0'),
   /** THE PLANNER (the only one): Qwen3.8-27B-NVFP4 on the local vLLM server (compose service llm-vllm). */
   OPENAI_COMPATIBLE_BASE_URL: z.string().optional().default(''),
   OPENAI_COMPATIBLE_API_KEY: z.string().optional().default(''),

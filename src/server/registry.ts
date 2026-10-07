@@ -6,7 +6,7 @@ import { sql as dsql } from 'drizzle-orm';
 import { db, schema } from './db/client';
 import { env } from './env';
 import * as comfy from './providers/comfy';
-import { MODELS, aceStepSong, minimaxH3Video, minimaxMusic3Song, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
+import { MODELS, aceStepSong, minimaxH3Video, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage, referenceReadGraph, workflowVersion, type Graph } from './workflows';
 import { log } from './log';
 
 /** THE MODEL AND WORKFLOW REGISTRY — what the studio can generate with, as rows in Postgres: every pinned weight from
@@ -49,7 +49,6 @@ export function workflowTemplates(): Array<{ name: string; graph: Graph }> {
     { name: 'minimax-h3.ref2va-continuation', graph: minimaxH3Video({ prompt: '', width: 1280, height: 720, seconds: 6, referenceImages: ['a.png', 'b.png'], guides: [{ frameIdx: 0, image: 'tail.mov', imageIsVideo: true, audioFromVideo: true }, { frameIdx: 22, audio: 'a.wav' }] }) },
     { name: 'ace-step-1.5.xl-sft.song', graph: aceStepSong({ caption: '', lyrics: '', seconds: 60, variant: 'xl-sft' }) },
     { name: 'ace-step-1.5.xl-turbo.song', graph: aceStepSong({ caption: '', lyrics: '', seconds: 60, variant: 'xl-turbo' }) },
-    { name: 'minimax-music-3.song', graph: minimaxMusic3Song({ caption: '', lyrics: '', seconds: 60 }) },
   ];
 }
 
@@ -85,7 +84,7 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
   rows.push({ name: 'audio/demucs-htdemucs', version: '4.0.1', source: 'https://github.com/adefossez/demucs', license: 'MIT', kind: 'SEPARATION', local: true, status: asrHealth ? 'SERVICE' : 'UNKNOWN', metadata: { service: e.ASR_URL }, updatedAt: now });
   // hosted MiniMax
   const key = Boolean(e.MINIMAX_API_KEY);
-  for (const [name, version, kind] of [['minimax/video', e.MINIMAX_VIDEO_MODEL, 'VIDEO'], ['minimax/speech', e.MINIMAX_SPEECH_MODEL, 'TTS'], ['minimax/music', e.MINIMAX_MUSIC_MODEL, 'MUSIC']] as const) {
+  for (const [name, version, kind] of [['minimax/video', e.MINIMAX_VIDEO_MODEL, 'VIDEO'], ['minimax/speech', e.MINIMAX_SPEECH_MODEL, 'TTS']] as const) {
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model

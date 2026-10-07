@@ -76,29 +76,51 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
 - **Remaining blocker:** the producer must LISTEN — naturalness, emotional range and pronunciation are not claimed by
   any measurement (each character's page plays the voice and every line; "I listened" records the judgement).
 
-## Phase 2 — Standalone music (no video) — IN PROGRESS (2026-10-07)
+## Phase 2 — Standalone music (no video) — DONE, listening pending (2026-10-07)
 
-- **Commits:** `4983b07` (song planner + ACE-Step-only recording), `937c603` (contract, budget and timing fixes).
-- **Models:** Qwen3.8-27B-NVFP4 writes the song (concept, lyrics, sections, who sings each, tempo, key, engine
-  caption). ACE-Step 1.5 XL-SFT + 5Hz LM 4B records it (ComfyUI). The 4B LM is verified (8.38 GB). The XL-SFT DiT is
-  still downloading (one queue, resumable, sha256-pinned; ~1 MB/s).
-- **Built:** job WRITE_SONG (music director; LLM lease; ORG_VERSION 16). Only cast members who sing (Singer /
-  Actor + Singer) may sing; an unknown or non-singing name in the plan is refused, never guessed. GENERATE_SONG is
-  ACE-Step only: a missing SFT file is a configuration error naming the files; turbo only when MUSIC_ACE_VARIANT=xl-turbo.
-  The MiniMax music routes are gone from the handler, env and tool contract. The vocal the engine is asked for comes
-  from the singers' profiles (e.g. "male baritone and female soprano vocal duet"). Provenance carries seed, singers,
-  tempo, key and creative attempt 1. Recording QA adds loudness/peak (−20…−8 LUFS, ≤0 dBTP) and dead air. A new song
-  defaults to the cast members who sing (never an actor). Song tab: Write / Rewrite the song; "Sung by" offers singers only.
-- **Real UI test (planner half):** music video "Harbour Lights", English, 90 s, performers Hana Kisaragi (Singer) and
-  Marcus Bell (Actor + Singer).
-  - Run 1 was refused by the tool contract (no `song` task). Fixed, with a test that runs both calls through their contracts.
-  - Run 2 took 136 s. It gave 9 sections and 26 sung lines (asked for 5–7 sections) and sent lyrics as arrays.
-  - Root cause: no budget was enforced. Fix: the plan's schema is per length (90 s: ≤8 sections, ≤25 sung lines, aim
-    for 20), and lyrics given as a list of lines are accepted. Sections are timed by line count, not spread evenly.
-  - Run 3 (Rewrite) took ~65 s with no repair: 8 sections, 24 lines, 72 BPM, F minor; Hana verse 1, Marcus verse 2,
-    both on choruses and bridge.
-- **Open:** recording with XL-SFT once verified. Then inspect duration, loudness, silence, stems and lyric alignment,
-  and listen to the whole song. After proof, remove the leftover MiniMax music graph, provider, licence row and
-  manifest group from the default path.
-- **Observed:** Qwen3.8 lyric craft is serviceable but generic ("passing tides", "every hill"), and 24 lines in 90 s
-  at 72 BPM is dense. Judge by ear after recording.
+- **Commits:** `4983b07` (song planner + ACE-Step-only recording), `937c603` (contract, budget and timing fixes),
+  `1bb916f` (first recording; level, timing and lyric placement fixed at the root; CHECK_SONG), then the removal of the
+  replaced music routes.
+- **Models active:** Qwen3.8-27B-NVFP4 writes the song (concept, lyrics, sections, who sings each, tempo, key, engine
+  caption). ACE-Step 1.5 XL-SFT + 5Hz LM 4B records it in ComfyUI. XL-SFT DiT verified 9,974,719,930 B
+  (sha256 3c05ae26…); 4B LM verified 8,379,154,232 B. Demucs makes the stems; Whisper large-v3 and wav2vec2 CTC
+  place the lyrics.
+- **Built:**
+  - Job WRITE_SONG (music director; LLM lease). Only cast members who sing (Singer / Actor + Singer) may sing; an
+    unknown or non-singing name in the plan is refused, never guessed. The plan's schema is sized to the song's length.
+  - GENERATE_SONG is ACE-Step XL-SFT only. A missing file is a configuration error naming the files; turbo runs only
+    when MUSIC_ACE_VARIANT=xl-turbo. The vocal asked of the engine is the singers' own (e.g. "female soprano and male
+    baritone vocal duet"). Provenance carries seed, singers, tempo, key and creative attempt 1.
+  - An open level trim: plain gain to −1 dBTP when the raw true peak is above it. The raw recording is kept; the trim is
+    in provenance and in the QA report.
+  - Section timing: planned by line count, scaled to the real length, then settled on the sung lines so the sections
+    cover 0…duration exactly.
+  - Job CHECK_SONG ("Check the recording again") re-runs the post-recording steps without composing again
+    (ORG_VERSION 17).
+  - New songs default to the cast members who sing. Song tab: Write / Rewrite / Generate / Check.
+- **Removed (replacement proven):** MiniMax Music 3 graph and model names, the hosted MiniMax Music endpoint,
+  MUSIC_ENGINE and MINIMAX_MUSIC_MODEL, the registry rows, the licence row, the checker entries and `music-minimax-3`
+  from the default groups. Its weights stay on D:\models until the producer decides.
+- **Real UI test:** music video "Harbour Lights", English, 90 s, Hana Kisaragi (Singer) and Marcus Bell (Actor + Singer).
+  - Write the song, run 1: refused by the tool contract (no `song` task). Fixed, with a test.
+  - Run 2 (136 s): 9 sections and 26 lines, against the 5–7 sections asked. Root cause: no budget was enforced; fixed.
+  - Run 3 (Rewrite, ~65 s, no repair): 8 sections, 24 lines, 72 BPM, F minor. Hana verse 1, Marcus verse 2, both on
+    choruses and bridge.
+  - Generate the song: ONE recording on the first attempt. XL-SFT, 50 steps, cfg 7, 28.9 s in ComfyUI, 46.5 s for the
+    whole job. 90.0 s, 48 kHz stereo.
+  - All 24 written lines are sung, in order (Whisper on the vocal stem hears them almost word for word).
+  - Sections as sung: verse 1 6–19 s, chorus 19–32, verse 2 (Marcus) 32–46, chorus 46–60, bridge 60–72,
+    chorus 72–90. The vocal ends at 89 s, so there is no outro.
+- **Defects found on that recording and fixed at the root (proven on the SAME recording, no second composition):**
+  1. `loudness()` read the first brace in ffmpeg's output. ComfyUI writes its workflow JSON into every FLAC's tags,
+     so the level was never measured. A regression test reproduces the exact error.
+  2. The raw recording peaked at +0.31 dBTP: now −1.31 dB trim, giving −13.0 LUFS / −1.0 dBTP.
+  3. Sections were re-spread evenly after recording, so the lyric search windows were wrong: 17/24 lines placed, and
+     CTC put the bridge 5 s early at confidence 1. Now 23/24 lines are placed and the sections match the transcript.
+  4. The outro read 90–91 s of a 90 s song, and lines overlapped across sections. Both fixed by `settleSections`.
+- **CHECK_SONG through the UI:** level, length, dead air and lyrics all pass; awaitingReview false.
+- **First-attempt result:** WRITE_SONG three runs (one refused by a code defect, one superseded after the budget fix);
+  GENERATE_SONG 1 of 1.
+- **Remaining:** the producer must LISTEN to the whole song (Song & Lyrics tab). Machine checks prove the words, the
+  timing and the level; they do not prove the voices sound like Hana and Marcus or that the song is good. Lyric craft
+  is serviceable but generic.

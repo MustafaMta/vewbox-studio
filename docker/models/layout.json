@@ -6,7 +6,7 @@
   },
   "renamed": { "hf-home": "cache/hf", "demucs": "cache/torch" },
   "categories": {
-    "comfyui": "ComfyUI's typed tree: video (MiniMax H3), images (Qwen-Image, FLUX.2 klein, JoyAI), music (ACE-Step, MiniMax Music 3), their text encoders, VAEs and LoRAs, the MediaPipe face detector",
+    "comfyui": "ComfyUI's typed tree: video (MiniMax H3), images (Qwen-Image, FLUX.2 klein, JoyAI), music (ACE-Step; MiniMax Music 3 weights retired, kept until the producer decides), their text encoders, VAEs and LoRAs, the MediaPipe face detector",
     "asr": "Whisper large-v3 (CTranslate2) and the Arabic-dialect fine-tune (transformers + CTranslate2)",
     "align": "wav2vec2 CTC models for forced alignment",
     "tts": "voices: IndexTTS 2.5, Habibi IRQ, VoxCPM2, the voice-bench engines",

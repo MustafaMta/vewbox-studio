@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
-# ComfyUI as the local generation engine: images (Qwen-Image / Qwen-Image-Edit), local MiniMax H3 video, ACE-Step and
-# MiniMax Music 3. Pinned ComfyUI tag, PyTorch cu130 wheels for Blackwell (sm_120), no custom video nodes.
+# ComfyUI as the local generation engine: images (Qwen-Image / Qwen-Image-Edit), local MiniMax H3 video, ACE-Step
+# songs. Pinned ComfyUI tag, PyTorch cu130 wheels for Blackwell (sm_120), no custom video nodes.
 # Weights are NOT baked in: they live in the shared models volume (see docker/models).
 FROM nvidia/cuda:13.0.1-cudnn-runtime-ubuntu24.04
 ARG COMFYUI_REF=v0.38.1
