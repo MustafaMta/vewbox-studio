@@ -201,6 +201,19 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
   return [parts.join(' '), props.length ? `Props: ${props.join('; ')}.` : '', light].filter(Boolean).join(' ');
 }
 
+/** THE MOMENT'S STATE, AS AN EDIT (2026-10-08 frame lab, "The Last Crossing" 1.2): composed from the canonical portrait,
+ *  a frame keeps the portrait's expression whatever the prompt says (three prompt variants, all smiling); one edit pass
+ *  on the drawn frame, with that frame as the only picture, changes the expression and condition and keeps the rest
+ *  (SFace 0.44–0.47 against the canonical image: the same person; the strained face itself lowers it). The instruction
+ *  for one person's emotion and condition, or undefined when the moment names neither. Pure (tested). */
+export function momentEditPrompt(x: { emotion?: string; condition?: string } | undefined): string | undefined {
+  const emotion = clean(x?.emotion ?? '').toLowerCase();
+  const condition = clean(x?.condition ?? '').toLowerCase();
+  if (!emotion && !condition) return undefined;
+  const parts = [emotion && `the expression becomes ${emotion}`, condition && `the person is ${condition}, and it shows on the face, hair and clothes`].filter(Boolean);
+  return `Edit this picture. Change only the person's face and condition: ${parts.join('; ')}. Keep everything else exactly as it is: the same person and face shape, every mark on the face, the same clothes, place, framing, light and colours.`;
+}
+
 /** The continuity of a storyboard frame: each person named by the reference picture that shows them ("the person of
  *  image 2"), never described a second time in words; `peopleToo: false` keeps only props and light (the previous
  *  shot's state carried into a CUT — its people at other places drew duplicates, D30). */

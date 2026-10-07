@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { frameCheckOf } from '@/domain/frames';
+import { frameCheckOf, frameIdentityOf } from '@/domain/frames';
 import type { Job } from '@/domain/jobs';
 import type { Production, Shot, ShotBoundary, ShotDialogue, Take } from '@/domain/types';
 import { CAMERA_MOVES, FRAMINGS, type CameraMove, type Framing } from '@/domain/vocabulary';
@@ -445,6 +445,7 @@ function References({ p, draft, patch, sceneLocationId, timeOfDay }: { p: Produc
               {a && <button type="button" className="btn btn-secondary btn-sm btn-icon ws-slot-x" aria-label={`Remove the ${label.toLowerCase().replace(' (optional)', '')}`} onClick={() => patch({ [key]: undefined } as Partial<Draft>)}><IconClose aria-hidden /></button>}
             </span>
             {(() => { const pc = frameCheckOf(a); return pc && !pc.ok ? <p className="t-meta ws-slot-warn" role="status">Holds {pc.counted} {pc.counted === 1 ? 'person' : 'people'}; the shot has {pc.expected}. It will not be filmed from until it is drawn again or removed.</p> : null; })()}
+            {(() => { const fi = frameIdentityOf(a); return fi && (fi.verdict === 'FAIL' || fi.verdict === 'REVIEW') ? <p className="t-meta ws-slot-warn" role="status">{fi.verdict === 'FAIL' ? 'The face is not the character’s' : 'The face is close to the character’s but below the pass line'} (SFace {fi.median?.toFixed(2) ?? '?'}).{fi.verdict === 'FAIL' ? ' It will not be filmed from until it is drawn again or removed.' : ' Look at it before filming.'}</p> : null; })()}
           </div>
         ))}
       </div>

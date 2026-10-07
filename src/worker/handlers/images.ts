@@ -25,7 +25,9 @@ import {
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, locationPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { faceIdentity, judgeIdentity } from '@/server/providers/qa-service';
+import type { FrameIdentity } from '@/domain/frames';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -607,8 +609,44 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // model still draws about a medium shot; the frame is cropped around the drawn face to the planned framing's extent
   // and scaled back to the take size — or kept as drawn (no face, or the crop would be too soft)
   if (!wrong && composition === 'PEOPLE' && people.length === 1) kept = await framedToShot(ctx, kept!, sh, { width: info.width, height: info.height }, `frame:${sh.id}:${which}:framed`, label);
+  // THE MOMENT'S EXPRESSION AND CONDITION (2026-10-08 frame lab): composed from the canonical portrait, the face keeps
+  // the portrait's expression; one edit pass on this frame gives it the moment's, and its face is then measured against
+  // the canonical image and recorded (a FAIL is never filmed from). A defined stage, run once — never a choice between
+  // candidates.
+  if (!wrong && composition === 'PEOPLE' && people.length === 1) kept = await momentState(ctx, kept!, sh, people[0], { width: info.width, height: info.height }, `frame:${sh.id}:${which}:moment`, label);
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
+}
+
+/** One person's frame given the moment's expression and condition (`momentEditPrompt`), then its face measured
+ *  against the canonical image (SFace, the take QA's judge, on a one-second clip of the still) and the result recorded
+ *  on the frame. The frame is returned unchanged when the moment names no emotion or condition. */
+async function momentState(ctx: HandlerContext, drawn: Drawn, sh: Shot, person: Character, size: { width: number; height: number }, key: string, label: string): Promise<Drawn> {
+  const x = sh.continuity?.characters?.find((c) => c.characterId === person.id);
+  const instruction = momentEditPrompt(x);
+  if (!instruction) return drawn;
+  const st = (await readState()).state;
+  const from = st.assets.find((a) => a.id === drawn.id);
+  if (!usableImage(from)) return drawn;
+  const edited = await draw(ctx, { key, prompt: instruction, negative: 'text, watermark, logo, signature, duplicate person', references: [from], width: size.width, height: size.height, label: `${label} (the moment's expression)`, tags: ['frame', 'moment'], provenance: { ...(from.provenance ?? {}), momentEdit: { from: from.id, emotion: x?.emotion, condition: x?.condition }, creativeAttempt: 1 } });
+  const canonical = st.assets.find((a) => a.id === primaryImageOf(person));
+  let identity: FrameIdentity = { characterId: person.id, median: null, verdict: 'NOT_MEASURED' };
+  const fresh = (await readState()).state.assets.find((a) => a.id === edited.id);
+  if (usableImage(canonical) && usableImage(fresh)) {
+    const dir = await tmpDir('frame-id');
+    try {
+      const clip = path.join(dir, 'still.mp4');
+      await ffmpeg(['-hide_banner', '-nostdin', '-y', '-loop', '1', '-i', assetFile(fresh), '-t', '1', '-r', '24', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p', '-c:v', 'libx264', clip]);
+      const r = await ctx.gpu('ASR', 4000, () => faceIdentity(clip, [{ characterId: person.id, image: assetFile(canonical) }]), { jobId: ctx.job.id });
+      const j = judgeIdentity(r);
+      const c = j.characters[person.id];
+      identity = { characterId: person.id, median: c?.median ?? null, verdict: (c?.verdict ?? j.verdict) as FrameIdentity['verdict'] };
+    } catch (e) { await ctx.event('warn', `shot ${sh.number}: the frame's face could not be measured (${(e as Error).message})`, { shotId: sh.id }); }
+    finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
+  }
+  await command('updateAsset', [edited.id, { provenance: { ...(fresh?.provenance ?? {}), identityCheck: { ...identity, at: new Date().toISOString() } } }], 'worker');
+  await ctx.event(identity.verdict === 'FAIL' ? 'warn' : 'info', `shot ${sh.number}: the frame given the moment (${[x?.emotion, x?.condition].filter(Boolean).join('; ')}); its face against ${person.name}'s canonical image: ${identity.verdict}${identity.median !== null ? ` (SFace ${identity.median.toFixed(2)})` : ''}`, { shotId: sh.id, assetId: edited.id, from: drawn.id, identity });
+  return edited;
 }
 
 /** Cut a drawn one-person frame to the shot's framing around its face (MediaPipe face box, `framingCropFromFace`) and

@@ -1,5 +1,5 @@
 import type { Character, Production, Shot, StudioState } from '@/domain/types';
-import { frameCheckOf } from '@/domain/frames';
+import { frameCheckOf, frameIdentityOf } from '@/domain/frames';
 import { linesCutAt, performanceSegments, shotPerformers } from '@/domain/music-performance';
 import { shotWindows } from '@/domain/timeline';
 import type { JobType } from '@/domain/jobs';
@@ -93,6 +93,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   for (const [which, aid] of [['opening', pack.opening.kind === 'FRAME' ? pack.opening.assetId : undefined], ['ending', pack.ending?.assetId]] as const) {
     const pc = frameCheckOf(byId(aid));
     if (pc) add(`${which}-frame-people`, pc.ok, 'INCONSISTENT_PLAN', pc.ok ? `${pc.counted} of ${pc.expected} people` : `the ${which} frame holds ${pc.counted} ${pc.counted === 1 ? 'person' : 'people'} where the shot has ${pc.expected}: draw the frames again or remove it`);
+    // the frame given the moment's expression: its face was measured against the canonical image (SFace)
+    const fi = frameIdentityOf(byId(aid));
+    if (fi && fi.verdict === 'FAIL') add(`${which}-frame-identity`, false, 'CHARACTER_INCONSISTENCY', `the ${which} frame's face is not ${cast.find((c) => c.id === fi.characterId)?.name ?? 'the character'} (SFace ${fi.median?.toFixed(2) ?? '?'} against the canonical image): draw the frames again or remove it`);
+    else if (fi && fi.verdict === 'REVIEW') warnings.push({ name: `${which}-frame-identity`, detail: `the ${which} frame's face is close to the canonical image but below the pass line (SFace ${fi.median?.toFixed(2) ?? '?'}); look at it before filming`, characterIds: [fi.characterId] });
   }
   add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (identityNeeded ? (pack.graph === 'FRAMES' ? 'the previous take’s last frame (hosted frame mode)' : `${pack.subjects.length} character image(s) bound as subjects`) : undefined) : 'the shot has characters but none has a canonical image to hold their identity; draw them first');
   // guides: count and fit, as the request will chain them (the soundtrack guide exists for a speaking or singing shot)

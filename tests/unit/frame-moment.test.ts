@@ -22,10 +22,30 @@ describe('the continuity line of a frame', () => {
   });
 });
 
+describe('the moment’s state, as one edit of the drawn frame', () => {
+  it('momentEditPrompt names the emotion and condition and keeps everything else; nothing to edit without them', async () => {
+    const { momentEditPrompt } = await import('@/server/story/prompts');
+    const e = momentEditPrompt({ emotion: 'Strained', condition: 'Soaked, out of breath' })!;
+    expect(e).toMatch(/^Edit this picture\. Change only the person's face and condition: the expression becomes strained; the person is soaked, out of breath, and it shows on the face, hair and clothes\. Keep everything else exactly/);
+    expect(e).toContain('every mark on the face');
+    expect(momentEditPrompt({ emotion: 'Calm' })).toMatch(/the expression becomes calm\. Keep/);
+    expect(momentEditPrompt({})).toBeUndefined();
+    expect(momentEditPrompt(undefined)).toBeUndefined();
+  });
+  it('the measured face is read back from the frame; a FAIL is refused by the preflight, a REVIEW is a warning', async () => {
+    const { frameIdentityOf } = await import('@/domain/frames');
+    expect(frameIdentityOf({ provenance: { identityCheck: { characterId: 'c1', median: 0.44, verdict: 'REVIEW' } } })).toEqual({ characterId: 'c1', median: 0.44, verdict: 'REVIEW' });
+    expect(frameIdentityOf({ provenance: {} })).toBeUndefined();
+    const src = fs.readFileSync('src/server/org/preflight.ts', 'utf8');
+    expect(src).toMatch(/fi\.verdict === 'FAIL'\) add\(`\$\{which\}-frame-identity`, false, 'CHARACTER_INCONSISTENCY'/);
+    expect(src).toMatch(/fi\.verdict === 'REVIEW'\) warnings\.push/);
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');
-    const fn = src.slice(src.indexOf('export async function drawShotFrame'), src.indexOf('async function framedToShot'));
+    const fn = src.slice(src.indexOf('export async function drawShotFrame'), src.indexOf('async function momentState'));
     expect(fn).not.toMatch(/\(drawn again\)|attempt < 2/);
     expect((fn.match(/await draw\(ctx/g) ?? []).length).toBe(1);
   });
