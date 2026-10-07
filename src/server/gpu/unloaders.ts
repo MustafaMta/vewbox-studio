@@ -1,5 +1,3 @@
-import { env } from '../env';
-import { engineGuardProblem } from './lease-db';
 import { log } from '../log';
 import * as comfy from '../providers/comfy';
 import { unloadAsr, unloadTts } from '../providers/speech';
@@ -11,37 +9,12 @@ import type { GpuFamily } from './lease';
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
  *  to another model family, every engine that does not serve the new family drops its weights first — ComfyUI
  *  (`/free`: unload models, free memory), the speech services (`/unload`, which also hands the freed host RAM back to
- *  the system: docs/research/MODEL-STACK-2026-10.md §1.2, docker/*\/app.py `malloc_trim`), Ollama (`keep_alive: 0`).
+ *  the system: docs/research/MODEL-STACK-2026-10.md §1.2, docker/*\/app.py `malloc_trim`), the planner on vLLM (sleep
+ *  level 2, src/server/providers/vllm.ts).
  *  ComfyUI serves three families with different checkpoints, so a switch between two of them frees it too. Every
  *  unload is best effort and bounded: an engine that is not running has nothing on the card. */
 
 export interface Engine { name: string; serves: readonly GpuFamily[]; unload: () => Promise<void> }
-
-/** The OpenAI-compatible server is the local Ollama (it holds the story model on the GPU) when it answers on 11434. */
-export const localOllamaBase = (): string | undefined => {
-  const url = env().OPENAI_COMPATIBLE_BASE_URL;
-  if (!url || !/:11434(\/|$)/.test(url)) return undefined;
-  const base = url.replace(/\/v1\/?$/, '').replace(/\/$/, '');
-  // a process outside the live lease never touches the real Ollama (gpu/lease-db.ts): nothing to unload from here
-  return engineGuardProblem(base) ? undefined : base;
-};
-
-/** Ollama unloads a model when asked to generate nothing with `keep_alive: 0`. EVERY loaded model is unloaded (Ollama's
- *  /api/ps), not only the studio's configured one: a benchmark or a second model left resident kept ~20–30 GB of
- *  VRAM and host RAM under the next family (2026-10-06: a Qwen-Image frame job choked ComfyUI after an LLM batch). */
-export async function unloadOllama(): Promise<void> {
-  const base = localOllamaBase();
-  if (!base) return;
-  let loaded: string[] = [];
-  try {
-    const r = await fetch(`${base}/api/ps`, { signal: AbortSignal.timeout(5_000) });
-    if (r.ok) loaded = ((await r.json()) as { models?: Array<{ name?: string; model?: string }> }).models?.map((m) => m.name ?? m.model ?? '').filter(Boolean) ?? [];
-  } catch { /* not running, or an older Ollama: fall back to the configured model */ }
-  const models = new Set([...loaded, env().OPENAI_COMPATIBLE_MODEL].filter((m): m is string => Boolean(m)));
-  for (const model of models) {
-    try { await fetch(`${base}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: 0 }), signal: AbortSignal.timeout(20_000) }); } catch { /* not running */ }
-  }
-}
 
 const extra: Engine[] = [];
 
@@ -53,7 +26,8 @@ export function engines(): Engine[] {
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
-    { name: 'ollama', serves: ['LLM'], unload: unloadOllama },
+    // the planner on vLLM: sleep level 2 (weights and cache out of VRAM; woken by the next LLM call)
+    { name: 'vllm', serves: ['LLM'], unload: async () => { await (await import('../providers/vllm')).sleepVllm(); } },
     // the lip-sync corrector (docker/lipsync); it also drops its weights after every request (LIPSYNC_KEEP_LOADED=0)
     { name: 'lipsync', serves: ['LIPSYNC'], unload: unloadLipsync },
     // MOSS-SoundEffect (sfx-moss); lazy-loaded, so an idle service holds nothing

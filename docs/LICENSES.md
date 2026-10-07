@@ -32,7 +32,7 @@ bought later, FLUX is re-evaluated separately without redesigning the image pipe
 | Demucs | stems | MIT | in use | keep the notice | no |
 | ACE-Step 1.5 | songs | MIT | in use | keep the notice | no |
 | MiniMax Music 3 (open weights) | songs (second engine) | MiniMax-Music3 Community License | in use | credit "MiniMax Music 3" where used; US$20M cap | ◐ |
-| Qwen3.8-27B-FP8 (Qwen/Qwen3.8-27B-FP8 @ 017b9c7a, vLLM) | the studio's brain: ideas, stories, scripts, shot plans | Apache-2.0 ✔ (model card) | in use (integration and proof: next-session Phase 1) | keep the licence and notices | no |
+| Qwen3.8-27B-NVFP4 (Inferact/Qwen3.8-27B-NVFP4 @ 6128240e, ModelOpt NVFP4 of Qwen/Qwen3.8-27B; vLLM 0.31) | the studio's only brain: ideas, stories, scripts, shot plans, continuity | Apache-2.0 ✔ (model card and LICENSE, not gated) | in use (proven Phase 0, 2026-10-07) | keep the licence and notices | no |
 | LatentSync 1.6 (+ Whisper tiny MIT, SD VAE ft-MSE MIT) | lip-sync correction of a confirmed take (opt-in service) | weights CreativeML OpenRAIL++-M ✔ (model card), code Apache-2.0 ✔ | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial); the repo's auxiliary weights (S3FD, syncnet_v2, VGG, I3D, KonIQ, ViT-g) are not fetched | yes |
 | Geist, Geist Mono | interface typefaces | SIL Open Font License 1.1 | in use | ship the licence with the files (`src/app/fonts/OFL-Geist.txt`) | no |
 

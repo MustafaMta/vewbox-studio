@@ -12,8 +12,10 @@ export const NEEDS = {
   dockerMemGiBRecommended: 64,
   gpuName: /RTX 5090/i,
   gpuMemMiB: 32000,
-  /** the manifest groups the acceptance gates need (video, images, voices, transcription) */
-  modelGroups: ['video-minimax-h3', 'video-minimax-h3-reference', 'images-qwen', 'asr-whisper', 'voice-design', 'qa-identity'],
+  /** the manifest groups the acceptance gates need (video, images, voices, transcription, the planner) */
+  modelGroups: ['video-minimax-h3', 'video-minimax-h3-reference', 'images-qwen', 'asr-whisper', 'voice-design', 'qa-identity', 'llm-qwen3.8-27b-nvfp4'],
+  /** the planner's served model id (compose llm-vllm --served-model-name; GET /v1/models) */
+  plannerModel: 'Qwen3.8-27B-NVFP4',
   /** fetched before the alignment gates (licences to confirm on the model cards first: docs/MODELS.md) */
   optionalGroups: ['qa-align'],
 };

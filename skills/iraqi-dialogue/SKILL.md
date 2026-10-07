@@ -7,7 +7,7 @@ metadata:
   version: "1.2.1"
   kind: "PROCEDURE"
   source: this studio; docs/CONTRACTS-CHARACTER-VOICE.md §1.4–1.5; docs/research/VOICE-STACK.md; suite scripts/iraqi-voice-suite.mjs → docs/evidence/iraqi-suite-v2.md (plan: docs/evidence/iraqi-suite-phase2-plan.md)
-  models: qwen3:14b, Habibi-TTS IRQ (F5-TTS v1), IndexTTS 2.5, faster-whisper large-v3
+  models: Qwen3.8-27B-NVFP4, Habibi-TTS IRQ (F5-TTS v1), IndexTTS 2.5, faster-whisper large-v3
 ---
 
 # Iraqi Arabic dialogue

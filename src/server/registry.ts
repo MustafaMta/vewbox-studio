@@ -1,3 +1,4 @@
+import { llmDisplayName, PLANNER_MODEL } from '@/domain/llm-names';
 import fsp from 'node:fs/promises';
 import { englishEngine } from './providers/voice-engines';
 import path from 'node:path';
@@ -84,11 +85,12 @@ export async function syncRegistry(): Promise<{ models: number; workflows: numbe
   rows.push({ name: 'audio/demucs-htdemucs', version: '4.0.1', source: 'https://github.com/adefossez/demucs', license: 'MIT', kind: 'SEPARATION', local: true, status: asrHealth ? 'SERVICE' : 'UNKNOWN', metadata: { service: e.ASR_URL }, updatedAt: now });
   // hosted MiniMax
   const key = Boolean(e.MINIMAX_API_KEY);
-  for (const [name, version, kind] of [['minimax/video', e.MINIMAX_VIDEO_MODEL, 'VIDEO'], ['minimax/text', e.MINIMAX_TEXT_MODEL, 'LLM'], ['minimax/speech', e.MINIMAX_SPEECH_MODEL, 'TTS'], ['minimax/music', e.MINIMAX_MUSIC_MODEL, 'MUSIC']] as const) {
+  for (const [name, version, kind] of [['minimax/video', e.MINIMAX_VIDEO_MODEL, 'VIDEO'], ['minimax/speech', e.MINIMAX_SPEECH_MODEL, 'TTS'], ['minimax/music', e.MINIMAX_MUSIC_MODEL, 'MUSIC']] as const) {
     rows.push({ name, version, source: e.MINIMAX_BASE_URL, license: 'MiniMax platform terms (per-use billing)', kind, local: false, status: key ? 'CONFIGURED' : 'NO_KEY', metadata: { endpoint: name === 'minimax/video' ? '/v2/video_generation' : undefined }, updatedAt: now });
   }
   // local story model
-  rows.push({ name: 'llm/openai-compatible', version: e.OPENAI_COMPATIBLE_MODEL, source: e.OPENAI_COMPATIBLE_BASE_URL, license: 'per model (Qwen3.8-27B-FP8, the production brain, and Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: null, updatedAt: now });
+  const planner = llmDisplayName(e.OPENAI_COMPATIBLE_MODEL) === PLANNER_MODEL;
+  rows.push({ name: 'llm/openai-compatible', version: llmDisplayName(e.OPENAI_COMPATIBLE_MODEL), source: e.OPENAI_COMPATIBLE_BASE_URL, license: planner ? 'Apache-2.0 (Inferact/Qwen3.8-27B-NVFP4 of Qwen/Qwen3.8-27B)' : 'per model (Qwen3.6: Apache-2.0)', kind: 'LLM', local: true, status: 'SERVICE', metadata: planner ? { runtime: 'vllm', checkpoint: 'Inferact/Qwen3.8-27B-NVFP4@6128240ebaf4eaa7bad2b3d1c72c37d677c5f462', path: 'llm/qwen3.8-27b-nvfp4' } : { runtime: 'vllm' }, updatedAt: now });
   // rendered once per sync (each template builds a full graph)
   const templates = workflowTemplates();
   await db().transaction(async (tx) => {

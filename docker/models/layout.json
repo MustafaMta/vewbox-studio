@@ -14,7 +14,7 @@
     "identity": "face detection/recognition ONNX (YuNet, SFace, CCIP, DINOv2-small)",
     "qa": "MediaPipe face landmarker, SyncNet",
     "eval": "ECAPA speaker encoder",
-    "llm": "llm/qwen3.8-27b-fp8 is the production planner (Hugging Face layout, served by vLLM, read-only); llm/ollama is Ollama's /root/.ollama (models/blobs + manifests: the Gemma emergency fallback)",
+    "llm": "llm/qwen3.8-27b-nvfp4 is the planner (Hugging Face layout, served by vLLM, read-only). Retired, awaiting deletion once the planner is stable: llm/qwen3.8-27b-fp8 (inactive checkpoint) and llm/ollama (Ollama's /root/.ollama: Qwen3.6, Gemma 4)",
     "cache": "cache/hf = HF_HOME, cache/torch = TORCH_HOME (Demucs)"
   }
 }

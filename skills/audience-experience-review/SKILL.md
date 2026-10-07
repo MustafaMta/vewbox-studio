@@ -7,7 +7,7 @@ metadata:
   version: "1.0.0"
   kind: "PROMPT"
   source: "src/server/story/development/engine.ts (reviewDraft) + rubric.ts; injected by src/server/org/skills.ts agentPrompt"
-  models: "qwen3:14b or the configured hosted LLM"
+  models: "Qwen3.8-27B-NVFP4"
 ---
 
 # The audience's experience, second by second

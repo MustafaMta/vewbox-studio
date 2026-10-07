@@ -12,9 +12,9 @@ import { fixture } from './continuity-fixture';
 const saved = { ...process.env };
 afterEach(() => { process.env = { ...saved }; vi.restoreAllMocks(); vi.doUnmock('@/server/gpu/lease'); vi.resetModules(); });
 
-async function withLocalGemma() {
+async function withPlanner() {
   vi.resetModules();
-  process.env = { ...saved, DATABASE_URL: saved.DATABASE_URL ?? 'postgres://u:p@127.0.0.1:1/x', MINIMAX_API_KEY: '', ANTHROPIC_API_KEY: '', LLM_PROVIDER: 'auto', OPENAI_COMPATIBLE_BASE_URL: 'http://127.0.0.1:11434/v1', OPENAI_COMPATIBLE_MODEL: 'gemma4:31b-it-qat', OLLAMA_CONTEXT_LENGTH: '16384' };
+  process.env = { ...saved, DATABASE_URL: saved.DATABASE_URL ?? 'postgres://u:p@127.0.0.1:1/x', GPU_LEASE_DATABASE_URL: '', VEWBOX_FIXTURE_ENGINES: '1', MINIMAX_API_KEY: '', OPENAI_COMPATIBLE_BASE_URL: 'http://127.0.0.1:8050/v1', OPENAI_COMPATIBLE_MODEL: 'Qwen3.8-27B-NVFP4', LLM_CONTEXT_LENGTH: '16384' };
   vi.doMock('@/server/gpu/lease', () => ({ gpuLease: async (_f: string, _mb: number, fn: () => Promise<unknown>) => fn() }));
   const llm = await import('@/server/providers/llm');
   const engine = await import('@/server/story/engine');
@@ -23,9 +23,11 @@ async function withLocalGemma() {
 
 interface Sent { messages: Array<{ role: string; content: string }>; max_tokens: number }
 /** fetch answering /chat/completions from `answer(request, n)`: { content, finish_reason, prompt_tokens?, completion_tokens? } */
-function ollama(answer: (req: Sent, n: number) => { content: string; finish?: string; prompt?: number; completion?: number }) {
+function planner(answer: (req: Sent, n: number) => { content: string; finish?: string; prompt?: number; completion?: number }) {
   const sent: Sent[] = [];
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+    // vLLM's sleep state (awake): the planner is woken, when asleep, before it answers
+    if (String(url).endsWith('/is_sleeping')) return new Response(JSON.stringify({ is_sleeping: false }));
     const req = JSON.parse(String((init as RequestInit).body)) as Sent;
     sent.push(req);
     const a = answer(req, sent.length);
@@ -43,7 +45,7 @@ const CUT_TAIL = `{
 
 describe('isUnterminatedJson', () => {
   it('flags the cut answer and accepts closed JSON, fenced or with prose after it', async () => {
-    const { llm } = await withLocalGemma();
+    const { llm } = await withPlanner();
     expect(llm.isUnterminatedJson(CUT_TAIL)).toBe(true);
     expect(llm.isUnterminatedJson('```json\n{"shots":[{"a":1}')).toBe(true);
     expect(llm.isUnterminatedJson('{"a":"text with a } brace and \\" quote"')).toBe(true);
@@ -55,8 +57,8 @@ describe('isUnterminatedJson', () => {
 });
 
 describe('outputRoom: the answer gets what the local context has left', () => {
-  it('is OLLAMA_CONTEXT_LENGTH minus the prompt (known, else a conservative estimate) minus the margin', async () => {
-    const { llm } = await withLocalGemma();
+  it('is LLM_CONTEXT_LENGTH (vLLM --max-model-len) minus the prompt (known, else a conservative estimate) minus the margin', async () => {
+    const { llm } = await withPlanner();
     const msgs = [{ role: 'user' as const, content: 'x'.repeat(17_356) }];
     expect(llm.outputRoom(msgs, { promptTokens: 4076 })).toBe(16384 - 4076 - llm.CONTEXT_MARGIN_TOKENS);
     // the estimate over-counts the measured 4.26 characters per token: never more room than the context has
@@ -69,8 +71,8 @@ describe('json(): a cut answer', () => {
   const Schema = z.object({ shots: z.array(z.object({ purpose: z.string() })) });
 
   it('is asked again with the whole room left, never sent back as a repair', async () => {
-    const { llm } = await withLocalGemma();
-    const sent = ollama((_r, n) => (n === 1 ? { content: CUT_TAIL, finish: 'length', prompt: 4076, completion: 9000 } : { content: '{"shots":[{"purpose":"a"},{"purpose":"b"}]}', prompt: 4076, completion: 9500 }));
+    const { llm } = await withPlanner();
+    const sent = planner((_r, n) => (n === 1 ? { content: CUT_TAIL, finish: 'length', prompt: 4076, completion: 9000 } : { content: '{"shots":[{"purpose":"a"},{"purpose":"b"}]}', prompt: 4076, completion: 9500 }));
     const r = await llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 9000 });
     expect(r.data.shots).toHaveLength(2);
     expect(r.attempts).toBe(2);
@@ -80,8 +82,8 @@ describe('json(): a cut answer', () => {
   });
 
   it('throws TruncatedAnswerError when there is no more room (and never parses the partial answer)', async () => {
-    const { llm } = await withLocalGemma();
-    const sent = ollama(() => ({ content: CUT_TAIL, finish: 'length', prompt: 4076, completion: 11_924 }));
+    const { llm } = await withPlanner();
+    const sent = planner(() => ({ content: CUT_TAIL, finish: 'length', prompt: 4076, completion: 11_924 }));
     const err = await llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 11_924 }).catch((e) => e);
     expect(llm.isTruncatedAnswer(err)).toBe(true);
     expect(err.details).toMatchObject({ truncated: true, outputTokens: 11_924, inputTokens: 4076, finishReason: 'length' });
@@ -89,15 +91,15 @@ describe('json(): a cut answer', () => {
   });
 
   it('treats unterminated JSON as cut even when the engine reports "stop"', async () => {
-    const { llm } = await withLocalGemma();
-    ollama(() => ({ content: CUT_TAIL, finish: 'stop', prompt: 15_000, completion: 1000 }));
+    const { llm } = await withPlanner();
+    planner(() => ({ content: CUT_TAIL, finish: 'stop', prompt: 15_000, completion: 1000 }));
     await expect(llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 1000 })).rejects.toMatchObject({ details: { truncated: true } });
   });
 
   it('a repair round (the earlier answer in its history) is given only the room the context still has', async () => {
-    const { llm } = await withLocalGemma();
+    const { llm } = await withPlanner();
     const long = 'x'.repeat(30_000); // ≈ 10,000 estimated tokens of a wrong answer
-    const sent = ollama((_r, n) => ({ content: n === 1 ? `{"shots":"${long}"}` : '{"shots":[{"purpose":"a"}]}' }));
+    const sent = planner((_r, n) => ({ content: n === 1 ? `{"shots":"${long}"}` : '{"shots":[{"purpose":"a"}]}' }));
     await llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 12_000 });
     expect(sent[0].max_tokens).toBe(12_000);
     expect(sent[1].max_tokens).toBe(llm.outputRoom(sent[1].messages as never));
@@ -105,8 +107,8 @@ describe('json(): a cut answer', () => {
   });
 
   it('a closed answer at the limit is complete and is validated as usual', async () => {
-    const { llm } = await withLocalGemma();
-    ollama(() => ({ content: '{"shots":[{"purpose":"a"}]}', finish: 'length', completion: 9000 }));
+    const { llm } = await withPlanner();
+    planner(() => ({ content: '{"shots":[{"purpose":"a"}]}', finish: 'length', completion: 9000 }));
     const r = await llm.json(Schema, [{ role: 'user', content: 'plan' }], { maxTokens: 9000 });
     expect(r.data.shots).toHaveLength(1);
   });
@@ -127,9 +129,9 @@ const userOf = (s: Sent) => s.messages.find((m) => m.role === 'user')!.content;
 
 describe('planShotsDraft: a plan that does not fit one answer is planned in parts', () => {
   it('a 60-second, six-beat scene (up to 15 shots ≈ 16,900 tokens) is planned in two parts that each fit the room', async () => {
-    const { llm, engine } = await withLocalGemma();
+    const { llm, engine } = await withPlanner();
     const { p, scene } = sixBeatScene();
-    const sent = ollama((req) => ({ content: plan(6, /PART: beats 4–6/.test(userOf(req)) ? 'continuous' : 'transition') }));
+    const sent = planner((req) => ({ content: plan(6, /PART: beats 4–6/.test(userOf(req)) ? 'continuous' : 'transition') }));
     const draft = await engine.planShotsDraft({} as never, p, scene, fixture().state.characters, fixture().state.locations, {});
     expect(engine.planOutputTokens(60)).toBeGreaterThan(llm.outputRoom([{ role: 'user', content: userOf(sent[0]) }]));
     expect(sent).toHaveLength(2);
@@ -151,10 +153,10 @@ describe('planShotsDraft: a plan that does not fit one answer is planned in part
   });
 
   it('a part cut off anyway is split again; nothing of the cut answer is kept', async () => {
-    const { engine } = await withLocalGemma();
+    const { engine } = await withPlanner();
     const { p, scene } = sixBeatScene();
     const short = { ...p, targetSeconds: 12 }; // 12 s: one call by the estimate
-    const sent = ollama((req) => (/PART/.test(userOf(req)) ? { content: plan(2) } : { content: CUT_TAIL, finish: 'length', prompt: 16_000, completion: 384 }));
+    const sent = planner((req) => (/PART/.test(userOf(req)) ? { content: plan(2) } : { content: CUT_TAIL, finish: 'length', prompt: 16_000, completion: 384 }));
     const draft = await engine.planShotsDraft({} as never, short, scene, fixture().state.characters, fixture().state.locations, {});
     expect(/PART/.test(userOf(sent[0]))).toBe(false);
     expect(sent.slice(1).every((s) => /PART: beats/.test(userOf(s)))).toBe(true);
@@ -164,10 +166,10 @@ describe('planShotsDraft: a plan that does not fit one answer is planned in part
   });
 
   it('a one-beat scene that is cut off fails the call: a partial plan is never accepted', async () => {
-    const { llm, engine } = await withLocalGemma();
+    const { llm, engine } = await withPlanner();
     const { p, scene } = sixBeatScene();
     const one: Scene = { ...scene, beats: scene.beats.slice(0, 1) };
-    ollama(() => ({ content: CUT_TAIL, finish: 'length', prompt: 16_000, completion: 384 }));
+    planner(() => ({ content: CUT_TAIL, finish: 'length', prompt: 16_000, completion: 384 }));
     const err = await engine.planShotsDraft({} as never, { ...p, scenes: [one] }, one, fixture().state.characters, fixture().state.locations, {}).catch((e) => e);
     expect(llm.isTruncatedAnswer(err)).toBe(true);
   });

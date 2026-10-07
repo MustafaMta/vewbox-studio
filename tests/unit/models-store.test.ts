@@ -81,9 +81,10 @@ describe('the layout inside the store (docker/models/layout.json, shared with fe
 
 describe('compose derives every model path from VEWBOX_MODELS_ROOT', () => {
   const compose = fs.readFileSync('compose.yaml', 'utf8');
-  it('the models and ollama volumes are binds of the store, under names of their own', () => {
+  it('the models volume is a bind of the store, under a name of its own; no service mounts the retired Ollama store', () => {
     expect(compose).toMatch(/models:\n\s+name: vewbox_models_store\n\s+driver: local\n\s+driver_opts: \{ type: none, o: bind, device: "\$\{VEWBOX_MODELS_ROOT:-\/run\/desktop\/mnt\/host\/wsl\/models\}" \}/);
-    expect(compose).toMatch(/ollama:\n\s+name: vewbox_ollama_store\n\s+driver: local\n\s+driver_opts: \{ type: none, o: bind, device: "\$\{VEWBOX_MODELS_ROOT:-\/run\/desktop\/mnt\/host\/wsl\/models\}\/llm\/ollama" \}/);
+    // the planner is vLLM alone since Phase 0: the Ollama service, its volume and its weights' mount are gone
+    expect(compose).not.toMatch(/vewbox_ollama_store|\/root\/\.ollama|ollama\/ollama:/);
   });
   it('no hard-coded C: path, no /mnt/wsl bind, no old volume name, no cache outside the store', () => {
     const code = compose.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
@@ -93,7 +94,6 @@ describe('compose derives every model path from VEWBOX_MODELS_ROOT', () => {
     expect(compose).not.toMatch(/HF_HOME: \/models\/hf-home|TORCH_HOME: \/models\/demucs/);
     expect(compose).toMatch(/HF_HOME: \/models\/cache\/hf/);
     expect(compose).toMatch(/TORCH_HOME: \/models\/cache\/torch/);
-    expect(compose).toMatch(/OLLAMA_MODELS: \/root\/\.ollama\/models/);
   });
   it('the inference services mount the store read-only; only the fetcher writes it whole', () => {
     const rw = [...compose.matchAll(/["\s-]models:\/models(:ro)?["\s,\]]/g)];

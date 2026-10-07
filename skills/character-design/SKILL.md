@@ -7,7 +7,7 @@ metadata:
   version: "2.3.2"
   kind: "PROMPT"
   source: "src/server/story/engine.ts (designCharacter), src/worker/handlers/story.ts (designCharacter), src/server/workflows/canonical-image.ts, src/server/media/figure-check.ts, src/worker/handlers/images.ts (characterAppearance); docs/CONTRACTS-IDENTITY-PACK.md v2; docs/evidence/image-v2/REPORT.md"
-  models: "qwen3:14b, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
+  models: "Qwen3.8-27B-NVFP4, Qwen-Image-2512, Qwen-Image-Edit-2511, Qwen3.5-4B"
 ---
 
 # Character design and the canonical image

@@ -3,6 +3,11 @@
 Read this first. It replaces the history of the 2026-10-02..06 session; details live in the docs listed in
 `docs/README.md`.
 
+**Update 2026-10-07:** the producer's master plan (phases 0–7) and corrected model stack supersede §3 and §6 below
+where they differ. Progress per phase: `docs/PRODUCTION-EXECUTION-STATUS.md`. Phase 0 is done: the only planner is
+**Qwen3.8-27B-NVFP4** on vLLM (`llm-vllm`); the Ollama/hosted planner routes are gone. The studio DB and library were
+reset to fresh on 2026-10-06 (old dump and library are archive only, never restored).
+
 ## 1. Where things are
 
 | What | Where |
@@ -41,7 +46,7 @@ were deleted after verification and Docker's disk compacted (C: free 532 GB). Ol
 
 | Role | Model | State |
 |---|---|---|
-| Brain (ideas, stories, scripts, shot plans) | **Qwen3.8-27B-FP8** (`Qwen/Qwen3.8-27B-FP8` @ `017b9c7a`, Apache-2.0, 30.89 GB) | weights downloaded and sha256-verified into the store `llm/qwen3.8-27b-fp8` (manifest group `llm-qwen3.8-27b-fp8`); **not yet served** — Phase 1 |
+| Brain (ideas, stories, scripts, shot plans) | **Qwen3.8-27B-NVFP4** (`Inferact/Qwen3.8-27B-NVFP4` @ `6128240e`, Apache-2.0, 26.40 GB, store `llm/qwen3.8-27b-nvfp4`) on vLLM 0.31 | in use, the only planner (Phase 0 done 2026-10-07). The FP8 checkpoint (`llm/qwen3.8-27b-fp8`) is inactive, awaiting deletion |
 | Images | Qwen-Image-2512 (fp8) · Qwen-Image-Edit-2511 (also "character from a picture") | in use (ComfyUI) |
 | Video | MiniMax H3 (local, ComfyUI), FINAL tier default | in use; the only video engine |
 | English voice | MOSS-TTS (Delay-8B v1.5, `tts-moss` :8023) | wired; to be re-established step by step in Phase 2 |
@@ -49,9 +54,10 @@ were deleted after verification and Docker's disk compacted (C: free 532 GB). Ol
 | Lip-sync | LatentSync 1.6, realistic speech repair only (`lipsync` :8045) | cartoon/anime/singing no-go; realistic go/no-go pending |
 | Music | ACE-Step 1.5 (+ HTDemucs, MOSS-SoundEffect) | Phase 3; XL weights only partly fetched (9.9 of 43.9 GB) |
 
-Today's live planner setting is still Ollama `qwen3.6:27b-q8_0` (`.env` OPENAI_COMPATIBLE_*), because Qwen3.8 has no
-server yet. Qwen3.6 and Gemma 4 weights stay in the store until the producer approves removal; the FLUX klein route was
-removed (its manifest group `images-flux2-klein` is unreferenced; weights await the producer).
+The live planner is Qwen3.8-27B-NVFP4 on vLLM (`.env` OPENAI_COMPATIBLE_*, `.env.local` → http://127.0.0.1:8050/v1).
+Qwen3.6 and Gemma 4 (Ollama, 54 GB) and the Qwen3.8 FP8 checkpoint stay in the store, unrouted, until NVFP4 has run
+stably and the producer approves removal; the FLUX klein route was removed (its manifest group `images-flux2-klein` is
+unreferenced; weights await the producer).
 
 ## 4. Known unresolved defects
 
@@ -70,8 +76,8 @@ removed (its manifest group `images-flux2-klein` is unreferenced; weights await 
 - Worker suite: 4 failures that also fail on main (3 voice/transcription cases in `engine-faults`, 1 in
   `failure-recovery`); `production-recovery` is flaky.
 - LatentSync weights are OpenRAIL++-M: its use restrictions are in the terms; realistic correction not yet proven.
-- Hosted-provider code (MiniMax API, Anthropic) still exists behind `LLM_PROVIDER` / `VIDEO_BACKEND`; `.env` pins
-  local. Removing it touches many files — do it with or after Phase 1's provider work.
+- Hosted planner code (MiniMax text, Anthropic, `LLM_PROVIDER`) is removed (Phase 0). Hosted video/voice/music code
+  still exists behind `VIDEO_BACKEND` and the MiniMax key; `.env` pins local.
 - MiniMax H3 territory licence: the producer is applying (outputs not to be displayed in US/EU/UK/KR until granted).
 
 ## 5. Intentionally postponed
@@ -82,7 +88,8 @@ the producer.
 
 ## 6. The plan (work strictly in this order; prove each phase, report, wait)
 
-**Phase 1** — Integrate and prove **Qwen3.8-27B-FP8** as the Vewbox brain.
+**Phase 1** — DONE as master-plan Phase 0 with **Qwen3.8-27B-NVFP4** instead of FP8 (record:
+`docs/PRODUCTION-EXECUTION-STATUS.md`); the notes below are the original plan. Integrate and prove **Qwen3.8-27B-FP8** as the Vewbox brain.
 Start from `origin/wip/planner-qwen3.8-vllm` (vLLM OpenAI server `llm-vllm` on the store's `llm/qwen3.8-27b-fp8`, read-only,
 offline; non-thinking via `chat_template_kwargs {"enable_thinking": false}`; sleep/wake as the lease unloader). Pull the
 vLLM image (≈ 20 GB on Docker's C: disk was approved), fit it on the card (single-5090 notes: `--enforce-eager`,

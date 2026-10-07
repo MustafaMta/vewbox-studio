@@ -14,7 +14,7 @@ import { AudienceOutSchema, ConceptsOutSchema, DraftOutSchema, ReviewOutSchema, 
 import { continuityRules, ENGAGEMENT_RULES, languageRules, ORIGINALITY_RULES, STRATEGY_RULES, structureBounds } from './strategy';
 import { TIMELINE_RULES } from './timeline';
 
-/** THE DEVELOPMENT ENGINE — one structured model call per stage (the local qwen3:14b through the studio's LLM
+/** THE DEVELOPMENT ENGINE — one structured model call per stage (the local Qwen3.8-27B-NVFP4 through the studio's LLM
  *  provider, or the configured hosted model), each validated against its schema with repair rounds, then checked in
  *  code: evidence traced, originality checked, the rubric applied. Temperature per stage: concepts high, writing
  *  warm, reviews low. The calling agent's instructions and PROMPT skills are appended to the system message. */

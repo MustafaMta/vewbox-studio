@@ -509,7 +509,7 @@ async function planBeats(p: Production, scene: Scene, run: BeatRun, cast: Charac
   const budget = sceneBudget(p, run.beats.length);
   const maxShot = 10;
   const messages = shotPlanMessages(p, scene, run, budget, maxShot, cast, world, previous, opts, bible);
-  const room = outputRoom(messages, { provider: opts.provider });
+  const room = outputRoom(messages);
   const canSplit = run.beats.length > 1 && depth < MAX_PLAN_SPLITS;
   const split = async (): Promise<PlannedShot[]> => {
     const [a, b] = halveBeats(run.beats);

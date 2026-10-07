@@ -7,7 +7,7 @@ metadata:
   version: "1.0.0"
   kind: "PROCEDURE"
   source: "src/server/story/development/strategy.ts (rules, structure bounds), context.ts (the show's history via showContinuity), resolve.ts (cast and places), rubric.ts (checks); docs/CONTRACTS-AUTO-IDEA.md §2"
-  models: "qwen3:14b or the configured hosted LLM"
+  models: "Qwen3.8-27B-NVFP4"
 ---
 
 # Format strategies and continuation
