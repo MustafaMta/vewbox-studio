@@ -164,6 +164,11 @@ export function blockingFor(p: Production, sh: Shot): BlockingState {
 }
 
 const SIDE_WORDS: Record<FrameSide, string> = { LEFT: 'the left of the frame', CENTER: 'the centre of the frame', RIGHT: 'the right of the frame' };
+/** The people a shot shows from behind (their continuity faces AWAY from the camera): no face to measure. Pure. */
+export function facingAway(sh: Pick<Shot, 'continuity'>): string[] {
+  return (sh.continuity?.characters ?? []).filter((c) => c.screenDirection === 'AWAY').map((c) => c.characterId);
+}
+
 const FACING_WORDS: Partial<Record<ScreenDirection, string>> = { LEFT: 'faces screen left', RIGHT: 'faces screen right', TOWARD: 'faces the camera', AWAY: 'faces away from the camera' };
 
 /** The blocking as prompt sentences about bound subjects (`who`), only what the shot's own continuity does not already

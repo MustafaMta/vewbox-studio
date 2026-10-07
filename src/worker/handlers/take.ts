@@ -6,6 +6,7 @@ import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, sho
 import { StudioError } from '@/domain/errors';
 import type { Asset, QaCheck, ShotDialogue, Take, TakeReference } from '@/domain/types';
 import { ASPECT_INFO } from '@/domain/vocabulary';
+import { facingAway } from '@/domain/blocking';
 import { capabilityFor, type VideoQualityTier } from '@/domain/video-capability';
 import { commands, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -586,7 +587,11 @@ export const generateTake: Handler = async (ctx) => {
         driftChecks.push({ name: singing ? 'singing-sync' : 'lip-sync', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });
       }
     }
-    const faces = pack.subjects.map((x) => ({ characterId: x.characterId, a: byId(x.assetId) })).filter((x) => x.a);
+    // a person the shot shows from behind has no face to measure: scored anyway, the back of Marcus's head (and a stray
+    // face found in the lens glass) "failed" at SFace 0.01 (2026-10-08, "The Last Crossing" 1.3)
+    const away = new Set(facingAway(sh));
+    const faces = pack.subjects.map((x) => ({ characterId: x.characterId, a: byId(x.assetId) })).filter((x) => x.a && !away.has(x.characterId));
+    if (away.size) driftChecks.push({ name: 'identity-similarity-away', ok: true, detail: `not measured for ${away.size} ${away.size === 1 ? 'person' : 'people'} facing away from the camera` });
     if (faces.length) {
       try {
         const measured = await step(ctx, 'visual-quality-inspector', `identity-check: shot ${sh.number}`, () => faceIdentity(result.file, faces.map((x) => ({ characterId: x.characterId, image: assetFile(x.a!) }))));

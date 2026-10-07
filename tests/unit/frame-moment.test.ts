@@ -53,6 +53,16 @@ describe('the frame’s people: the vision count and the faces', () => {
   });
 });
 
+describe('a person seen from behind has no face to measure', () => {
+  it('facingAway lists the people whose continuity faces away from the camera', async () => {
+    const { facingAway } = await import('@/domain/blocking');
+    expect(facingAway({ continuity: { characters: [{ characterId: 'a', screenDirection: 'AWAY' }, { characterId: 'b', screenDirection: 'TOWARD' }], props: [], environment: {} } } as never)).toEqual(['a']);
+    expect(facingAway({ continuity: undefined } as never)).toEqual([]);
+    const src = fs.readFileSync('src/worker/handlers/take.ts', 'utf8');
+    expect(src).toMatch(/filter\(\(x\) => x\.a && !away\.has\(x\.characterId\)\)/);
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');
