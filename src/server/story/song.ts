@@ -32,6 +32,8 @@ export function vocalTag(performers: Array<Pick<SongPerformer, 'sex' | 'voiceTyp
 }
 
 const kindOf = z.preprocess((v) => (typeof v === 'string' ? v.trim().toUpperCase().replace(/[- ]/g, '_') : v), z.enum(LYRIC_KINDS));
+// a section's lines may come as one string or as a list of lines (Qwen3.8 writes both): the same words either way
+const linesOf = z.preprocess((v) => (Array.isArray(v) ? v.map(String).join('\n') : v), z.string().trim().max(1200));
 const SongPlanSchema = z.object({
   title: z.string().trim().min(1).max(80),
   concept: z.string().trim().min(10).max(600),
@@ -40,15 +42,34 @@ const SongPlanSchema = z.object({
   bpm: z.coerce.number().int().min(50).max(200),
   key: z.string().trim().max(20),
   caption: z.string().trim().min(10).max(300),
-  sections: z.array(z.object({ kind: kindOf, lyrics: z.string().trim().max(1200), singers: z.array(z.string().trim().min(1).max(80)).max(4).default([]) })).min(3).max(10),
+  sections: z.array(z.object({ kind: kindOf, lyrics: linesOf, singers: z.array(z.string().trim().min(1).max(80)).max(4).default([]) })).min(3).max(10),
 });
 export type SongPlan = z.infer<typeof SongPlanSchema>;
+
+const sungLines = (lyrics: string) => lyrics.split('\n').filter((l) => l.trim()).length;
+
+/** What a song of this length holds: at most this many sections (intro and outro count), and about `lines` sung lines
+ *  — one line every ~4.5 s leaves the singers room to breathe and the band its fills; more than `maxLines` (one every
+ *  ~3.6 s) is crammed and refused. Pure (tested). */
+export function songBudget(seconds: number): { maxSections: number; lines: number; maxLines: number } {
+  return { maxSections: seconds <= 75 ? 5 : seconds <= 150 ? 8 : 10, lines: Math.round(seconds / 4.5), maxLines: Math.round(seconds / 3.6) };
+}
+
+/** The plan's schema for a song of this length: the budget is part of the answer's validity, so an over-long plan is
+ *  sent back with the reason (a format repair of the same answer), never trimmed or guessed at. */
+export function songPlanSchema(seconds: number) {
+  const b = songBudget(seconds);
+  return SongPlanSchema
+    .refine((p) => p.sections.length <= b.maxSections, { message: `at most ${b.maxSections} sections for a ${Math.round(seconds)}-second song`, path: ['sections'] })
+    .refine((p) => p.sections.reduce((n, s) => n + sungLines(s.lyrics), 0) <= b.maxLines, { message: `at most ${b.maxLines} sung lines in total for a ${Math.round(seconds)}-second song (aim for about ${b.lines})`, path: ['sections'] });
+}
 
 /** Ask the planner for the song. `brief`: the producer's words for this song (optional). */
 export async function writeSongPlan(p: Production, performers: SongPerformer[], req: { seconds: number; brief?: string }, opts: LlmOptions & { onResult?: (r: LlmResult) => void } = {}): Promise<SongPlan> {
   if (!performers.length) throw new StudioError('INVALID', 'Nobody in this cast sings: cast a Singer or an Actor + Singer (Characters › Performs), then write the song.', { productionId: p.id, failureClass: 'INVALID_INPUT' });
   const who = performers.map((s) => `- ${s.name}: ${s.sex === 'FEMALE' ? 'woman' : 'man'}${s.voiceType ? `, ${s.voiceType.toLowerCase().replace('_', '-')}` : ''}${s.styles.length ? `, sings ${s.styles.join(', ')}` : ''}`).join('\n');
-  const sectionsFor = req.seconds <= 75 ? '3–4 sections (verse, chorus, verse or bridge, chorus)' : req.seconds <= 150 ? '5–7 sections (intro optional, verse, chorus, verse, chorus, bridge, final chorus)' : '6–9 sections';
+  const b = songBudget(req.seconds);
+  const sectionsFor = `${req.seconds <= 75 ? '3–5 sections (verse, chorus, verse or bridge, chorus)' : req.seconds <= 150 ? '5–8 sections (intro optional, verse, chorus, verse, chorus, bridge, final chorus)' : '6–10 sections'} and about ${b.lines} sung lines in all (never more than ${b.maxLines}; the intro, outro and instrumental breaks need time too)`;
   const system: LlmMessage = { role: 'system', content: 'You are the songwriter of Vewbox Studio, an AI film studio. You write ONE original, singable English song for a production: a clear concept, a strong memorable chorus, natural rhymes and stresses, lines a singer can breathe through. Never quote or imitate an existing song, artist or lyric. Answer with ONE JSON object only.' };
   const user = `Write the song for "${p.title}" (${p.kind === 'MUSIC_VIDEO' ? 'a music video' : 'a production'}).
 ${p.logline ? `Logline: ${p.logline}\n` : ''}${req.brief?.trim() ? `The producer asks: """${req.brief.trim()}"""\n` : ''}Length: about ${Math.round(req.seconds)} seconds, so ${sectionsFor}.
@@ -56,7 +77,7 @@ The singers — ONLY these may sing, by these exact names:
 ${who}
 Return JSON: { title, concept (2–3 sentences: what the song is about and how it feels), genre, mood, bpm (a whole number), key (like "D minor"), caption (one line for the music engine: genre, instruments, production and feel — no names, no lyrics), sections: [ { kind: one of ${LYRIC_KINDS.join('|')}, lyrics (the lines, one per line, in English; empty for an instrumental section), singers: [names from the list who sing this section; the first is the lead] } ] }.
 Every sung section names at least one singer from the list. Choruses repeat their words. Keep each line under 12 words.`;
-  const r = await llmJson(SongPlanSchema, [system, { role: 'user', content: user }], { ...opts, maxTokens: 3000, temperature: 0.8 });
+  const r = await llmJson(songPlanSchema(req.seconds), [system, { role: 'user', content: user }], { ...opts, maxTokens: 3000, temperature: 0.8 });
   opts.onResult?.(r.result);
   return r.data;
 }
@@ -66,12 +87,16 @@ Every sung section names at least one singer from the list. Choruses repeat thei
  *  the engine (or dropped). Pure (tested). */
 export function songFromPlan(plan: SongPlan, performers: SongPerformer[], seconds: number, previous?: Song): Song {
   const byName = (n: string) => performers.find((s) => s.name.toLowerCase() === n.trim().toLowerCase()) ?? performers.find((s) => s.name.split(' ')[0].toLowerCase() === n.trim().split(' ')[0].toLowerCase());
-  const each = seconds / plan.sections.length;
+  // the first timing, before the recording is aligned: each section by how much it holds — its sung lines, or the
+  // room of two lines for a section without words (an intro, an outro, a break)
+  const weights = plan.sections.map((s) => (s.kind !== 'INSTRUMENTAL' && s.lyrics.trim() ? sungLines(s.lyrics) : 2));
+  const total = weights.reduce((a, w) => a + w, 0);
+  const at = (i: number) => Math.round((seconds * weights.slice(0, i).reduce((a, w) => a + w, 0)) / total);
   const sections: LyricSection[] = plan.sections.map((s, i) => {
     const sung = s.kind !== 'INSTRUMENTAL' && Boolean(s.lyrics.trim());
     const ids = s.singers.map((n) => { const hit = byName(n); if (!hit && sung) throw new StudioError('PROVIDER', `The song plan gives a section to “${n}”, who is not one of this song's singers (${performers.map((x) => x.name).join(', ')}).`, { failureClass: 'PROVIDER' }); return hit?.id; }).filter((x): x is string => Boolean(x));
     if (sung && !ids.length) throw new StudioError('PROVIDER', `The song plan leaves section ${i + 1} (${s.kind.toLowerCase()}) without a singer.`, { failureClass: 'PROVIDER' });
-    return { id: nid('sec'), kind: s.kind, text: sung ? s.lyrics.trim() : '', singerIds: [...new Set(ids)], from: Math.round(i * each), to: Math.round((i + 1) * each) };
+    return { id: nid('sec'), kind: s.kind, text: sung ? s.lyrics.trim() : '', singerIds: [...new Set(ids)], from: at(i), to: at(i + 1) };
   });
   const order = [...new Set(sections.flatMap((s) => s.singerIds))];
   const key = ACE_KEYS.find((k) => k.toLowerCase() === plan.key.trim().toLowerCase());

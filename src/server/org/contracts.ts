@@ -17,7 +17,7 @@ const bytes = z.custom<Buffer>((v) => Buffer.isBuffer(v), 'a byte buffer');
 
 // --------------------------------------------------------------------------------------- story.structured_answer
 
-export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan', 'audience-analysis', 'concepts', 'idea-draft', 'idea-review'] as const;
+export const STORY_TASKS = ['proposal', 'continuity', 'character-design', 'develop', 'script', 'shot-plan', 'performance-plan', 'audience-analysis', 'concepts', 'idea-draft', 'idea-review', 'song'] as const;
 export type StoryTask = (typeof STORY_TASKS)[number];
 
 /** What the story handlers ask the model for (the engine function and the records it works on). */
@@ -26,6 +26,8 @@ export const StructuredAnswerInput = z.strictObject({
   productionId: z.string().min(1).optional(),
   showId: z.string().min(1).optional(),
   sceneIds: z.array(z.string().min(1)).optional(),
+  /** the characters the answer is for (WRITE_SONG: the song's singers) */
+  characterIds: z.array(z.string().min(1)).optional(),
   /** AUTO_IDEA: what is proposed */
   kind: z.enum(['SHOW', 'SEASON', 'EPISODE', 'SHORT', 'MUSIC_VIDEO']).optional(),
   /** a development stage: the AUTO_IDEA job it belongs to */
@@ -66,6 +68,8 @@ const PlannedShotOut = z.looseObject({
 });
 /** planShotsDraft: the scene's shots before the Shot Planner's timing fit, with the budget they are fitted to. */
 const ShotPlanOut = z.looseObject({ shots: z.array(PlannedShotOut).min(1), budget: z.number().positive(), maxShot: z.number().positive() });
+/** WRITE_SONG: the song plan (src/server/story/song.ts SongPlanSchema) — every sung section names its singers. */
+const SongOut = z.looseObject({ title: z.string().min(1), concept: z.string(), genre: z.string(), mood: z.string(), bpm: z.number().int().min(50).max(200), key: z.string(), caption: z.string().min(1), sections: z.array(z.looseObject({ kind: z.string(), lyrics: z.string(), singers: z.array(z.string()) })).min(3).max(10) });
 const PerformancePlanOut = z.array(z.looseObject({ sectionId: z.string(), mode: z.enum(['SOLO', 'DUET', 'ALTERNATING', 'ENSEMBLE', 'LISTENER', 'INSTRUMENTAL']), singerIds: z.array(z.string()), lines: z.array(z.looseObject({ singerId: z.string(), text: z.string() })).optional() }));
 
 // the research-driven Auto Idea's stages (src/server/story/development/engine.ts), after the studio's own checks
@@ -84,8 +88,8 @@ const StoryReviewOut = z.looseObject({ reviewer: z.enum(['STORY_EDITOR', 'AUDIEN
   // the verdict rule: a MAJOR issue means REVISE
   .refine((r) => r.verdict === 'REVISE' || !r.issues.some((i) => i.severity === 'MAJOR'), 'a MAJOR issue means REVISE');
 
-const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut, 'audience-analysis': AudienceStageOut, concepts: ConceptSetOut, 'idea-draft': DraftContentOut, 'idea-review': StoryReviewOut };
-export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut, AudienceStageOut, ConceptSetOut, DraftContentOut, StoryReviewOut]);
+const STORY_OUTPUT: Record<StoryTask, z.ZodType> = { proposal: ProposalOut, continuity: ContinuityOut, 'character-design': CharacterDesignOut, develop: DevelopOut, script: ScriptOut, 'shot-plan': ShotPlanOut, 'performance-plan': PerformancePlanOut, 'audience-analysis': AudienceStageOut, concepts: ConceptSetOut, 'idea-draft': DraftContentOut, 'idea-review': StoryReviewOut, song: SongOut };
+export const StructuredAnswerOutput = z.union([ProposalOut, ContinuityOut, CharacterDesignOut, DevelopOut, ScriptOut, ShotPlanOut, PerformancePlanOut, AudienceStageOut, ConceptSetOut, DraftContentOut, StoryReviewOut, SongOut]);
 
 // ---------------------------------------------------------------------------------------------------- research
 
@@ -208,9 +212,9 @@ export const StemsOutput = z.looseObject({ files: z.record(z.string(), z.string(
 
 // ----------------------------------------------------------------------------------------------------- music
 
-export const MusicInput = z.object({ engine: z.enum(['minimax-api', 'ace-step', 'minimax-music3']), caption: z.string(), lyrics: z.string(), seconds: z.number().positive().optional(), instrumental: z.boolean().optional() });
+export const MusicInput = z.object({ engine: z.literal('ace-step'), variant: z.enum(['xl-sft', 'xl-turbo']), caption: z.string(), lyrics: z.string(), seconds: z.number().positive().optional(), instrumental: z.boolean().optional(), bpm: z.number().int().optional(), key: z.string().optional() });
 /** minimax.generateMusic() returns the audio; the local engines return the ComfyUI run. */
-export const MusicOutput = z.union([z.looseObject({ bytes, format: z.string(), traceId: z.string().optional() }), ComfyRunOutput]);
+export const MusicOutput = ComfyRunOutput;
 
 // ----------------------------------------------------------------------------------------------------- media
 

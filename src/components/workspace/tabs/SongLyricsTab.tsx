@@ -78,7 +78,7 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
 
           <section className="ws-sec" aria-labelledby="ws-lyr-h">
             <SectionHead id="ws-lyr-h" title="Lyrics" count={song.sections.length || null} description="Write the lyrics as sections. Select a section to set who sings it and when." action={<Button size="sm" icon={<IconPlus aria-hidden />} onClick={addSection}>Add a section</Button>} />
-            <div className="ws-gen-row">{writeSong('Rewrite the song')}<GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton></div>
+            <div className="ws-gen-row">{writeSong(song.sections.length || song.lyrics ? 'Rewrite the song' : 'Write the song')}<GenButton gate={gate} engine="music" type="GENERATE_SONG" payload={{ productionId: p.id }} target={{ productionId: p.id }} icon={<IconGenerate aria-hidden />}>Generate the song</GenButton></div>
             {song.sections.length === 0 ? <p className="t-body ws-empty">No sections yet.</p> : (
               <ol className="ws-lyrics" aria-label="Sections">
                 {song.sections.map((sec) => {

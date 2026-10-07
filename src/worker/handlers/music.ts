@@ -63,7 +63,7 @@ export const writeSong: Handler = async (ctx) => {
   const performers = songPerformers(castOf(state, p), singerIds);
   const seconds = Math.min(300, Math.max(15, Math.round(p.song?.durationSeconds || p.targetSeconds)));
   await ctx.progress('GENERATING', { phase: 'writing', message: `Writing the song for ${performers.map((s) => s.name).join(' and ') || 'the cast'}`, percent: null });
-  const plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, singers: performers.map((s) => s.id) } });
+  const plan = await ctx.tool('story.structured_answer', () => writeSongPlan(p, performers, { seconds, brief: brief ?? p.song?.caption }, { jobId: ctx.job.id }), { label: 'song plan', input: { task: 'song', productionId: p.id, characterIds: performers.map((s) => s.id) } });
   await ctx.checkpoint();
   const song = songFromPlan(plan, performers, seconds, p.song);
   await command(p.song ? 'updateSong' : 'setSong', p.song ? [p.id, { ...song, assetId: undefined, stems: undefined, provider: undefined, model: undefined, requestId: undefined, jobId: ctx.job.id }] : [p.id, { ...song, jobId: ctx.job.id }], 'worker');

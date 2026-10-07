@@ -101,9 +101,8 @@ describe('contracts accept the provider shapes of the GPU, hosted and service to
     accepts('speech.clone_voice', 'output', { voiceId: 'vb_x', demoUrl: undefined });
     accepts('audio.separate_stems', 'input', { file: '/tmp/song.mp3', outDir: '/tmp/stems' });
     accepts('audio.separate_stems', 'output', { files: { vocals: '/tmp/stems/vocals.wav', no_vocals: '/tmp/stems/no_vocals.wav' }, ms: 0, model: 'htdemucs' });
-    accepts('music.generate', 'input', { engine: 'ace-step', caption: 'slow oud', lyrics: '[verse]\nla la', seconds: 48, instrumental: false });
-    accepts('music.generate', 'input', { engine: 'minimax-api', caption: 'slow oud', lyrics: '', instrumental: undefined });
-    accepts('music.generate', 'output', { bytes: Buffer.from([1]), format: 'mp3', traceId: undefined });
+    accepts('music.generate', 'input', { engine: 'ace-step', variant: 'xl-sft', caption: 'slow oud', lyrics: '[verse]\nla la', seconds: 48, instrumental: false, bpm: 72, key: 'F minor' });
+    accepts('music.generate', 'input', { engine: 'ace-step', variant: 'xl-turbo', caption: 'slow oud', lyrics: '', instrumental: undefined });
     accepts('music.generate', 'output', { promptId: 'p1', outputs: { '18': { audio: [{ filename: 'song_00001_.flac', subfolder: 'vewbox', type: 'output' }] } }, ms: 61000, engineMs: 58000, workflowVersion: 'wf:abc' });
   });
   it('image.* and video.minimax_generate: a real graph in, ComfyUI history and both video backends out', () => {
