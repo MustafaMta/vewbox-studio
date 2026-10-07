@@ -420,9 +420,19 @@ services:
       - --served-model-name=Qwen3.8-27B-NVFP4
       - --tensor-parallel-size=1
       - --max-model-len=${LLM_CONTEXT_LENGTH:-32768}
-      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.90}
+      # A FIXED KV CACHE, not a share of the card (2026-10-08): with --gpu-memory-utilization alone the KV cache was what
+      # was left of 0.90 × 32 GB after the 24.2 GB of weights — 2.3 GB on a clean card, and NOTHING once the other GPU
+      # services held their idle CUDA contexts (ComfyUI, ASR, Habibi, MOSS: 2.6 GB together), so a cold start or a
+      # crash restart of the planner looped on "No available memory for the cache blocks". 1.8 GiB = 44,904 tokens
+      # (1.37 × a full 32K request), measured to start beside 2.6 GB held by others.
+      - --gpu-memory-utilization=${VLLM_GPU_MEMORY_UTILIZATION:-0.85}
+      - --kv-cache-memory-bytes=${VLLM_KV_CACHE_BYTES:-1932735283}
       - --kv-cache-dtype=fp8
-      - --enforce-eager
+      # DECODE-ONLY CUDA GRAPHS (was --enforce-eager, the conservative Phase 0 start): 53–54 tok/s instead of 13.4 on the
+      # same answers (1,300–1,500 tokens, 2026-10-08), the graphs 0.43 GiB for batch sizes 1 and 2 (--max-num-seqs);
+      # sleep level 2 → wake → reload_weights → correct answers at the same speed. Prefill stays eager, in 4K chunks.
+      - --compilation-config={"cudagraph_mode":"FULL_DECODE_ONLY","cudagraph_capture_sizes":[1,2]}
+      - --max-num-batched-tokens=4096
       - --max-num-seqs=2
       - --reasoning-parser=qwen3
       - --enable-sleep-mode

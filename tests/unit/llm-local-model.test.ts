@@ -32,8 +32,8 @@ describe('the planner', () => {
 describe('the LLM lease estimate', () => {
   it('uses the measured card total for the planner; a model never measured asks for the whole card', async () => {
     const { llmLeaseMb, UNMEASURED_LLM_VRAM_MB } = await llmWith({});
-    expect(llmLeaseMb('Qwen3.8-27B-NVFP4')).toBe(30000);
-    expect(llmLeaseMb(' qwen3.8-27b-nvfp4 ')).toBe(30000);
+    expect(llmLeaseMb('Qwen3.8-27B-NVFP4')).toBe(28500);
+    expect(llmLeaseMb(' qwen3.8-27b-nvfp4 ')).toBe(28500);
     expect(llmLeaseMb('llama3:8b')).toBe(UNMEASURED_LLM_VRAM_MB);
     expect(UNMEASURED_LLM_VRAM_MB).toBe(31500);
   });
@@ -47,7 +47,7 @@ describe('the LLM lease estimate', () => {
       return new Response([`data: ${JSON.stringify({ choices: [{ delta: { content: '{}' }, finish_reason: 'stop' }] })}\n\n`, 'data: [DONE]\n\n'].join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } });
     });
     await llm.chat([{ role: 'user', content: 'hi' }]);
-    expect(leases).toEqual([{ family: 'LLM', mb: 30000 }]);
+    expect(leases).toEqual([{ family: 'LLM', mb: 28500 }]);
     const body = JSON.parse(String((fetchMock.mock.calls.find(([u]) => String(u).endsWith('/chat/completions'))![1] as RequestInit).body));
     expect(body.model).toBe('Qwen3.8-27B-NVFP4');
   });

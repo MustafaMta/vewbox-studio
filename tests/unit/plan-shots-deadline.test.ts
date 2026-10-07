@@ -65,7 +65,7 @@ describe('planShotsWork and the model speed', () => {
   });
   it('the planner answers at its measured speed; an unmeasured model is assumed slow', async () => {
     const { llmSpeed, UNMEASURED_LLM_SPEED } = await import('@/server/providers/llm');
-    expect(llmSpeed('Qwen3.8-27B-NVFP4')).toEqual({ tokensPerSecond: 13, promptSecondsPerPart: 5 });
+    expect(llmSpeed('Qwen3.8-27B-NVFP4')).toEqual({ tokensPerSecond: 40, promptSecondsPerPart: 5 });
     expect(llmSpeed('some-new-model')).toEqual(UNMEASURED_LLM_SPEED);
   });
 });

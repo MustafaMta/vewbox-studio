@@ -58,9 +58,10 @@ export function outputRoom(messages: LlmMessage[], opts: { promptTokens?: number
 export const DEFAULT_LOCAL_LLM = 'Qwen3.8-27B-NVFP4';
 
 /** What the planner holds on the card while it answers, in MB — the LLM family's GPU lease estimate. Qwen3.8-27B-NVFP4
- *  on vLLM 0.31 (2026-10-07: weights 24.18 GiB, FP8 KV 2.29 GiB = 57,040 tokens at --gpu-memory-utilization 0.90):
- *  29,976 MiB peak while answering. A model never measured is given the whole card, so nothing runs beside it. */
-export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.8-27b', 30000]];
+ *  on vLLM 0.31 (2026-10-08: weights 24.18 GiB, a fixed FP8 KV cache of 1.8 GiB = 44,904 tokens, decode CUDA graphs
+ *  0.43 GiB): 27.2 GiB measured beside the other services' idle contexts (it was 29,976 MiB with the KV cache sized by
+ *  --gpu-memory-utilization 0.90). A model never measured is given the whole card, so nothing runs beside it. */
+export const LOCAL_LLM_VRAM_MB: ReadonlyArray<readonly [prefix: string, mb: number]> = [['qwen3.8-27b', 28500]];
 export const UNMEASURED_LLM_VRAM_MB = 31500;
 export function llmLeaseMb(model: string): number {
   const m = model.trim().toLowerCase();
@@ -68,10 +69,11 @@ export function llmLeaseMb(model: string): number {
 }
 
 /** How fast the planner answers on the RTX 5090, warm (answer tokens per second; seconds to read one ≈ 4K-token
- *  shot-plan prompt): Qwen3.8-27B-NVFP4 on vLLM --enforce-eager 13 tok/s (2026-10-07: 2,119 tokens at 12.9 tok/s; the
- *  studio's 3,765-token shot plan in 285 s; a 9,947-token prompt read in 1.3 s). The shot planner's deadline is computed
- *  from it (src/server/jobs/work-deadline.ts). A model never measured is assumed slow so its jobs are not cut short. */
-export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.8-27b', 13, 5]];
+ *  shot-plan prompt): Qwen3.8-27B-NVFP4 on vLLM with decode-only CUDA graphs 53–54 tok/s (2026-10-08: 1,297–1,500
+ *  tokens in 24–28 s, also after a sleep/wake cycle; it was 13.4 under --enforce-eager); a 9,947-token prompt read in
+ *  1.3 s. Kept conservative at 40 so a slower answer is never cut short: the deadlines and the per-call bounds are
+ *  computed from it (src/server/jobs/work-deadline.ts, deadlines.ts llmCallMs). A model never measured is assumed slow. */
+export const LOCAL_LLM_SPEED: ReadonlyArray<readonly [prefix: string, tokensPerSecond: number, promptSecondsPerPart: number]> = [['qwen3.8-27b', 40, 5]];
 export const UNMEASURED_LLM_SPEED = { tokensPerSecond: 8, promptSecondsPerPart: 90 };
 export function llmSpeed(model: string): { tokensPerSecond: number; promptSecondsPerPart: number } {
   const m = model.trim().toLowerCase();
