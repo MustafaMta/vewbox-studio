@@ -176,9 +176,15 @@ export function CanonDialog({ show, kind, open, onClose }: { show: Show; kind: '
   const current = kind === 'cast' ? show.castIds : show.locationIds;
   const [ids, setIds] = useState<string[]>(current);
   useResetOnOpen(open, () => setIds(current));
-  const items = useMemo(() => (kind === 'cast' ? state.characters.map((c) => ({ ...figure(state, c), meta: c.role })) : state.locations.map((l) => plate(state, l))), [kind, state]);
+  // ONE STYLE PER PRODUCTION (src/domain/style-rule.ts): the show's style only; a member of another style it already
+  // has stays visible, marked, so it can be taken out
+  const items = useMemo(() => {
+    const offered = <X extends { id: string; style: Style }>(xs: X[]) => xs.filter((x) => x.style === show.style || current.includes(x.id));
+    const other = (x: { style: Style }) => (x.style !== show.style ? ` · ${STYLE_LABEL[x.style] ?? x.style}, another style` : '');
+    return kind === 'cast' ? offered(state.characters).map((c) => ({ ...figure(state, c), meta: `${c.role}${other(c)}` })) : offered(state.locations).map((l) => { const it = plate(state, l); return { ...it, meta: `${it.meta}${other(l)}` }; });
+  }, [kind, state, show.style, current]);
   const toggle = (id: string) => setIds((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]));
-  const save = () => { act('updateShow', show.id, kind === 'cast' ? { castIds: ids } : { locationIds: ids }); toast.ok(kind === 'cast' ? 'Cast saved' : 'World saved'); onClose(); };
+  const save = () => { try { act('updateShow', show.id, kind === 'cast' ? { castIds: ids } : { locationIds: ids }); toast.ok(kind === 'cast' ? 'Cast saved' : 'World saved'); onClose(); } catch (e) { toast.bad((e as Error).message); } };
   return (
     <Dialog open={open} onClose={onClose} size="lg" title={kind === 'cast' ? 'The show’s cast' : 'The show’s world'}
       description={kind === 'cast' ? 'Every episode can use these characters with their canonical look and voice.' : 'Every episode can film in these places.'}

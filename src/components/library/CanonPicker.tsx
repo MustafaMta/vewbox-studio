@@ -9,7 +9,7 @@ import { T } from '@/lib/copy';
 import { AddTile, Button, Modal, PickGrid } from '@/components/ui/kit';
 import { Art } from '@/components/ui/cinema';
 import { CharacterForm } from '@/components/character/CharacterForm';
-import { LocationForm } from '@/components/location/LocationForm';
+import { LocationForm, STYLE_WORDS } from '@/components/location/LocationForm';
 import { IconPlus } from '@/components/ui/icons';
 
 /** WHO AND WHERE — the cast and locations of a show or a production, shown as pictures. "Create new" opens the
@@ -67,9 +67,13 @@ export function Picker({ kind, style, selected, locked = [], onChange, label }: 
   const { state } = useStudio();
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);
+  // ONE STYLE PER PRODUCTION (src/domain/style-rule.ts): only people and places of the production's style are offered;
+  // one of another style already chosen stays visible, marked, so it can be taken out
+  const offered = <T extends { id: string; style: Style }>(xs: T[]) => xs.filter((x) => !style || x.style === style || selected.includes(x.id) || locked.includes(x.id));
+  const otherStyle = (x: { style: Style }) => (style && x.style !== style ? ` · ${STYLE_WORDS[x.style]}, another style` : '');
   const items = kind === 'cast'
-    ? state.characters.map((c) => ({ id: c.id, label: c.name, labelAr: c.nameAr, src: primaryImageSrc(state, c), sub: c.role }))
-    : state.locations.map((l) => ({ id: l.id, label: l.name, labelAr: l.nameAr, src: assetSrc(state, l.masterAssetId), sub: l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior') }));
+    ? offered(state.characters).map((c) => ({ id: c.id, label: c.name, labelAr: c.nameAr, src: primaryImageSrc(state, c), sub: `${c.role}${otherStyle(c)}` }))
+    : offered(state.locations).map((l) => ({ id: l.id, label: l.name, labelAr: l.nameAr, src: assetSrc(state, l.masterAssetId), sub: `${l.kind === 'INTERIOR' ? T('label.interior') : T('label.exterior')}${otherStyle(l)}` }));
   const toggle = (id: string) => { if (locked.includes(id)) return; setDraft((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id])); };
   const title = label ?? (kind === 'cast' ? T('label.cast') : T('label.locations'));
   return (
