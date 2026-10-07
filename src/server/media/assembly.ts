@@ -177,7 +177,32 @@ export async function assemble(p: Production, timeline: Timeline, opts: Assemble
  *  frame, the expected frame rate and size, timestamps starting at zero, no black stretch longer than a cut should
  *  have, and the mix plan's total matching the picture. A failed check fails the export. */
 export interface ExportValidation { ok: boolean; checks: Array<{ name: string; ok: boolean; value?: string | number; detail?: string }> }
-export async function validateExport(file: string, expect: { width: number; height: number; fps: number; durationSeconds: number; subtitlesBurned: boolean; /** what the render burned: the cue count, whether every cue is in the requested script, whether the burn filter ran */ subtitles?: { requested: 'ar' | 'en' | 'both'; cues: number; languageOk: boolean; burned: boolean }; codec?: 'h264' | 'h265' | 'prores'; disclosure?: string }): Promise<ExportValidation> {
+/** The longest accidental silence a finished film may hold (seconds below −50 dB). */
+export const DEAD_AIR_SECONDS = 4;
+
+/** Silent stretches of a file's sound (ffmpeg silencedetect): [{ start, end }] in seconds. A stretch still open at the
+ *  end runs to the file's end. */
+export async function silentStretches(file: string, noiseDb = -50, minSeconds = 1.0): Promise<Array<{ start: number; end: number }>> {
+  const { stderr } = await execFileP('ffmpeg', ['-v', 'info', '-i', file, '-vn', '-af', `silencedetect=n=${noiseDb}dB:d=${minSeconds}`, '-f', 'null', '-'], { maxBuffer: 50 * 1024 * 1024 });
+  return parseSilences(stderr, (await ffprobe(file)).durationSeconds ?? 0);
+}
+
+/** silencedetect's log → stretches. Pure (tested). */
+export function parseSilences(log: string, durationSeconds: number): Array<{ start: number; end: number }> {
+  const out: Array<{ start: number; end: number }> = [];
+  let open: number | null = null;
+  for (const m of log.matchAll(/silence_(start|end): (-?[\d.]+)/g)) {
+    const t = Number(m[2]);
+    if (m[1] === 'start') open = Math.max(0, t);
+    else if (open !== null) { out.push({ start: open, end: t }); open = null; }
+  }
+  if (open !== null) out.push({ start: open, end: durationSeconds });
+  return out;
+}
+
+export async function validateExport(file: string, expect: { width: number; height: number; fps: number; durationSeconds: number; subtitlesBurned: boolean; /** what the render burned: the cue count, whether every cue is in the requested script, whether the burn filter ran */ subtitles?: { requested: 'ar' | 'en' | 'both'; cues: number; languageOk: boolean; burned: boolean }; codec?: 'h264' | 'h265' | 'prores'; disclosure?: string;
+  /** windows the plan made silent on purpose (a held breath, a cut to black with no sound) — exempt from dead-air */
+  intentionalSilences?: Array<{ from: number; to: number }> }): Promise<ExportValidation> {
   const checks: ExportValidation['checks'] = [];
   const p = await ffprobe(file);
   const push = (name: string, ok: boolean, value?: string | number, detail?: string) => checks.push({ name, ok, value, detail });
@@ -214,6 +239,17 @@ export async function validateExport(file: string, expect: { width: number; heig
     push('audio-video-length', gap <= 1 / expect.fps + 0.03, Number(gap.toFixed(3)), 'difference in seconds');
     push('timestamps-start', Math.abs(Number(v?.start_time ?? 0)) <= 1 / expect.fps + 0.001 && Math.abs(Number(a?.start_time ?? 0)) <= 0.05, `${v?.start_time ?? '?'} / ${a?.start_time ?? '?'}`);
   } catch (e) { push('audio-video-length', false, undefined, (e as Error).message); }
+  // DEAD AIR (producer directive: intentional silence is valid, accidental dead silence is not): a stretch of the mix
+  // below −50 dB longer than DEAD_AIR_SECONDS fails the export unless the plan declared that window silent on purpose;
+  // shorter stretches are reported. An all-silent mix fails here too, not only "audio-present".
+  try {
+    const silences = await silentStretches(file, -50, 1.0);
+    const declared = expect.intentionalSilences ?? [];
+    const isDeclared = (s: { start: number; end: number }) => declared.some((d) => s.start >= d.from - 0.25 && s.end <= d.to + 0.25);
+    const dead = silences.filter((s) => s.end - s.start > DEAD_AIR_SECONDS && !isDeclared(s));
+    const fmtS = (s: { start: number; end: number }) => `${s.start.toFixed(1)}–${s.end.toFixed(1)} s`;
+    push('no-dead-air', dead.length === 0, dead.length, dead.length ? `silent (below −50 dB) and not declared: ${dead.slice(0, 5).map(fmtS).join(', ')}` : silences.length ? `short silences (≤ ${DEAD_AIR_SECONDS} s or declared): ${silences.slice(0, 5).map(fmtS).join(', ')}` : 'none');
+  } catch (e) { push('no-dead-air', false, undefined, (e as Error).message); }
   // black stretches: a fade is short; a black second is a broken part
   try {
     const { stderr } = await execFileP('ffmpeg', ['-v', 'info', '-i', file, '-vf', 'blackdetect=d=0.8:pix_th=0.10', '-an', '-f', 'null', '-'], { maxBuffer: 50 * 1024 * 1024 });
