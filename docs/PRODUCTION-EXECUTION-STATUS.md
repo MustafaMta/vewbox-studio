@@ -75,3 +75,30 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   The creation form put Style beside the singing fields; the singing fields now have their own row.
 - **Remaining blocker:** the producer must LISTEN — naturalness, emotional range and pronunciation are not claimed by
   any measurement (each character's page plays the voice and every line; "I listened" records the judgement).
+
+## Phase 2 — Standalone music (no video) — IN PROGRESS (2026-10-07)
+
+- **Commits:** `4983b07` (song planner + ACE-Step-only recording), `937c603` (contract, budget and timing fixes).
+- **Models:** Qwen3.8-27B-NVFP4 writes the song (concept, lyrics, sections, who sings each, tempo, key, engine
+  caption). ACE-Step 1.5 XL-SFT + 5Hz LM 4B records it (ComfyUI). The 4B LM is verified (8.38 GB). The XL-SFT DiT is
+  still downloading (one queue, resumable, sha256-pinned; ~1 MB/s).
+- **Built:** job WRITE_SONG (music director; LLM lease; ORG_VERSION 16). Only cast members who sing (Singer /
+  Actor + Singer) may sing; an unknown or non-singing name in the plan is refused, never guessed. GENERATE_SONG is
+  ACE-Step only: a missing SFT file is a configuration error naming the files; turbo only when MUSIC_ACE_VARIANT=xl-turbo.
+  The MiniMax music routes are gone from the handler, env and tool contract. The vocal the engine is asked for comes
+  from the singers' profiles (e.g. "male baritone and female soprano vocal duet"). Provenance carries seed, singers,
+  tempo, key and creative attempt 1. Recording QA adds loudness/peak (−20…−8 LUFS, ≤0 dBTP) and dead air. A new song
+  defaults to the cast members who sing (never an actor). Song tab: Write / Rewrite the song; "Sung by" offers singers only.
+- **Real UI test (planner half):** music video "Harbour Lights", English, 90 s, performers Hana Kisaragi (Singer) and
+  Marcus Bell (Actor + Singer).
+  - Run 1 was refused by the tool contract (no `song` task). Fixed, with a test that runs both calls through their contracts.
+  - Run 2 took 136 s. It gave 9 sections and 26 sung lines (asked for 5–7 sections) and sent lyrics as arrays.
+  - Root cause: no budget was enforced. Fix: the plan's schema is per length (90 s: ≤8 sections, ≤25 sung lines, aim
+    for 20), and lyrics given as a list of lines are accepted. Sections are timed by line count, not spread evenly.
+  - Run 3 (Rewrite) took ~65 s with no repair: 8 sections, 24 lines, 72 BPM, F minor; Hana verse 1, Marcus verse 2,
+    both on choruses and bridge.
+- **Open:** recording with XL-SFT once verified. Then inspect duration, loudness, silence, stems and lyric alignment,
+  and listen to the whole song. After proof, remove the leftover MiniMax music graph, provider, licence row and
+  manifest group from the default path.
+- **Observed:** Qwen3.8 lyric craft is serviceable but generic ("passing tides", "every hill"), and 24 lines in 90 s
+  at 72 BPM is dense. Judge by ear after recording.
