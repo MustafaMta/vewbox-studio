@@ -35,13 +35,12 @@ bought later, FLUX is re-evaluated separately without redesigning the image pipe
 | LatentSync 1.6 (+ Whisper tiny MIT, SD VAE ft-MSE MIT) | lip-sync correction of a confirmed take (opt-in service) | weights CreativeML OpenRAIL++-M ✔ (model card), code Apache-2.0 ✔ | under evaluation | its use restrictions (Attachment A) bind users of its outputs; InsightFace packs stay out (non-commercial); the repo's auxiliary weights (S3FD, syncnet_v2, VGG, I3D, KonIQ, ViT-g) are not fetched | yes |
 | Geist, Geist Mono | interface typefaces | SIL Open Font License 1.1 | in use | ship the licence with the files (`src/app/fonts/OFL-Geist.txt`) | no |
 
-Installed, not active (weights kept in the model store's Ollama folder until the producer approves their removal): Qwen3.6
-27B (Apache-2.0), the previous planner; Gemma 4 31B (Gemma Terms of Use; its Prohibited Use Policy would bind users
-again, and come back into §2 and the terms, only if it were reactivated). FLUX.2 klein 4B (Apache-2.0): its route was
-removed 2026-10-06; manifest group `images-flux2-klein` is unreferenced and its weights await the producer's decision.
-MiniMax Music 3 (open weights, MiniMax-Music3 Community License) and the hosted MiniMax Music API: routes removed
-2026-10-07 after ACE-Step XL-SFT was proven; nothing in the studio was made with them; manifest group `music-minimax-3`
-is out of the default groups and its weights await the producer's decision.
+Retired and deleted from the model store 2026-10-07 (producer approval, after a dependency check found no runtime
+reference; 116 GB freed): the Ollama planners Qwen3.6 27B, Qwen3 and Gemma 4 31B (Gemma's Prohibited Use Policy no
+longer binds anyone); Qwen3.8-27B-FP8 (NVFP4 is the active, proven planner); FLUX.2 klein 4B and klein Base with their
+VAE and `qwen_3_4b` encoder (route removed 2026-10-06); MiniMax Music 3 (MiniMax-Music3 Community License) and the
+hosted MiniMax Music API (routes removed 2026-10-07 after ACE-Step XL-SFT was proven; nothing was made with them).
+Their manifest groups are removed; git history keeps their pinned revisions and checksums.
 
 Not used (licence): MMS forced-alignment weights and ctc-forced-aligner's default model (CC-BY-NC), InsightFace model
 packs (non-commercial), Wav2Lip, Diff2Lip, SyncNet weights (no stated licence; interface only, disabled).

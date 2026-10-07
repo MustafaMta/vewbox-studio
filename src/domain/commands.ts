@@ -17,7 +17,7 @@ export const COMMANDS = {
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
   selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
-  setSong: A.setSong, updateSong: A.updateSong,
+  setSong: A.setSong, updateSong: A.updateSong, recordSongListening: A.recordSongListening,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
   addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent,
@@ -157,6 +157,7 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   addVoiceDesign: z.tuple([id, VoiceDesignRecordSchema]),
   updateVoiceDesign: z.tuple([id, id, VoiceDesignPatchSchema]),
   recordVoiceListening: z.tuple([id, ListeningSchema]),
+  recordSongListening: z.tuple([id, z.object({ verdict: z.enum(['ACCEPTED', 'NOT_YET']), note: short(2000).optional() }).strict()]),
   confirmVoiceConsent: z.tuple([id, id, consentStatement]),
 };
 
@@ -292,7 +293,7 @@ export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>>
   addTake: argList([id, id, UploadedTake]),
   // the producer keeps flagged dialogue recordings: (productionId, [{ shotId, lineId }…], { by? })
   keepLineRecordings: argList([id, z.array(z.object({ shotId: id, lineId: id }).strict()).min(1).max(500)], [z.object({ by: line(80) }).partial().strict()]),
-  setSong: argList([id], [Song]), updateSong: argList([id, SongPatch]),
+  setSong: argList([id], [Song]), updateSong: argList([id, SongPatch]), recordSongListening: existing('recordSongListening'),
   addCharacter: existing('addCharacter'), updateCharacter: existing('updateCharacter'), setPendingReference: existing('setPendingReference'), deleteCharacter: argList([id]),
   addVoiceRecording: existing('addVoiceRecording'), removeVoiceSample: argList([id, id]), selectVoiceSample: existing('selectVoiceSample'),
   recordVoiceListening: existing('recordVoiceListening'), confirmVoiceConsent: existing('confirmVoiceConsent'), approveCanonicalImage: existing('approveCanonicalImage'),

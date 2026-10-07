@@ -76,7 +76,7 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
 - **Remaining blocker:** the producer must LISTEN — naturalness, emotional range and pronunciation are not claimed by
   any measurement (each character's page plays the voice and every line; "I listened" records the judgement).
 
-## Phase 2 — Standalone music (no video) — DONE, listening pending (2026-10-07)
+## Phase 2 — Standalone music (no video) — COMPLETE / PROMOTED (2026-10-07)
 
 - **Commits:** `4983b07` (song planner + ACE-Step-only recording), `937c603` (contract, budget and timing fixes),
   `1bb916f` (first recording; level, timing and lyric placement fixed at the root; CHECK_SONG), then the removal of the
@@ -124,3 +124,32 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
 - **Remaining:** the producer must LISTEN to the whole song (Song & Lyrics tab). Machine checks prove the words, the
   timing and the level; they do not prove the voices sound like Hana and Marcus or that the song is good. Lyric craft
   is serviceable but generic.
+### Phase 2 acceptance (producer, 2026-10-07)
+
+- **Producer listening: PASS / PROMOTE.** The producer heard all 90 s. The song is musically coherent; vocals are
+  clear; the verse/chorus/bridge progression works; performer changes and shared sections are audible; transitions are
+  clean, with no broken joins, accidental silence, duplicated sections or destructive clipping; the ending resolves.
+  Singer identities will become more distinctive with the persistent Singer identity system. That is not a blocker,
+  and there will be no new creative attempt.
+- **Recorded in the studio:** a new song listening verdict (`song.listening`, command `recordSongListening`), pinned
+  to the recording it judged, so a later recording is never taken as accepted. "Your listening" on the Song tab;
+  the verdict was entered through the UI.
+- **Canonical artifact:** Harbour Lights. This is the original first creative generation, not regenerated, with only
+  the proven non-generative corrections applied (level trim, timing, lyric placement).
+  - Raw generation: `gen-c9a078c56b99878b13f7` (GENERATED; ACE-Step 1.5 XL-SFT + 5Hz LM 4B, seed 944536676, workflow
+    9f536c011f0ea4dd, creative attempt 1; −11.65 LUFS / +0.31 dBTP), with its stems `gen-c9a078c56b99f68ce9ac` and
+    `gen-c9a078c56b99d8636f9b`.
+  - Final production asset: `gen-922728fc6047bed7573c` (DERIVED from the raw; level trim −1.31 dB in provenance;
+    −13.0 LUFS / −1.0 dBTP), with its stems `gen-922728fc6047fd2908f4` and `gen-922728fc60477d97cc7a`.
+  - Also kept: the Qwen3.8 concept, the final lyrics, 8 sections with performer assignments and per-line times, the
+    tempo and key, the QA reports (REVIEW on the raw recording, ACCEPT on the final), the AUDIO_PREP handoff, and the
+    job records.
+  - The lyric alignment stays at the honest automated 23 of 24 lines. No threshold was changed to report 24/24.
+- **ACE-Step is the Vewbox production music stack.** The MiniMax music routes and configuration are removed.
+- **Retired weights deleted** (producer-approved, after a dependency check found no runtime reference: source,
+  compose, services' mounts, and vLLM's `--model`). Ollama planners Qwen3.6 / Qwen3 / Gemma 4 (54.1 GB);
+  Qwen3.8-27B-FP8 (28.8 GB; NVFP4 active and proven); FLUX.2 klein 4B and klein Base, its VAE and `qwen_3_4b`
+  encoder (22.2 GB); MiniMax Music 3 (11.1 GB). 116 GB freed inside the store (414 → 298 GB used). Their manifest
+  groups are removed; every current production model is intact.
+- **Not touched** (outside the approved list; for a later decision): evaluation weights still in the store —
+  `joyai_image_edit`, `qwen_image_2.1` with its VAE, `qwen3vl_8b` (two), `wan_2.1_vae`.

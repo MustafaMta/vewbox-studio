@@ -105,7 +105,7 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   addLocationMember: (sc, a) => { const t = obj(a[0]); if (str(t.productionId)) production(sc, [t.productionId]); if (str(t.showId)) show(sc, [t.showId]); sc.locations = true; },
   addScene: production, updateScene: production, deleteScene: production, replaceScript: production,
   addShot: production, replaceSceneShots: production, updateShot: production, deleteShot: production, duplicateShot: production, moveShot: production, reorderShot: production, setShotContinuity: production,
-  selectTake: production, noteTake: production, rejectTake: production, rateTake: production, setShotFrames: production, setDialogueAudio: production, setSong: production, updateSong: production,
+  selectTake: production, noteTake: production, rejectTake: production, rateTake: production, setShotFrames: production, setDialogueAudio: production, setSong: production, updateSong: production, recordSongListening: production,
   removeTake: (sc, a) => { production(sc, a); if (str(a[2])) sc.charactersWithUsageOfTakes.add(str(a[2])!); sc.characters = add(sc.characters, []); },
   addTake: (sc, a) => { production(sc, a); sc.assets = add(sc.assets, [str(obj(a[2]).assetId), str(obj(a[2]).id)]); if (str(a[0]) && str(a[1])) sc.charactersOfShots.push({ productionId: str(a[0])!, shotId: str(a[1])! }); sc.characters = add(sc.characters, []); },
   keepLineRecordings: (sc, a) => { production(sc, a); sc.assets = add(sc.assets, []); if (str(a[0]) && Array.isArray(a[1])) for (const l of a[1] as unknown[]) { const x = obj(l); if (str(x.shotId) && str(x.lineId)) sc.assetsOfLines.push({ productionId: str(a[0])!, shotId: str(x.shotId)!, lineId: str(x.lineId)! }); } },

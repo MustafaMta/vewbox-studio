@@ -71,7 +71,7 @@ function corpus(): Command[] {
     c('removeTake', 's1e1', 's1e1-3', 's1e1-3-t1'), c('removeTake', 's1e1', 's1e1-3', 'gone'),
     c('setDialogueAudio', 's1e1', 's1e1-2', 'd1', { audioAssetId: 'up-line', durationSeconds: 2.1 }),
     c('keepLineRecordings', 's1e1', [{ shotId: 's1e1-2', lineId: 'd1' }], { by: 'producer' }), c('keepLineRecordings', 's1e1', [{ shotId: 's1e1-3', lineId: 'd2' }]),
-    c('setSong', 'rooftop-radio', { id: 'song-1', title: 'Radio', source: 'UPLOADED', assetId: 'song-uploaded', durationSeconds: 30, caption: 'c', sections: [], singerIds: [] }), c('updateSong', 'rooftop-radio', { caption: 'new caption' }),
+    c('setSong', 'rooftop-radio', { id: 'song-1', title: 'Radio', source: 'UPLOADED', assetId: 'song-uploaded', durationSeconds: 30, caption: 'c', sections: [], singerIds: [] }), c('updateSong', 'rooftop-radio', { caption: 'new caption' }), c('recordSongListening', 'rooftop-radio', { verdict: 'ACCEPTED', note: 'heard it all' }),
     c('deleteShot', 'paper-boats', 'pb-3'), c('deleteScene', 's1e2', 's1e2-sc2'),
     // characters and voices
     c('addCharacter', { ...blank, name: 'Samia', style: 'ANIME', sex: 'FEMALE', ageYears: 40, language: 'AR' }),

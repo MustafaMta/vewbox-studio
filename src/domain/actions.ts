@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
@@ -539,7 +539,23 @@ export function setDialogueAudio(s: S, productionId: string, shotId: string, lin
 export function setSong(s: S, productionId: string, song: Song | undefined): S { return updateProduction(s, productionId, { song }); }
 
 export function updateSong(s: S, productionId: string, patch: Partial<Song>): S {
-  return withProduction(s, productionId, (p) => (p.song ? { ...p, song: { ...p.song, ...patch } } : p));
+  // the listening record is written only by recordSongListening, never by a patch
+  const { listening: _ignored, ...rest } = patch;
+  return withProduction(s, productionId, (p) => (p.song ? { ...p, song: { ...p.song, ...rest } } : p));
+}
+
+/** "I listened to the whole song": the producer's verdict on the song's CURRENT recording. Machine checks never accept
+ *  a song; this does. */
+export function recordSongListening(s: S, productionId: string, rec: { verdict: 'ACCEPTED' | 'NOT_YET'; note?: string }): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  if (!p.song?.assetId) throw new StudioError('INVALID', 'There is no recording to listen to yet: generate or bring the song first.', { productionId });
+  const entry = { by: 'PRODUCER' as const, verdict: rec.verdict, assetId: p.song.assetId, ...(rec.note?.trim() ? { note: rec.note.trim() } : {}), at: now() };
+  return withProduction(s, productionId, (x) => ({ ...x, song: { ...x.song!, listening: [...(x.song!.listening ?? []), entry] } }));
+}
+
+/** The producer's latest verdict on the song's current recording (a verdict on an earlier recording does not count). */
+export function songVerdict(song: Pick<Song, 'assetId' | 'listening'> | undefined): SongListeningRecord | undefined {
+  return [...(song?.listening ?? [])].reverse().find((r) => r.assetId === song?.assetId);
 }
 
 // -------------------------------------------------------------------------------------------------- characters

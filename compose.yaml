@@ -388,8 +388,8 @@ services:
   # graph capture runs out of memory on one 5090), the qwen3 reasoning parser; at most 2 sequences. Thinking is off unless
   # a request asks (chat_template_kwargs.enable_thinking). The GPU lease frees the card with vLLM's sleep mode (level 2:
   # weights and cache dropped; /wake_up + reload_weights on the next request), which needs the dev endpoints
-  # (VLLM_SERVER_DEV_MODE=1, reachable on 127.0.0.1 only). The FP8 checkpoint (llm/qwen3.8-27b-fp8) stays installed and
-  # inactive until NVFP4 is proven. Ollama's `llm` stays stopped (the Qwen3.6 rollback only).
+  # (VLLM_SERVER_DEV_MODE=1, reachable on 127.0.0.1 only). NVFP4 is proven (Phases 0–2); the FP8 checkpoint and the
+  # Ollama planners were deleted from the store 2026-10-07 — there is no other planner to roll back to.
   llm-vllm:
     logging: *logging
     # pinned by digest (v0.31.0, 2026-10-04; Qwen3.5/3.8 hybrid attention needs ≥ 0.17)

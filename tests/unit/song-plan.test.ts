@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { songBudget, songFromPlan, songPlanSchema, songPerformers, vocalTag, type SongPlan, type SongPerformer } from '@/server/story/song';
 import { levelTrimDb, scaleSections, settleSections, songSingers } from '@/worker/handlers/music';
 import { seed } from '@/domain/sample';
-import { singingCast } from '@/domain/actions';
+import { recordSongListening, singingCast, songVerdict, updateSong } from '@/domain/actions';
 import { CONTRACTS } from '@/server/org/contracts';
-import type { Character } from '@/domain/types';
+import type { Character, Song } from '@/domain/types';
 
 /** THE SONG PLAN (Phase 2): a song is sung only by the characters cast as singers, by name; the vocal the engine is
  *  asked for is theirs; an unknown or non-singing name is refused, never guessed; an actor never sings the lead. */
@@ -117,6 +117,21 @@ describe('the song plan', () => {
     expect(settled[2].lineTimes![0].from).toBe(19.2);
     expect(settled[4].lineTimes![0].from).toBe(46.4);
     expect(settled.map((s) => [s.from, s.to])).toEqual([[0, 6], [6, 19], [19, 32], [32, 46], [46, 72], [72, 90], [90, 90]]);
+  });
+
+  it('the producer\'s listening verdict belongs to the recording it judged; a patch cannot write one', () => {
+    const s = seed();
+    const base = { ...s.productions[0], song: { id: 'song-1', title: 't', source: 'GENERATED', durationSeconds: 90, caption: 'c', sections: [], singerIds: [], assetId: 'raw-1' } as Song };
+    let st = { ...s, productions: [base, ...s.productions.slice(1)] };
+    st = recordSongListening(st, base.id, { verdict: 'ACCEPTED', note: 'coherent; clean joins' });
+    const p1 = st.productions[0];
+    expect(songVerdict(p1.song)).toMatchObject({ by: 'PRODUCER', verdict: 'ACCEPTED', assetId: 'raw-1', note: 'coherent; clean joins' });
+    // a new recording is not accepted by the verdict on the old one
+    st = updateSong(st, base.id, { assetId: 'take-2', listening: [{ by: 'PRODUCER', verdict: 'ACCEPTED', assetId: 'take-2', at: 'x' }] });
+    expect(st.productions[0].song!.listening).toHaveLength(1);
+    expect(songVerdict(st.productions[0].song)).toBeUndefined();
+    const none = { ...s, productions: [{ ...base, song: { ...base.song, assetId: undefined } }, ...s.productions.slice(1)] };
+    expect(() => recordSongListening(none, base.id, { verdict: 'ACCEPTED' })).toThrow(/no recording/);
   });
 
   it('a recording is refused when its song names an actor, or nobody, as a singer', () => {

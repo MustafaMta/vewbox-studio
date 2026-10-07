@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { Production, Song } from '@/domain/types';
 import { LYRIC_KINDS, sings, type LyricKind } from '@/domain/vocabulary';
 import { useStudio } from '@/studio/store';
-import { nid } from '@/domain/actions';
+import { nid, songVerdict } from '@/domain/actions';
 import { assetById, castOf } from '@/studio/selectors';
 import { useToast } from '@/components/ui/toast';
 import { Button, Checkbox, Field, Input, SectionHead, Select, Textarea } from '@/components/ui/kit';
@@ -38,6 +38,7 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
   );
   const artist = p.artist || performers.map((c) => c.name).join(' & ') || 'No artist yet';
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [heard, setHeard] = useState('');
   const st = useTrackState(track);
   // the song was replaced or removed while it was the one loaded: stop it rather than play a stale file
   useEffect(() => { const cur = player.current; if (cur && cur.id === `song-${p.id}` && (!track || cur.src !== track.src)) player.stop(); }, [player, p.id, track]);
@@ -74,6 +75,19 @@ export function SongLyricsTab({ p, gate }: { p: Production; gate: StudioGate }) 
             {song.caption && <p className="t-body" dir="auto">{song.caption}</p>}
             {track ? <><Waveform src={track.src} progress={Math.min(1, time / total)} onSeek={(f) => player.play(track, f * total)} label="Waveform, from the audio file" unavailableText="The waveform could not be drawn from this file." /><PlayerNotice track={track} /></>
               : <p className="t-body">No audio yet. The song plays once a track exists.</p>}
+            {song.assetId && (() => {
+              const v = songVerdict(song);
+              const listen = (verdict: 'ACCEPTED' | 'NOT_YET') => { act('recordSongListening', p.id, { verdict, note: heard }); setHeard(''); toast.ok(verdict === 'ACCEPTED' ? 'Accepted.' : 'Noted.'); };
+              return (
+                <div className="ws-listen">
+                  <h3 className="t-label">Your listening</h3>
+                  {v ? <p className="t-body">{v.verdict === 'ACCEPTED' ? 'You accepted this recording' : 'You heard this recording and it is not yet right'} · <span className="t-meta">{new Date(v.at).toLocaleDateString()}</span>{v.note && <><br /><span className="t-meta" dir="auto">{v.note}</span></>}</p>
+                    : <p className="t-meta">The checks measure the words, the timing and the level. Only listening to the whole song accepts it.</p>}
+                  <Field label="What you heard" hint="optional"><Textarea value={heard} onChange={(e) => setHeard(e.target.value)} rows={2} dir="auto" /></Field>
+                  <div className="ws-actions"><Button size="sm" onClick={() => listen('ACCEPTED')}>I listened: accept</Button><Button size="sm" variant="quiet" onClick={() => listen('NOT_YET')}>I listened: not yet right</Button></div>
+                </div>
+              );
+            })()}
           </section>
 
           <section className="ws-sec" aria-labelledby="ws-lyr-h">
