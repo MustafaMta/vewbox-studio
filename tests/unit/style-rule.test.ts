@@ -31,6 +31,24 @@ describe('the rule on every path that brings someone or somewhere in', () => {
   });
 });
 
+describe('the way out: the same place in the production’s style', () => {
+  it('duplicateLocationInStyle copies the design, not the plates; keeps the bed; refuses its own style and a twin', async () => {
+    const { duplicateLocationInStyle, setLocationAmbience } = await import('@/domain/actions');
+    let s = setLocationAmbience(seed(), 'cafe', { assetId: 'voice-low', description: 'café room tone', seconds: 30, model: 'm', seed: 1, createdAt: '2026-10-08T00:00:00.000Z' });
+    const cafe = s.locations.find((l) => l.id === 'cafe')!;
+    const r = duplicateLocationInStyle(s, 'cafe', 'REALISTIC');
+    expect(r.location).toMatchObject({ name: cafe.name, description: cafe.description, landmarks: cafe.landmarks, props: cafe.props, style: 'REALISTIC', refs: [], ambience: { assetId: 'voice-low' } });
+    expect(r.location.masterAssetId).toBeUndefined();
+    expect(r.location.id).not.toBe('cafe');
+    s = r.state;
+    expect(s.locations.find((l) => l.id === 'cafe')!.style).toBe('CARTOON');
+    expect(() => duplicateLocationInStyle(s, 'cafe', 'CARTOON')).toThrow(/already cartoon/);
+    expect(() => duplicateLocationInStyle(s, 'cafe', 'REALISTIC')).toThrow(/already a realistic/);
+    // and a realistic production can now take it
+    expect(() => addLocationMember(s, { productionId: 'paper-boats' }, [r.location.id])).not.toThrow();
+  });
+});
+
 describe('the preflight reports an existing mix before any shot is planned or filmed', () => {
   const s = seed();
   it('plan and take', () => {

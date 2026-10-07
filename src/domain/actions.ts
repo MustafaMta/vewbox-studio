@@ -960,10 +960,22 @@ export function addLocation(s: S, input: LocationInput): { state: S; location: L
   const t = now();
   if (!input.name?.trim()) throw new StudioError('INVALID', 'A location needs a name.');
   // the identity (the Location Bible) is the studio's: version 1 of what the place holds, never a caller's
-  const { identity: _given, ...fields } = input as LocationInput & { identity?: unknown };
-  void _given;
+  // the ambience bed is the AMBIENCE job's (setLocationAmbience), never a caller's
+  const { identity: _given, ambience: _bed, ...fields } = input as LocationInput & { identity?: unknown };
+  void _given; void _bed;
   const location: Location = withLocationIdentity({ ...fields, name: input.name.trim(), id: nid('loc'), refs: input.refs ?? [], createdAt: t, updatedAt: t }, t);
   return { state: { ...s, locations: [...s.locations, location] }, location };
+}
+
+/** THE SAME PLACE IN ANOTHER STYLE (one style per production, src/domain/style-rule.ts): a new record with the place's
+ *  design — name, description, layout, landmarks, props, lighting — and the new style; no plates (they are drawn in the
+ *  new style) and the same ambience bed (a place's sound has no visual style). The original is left as it was. */
+export function duplicateLocationInStyle(s: S, id: string, style: Style): { state: S; location: Location } {
+  const l = mustFind(s.locations, id, 'Location');
+  if (l.style === style) throw new StudioError('INVALID', `${l.name} is already ${style.toLowerCase()}.`);
+  if (s.locations.some((x) => x.id !== l.id && x.name === l.name && x.style === style)) throw new StudioError('CONFLICT', `There is already a ${style.toLowerCase()} ${l.name}.`);
+  const r = addLocation(s, { name: l.name, nameAr: l.nameAr, kind: l.kind, description: l.description, style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, layout: l.layout });
+  return l.ambience ? { state: setLocationAmbience(r.state, r.location.id, l.ambience), location: { ...r.location, ambience: l.ambience } } : r;
 }
 
 /** A change of the place: its identity version moves on when the canon changed (src/domain/location.ts) — a patch

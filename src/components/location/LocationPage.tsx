@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useId, useMemo, useState } from 'react';
 import type { Location, LocationRef } from '@/domain/types';
-import type { LocationRefRole } from '@/domain/vocabulary';
+import { STYLES, type LocationRefRole, type Style } from '@/domain/vocabulary';
 import { isActiveStatus } from '@/domain/jobs';
 import { useJobsFor, useStudio } from '@/studio/store';
 import { artVars } from '@/studio/presentation';
@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { useStartJob } from '@/components/ui/jobs';
 import { Button, Dialog, Input, MenuButton, MenuItem, MenuSeparator, Segmented, StateWord, useConfirm } from '@/components/ui/kit';
 import { Frame, MediaTile, PosterCard } from '@/components/media';
-import { IconCheck, IconDelete, IconEdit, IconGenerate, IconPlus, IconUpload } from '@/components/ui/icons';
+import { IconCheck, IconDelete, IconDuplicate, IconEdit, IconGenerate, IconPlus, IconUpload } from '@/components/ui/icons';
 import { BackLink, CardHead, CastSection, nameLang, usable } from '@/components/character/parts';
 import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
 import { locationIdentity } from '@/domain/location';
@@ -62,6 +62,9 @@ export function LocationPage({ l }: { l: Location }) {
     if (!(await confirm({ title: `Delete ${l.name}?`, body: 'The place is removed from the studio. Finished shots keep their pictures.', confirmLabel: `Delete ${l.name}`, tone: 'danger' }))) return;
     try { act('deleteLocation', l.id); toast.ok(`${l.name} was deleted.`); router.push('/locations'); } catch (e) { toast.bad((e as Error).message); }
   };
+  const inStyle = (st: Style) => {
+    try { const r = act('duplicateLocationInStyle', l.id, st) as { location?: Location }; toast.ok(`A ${STYLE_WORDS[st].toLowerCase()} ${l.name} was made. Draw its plates.`); if (r.location) router.push(`/locations/${r.location.id}`); } catch (e) { toast.bad((e as Error).message); }
+  };
   const layers = [...new Map([...byTime.entries()].map(([t, r]) => [r.assetId, t])).entries()];
 
   return (
@@ -92,6 +95,10 @@ export function LocationPage({ l }: { l: Location }) {
             <Button variant={l.refs.length ? 'secondary' : 'primary'} icon={<IconGenerate />} loading={busy} disabled={Boolean(running)} onClick={() => draw()}>{l.refs.length ? 'Draw more plates' : 'Draw the plates'}</Button>
             <MenuButton label={`More for ${l.name}`} iconOnly variant="secondary" align="end">
               <MenuItem icon={<IconGenerate aria-hidden />} disabled={!l.masterAssetId || Boolean(running)} onClick={() => void redraw()} description="A fresh master plate from the description">Redraw the place</MenuItem>
+              {/* one style per production: the same place for a production of another style is its own record */}
+              {STYLES.filter((st) => st !== l.style).map((st) => (
+                <MenuItem key={st} icon={<IconDuplicate aria-hidden />} onClick={() => inStyle(st)} description="The same design, its own plates in that style">Make a {STYLE_WORDS[st].toLowerCase()} version</MenuItem>
+              ))}
               <MenuSeparator />
               <MenuItem icon={<IconDelete aria-hidden />} tone="danger" onClick={() => void remove()}>Delete {l.name}</MenuItem>
             </MenuButton>

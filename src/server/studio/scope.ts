@@ -136,6 +136,8 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   // locations
   addLocation: (sc) => { sc.locations = true; },
   updateLocation: location, addLocationRefs: location,
+  // a new place from an existing one (its ambience asset kept)
+  duplicateLocationInStyle: (sc, a) => { location(sc, a); sc.assets = all(); },
   // the bed must be an audio recording in the library
   setLocationAmbience: (sc, a) => { location(sc, a); sc.assets = add(sc.assets, [str(obj(a[1]).assetId)]); },
   deleteLocation: full,
