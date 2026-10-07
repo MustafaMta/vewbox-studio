@@ -84,10 +84,11 @@ describe('CREATE_CHARACTER', () => {
   it('MANUAL with a complete sheet: the record and its seat are written in one batch; the canonical image runs as a keyed child (no sheet: contract v2); the voice is skipped with the reason; the result awaits approval', async () => {
     const before = fake.state.characters.length;
     const show = fake.state.shows[0];
-    const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: sheet, showId: show.id, voice: { mode: 'AUTOMATIC' } }));
+    // a person made for a show is made in the show's style (one style per production, src/domain/style-rule.ts)
+    const r = await createCharacter(ctxFor({ mode: 'MANUAL', profile: { ...sheet, style: show.style }, showId: show.id, voice: { mode: 'AUTOMATIC' } }));
     expect(fake.state.characters).toHaveLength(before + 1);
     const c = fake.state.characters.find((x) => x.name === 'Rafid')!;
-    expect(c).toMatchObject({ dialect: 'IRAQI_BAGHDADI', style: 'REALISTIC', usage: { known: true, videos: [] } });
+    expect(c).toMatchObject({ dialect: 'IRAQI_BAGHDADI', style: show.style, usage: { known: true, videos: [] } });
     expect(fake.state.shows[0].castIds).toContain(c.id);
     expect(r).toMatchObject({ characterId: c.id, awaitingReview: false, awaitingApproval: true, canonicalAssetId: `gen-canonical-${c.id}`, message: expect.stringMatching(/awaiting your approval$/) });
     expect(r!.steps).toEqual([

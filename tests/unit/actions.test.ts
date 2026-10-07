@@ -258,10 +258,15 @@ describe('Auto Idea', () => {
     }
   });
   it('explicit preferences win', () => {
-    const p = sampleProposal(seed(), { kind: 'SHORT', preferences: { style: 'ANIME', language: 'EN', durationSeconds: 90, mood: 'Hushed', castIds: ['karim'], locationIds: ['rooftop'] } });
-    expect(p).toMatchObject({ style: 'ANIME', language: 'EN', dialect: undefined, durationSeconds: 90, mood: 'Hushed' });
+    const p = sampleProposal(seed(), { kind: 'SHORT', preferences: { style: 'CARTOON', language: 'EN', durationSeconds: 90, mood: 'Hushed', castIds: ['karim'], locationIds: ['rooftop'] } });
+    expect(p).toMatchObject({ style: 'CARTOON', language: 'EN', dialect: undefined, durationSeconds: 90, mood: 'Hushed' });
     expect(p.cast[0]).toMatchObject({ characterId: 'karim', fromPreference: true });
     expect(p.locations[0]).toMatchObject({ locationId: 'rooftop', fromPreference: true });
+  });
+  it('one style per production: a person or place of another style is never proposed, even when asked for', () => {
+    const p = sampleProposal(seed(), { kind: 'SHORT', preferences: { style: 'ANIME', castIds: ['karim', 'hana'], locationIds: ['rooftop'] } });
+    expect(p.cast.filter((c) => !c.isNew).map((c) => c.characterId)).toEqual(['hana']);
+    expect(p.locations.some((l) => l.locationId === 'rooftop')).toBe(false);
   });
   it('an episode uses the show’s world: its style, language, returning cast and places, plus a proposed newcomer', () => {
     const s = seed();

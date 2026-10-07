@@ -3,6 +3,7 @@ import { sings, type Aspect, type Dialect, type Kind, type Language, type Perfor
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
 import { StudioError, consentRequired, missingReference } from './errors';
+import { assertOneStyle, offStyle } from './style-rule';
 import { canonical } from './hash';
 import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
 import { developmentIntentOf } from './development';
@@ -34,7 +35,19 @@ function mustFind<T extends { id: string }>(xs: T[], id: string, what: string): 
 
 export interface NewShowInput { title: string; titleAr?: string; logline: string; genre: string; style: Style; language: Language; dialect?: Dialect; aspect: Aspect; castIds?: string[]; locationIds?: string[]; synopsis?: string }
 
+/** ONE STYLE PER PRODUCTION (src/domain/style-rule.ts): the people and places a change brings in (or, on a style
+ *  change, every member) must be of the target's style. Members it already had are not re-judged here: the preflight
+ *  reports those. */
+function holdOneStyle(s: S, target: { title: string; style: Style }, people: { before: string[]; after: string[] }, places: { before: string[]; after: string[] }, styleChanged = false): void {
+  const added = (after: string[], before: string[]) => (styleChanged ? after : after.filter((id) => !before.includes(id)));
+  const newPeople = added(people.after, people.before); const newPlaces = added(places.after, places.before);
+  // a collection is read only when something of it is brought in (a command's scope loads exactly those)
+  if (!newPeople.length && !newPlaces.length) return;
+  assertOneStyle(target, newPeople.length ? offStyle(target.style, newPeople, s.characters) : [], newPlaces.length ? offStyle(target.style, newPlaces, s.locations) : []);
+}
+
 export function addShow(s: S, input: NewShowInput): { state: S; show: Show; season: Season } {
+  holdOneStyle(s, { title: input.title, style: input.style }, { before: [], after: input.castIds ?? [] }, { before: [], after: input.locationIds ?? [] });
   const t = now();
   const show: Show = { id: nid('show'), title: input.title.trim(), titleAr: input.titleAr?.trim() || undefined, logline: input.logline.trim(), genre: input.genre.trim(), style: input.style, language: input.language, dialect: input.language === 'AR' ? input.dialect : undefined, aspect: input.aspect, synopsis: input.synopsis, castIds: input.castIds ?? [], locationIds: input.locationIds ?? [], createdAt: t, updatedAt: t };
   const season: Season = { id: nid('season'), showId: show.id, number: 1, title: 'Season 1', arc: '', createdAt: t };
@@ -42,7 +55,9 @@ export function addShow(s: S, input: NewShowInput): { state: S; show: Show; seas
 }
 
 export function updateShow(s: S, id: string, patch: Partial<Omit<Show, 'id' | 'createdAt'>>): S {
-  mustFind(s.shows, id, 'Show');
+  const was = mustFind(s.shows, id, 'Show');
+  const style = patch.style ?? was.style;
+  holdOneStyle(s, { title: patch.title ?? was.title, style }, { before: was.castIds, after: patch.castIds ?? was.castIds }, { before: was.locationIds, after: patch.locationIds ?? was.locationIds }, style !== was.style);
   return { ...s, shows: s.shows.map((x) => (x.id === id ? { ...x, ...patch, updatedAt: now() } : x)) };
 }
 
@@ -80,6 +95,7 @@ export interface NewProductionInput {
 export function addProduction(s: S, input: NewProductionInput): { state: S; production: Production } {
   const t = now();
   if (input.kind === 'EPISODE' && (!input.showId || !input.seasonId)) throw new StudioError('INVALID', 'An episode needs a show and a season.');
+  holdOneStyle(s, { title: input.title, style: input.style }, { before: [], after: input.castIds ?? [] }, { before: [], after: input.locationIds ?? [] });
   const episodeNumber = input.kind === 'EPISODE' && input.seasonId ? s.productions.filter((p) => p.seasonId === input.seasonId).length + 1 : undefined;
   const production: Production = {
     id: nid(input.kind === 'EPISODE' ? 'ep' : input.kind === 'SHORT' ? 'short' : 'mv'), kind: input.kind, showId: input.showId, seasonId: input.seasonId, episodeNumber,
@@ -91,7 +107,9 @@ export function addProduction(s: S, input: NewProductionInput): { state: S; prod
 }
 
 export function updateProduction(s: S, id: string, patch: Partial<Omit<Production, 'id' | 'createdAt' | 'kind'>>): S {
-  mustFind(s.productions, id, 'Production');
+  const was = mustFind(s.productions, id, 'Production');
+  const style = patch.style ?? was.style;
+  holdOneStyle(s, { title: patch.title ?? was.title, style }, { before: was.castIds, after: patch.castIds ?? was.castIds }, { before: was.locationIds, after: patch.locationIds ?? was.locationIds }, style !== was.style);
   return { ...s, productions: s.productions.map((p) => (p.id === id ? touchProduction({ ...p, ...patch }) : p)) };
 }
 
@@ -257,11 +275,15 @@ const markCutStale = (p: Production): Production => (p.cutAssetId ? { ...p, cutS
 
 export function addScene(s: S, productionId: string, input: Pick<Scene, 'title' | 'timeOfDay'> & { locationId?: string; characterIds?: string[]; purpose?: string; emotionalObjective?: string; entryState?: string; exitState?: string; beats?: Scene['beats']; establishLocation?: boolean }): { state: S; scene: Scene } {
   const p = mustFind(s.productions, productionId, 'Production');
+  holdOneStyle(s, p, { before: [], after: input.characterIds ?? [] }, { before: [], after: input.locationId ? [input.locationId] : [] });
   const scene: Scene = { id: nid('scene'), number: p.scenes.length + 1, title: input.title.trim(), locationId: input.locationId || undefined, timeOfDay: input.timeOfDay, characterIds: input.characterIds ?? [], beats: input.beats ?? [], purpose: input.purpose, emotionalObjective: input.emotionalObjective, entryState: input.entryState, exitState: input.exitState, ...(input.establishLocation ? { establishLocation: true } : {}) };
   return { state: withProduction(s, productionId, (x) => ({ ...x, scenes: [...x.scenes, scene] })), scene };
 }
 
 export function updateScene(s: S, productionId: string, sceneId: string, patch: Partial<Omit<Scene, 'id' | 'number'>>): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  const sc = p.scenes.find((x) => x.id === sceneId);
+  if (sc) holdOneStyle(s, p, { before: sc.characterIds, after: patch.characterIds ?? sc.characterIds }, { before: sc.locationId ? [sc.locationId] : [], after: patch.locationId ? [patch.locationId] : [] });
   return withProduction(s, productionId, (p) => ({ ...p, scenes: p.scenes.map((sc) => (sc.id === sceneId ? { ...sc, ...patch } : sc)) }));
 }
 

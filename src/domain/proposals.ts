@@ -97,10 +97,12 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   const showDuration = showEpisodes.length ? Math.round(showEpisodes.reduce((a, p) => a + p.targetSeconds, 0) / showEpisodes.length) : undefined;
   const language = prefs.language ?? show?.language ?? d.language;
 
+  const style = prefs.style ?? show?.style ?? d.style;
   const cast: ProposedCast[] = [];
   const locations: ProposedLocation[] = [];
-  const addCast = (id: string, reason: string, fromPreference: boolean) => { const c = s.characters.find((x) => x.id === id); if (c && !cast.some((x) => x.characterId === id)) cast.push({ key: `c-${id}`, characterId: id, name: c.name, role: c.role, reason, isNew: false, fromPreference }); };
-  const addLoc = (id: string, fromPreference: boolean) => { const l = s.locations.find((x) => x.id === id); if (l && !locations.some((x) => x.locationId === id)) locations.push({ key: `l-${id}`, locationId: id, name: l.name, description: l.description, isNew: false, fromPreference }); };
+  // one style per production (src/domain/style-rule.ts): only people and places drawn in the proposal's style
+  const addCast = (id: string, reason: string, fromPreference: boolean) => { const c = s.characters.find((x) => x.id === id && x.style === style); if (c && !cast.some((x) => x.characterId === id)) cast.push({ key: `c-${id}`, characterId: id, name: c.name, role: c.role, reason, isNew: false, fromPreference }); };
+  const addLoc = (id: string, fromPreference: boolean) => { const l = s.locations.find((x) => x.id === id && x.style === style); if (l && !locations.some((x) => x.locationId === id)) locations.push({ key: `l-${id}`, locationId: id, name: l.name, description: l.description, isNew: false, fromPreference }); };
 
   // explicit preferences first
   for (const id of prefs.castIds ?? []) addCast(id, 'You asked for this character.', true);
@@ -108,7 +110,7 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   // the show's world next: returning cast and places
   if (show) { for (const id of show.castIds.slice(0, 4)) addCast(id, `Returning cast of ${show.title}.`, false); for (const id of show.locationIds.slice(0, 3)) addLoc(id, false); }
   // a music video with no performer asked for: an existing singer, if the library has one
-  if (req.kind === 'MUSIC_VIDEO' && cast.length === 0) { const singer = s.characters.find((c) => /singer|perform/i.test(c.role)); if (singer) addCast(singer.id, 'Already a singer in your library.', false); }
+  if (req.kind === 'MUSIC_VIDEO' && cast.length === 0) { const singer = s.characters.find((c) => c.style === style && /singer|perform/i.test(c.role)); if (singer) addCast(singer.id, 'Already a singer in your library.', false); }
   // additions the story needs, proposed as new and optional
   const wantsNewCast = req.kind === 'EPISODE' || req.kind === 'SEASON' || cast.length === 0;
   if (wantsNewCast) t.newCast.forEach((c, i) => cast.push({ key: `new-c-${i}`, name: c.name, role: c.role, reason: c.reason, isNew: true, fromPreference: false, sex: c.sex }));
@@ -117,7 +119,7 @@ export function sampleProposal(s: StudioState, req: AutoIdeaRequest, variant = 0
   return {
     sample: true,
     title: t.title, logline: t.logline, premise: t.premise, genre: t.genre, mood: prefs.mood?.trim() || t.mood, structure: t.structure,
-    style: prefs.style ?? show?.style ?? d.style,
+    style,
     language,
     dialect: language === 'AR' ? prefs.dialect ?? show?.dialect ?? d.dialect : undefined,
     durationSeconds: prefs.durationSeconds ?? showDuration ?? durations[1],

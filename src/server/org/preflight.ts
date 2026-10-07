@@ -13,6 +13,7 @@ import { canChangeAppearance, isCloneSource, voiceBuildLockProblem } from '@/dom
 import { IRAQI_NEEDS_RECORDING, automaticVoicePlan, castNames, cloneEligible, descriptionProblem, designedIraqiOn, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, usableRecordingAsset } from '@/domain/voice-identity';
 import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf, usableAudio, usableImage } from '@/domain/identity';
 import { castOf, worldOf } from '@/studio/selectors';
+import { offStyle, productionStyleProblems } from '@/domain/style-rule';
 import type { FailureClass } from './model';
 
 /** PREFLIGHT — what must be true before an engine is asked for anything. Each check names the failure class a
@@ -54,6 +55,11 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   add('characters-in-cast', unknownCast.length === 0, 'INCONSISTENT_PLAN', unknownCast.length ? `${unknownCast.length} character id(s) are not in the cast` : undefined);
   const unknownSpeakers = sh.dialogue.filter((d) => !cast.some((c) => c.id === d.characterId));
   add('speakers-in-cast', unknownSpeakers.length === 0, 'INCONSISTENT_PLAN', unknownSpeakers.length ? `${unknownSpeakers.length} line(s) belong to nobody in the cast` : undefined);
+  // ONE STYLE (src/domain/style-rule.ts): the place's plates and each person's canonical image are drawn in their own
+  // style; a take conditioned on another style's pictures breaks the production's look
+  const offPeople = offStyle(p.style, sh.characterIds, state.characters);
+  const offPlace = loc && loc.style !== p.style ? loc : undefined;
+  add('one-style', !offPeople.length && !offPlace, 'INCONSISTENT_PLAN', offPeople.length || offPlace ? `the production is ${p.style.toLowerCase()}; ${[...offPeople.map((c) => `${c.name} is ${c.style.toLowerCase()}`), ...(offPlace ? [`${offPlace.name} is ${offPlace.style.toLowerCase()}`] : [])].join(', ')} — use a version in the production's style` : undefined);
   // the prompt
   const hasWords = Boolean(opts.customPrompt || sh.prompt?.trim() || sh.action?.trim());
   add('prompt-complete', hasWords, 'PROMPT_AMBIGUITY', hasWords ? undefined : 'the shot has neither an action nor a prompt');
@@ -296,9 +302,15 @@ export function designChoiceProblem(state: StudioState, c: Character, designId: 
 }
 
 /** What must exist before a scene can be planned into shots. */
-export function preflightPlan(p: Production, sceneIds?: string[]): Preflight {
+export function preflightPlan(p: Production, sceneIds?: string[], state?: Pick<StudioState, 'characters' | 'locations'>): Preflight {
   const checks: PreflightCheck[] = [];
   const targets = sceneIds?.length ? p.scenes.filter((sc) => sceneIds.includes(sc.id)) : p.scenes;
+  // one style (src/domain/style-rule.ts): the shots are planned against the place's plates and the cast's images
+  if (state) {
+    const off = productionStyleProblems(state, { ...p, scenes: targets });
+    const names = [...off.people, ...off.places].map((x) => `${x.name} (${x.style.toLowerCase()})`);
+    checks.push({ name: 'one-style', ok: names.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: names.length ? `the production is ${p.style.toLowerCase()}; ${names.join(', ')} — use versions in its style` : undefined });
+  }
   checks.push({ name: 'scenes-present', ok: targets.length > 0, failureClass: 'INVALID_INPUT', detail: `${targets.length} scene(s)` });
   const unwritten = targets.filter((sc) => sc.beats.length === 0);
   checks.push({ name: 'scenes-written', ok: unwritten.length === 0, failureClass: 'INCONSISTENT_PLAN', detail: unwritten.length ? `${unwritten.length} scene(s) without beats` : undefined });

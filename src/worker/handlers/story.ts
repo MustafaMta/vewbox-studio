@@ -301,7 +301,7 @@ export const planShots: Handler = async (ctx) => {
   } else {
     // PREFLIGHT (the Executive Producer's step): nothing is planned from unwritten or unlocated scenes
     await step(ctx, 'executive-producer', `plan-preflight: “${p.title}”`, async () => {
-      const pre = preflightPlan(p, sceneIds);
+      const pre = preflightPlan(p, sceneIds, state);
       await ctx.event(pre.ok ? 'info' : 'error', `preflight ${pre.ok ? 'passed' : 'FAILED'}`, { checks: pre.checks });
       if (!pre.ok) { const failed = pre.checks.filter((c) => !c.ok); throw Object.assign(new StudioError('INVALID', failed.some((c) => c.name === 'scenes-present') ? 'There are no scenes to plan.' : failed.some((c) => c.name === 'scenes-written') ? 'Write the script before planning shots: some scenes have no beats.' : `Cannot plan: ${failed.map((c) => `${c.name} (${c.detail ?? ''})`).join('; ')}`), { failureClass: failed[0].failureClass }); }
     });

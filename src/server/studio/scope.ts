@@ -83,10 +83,18 @@ const asset: Classifier = (sc, a) => { const id = str(a[0]); sc.assets = add(sc.
 const full: Classifier = (sc) => { sc.full = true; };
 
 /** THE CLASSIFICATION — one entry per command (a missing one is a compile error). */
+/** ONE STYLE PER PRODUCTION (src/domain/style-rule.ts): a command that brings people or places into a production or a
+ *  show reads them to judge their style. `ids`: the people it names; a style change judges every member (all people). */
+const members = (sc: Scope, people: unknown, places: unknown, styleChange = false) => {
+  sc.characters = styleChange ? all() : add(sc.characters, Array.isArray(people) ? (people as unknown[]).map(str) : []);
+  if (styleChange || places !== undefined) sc.locations = true;
+};
+
 export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   // shows and seasons (season numbering and the show's version are the show's)
-  addShow: (sc) => { sc.shows = true; },
-  updateShow: show, updateShowBible: show,
+  addShow: (sc, a) => { sc.shows = true; members(sc, obj(a[0]).castIds, obj(a[0]).locationIds ?? []); },
+  updateShow: (sc, a) => { show(sc, a); const p = obj(a[1]); members(sc, p.castIds, p.locationIds, p.style !== undefined); },
+  updateShowBible: show,
   // the episode (its scenes, its season and number) and its show's bible; the show is locked by its id in the episode
   finishEpisode: (sc, a) => { production(sc, a); sc.shows = true; },
   addSeason: show,
@@ -98,12 +106,16 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
     sc.productions = add(sc.productions, []);
     if (input.kind === 'EPISODE' && str(input.seasonId)) sc.seasonProductions.add(str(input.seasonId)!);
     if (str(input.showId)) sc.locks.add(lockKey('show', str(input.showId)!));
+    members(sc, input.castIds, input.locationIds ?? []);
   },
-  updateProduction: production, deleteProduction: production, setStage: production, markStepDone: production, recordExport: production, setCut: production, fillProductionFields: production,
+  updateProduction: (sc, a) => { production(sc, a); const p = obj(a[1]); members(sc, p.castIds, p.locationIds, p.style !== undefined); },
+  deleteProduction: production, setStage: production, markStepDone: production, recordExport: production, setCut: production, fillProductionFields: production,
   duplicateProduction: full,
   addCastMember: (sc, a) => { const t = obj(a[0]); if (str(t.productionId)) production(sc, [t.productionId]); if (str(t.showId)) show(sc, [t.showId]); sc.characters = add(sc.characters, Array.isArray(a[1]) ? (a[1] as unknown[]).map(str) : []); },
   addLocationMember: (sc, a) => { const t = obj(a[0]); if (str(t.productionId)) production(sc, [t.productionId]); if (str(t.showId)) show(sc, [t.showId]); sc.locations = true; },
-  addScene: production, updateScene: production, deleteScene: production, replaceScript: production,
+  addScene: (sc, a) => { production(sc, a); const i = obj(a[1]); members(sc, i.characterIds, i.locationId); },
+  updateScene: (sc, a) => { production(sc, a); const p = obj(a[2]); members(sc, p.characterIds, p.locationId); },
+  deleteScene: production, replaceScript: production,
   addShot: production, replaceSceneShots: production, updateShot: production, deleteShot: production, duplicateShot: production, moveShot: production, reorderShot: production, setShotContinuity: production,
   selectTake: production, noteTake: production, rejectTake: production, rateTake: production, setShotFrames: production, setDialogueAudio: production, setSong: production, updateSong: production, recordSongListening: production,
   removeTake: (sc, a) => { production(sc, a); if (str(a[2])) sc.charactersWithUsageOfTakes.add(str(a[2])!); sc.characters = add(sc.characters, []); },
