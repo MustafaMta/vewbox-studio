@@ -13,6 +13,7 @@ export const JOB_TYPES = [
   'CHARACTER_APPEARANCE', // description (+ reference) → portrait
   'CHARACTER_REFS',     // optional secondary material on request (expressions, outfits); never part of creation
   'LOCATION_PLATES',    // description → master plate + views
+  'AMBIENCE',           // a place (+ the time and weather its scenes play in) → its ambience bed (MOSS-SoundEffect v2)
   'SHOT_FRAMES',        // shot + refs → opening (and ending) frame
   'GENERATE_TAKE',      // shot → MiniMax video → validated take
   'CORRECT_LIPSYNC',    // a flagged, confirmed take → a NEW take with the mouth redrawn to the authoritative audio (never generates video)
@@ -126,6 +127,8 @@ export const JOB_PAYLOADS = {
   CHARACTER_APPEARANCE: z.object({ characterId: id }),
   CHARACTER_REFS: z.object({ characterId: id, roles: z.array(z.string()).optional() }),
   LOCATION_PLATES: z.object({ locationId: id, timesOfDay: z.array(z.string()).optional(), /** draw a fresh master plate even when one exists (the old plates stay as assets) */ force: z.boolean().optional() }),
+  /** the place's ambience bed: productionId names the scenes whose time and weather it is made for (absent: the place's own lighting); orce makes a new bed when it has one (the old recording stays in the library) */
+  AMBIENCE: z.object({ locationId: id, productionId: id.optional(), force: z.boolean().optional() }),
   SHOT_FRAMES: z.object({ productionId: id, shotId: id, ending: z.boolean().optional() }),
   GENERATE_TAKE: z.object({ productionId: id, shotId: id, model: z.string().optional(), resolution: z.string().optional(), durationSeconds: z.number().int().optional(), prompt: z.string().max(4000).optional(), seed: z.number().int().optional(), /** make the new take the shot's choice when it passes its checks, replacing the current one (a re-record the producer asked for) */ select: z.boolean().optional(), /** the quality tier asked for (docs/CONTRACTS-REDESIGN-BACKEND.md B6). The take records the tier it was really made at in `params.quality`; today every take is `final` (local MiniMax H3 has one path), and a `draft` request is kept as `params.qualityRequested`. */ quality: z.enum(['draft', 'final']).optional() }),
   /** src/domain/lipsync-correction.ts: the producer confirms the correction of ONE take and says what the visual review
@@ -193,7 +196,7 @@ export type JobPayloadParsed<T extends JobType> = z.output<(typeof JOB_PAYLOADS)
 /** Which jobs want the local GPU (the worker serialises them against a VRAM budget) and which call a hosted service. */
 export const JOB_RESOURCE: Record<JobType, 'GPU' | 'HOSTED' | 'CPU' | 'LLM'> = {
   AUTO_IDEA: 'LLM', DEVELOP_STORY: 'LLM', WRITE_SCRIPT: 'LLM', PLAN_SHOTS: 'LLM', WRITE_SONG: 'LLM',
-  CHARACTER_APPEARANCE: 'GPU', CHARACTER_REFS: 'GPU', LOCATION_PLATES: 'GPU', SHOT_FRAMES: 'GPU', VOICE_BUILD: 'GPU', VOICE_PREVIEW: 'GPU', DIALOGUE_AUDIO: 'GPU', CHECK_SONG: 'GPU',
+  CHARACTER_APPEARANCE: 'GPU', CHARACTER_REFS: 'GPU', LOCATION_PLATES: 'GPU', AMBIENCE: 'GPU', SHOT_FRAMES: 'GPU', VOICE_BUILD: 'GPU', VOICE_PREVIEW: 'GPU', DIALOGUE_AUDIO: 'GPU', CHECK_SONG: 'GPU',
   GENERATE_TAKE: 'HOSTED', GENERATE_SONG: 'HOSTED',
   ASSEMBLE: 'CPU', EXPORT: 'CPU', PRODUCE: 'CPU', MEDIA_PROBE: 'CPU',
   EPISODE_CONTINUITY: 'LLM', DESIGN_CHARACTER: 'LLM', CREATE_CHARACTER: 'CPU',
@@ -211,6 +214,7 @@ export const JOB_LABELS: Record<JobType, string> = {
   CHARACTER_APPEARANCE: 'Draw the character image',
   CHARACTER_REFS: 'Secondary material (optional)',
   LOCATION_PLATES: 'Location plates',
+  AMBIENCE: 'Make the ambience',
   SHOT_FRAMES: 'Prepare frames',
   GENERATE_TAKE: 'Generate video',
   CORRECT_LIPSYNC: 'Correct the lip-sync of a take',

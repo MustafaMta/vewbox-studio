@@ -18,6 +18,7 @@ import { BackLink, CardHead, CastSection, nameLang, usable } from '@/components/
 import { LocationForm, STYLE_WORDS, timeWord } from './LocationForm';
 import { locationIdentity } from '@/domain/location';
 import { LocationBible } from './LocationBible';
+import { AudioPlayer } from '@/components/players/Controls';
 
 const ROLE_WORD: Record<LocationRefRole, string> = { MASTER: 'Master plate', VIEW: 'View', STATE: 'Lighting state' };
 
@@ -103,6 +104,7 @@ export function LocationPage({ l }: { l: Location }) {
       </CastSection>
       <LocationBible l={l} />
       <Plates l={l} />
+      <Ambience l={l} />
       <section className="pc-section loc-cols" aria-label="Landmarks and props">
         <div className="card char-card">
           <CardHead title="Landmarks" count={l.landmarks.length || undefined} action={<Button size="sm" variant="secondary" icon={<IconEdit />} onClick={() => setEdit(true)}>Edit</Button>} />
@@ -172,6 +174,42 @@ function Plates({ l }: { l: Location }) {
           })}
         </ul>
       )}
+    </CastSection>
+  );
+}
+
+/** THE PLACE'S AMBIENCE (Phase 5 sound design): the bed the cut loops under every scene here, made once with
+ *  MOSS-SoundEffect v2 (the AMBIENCE job) from the place and the time and weather its scenes play in; its description,
+ *  loudness and engine shown. A new bed replaces it on the place; the old recording stays in the files. */
+function Ambience({ l }: { l: Location }) {
+  const { state } = useStudio();
+  const confirm = useConfirm();
+  const { start, busy } = useStartJob();
+  const running = useJobsFor({ locationId: l.id, type: 'AMBIENCE' }).find((j) => isActiveStatus(j.status));
+  const bed = l.ambience;
+  const a = assetById(state, bed?.assetId);
+  // the scenes a bed is made for: the first production with scenes here (its time and weather)
+  const prod = state.productions.find((p) => p.scenes.some((sc) => sc.locationId === l.id));
+  const make = async (force: boolean) => {
+    if (force && !(await confirm({ title: `A new ambience for ${l.name}?`, body: 'A new bed is recorded once and replaces this one on the place. The current recording stays in the studio’s files.', confirmLabel: 'Record a new bed', tone: 'default' }))) return;
+    void start('AMBIENCE', { locationId: l.id, ...(prod ? { productionId: prod.id } : {}), ...(force ? { force: true } : {}) }, { quiet: true });
+  };
+  return (
+    <CastSection id="ambience" title="Ambience" description="What the place sounds like: the bed the cut loops under every scene here, under the dialogue.">
+      {bed && a && usable(a) ? (
+        <div className="card char-card loc-ambience">
+          <AudioPlayer src={a.src} title={`${l.name} — ambience`} duration={bed.seconds} />
+          <p className="t-body content-para" dir="auto">{bed.description}</p>
+          <p className="t-meta char-slate"><span>{bed.seconds.toFixed(0)} s, loops without a seam</span>{bed.lufs !== undefined && <span>{bed.lufs.toFixed(1)} LUFS</span>}<span>{bed.model}</span></p>
+          <div className="char-form-acts"><Button size="sm" variant="secondary" icon={<IconGenerate />} loading={busy} disabled={Boolean(running)} onClick={() => void make(true)}>Record a new bed</Button></div>
+        </div>
+      ) : (
+        <div className="char-form-acts">
+          <p className="t-body pc-empty-line">{running ? (running.progress?.message || 'Recording the ambience') : bed ? 'The recording is not available.' : 'No ambience yet. Without one, the cut uses the takes’ own room tone.'}</p>
+          <Button size="sm" variant="primary" icon={<IconGenerate />} loading={busy} disabled={Boolean(running)} onClick={() => void make(Boolean(bed))}>Make the ambience</Button>
+        </div>
+      )}
+      {running && bed && <StateWord tone="running">{running.progress?.message || 'Recording the ambience'}</StateWord>}
     </CastSection>
   );
 }

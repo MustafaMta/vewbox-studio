@@ -22,7 +22,7 @@ export const COMMANDS = {
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
   addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent,
   setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
-  addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, deleteLocation: A.deleteLocation,
+  addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, setLocationAmbience: A.setLocationAmbience, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
   acceptProposal: A.acceptProposal,
   updateSettings: A.updateSettings,
@@ -180,7 +180,7 @@ export function validateCommandArgs(name: CommandName, args: unknown): void {
 export const SYSTEM_COMMANDS = [
   'recordExport', 'setCut', 'replaceScript', 'replaceSceneShots', 'setShotFrames', 'setDialogueAudio',
   'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
-  'setCanonicalImage', 'addLocationRefs', 'addAsset', 'updateAsset',
+  'setCanonicalImage', 'addLocationRefs', 'setLocationAmbience', 'addAsset', 'updateAsset',
   // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
   'addCastMember', 'addLocationMember', 'updateShowBible', 'finishEpisode', 'fillProductionFields',
 ] as const satisfies readonly CommandName[];

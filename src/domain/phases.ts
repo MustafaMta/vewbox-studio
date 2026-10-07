@@ -13,7 +13,7 @@ export interface RunPhaseEvent { phase: RunPhase; at: string; /** the handler's 
 /** How the status row names a phase for a job type (English; the pages translate): a take is filmed, a line is
  *  recorded, everything else is generated. */
 export const RUN_PHASE_LABELS: Record<RunPhase, string> = { QUEUED: 'Queued', PREPARING: 'Preparing references', GENERATING: 'Generating', CHECKING: 'Checking', FINISHING: 'Finishing' };
-export const GENERATING_LABEL: Partial<Record<string, string>> = { GENERATE_TAKE: 'Filming', DIALOGUE_AUDIO: 'Recording', VOICE_BUILD: 'Recording', VOICE_PREVIEW: 'Recording', VOICE_DESIGN: 'Recording', GENERATE_SONG: 'Composing', CHARACTER_APPEARANCE: 'Drawing', CHARACTER_REFS: 'Drawing', LOCATION_PLATES: 'Drawing', SHOT_FRAMES: 'Drawing', ASSEMBLE: 'Rendering', EXPORT: 'Rendering' };
+export const GENERATING_LABEL: Partial<Record<string, string>> = { GENERATE_TAKE: 'Filming', DIALOGUE_AUDIO: 'Recording', VOICE_BUILD: 'Recording', VOICE_PREVIEW: 'Recording', VOICE_DESIGN: 'Recording', GENERATE_SONG: 'Composing', CHARACTER_APPEARANCE: 'Drawing', CHARACTER_REFS: 'Drawing', LOCATION_PLATES: 'Drawing', AMBIENCE: 'Recording', SHOT_FRAMES: 'Drawing', ASSEMBLE: 'Rendering', EXPORT: 'Rendering' };
 export const runPhaseLabel = (jobType: string, phase: RunPhase): string => (phase === 'GENERATING' ? GENERATING_LABEL[jobType] ?? RUN_PHASE_LABELS.GENERATING : RUN_PHASE_LABELS[phase]);
 
 /** The phase a progress report means. `recording` while PREPARING is still preparation (a take records its lines

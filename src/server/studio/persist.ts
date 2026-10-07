@@ -138,7 +138,7 @@ export async function persistState(tx: Tx, before: RowHashes, state: StudioState
       const hash = h(l); const prev = before.locations.get(l.id);
       if (prev === hash) continue;
       touched.locations.add(l.id);
-      const row = { id: l.id, name: l.name, nameAr: nul(l.nameAr), kind: l.kind, description: l.description, style: l.style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: nul(l.masterAssetId), layout: nul(l.layout), identity: nul(l.identity), createdAt: l.createdAt, updatedAt: l.updatedAt };
+      const row = { id: l.id, name: l.name, nameAr: nul(l.nameAr), kind: l.kind, description: l.description, style: l.style, lighting: l.lighting, landmarks: l.landmarks, props: l.props, refs: l.refs, masterAssetId: nul(l.masterAssetId), layout: nul(l.layout), identity: nul(l.identity), ambience: nul(l.ambience), createdAt: l.createdAt, updatedAt: l.updatedAt };
       if (prev === undefined) { await tx.insert(schema.locations).values(row); report.inserted++; } else { await tx.update(schema.locations).set(row).where(eq(schema.locations.id, l.id)); report.updated++; }
     }
     const gone = [...before.locations.keys()].filter((id) => !seen.has(id));

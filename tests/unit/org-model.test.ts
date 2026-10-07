@@ -101,7 +101,7 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 18)', () => {
+describe('the studio organisation (ORG_VERSION 19)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
     // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first
@@ -109,7 +109,8 @@ describe('the studio organisation (ORG_VERSION 18)', () => {
     // 14: the Lip-Sync Corrector (Video): CORRECT_LIPSYNC with the video.lipsync_correct tool (directive 2026-10-06 §16)
     // 15: the story agents run on the one planner, Qwen3.8-27B-NVFP4 (vLLM); no Ollama or hosted LLM (Phase 0)
     // 16: the Music Director writes the song (WRITE_SONG, the planner) and records it with ACE-Step XL-SFT only (Phase 2)
-    expect(ORG_VERSION).toBe(18);
+    // 19: the Sound Designer (SOUND): AMBIENCE with audio.generate_effect, MOSS-SoundEffect v2 (Phase 5 sound design)
+    expect(ORG_VERSION).toBe(19);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -118,8 +119,8 @@ describe('the studio organisation (ORG_VERSION 18)', () => {
     for (const d of DEPARTMENTS) expect(AGENTS.find((a) => a.id === d.directorId)!.department, `${d.id} director`).toBe(d.id);
     // 35: World Continuity staffed (the World Bible: sync, pin, per-take read, established frames) and v8's five
     // research-driven Auto Idea development agents in Story Development
-    // 36: the Lip-Sync Corrector (v14)
-    expect(AGENTS).toHaveLength(36);
+    // 36: the Lip-Sync Corrector (v14); 37: the Sound Designer (v19)
+    expect(AGENTS).toHaveLength(37);
     expect(AGENTS.find((a) => a.id === 'world-continuity')?.steps.map((s) => s.id)).toEqual(['world-sync', 'world-pin', 'world-read', 'establish-locations', 'establish-here', 'drift-check']);
   });
 

@@ -16,7 +16,7 @@ export type OrchestratorState = 'IDLE' | 'READY' | 'COORDINATING' | 'PRODUCING' 
 export type NodeState = 'idle' | 'working' | 'waiting' | 'blocked';
 export type EdgeState = 'used' | 'recent' | 'waiting' | 'refused';
 
-const GPU_JOBS = new Set(['GENERATE_TAKE', 'SHOT_FRAMES', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS', 'LOCATION_PLATES', 'VOICE_BUILD', 'VOICE_PREVIEW', 'DIALOGUE_AUDIO', 'GENERATE_SONG']);
+const GPU_JOBS = new Set(['GENERATE_TAKE', 'SHOT_FRAMES', 'CHARACTER_APPEARANCE', 'CHARACTER_REFS', 'LOCATION_PLATES', 'AMBIENCE', 'VOICE_BUILD', 'VOICE_PREVIEW', 'DIALOGUE_AUDIO', 'GENERATE_SONG']);
 export const RUNNING_STATUSES = new Set(['PREPARING', 'GENERATING', 'DOWNLOADING', 'VALIDATING', 'POSTPROCESSING']);
 /** "Recent" for a handoff path: the last 90 minutes. */
 export const RECENT_MS = 90 * 60_000;

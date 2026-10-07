@@ -124,6 +124,8 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   // locations
   addLocation: (sc) => { sc.locations = true; },
   updateLocation: location, addLocationRefs: location,
+  // the bed must be an audio recording in the library
+  setLocationAmbience: (sc, a) => { location(sc, a); sc.assets = add(sc.assets, [str(obj(a[1]).assetId)]); },
   deleteLocation: full,
   // assets
   addAsset: (sc, a) => { sc.assets = add(sc.assets, [str(obj(a[0]).id)]); },

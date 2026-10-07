@@ -225,6 +225,9 @@ export const StemsOutput = z.looseObject({ files: z.record(z.string(), z.string(
 export const MusicInput = z.object({ engine: z.literal('ace-step'), variant: z.enum(['xl-sft', 'xl-turbo']), caption: z.string(), lyrics: z.string(), seconds: z.number().positive().optional(), instrumental: z.boolean().optional(), bpm: z.number().int().optional(), key: z.string().optional() });
 /** ACE-Step in ComfyUI: the run. */
 export const MusicOutput = ComfyRunOutput;
+/** generateSoundEffect(): one ambience or effect from a description (MOSS-SoundEffect v2, src/server/providers/sfx.ts). */
+export const SoundEffectInput = z.object({ prompt: z.string().trim().min(1).max(600), seconds: z.number().min(0.5).max(30), seed: z.number().int().min(0) });
+export const SoundEffectOutput = z.looseObject({ file, seconds: z.number().positive(), sampleRate: metric, ms: metric, model: z.string().min(1), engineVersion: z.string(), seed: metric });
 
 // ----------------------------------------------------------------------------------------------------- media
 
@@ -280,7 +283,7 @@ export interface ToolContract {
 /** The named schemas, so a ToolDef's `inputSchema`/`outputSchema` names a real schema (a test checks it). */
 export const SCHEMAS: Record<string, z.ZodType> = {
   StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, LipsyncCorrectInput, LipsyncCorrectOutput, SynthesizeInput, SynthesizeOutput,
-  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, QwenTranscribeInput, QwenTranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, FileInput, ProbeOutput,
+  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, QwenTranscribeInput, QwenTranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, SoundEffectInput, SoundEffectOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
   ResearchPlanInput, ResearchPlanOutput, ResearchQueryInput, ResearchQueryOutput, ResearchStoreInput, ResearchRunOutput,
@@ -301,6 +304,7 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'speech.embed_voice': { input: FileInput, output: EmbedVoiceOutput },
   'audio.separate_stems': { input: StemsInput, output: StemsOutput },
   'music.generate': { input: MusicInput, output: MusicOutput },
+  'audio.generate_effect': { input: SoundEffectInput, output: SoundEffectOutput },
   'media.probe': { input: FileInput, output: ProbeOutput },
   'media.qa_take': { input: QaTakeInput, output: QaTakeOutput },
   'media.assemble': { input: AssembleInput, output: AssembleOutput },

@@ -92,6 +92,9 @@ function corpus(): Command[] {
     // locations
     c('addLocation', { name: 'Harbour', kind: 'EXTERIOR', description: 'd', style: 'ANIME', lighting: [], landmarks: [], props: [] }),
     c('updateLocation', 'cafe', { description: 'warmer' }), c('addLocationRefs', 'cafe', [{ id: 'ref-1', role: 'MASTER', assetId: 'img-2', label: 'master' }]),
+    c('setLocationAmbience', 'cafe', { assetId: 'voice-low', description: 'Room tone inside a café at night', seconds: 30, model: 'MOSS-SoundEffect v2', seed: 1, createdAt: '2026-10-08T00:00:00.000Z' }),
+    c('setLocationAmbience', 'alley', { assetId: 'img-2', description: 'not audio', seconds: 30, model: 'm', seed: 1, createdAt: '2026-10-08T00:00:00.000Z' }), // a picture is not a bed: INVALID
+    c('setLocationAmbience', 'cafe', null),
     // settings and cross-cutting commands
     c('updateSettings', { reducedMotion: true }),
     c('acceptProposal', { kind: 'SHORT', aspect: 'WIDE_16_9', proposal, keepCast: ['a', 'b', 'c'], keepLocations: ['x'], preferences: {} }),

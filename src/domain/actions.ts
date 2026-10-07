@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { nid, now } from './ids';
@@ -949,9 +949,24 @@ export function addLocation(s: S, input: LocationInput): { state: S; location: L
 export function updateLocation(s: S, id: string, patch: Partial<Omit<Location, 'id' | 'createdAt'>>): S {
   mustFind(s.locations, id, 'Location');
   const t = now();
-  const { identity: _given, ...fields } = patch as typeof patch & { identity?: unknown };
-  void _given;
+  // the identity is the studio's, the ambience bed the AMBIENCE job's (setLocationAmbience): neither from a patch
+  const { identity: _given, ambience: _bed, ...fields } = patch as typeof patch & { identity?: unknown };
+  void _given; void _bed;
   return { ...s, locations: s.locations.map((l) => (l.id === id ? advanceIdentity(l, { ...l, ...fields, updatedAt: t }, t) : l)) };
+}
+
+/** The place's ambience bed, as the AMBIENCE job made it (an audio asset in the library), or null to take it away (the
+ *  asset stays in the library; the cut falls back to the takes' room tone). */
+export function setLocationAmbience(s: S, id: string, ambience: LocationAmbience | null): S {
+  mustFind(s.locations, id, 'Location');
+  if (ambience) {
+    const a = s.assets.find((x) => x.id === ambience.assetId);
+    if (!a) throw new StudioError('NOT_FOUND', `The ambience recording ${ambience.assetId} is not in the library.`);
+    if (a.kind !== 'AUDIO') throw new StudioError('INVALID', 'An ambience bed must be an audio recording.');
+    if (!ambience.description.trim()) throw new StudioError('INVALID', 'An ambience bed needs its description.');
+  }
+  const t = now();
+  return { ...s, locations: s.locations.map((l) => { if (l.id !== id) return l; const { ambience: _old, ...rest } = l; void _old; return { ...rest, ...(ambience ? { ambience } : {}), updatedAt: t }; }) };
 }
 
 /** The studio drew plates for a location. A new MASTER starts a new plate set (the views and states made from the

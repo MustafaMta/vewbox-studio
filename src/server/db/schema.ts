@@ -268,6 +268,8 @@ export const locations = pgTable('locations', {
   layout: jsonb('layout').$type<NonNullable<import('@/domain/types').Location['layout']>>(),
   /** the canonical identity and its version (src/domain/types.ts LocationIdentity); NULL = version 1 of what the row holds */
   identity: jsonb('identity').$type<import('@/domain/types').LocationIdentity>(),
+  /** the place's ambience bed (src/domain/types.ts LocationAmbience); NULL = none made yet */
+  ambience: jsonb('ambience').$type<import('@/domain/types').LocationAmbience>(),
   /** AGGREGATE VERSION (docs/BACKEND-AUDIT-2026-10.md H3, step 11): +1 on every save that changes this aggregate (for a
    *  production: its scenes, shots and takes too). A worker's write can expect a version (compare-and-set). */
   version: integer('version').notNull().default(0),

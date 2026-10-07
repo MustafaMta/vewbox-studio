@@ -83,7 +83,8 @@ function locationOf(l: StudioState['locations'][number], prev: WorldLocation | u
     locationId: l.id, name: l.name, kind: l.kind,
     identity: { version: identity.version, hash: identity.hash, line: identity.line },
     canon: { description: l.description, architecture: lay.architecture, materials: lay.materials ?? [], fixedFeatures: l.landmarks, geography: lay.geography, spatial: lay.spatial, entrances: lay.entrances ?? [], zones: lay.cameraZones ?? [] },
-    lighting: l.lighting, plates, ambience: prev?.ambience, locked,
+    // the place's bed is its record's (the AMBIENCE job): taking it away there takes it out of the next revision
+    lighting: l.lighting, plates, ambience: l.ambience ? { assetId: l.ambience.assetId, description: l.ambience.description } : undefined, locked,
   };
 }
 

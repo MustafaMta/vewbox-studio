@@ -848,8 +848,26 @@ export interface Location {
   layout?: { geography?: string; architecture?: string; materials?: string[]; cameraZones?: string[]; entrances?: string[]; spatial?: string; light?: LocationLight };
   /** the canonical identity and its version (see `LocationIdentity`) */
   identity?: LocationIdentity;
+  /** THE PLACE'S AMBIENCE BED (the AMBIENCE job, MOSS-SoundEffect v2): the World Bible carries it to every production
+   *  at this place, and the cut loops it under the place's run of scenes (src/domain/timeline.ts) */
+  ambience?: LocationAmbience;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LocationAmbience {
+  assetId: string;
+  /** what the bed is, in words (the prompt the engine was given) */
+  description: string;
+  seconds: number;
+  model: string;
+  engineVersion?: string;
+  seed: number;
+  /** integrated loudness and true peak as measured on the stored file */
+  lufs?: number;
+  truePeakDbtp?: number;
+  jobId?: string;
+  createdAt: string;
 }
 
 export interface GenerationSettings {
