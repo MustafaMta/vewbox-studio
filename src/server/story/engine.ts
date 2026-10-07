@@ -393,6 +393,15 @@ timeOfDay must be one of DAWN, MORNING, MIDDAY, AFTERNOON, GOLDEN_HOUR, DUSK, NI
  *  planner's measured speed (src/server/jobs/deadlines.ts llmCallMs). A script batch also asks for its glosses. */
 export const ANSWER_TOKENS = { develop: 8000, script: 9000, gloss: 3000 } as const;
 
+/** HOW MANY BEATS A SCENE NEEDS (pure, tested): one beat is one new piece of action, about 5–8 seconds on screen, so
+ *  a scene's running time asks for about one beat per 7 seconds. A flat "2–6 beats" wrote 3 beats for a 45-second scene
+ *  and the shot planner had to fill 45 seconds from them: five near-identical "he prepares to act" shots (2026-10-07,
+ *  ep-3fef2fe042 scene 1). */
+export function beatsForSeconds(seconds: number): { min: number; max: number } {
+  const n = Math.max(2, Math.min(12, Math.round(seconds / 7)));
+  return { min: Math.max(2, n - 1), max: Math.min(14, n + 1) };
+}
+
 export interface ScriptFacts { events?: string[]; knowledge?: Array<{ characterName: string; text: string }>; changes?: Array<{ subject: string; key?: string; text: string }> }
 export interface ScriptResult { scenes: Array<{ sceneId: string; beats: Array<{ action: string; lines: Array<{ characterName: string; text: string; textAr?: string; delivery?: string }> }>; facts?: ScriptFacts }> }
 
@@ -407,6 +416,7 @@ export function scriptWorld(bible: WorldBible | undefined): string {
 export async function writeScript(_s: StudioState, p: Production, scenes: Scene[], cast: Character[], world: Location[], opts: EngineOptions = {}, bible?: WorldBible): Promise<ScriptResult> {
   const sceneCards = scenes.map((sc) => ({ sceneId: sc.id, number: sc.number, title: sc.title, location: world.find((l) => l.id === sc.locationId)?.name ?? '(unspecified)', timeOfDay: sc.timeOfDay, characters: sc.characterIds.map((id) => cast.find((c) => c.id === id)?.name).filter(Boolean), purpose: sc.purpose, emotionalObjective: sc.emotionalObjective, entryState: sc.entryState, exitState: sc.exitState, existingBeats: sc.beats.map((b) => ({ action: b.action, lines: b.lines.map((l) => `${cast.find((c) => c.id === l.characterId)?.name ?? '?'}: ${l.textAr || l.text}`) })) }));
   const perScene = Math.round(p.targetSeconds / Math.max(1, p.scenes.length));
+  const beats = beatsForSeconds(perScene);
   const user = `Write the script for these scenes of "${p.title}" (${p.kind === 'MUSIC_VIDEO' ? 'music video' : p.kind === 'SHORT' ? 'short film' : 'episode'}).
 Logline: ${p.logline}
 Synopsis: ${p.synopsis}
@@ -414,7 +424,7 @@ ${scriptWorld(bible)}
 Cast (voices, personalities; use exact names as characterName): ${compact(cast.map(castSummary))}
 Places: ${compact(world.map(locationSummary))}
 Scenes to write (keep sceneId): ${compact(sceneCards)}
-Each scene plays for about ${perScene} seconds, so 2–6 beats per scene; a beat is one piece of action (what we see, present tense, specific and filmable in a few seconds) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
+Each scene plays for about ${perScene} seconds, so about ${beats.min}–${beats.max} beats per scene: a beat is one NEW piece of action (what we see, present tense, specific and filmable in 5–8 seconds — something happens, is revealed or is answered; never the same action again in other words) followed by 0–4 short dialogue lines. Lines are short (spoken in under 6 seconds). ${p.kind === 'MUSIC_VIDEO' ? 'This is a music video: beats describe performance and imagery synced to the song; keep spoken lines to none or very few.' : ''}
 If a scene already has beats, improve and complete them rather than discarding what is there.
 For each scene also record what it establishes for the rest of the series, in "facts" (English): events (1–3 things that happened and matter later), knowledge (who now knows something they did not before: characterName + what they know), changes (lasting physical changes later scenes must show: subject is a character's exact name, a prop or the place's exact name; key is the aspect that a later change would replace, e.g. "left arm", "shop window"; text is the new state). Only real story facts; empty arrays when the scene establishes none.
 Return JSON: { scenes: [{ sceneId, beats: [{ action, lines: [{ characterName, text, textAr?, delivery? }] }], facts: { events: [], knowledge: [{ characterName, text }], changes: [{ subject, key, text }] } }] }. "delivery" is a short performance note (e.g. "quietly, not looking up").${p.language === 'AR' ? ' For every line: "textAr" is the spoken Arabic line in the dialect; "text" is its English translation for the producer (English words only, never Arabic script).' : ''}`;
@@ -496,6 +506,16 @@ export const planOutputTokens = (budget: number) => PLAN_TOKENS_FIXED + PLAN_TOK
 /** How deep a scene is halved when its plan does not fit one answer: at most 2³ = 8 parts. */
 const MAX_PLAN_SPLITS = 3;
 
+/** THE SHOT COUNT A RUN IS OFFERED (pure, tested). `floor`: the fewest shots that can cover the time at ≤ maxShot
+ *  seconds each (the schema enforces it). The range asked for starts at the larger of that floor and the written beats
+ *  and ends at one shot per 6 seconds, never under the start: the old "one shot per 4–6 seconds" asked 8–11 shots of
+ *  three beats, and the planner filled them with repeats. */
+export function shotCountFor(budget: number, beats: number, maxShot: number): { floor: number; min: number; max: number } {
+  const floor = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
+  const min = Math.max(floor, Math.min(beats, 14));
+  return { floor, min, max: Math.max(min, Math.round(budget / 6)) };
+}
+
 /** A scene's beats in two runs, in order, for planning in two calls (the first holds the extra beat). */
 export function halveBeats<T>(beats: T[]): [T[], T[]] { const k = Math.ceil(beats.length / 2); return [beats.slice(0, k), beats.slice(k)]; }
 
@@ -529,7 +549,7 @@ async function planBeats(p: Production, scene: Scene, run: BeatRun, cast: Charac
   };
   if (canSplit && planOutputTokens(budget) > room) return split();
   // a run's running time needs enough shots at ≤ maxShot seconds each; a one-shot answer is sent back for more
-  const minShots = Math.max(1, Math.min(14, Math.ceil(budget / maxShot)));
+  const minShots = shotCountFor(budget, run.beats.length, maxShot).floor;
   const schema = ShotPlanSchema.refine((d) => d.shots.length >= minShots, { message: `at least ${minShots} shots are needed to cover about ${budget} seconds at 3–${maxShot} seconds each; return more shots`, path: ['shots'] });
   let r: Awaited<ReturnType<typeof llmJson<ShotPlanOut>>>;
   try { r = await llmJson(schema, messages, { ...opts, maxTokens: room, temperature: 0.6 }); } catch (e) {
@@ -553,7 +573,9 @@ function shotPlanMessages(p: Production, scene: Scene, run: BeatRun, budget: num
   const last = run.from + run.beats.length;
   const next = scene.beats[last];
   const part = whole ? '' : ` — PART: beats ${run.from + 1}–${last} of the scene's ${scene.beats.length} (the other beats are planned separately; plan only these, ${run.from === 0 ? 'starting the scene' : 'continuing straight on from the previous shot below'}${next ? `, ending where beat ${last + 1} begins: "${next.action.slice(0, 160)}"` : ', ending the scene'})`;
-  const user = `Plan the shots for Scene ${scene.number} "${scene.title}" of "${p.title}"${part}. Aspect ${p.aspect}. ${whole ? 'The scene' : 'This part'} should run about ${budget} seconds in ${Math.max(1, Math.round(budget / 6))}–${Math.max(2, Math.round(budget / 4))} shots of 3–${maxShot} seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).
+  const count = shotCountFor(budget, run.beats.length, maxShot);
+  const user = `Plan the shots for Scene ${scene.number} "${scene.title}" of "${p.title}"${part}. Aspect ${p.aspect}. ${whole ? 'The scene' : 'This part'} should run about ${budget} seconds in ${count.min}–${count.max} shots of 3–${maxShot} seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).
+EVERY SHOT SHOWS SOMETHING NEW — an action, a reveal, a reaction to what just happened, a new angle that tells us something. Never repeat or paraphrase an earlier shot ("he prepares", "he readies himself", "he is ready to act" are one moment, not three). When the beats hold little action for the running time, let the shots that carry real action run longer and hold on them; never invent a filler shot.
 Location: ${loc ? compact(locationSummary(loc)) : '(none set — describe a plausible place consistent with the story and keep it identical across shots)'}
 Time of day: ${scene.timeOfDay}. Purpose: ${scene.purpose ?? ''}. Emotional objective: ${scene.emotionalObjective ?? ''}. Entry state: ${run.from === 0 ? scene.entryState ?? previous.sceneExit ?? '' : '(mid-scene: as the previous shot ends)'}. Exit state: ${next ? '(mid-scene: the scene goes on after these beats)' : scene.exitState ?? ''}.
 Characters present (exact names; include their look so prompts can describe them): ${compact(present.map(castSummary))}
