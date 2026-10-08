@@ -295,6 +295,19 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8024/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
+  # SoulX-Singer SVC — EVALUATION ONLY, not production-approved (Phase 3 singer identity; docker/svc-eval). One-off:
+  #   docker compose -p vewbox --profile eval run --rm svc-eval --source /work/<vocal.wav> --reference /work/<voice.wav> --out /work/<dir>
+  # var/eval is its workspace; the weights (group eval-svc-soulx-singer) are read-only; run it under the GPU lease.
+  svc-eval:
+    logging: *logging
+    build: { context: ., dockerfile: docker/svc-eval/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/svc-eval:${CODE_VERSION:-dev}
+    profiles: ["eval"]
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models:ro", "./var/eval:/work", "./docker/svc-eval/run_svc.py:/opt/soulx/vewbox_run_svc.py:ro" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+
   # the bench's MOSS arm: the same image (built by tts-moss) on the bench port
   tts-bench-moss:
     logging: *logging
