@@ -629,4 +629,30 @@ the opening frames and the location plate, inspected side by side.
       REJECTED only because "Had to row." was heard as "Hat to Roe." (CER 0.09, but word coverage 0.60 < 0.7). The
       measure was wrong. Fixed (c02b810): an English word heard one letter away counts (never Arabic).
     - **Attempt 5:** the same request (seed 1402196310 reused, same prompt), scored by the corrected check, with
-      select on pass.
+      select on pass.  - **1.5 (Marcus's reverse, "Duty calls.")**:
+    - **Attempt 1: REJECT.** H3 said the 1 s line at 0.05 s and again at 1.8 s (the clip cannot be shorter than
+      ~5 s), inside the cut's window.
+    - Fixed in the prompt (2f43843): the recorded line's window and the silence after it are stated in timed-beat
+      form. A same-seed rerun still repeated: **an open H3 behaviour.**
+    - LatentSync repair: refused by its own checks. Marcus is in profile, so 0 % of frames could be corrected at full
+      strength.
+    - **The gate was measuring the wrong thing.** CER counted the repeat as 110 % errors, although coverage ignores
+      repeats and no-repeated-speech flags it for review. Fixed (0d807a4): an immediate repeat is folded out before
+      CER, for takes only.
+    - Same-seed rerun: REVIEW (lip-sync, identity, repeated speech flagged). In the cut. **The repeated mouth movement
+      after the line is visible: `WAITING_FOR_USER_ACCEPTANCE`.**
+  - **1.6 (the thermos insert):**
+    - **Frame 1, from 1.5's end:** a face close-up, refused by the framing check (face 45 %).
+    - **Frame 2, previous end cut to its lower half:** still a face. The frame prompt described Marcus in full.
+      Fixed (5ea1a62): an insert describes people by hands and sleeves.
+    - **Frame 3:** still a face. With any picture of a person, the edit model keeps a portrait. Fixed (45a0263): an
+      insert is drawn by text to image from words.
+    - **Frames 4–5, from words:** a true insert, but both people's hands were pale, there were two thermoses, and the
+      sleeves were mixed. Attribute binding across two people is beyond text to image. The words were improved
+      (e2db106), with no change.
+    - **Plan change in the shot editor** (a producer-style edit forced by an engine limit): the insert is Marcus's
+      hands alone, unscrewing the cap of the dented brass thermos.
+    - **Frame 6:** correct. Charcoal suit sleeve and white cuff, the dented brass thermos with steam, the polishing
+      cloth from 1.5. His hands are a little lighter than his face (for viewing).
+    - The take was interrupted by a machine restart at about 13:05; the worker reclaimed it (job attempt 2, an
+      infrastructure retry).
