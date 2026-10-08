@@ -601,4 +601,19 @@ the opening frames and the location plate, inspected side by side.
     For one person of several it is cut to that person (a685c25).
   - **1.2, frame redrawn** (creative attempt 2 of the frame, after the fix, recorded): one person, framing PASS, the
     plate's exact layout. Take ACCEPT, no flags (12 min). Elena keeps her wardrobe, wet hair and the brass thermos
-    throughout; the handheld camera follows her forward.
+    throughout; the handheld camera follows her forward.  - **1.3, attempt 1:** started on 1.2's tail, then jumped to a static wide two-shot in another part of the room. The
+    prompt said both "continues without a cut" and "locked off, the framing of the first frame holds", over a tail of
+    another framing. Fixed (7bd24d7): a continuous shot carries on from the tail and reaches its framing by one smooth
+    move; the planner's static camera sentence is dropped; a static continuous shot with a new framing is given a
+    push-in or pull-back in the plan.
+  - **1.3, attempt 2** (explicit rerun of the affected shot): continuous, no cut (QA no-unplanned-cut PASS). Marcus
+    comes into frame and the camera settles on the two-shot, in the right room, with the thermos and cloth.
+    - REVIEW flags: lip-sync not measured (Marcus in profile while he speaks); Elena's identity drifts 0.21 as she
+      turns.
+    - Take 2 was chosen for the cut: take 1 carries the known defect.
+  - **1.4, frame:** drawn from 1.3's end cut to Elena (`personBand`): her wet coat, the thermos, the lens behind her.
+    Framing PASS, one person, SFace 0.40 REVIEW.
+  - **1.4, attempt 1: REJECT.** H3 said the line twice ("Radio's dead. Had to row. Had to row."), so the
+    script-spoken gate failed. Fixed (457ec7a): every speaking prompt says each line once, with closed mouths around
+    it. Explicit rerun of 1.4.
+  - The machine restarted at about 10:43 (containers recreated). No work was lost; the worker resumed on its own.
