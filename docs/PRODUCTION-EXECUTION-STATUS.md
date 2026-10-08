@@ -371,5 +371,20 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - Root cause of the smile: the character design wrote expression into the look fields ("a warm, approachable
       expression"). Fixed for new characters (d9473de). Marcus's own image is locked by filming.
   - **1.1:** redrawn with the fix (strained, beard kept, one person; SFace 0.48 REVIEW) and filming.
-  - Next: inspect 1.1. Then send the three takes for viewing (`WAITING_FOR_USER_ACCEPTANCE`), and move on to the
-    4–8-shot stage.
+  - **1.1 take:** it opens on the strained frame, then H3 cut inside the take at 2.0 s to the planned shoe-on-the-step
+    close-up.
+    - The planner called a shoe detail a close-up, which the frame stage reads as a face. Fixed for future plans
+      (7006b76): a hand, foot or object is an INSERT.
+    - Its "2 people" (legs) could not be reproduced from a single frame; the count prompt was clarified (4d2bc03), not
+      claimed as a fix.
+  - All three first takes were sent for viewing: `WAITING_FOR_USER_ACCEPTANCE`.
+  - **4–8-shot stage: scene 2** (six shots of real action).
+    - 2.1 and 2.5 were corrected in the UI to INSERT.
+    - Frames are consistent (suit, tie, beard, room, night light) and the actions are right.
+    - 2.3 is in profile (SFace 0.26): the preflight refused it. A profile now reads FAIL as REVIEW (8c27158); 2.3 is
+      redrawn.
+    - Five takes are filming; 2.3 follows its new frame.
+  - **Phase 3 unblocked:**
+    - All downloads are in (phoneme model, Habibi verified, SoulX-Singer and whisper-base).
+    - The SoulX-Singer SVC evaluation container is building (586b309, e961101).
+    - The phoneme gate formal run waits for the GPU.
