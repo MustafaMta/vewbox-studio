@@ -355,4 +355,21 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
       count is now part of the check (1f3113a).
     - Open: the edit pass loses the grey beard (SFace about 0.44 each time).
     - Open: the identity judge scores a back-to-camera frame as FAIL; it should be not applicable.
-  - Filming 1.2 and 1.3 (H3, first takes) and redrawing 1.1. Next: inspect the takes.
+  - **First takes** (local H3, pruned int8, 20 steps; about 17 min each; first attempts):
+    - **1.3:** continuous and right. Marcus is at the lens with his back to the camera, turns, and wipes his face in
+      storm light; no speech in its sound.
+      - Its "fade" and "cuts" were the lamp's flicker and lightning. Fixed (2acfaae): a cut now needs the picture's
+        structure to change, and a dip in a shot whose own light flickers is reported, not flagged.
+      - Its identity FAIL was a back-to-camera shot. Fixed (864c29b): people facing away are not measured.
+    - **1.2:** plays the moment: strained at the door, "Come on…", turns to the stair, breath steaming.
+      - Lip-sync is −4 frames; the cut moves the line.
+      - Identity drifts 0.22 within the take: the edited frame's face (beard lost) morphs back towards the canonical
+        image under H3.
+      - `WAITING_FOR_USER_ACCEPTANCE`.
+  - **Frame lab result:**
+    - Naming the person's own hair and facial hair in the edit keeps the face (SFace 0.44 → 0.52 PASS; fc4ca64).
+    - Root cause of the smile: the character design wrote expression into the look fields ("a warm, approachable
+      expression"). Fixed for new characters (d9473de). Marcus's own image is locked by filming.
+  - **1.1:** redrawn with the fix (strained, beard kept, one person; SFace 0.48 REVIEW) and filming.
+  - Next: inspect 1.1. Then send the three takes for viewing (`WAITING_FOR_USER_ACCEPTANCE`), and move on to the
+    4–8-shot stage.
