@@ -414,8 +414,12 @@ const fold = (x: string, lang: Language) => (lang === 'AR' ? normalizeIraqi(x) :
 export function scriptCoverage(reference: string, hypothesis: string, lang: Language): number {
   const r = fold(reference, lang).split(' ').filter(Boolean); const h = fold(hypothesis, lang).split(' ').filter(Boolean);
   if (r.length === 0) return 1;
+  // ENGLISH HOMOPHONES (2026-10-08, "The Relief" 1.4: "Had to row." heard as "Hat to Roe." — CER 0.09, coverage 0.60, a
+  // correctly spoken line rejected): an English word of three letters or more matches a heard word one letter away.
+  // Never Arabic: there one letter (گ for ق, چ for ج) is the dialect the gate is there to hear.
+  const same = (a: string, b: string) => a === b || (lang !== 'AR' && a.length >= 3 && b.length >= 3 && Math.abs(a.length - b.length) <= 1 && levenshtein([...a], [...b]) <= 1);
   const dp: number[][] = Array.from({ length: r.length + 1 }, () => Array<number>(h.length + 1).fill(0));
-  for (let i = 1; i <= r.length; i++) for (let j = 1; j <= h.length; j++) dp[i][j] = r[i - 1] === h[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+  for (let i = 1; i <= r.length; i++) for (let j = 1; j <= h.length; j++) dp[i][j] = same(r[i - 1], h[j - 1]) ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
   return dp[r.length][h.length] / r.length;
 }
 

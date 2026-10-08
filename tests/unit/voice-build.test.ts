@@ -126,8 +126,9 @@ describe('the CER gate (contract §1.4)', () => {
     expect(isFailedCheck(padded)).toBe(padded.status === 'FAIL');
     expect(isFailedCheck(null)).toBe(false);
     // a take's clip passes at a lower coverage than a recorded line
-    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'take').status).toBe('PASS');
-    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight nina tin', 'EN', 'line').status).toBe('REVIEW');
+    // (two words truly missed: a one-letter mishear such as "nina" for "nine" counts as heard since 2026-10-08)
+    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight mine pen', 'EN', 'take').status).toBe('PASS');
+    expect(judgeHeard('one two three four five six seven eight nine ten', 'one two three four five six seven eight dark sky', 'EN', 'line').status).toBe('REVIEW');
   });
 });
 

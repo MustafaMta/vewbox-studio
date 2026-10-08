@@ -19,3 +19,11 @@ describe('scriptCoverage / wordErrorRate (English)', () => {
     expect(scriptCoverage('Tomorrow? But I’m off duty!', 'I am not working tomorrow', 'EN')).toBeLessThan(0.5);
   });
 });
+
+describe('English homophones one letter apart (The Relief 1.4)', () => {
+  it('"Had to row." heard as "Hat to Roe." is the line spoken; a different or missing word still counts against it', () => {
+    expect(scriptCoverage('Radio’s dead. Had to row.', "Radio's dead. Hat to Roe.", 'EN')).toBe(1);
+    expect(scriptCoverage('Radio’s dead. Had to row.', "Radio's dead. Went home.", 'EN')).toBeLessThan(0.7);
+    expect(scriptCoverage('Is it on?', 'As it on?', 'EN')).toBeLessThan(1); // two-letter words stay exact
+  });
+});
