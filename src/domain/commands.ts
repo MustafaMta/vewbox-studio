@@ -16,7 +16,7 @@ export const COMMANDS = {
   addCastMember: A.addCastMember, addLocationMember: A.addLocationMember, updateShowBible: A.updateShowBible, finishEpisode: A.finishEpisode, fillProductionFields: A.fillProductionFields,
   addScene: A.addScene, updateScene: A.updateScene, deleteScene: A.deleteScene, replaceScript: A.replaceScript,
   addShot: A.addShot, replaceSceneShots: A.replaceSceneShots, updateShot: A.updateShot, deleteShot: A.deleteShot, duplicateShot: A.duplicateShot, moveShot: A.moveShot, reorderShot: A.reorderShot, setShotContinuity: A.setShotContinuity,
-  selectTake: A.selectTake, noteTake: A.noteTake, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
+  selectTake: A.selectTake, noteTake: A.noteTake, recordTakeEndState: A.recordTakeEndState, rejectTake: A.rejectTake, rateTake: A.rateTake, removeTake: A.removeTake, addTake: A.addTake, setShotFrames: A.setShotFrames, setDialogueAudio: A.setDialogueAudio, keepLineRecordings: A.keepLineRecordings,
   setSong: A.setSong, updateSong: A.updateSong, recordSongListening: A.recordSongListening,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
@@ -163,6 +163,11 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   proposePronunciation: z.tuple([z.object({ word: z.string().min(1).max(120), say: z.string().min(1).max(200), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), engines: z.array(short(40)).max(10).optional(), note: short(1000).optional(), proposedBy: short(80) }).strict()]),
   reviewPronunciation: z.tuple([id, z.object({ by: short(80).min(1), native: z.boolean(), verdict: z.enum(['APPROVED', 'REJECTED']), note: short(1000).optional() }).strict()]),
   removePronunciation: z.tuple([id]),
+  recordTakeEndState: z.tuple([id, id, id, z.object({
+    characters: z.array(z.object({ characterId: id, pose: short(400).optional(), holding: z.array(short(120)).max(10).optional(), condition: short(400).optional() }).strict()).max(12),
+    props: z.array(z.object({ name: short(120).min(1), state: short(200).optional(), ownerCharacterId: id.optional() }).strict()).max(20).optional(),
+    note: short(1000).optional(), by: short(80).optional(), source: z.enum(['PRODUCER', 'VISION']).optional(),
+  }).strict()]).rest(z.object({ approve: z.boolean().optional() }).strict().optional()),
 };
 
 /** Refuse malformed arguments with INVALID and the field named; commands without a schema pass through. */
@@ -306,6 +311,7 @@ export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>>
   acceptProposal: argList([AcceptProposal]),
   updateSettings: argList([SettingsPatch]),
   proposePronunciation: existing('proposePronunciation'), reviewPronunciation: existing('reviewPronunciation'), removePronunciation: existing('removePronunciation'),
+  recordTakeEndState: existing('recordTakeEndState'),
 };
 
 export const systemCommandMessage = (name: string) => `${name} is written by the studio's workers; a page cannot send it.`;

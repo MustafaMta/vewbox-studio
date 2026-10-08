@@ -129,12 +129,27 @@ export const RELATION_BOUNDARY: Record<ShotRelation, ShotBoundary> = { CONTINUAT
 export interface QaCheck { name: string; ok: boolean; value?: number | string; threshold?: number | string; detail?: string }
 export interface QaReport { ok: boolean; checks: QaCheck[]; reviewedAt?: string; reviewer?: 'AUTO' | 'HUMAN'; notes?: string }
 
+/** WHAT A TAKE ACTUALLY ENDED WITH (planned vs actual end state, 2026-10-08): per person the pose, what they hold and
+ *  their condition at the take's last frame; per prop its state and holder. `observed` is a reading of the picture (a
+ *  person's or a model's); `approved` is the producer's — the one the next same-moment shot starts from. */
+export interface TakeEndStateRecord {
+  characters: Array<{ characterId: string; pose?: string; holding?: string[]; condition?: string }>;
+  props?: Array<{ name: string; state?: string; ownerCharacterId?: string }>;
+  source: 'PRODUCER' | 'VISION' | 'PLANNED';
+  by?: string;
+  note?: string;
+  at: string;
+}
+export interface TakeEndState { observed?: TakeEndStateRecord; approved?: TakeEndStateRecord }
+
 export interface Take {
   id: string;
   label: string;
   assetId: string;
   createdAt: string;
   note?: string;
+  /** what the take actually ended with (TakeEndState): the next same-moment shot starts from the approved one */
+  endState?: TakeEndState;
   status: TakeStatus;
   /** Provenance: who generated it and how. Sample takes carry `provider: 'SAMPLE'`. */
   provider?: 'MINIMAX' | 'UPLOAD' | 'SAMPLE';

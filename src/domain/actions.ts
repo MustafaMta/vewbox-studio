@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { reconcileShot } from './shot-dependencies';
@@ -479,6 +479,24 @@ export function rateTake(s: S, productionId: string, shotId: string, takeId: str
 
 export function noteTake(s: S, productionId: string, shotId: string, takeId: string, note: string): S {
   return withProduction(s, productionId, (p) => ({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, takes: sh.takes.map((t): Take => (t.id === takeId ? { ...t, note } : t)) } : sh)) }));
+}
+
+/** WHAT THE TAKE ACTUALLY ENDED WITH (types.ts TakeEndState). `approve`: the producer's record, which the next
+ *  same-moment shot starts from (src/domain/production-context.ts); otherwise an observation (a reading to review).
+ *  Only people in the shot's cast may be named; the take and the shot must exist. */
+export function recordTakeEndState(s: S, productionId: string, shotId: string, takeId: string, rec: { characters: TakeEndStateRecord['characters']; props?: TakeEndStateRecord['props']; note?: string; by?: string; source?: 'PRODUCER' | 'VISION' }, opts: { approve?: boolean } = {}): S {
+  const p = mustFind(s.productions, productionId, 'Production');
+  const sh = mustFind(p.shots, shotId, 'Shot');
+  mustFind(sh.takes, takeId, 'Take');
+  const outside = rec.characters.filter((c) => !sh.characterIds.includes(c.characterId)).map((c) => c.characterId);
+  if (outside.length) throw new StudioError('INVALID', `Only the people in shot ${sh.number} can be in its end state (${outside.join(', ')} ${outside.length === 1 ? 'is' : 'are'} not).`, { shotId, outside });
+  const clean = (x?: string) => (x?.trim() ? x.trim() : undefined);
+  const record: TakeEndStateRecord = {
+    characters: rec.characters.map((c) => ({ characterId: c.characterId, ...(clean(c.pose) ? { pose: clean(c.pose) } : {}), ...(c.holding?.length ? { holding: c.holding.map((h) => h.trim()).filter(Boolean) } : {}), ...(clean(c.condition) ? { condition: clean(c.condition) } : {}) })),
+    ...(rec.props?.length ? { props: rec.props.filter((x) => x.name.trim()).map((x) => ({ name: x.name.trim(), ...(clean(x.state) ? { state: clean(x.state) } : {}), ...(x.ownerCharacterId && sh.characterIds.includes(x.ownerCharacterId) ? { ownerCharacterId: x.ownerCharacterId } : {}) })) } : {}),
+    source: opts.approve ? 'PRODUCER' : (rec.source ?? 'PRODUCER'), ...(clean(rec.by) ? { by: clean(rec.by) } : {}), ...(clean(rec.note) ? { note: clean(rec.note) } : {}), at: now(),
+  };
+  return withProduction(s, productionId, (q) => ({ ...q, shots: q.shots.map((x) => (x.id !== shotId ? x : { ...x, takes: x.takes.map((t): Take => (t.id !== takeId ? t : { ...t, endState: { ...(t.endState ?? {}), ...(opts.approve ? { approved: record } : { observed: record }) } })) })) }));
 }
 
 /** Rejecting keeps the take and its file (the record of what was tried) and takes it out of the cut. */

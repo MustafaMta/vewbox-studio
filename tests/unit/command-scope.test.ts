@@ -65,7 +65,7 @@ function corpus(): Command[] {
     c('addTake', 's1e2', 's1e2-3', { assetId: 'vid-2', provider: 'UPLOAD' }), c('addTake', 's1e2', 's1e2-3', { assetId: 'missing', provider: 'UPLOAD' }),
     c('addTake', 's1e2', 's1e2-4', { assetId: 'vid-1', provider: 'MINIMAX', id: 'take-job-t1' }), // CONFLICT: the id exists in another shot
     c('selectTake', 's1e2', 's1e2-2', 's1e2-2-t2'), c('rateTake', 's1e1', 's1e1-3', 's1e1-3-t1', 'REJECTED', { reason: 'soft', by: 'producer' }), c('rateTake', 's1e1', 's1e1-3', 's1e1-3-t2', 'GOOD'),
-    c('noteTake', 's1e1', 's1e1-1', 's1e1-1-t1', 'keep the light'), c('rejectTake', 's1e1', 's1e1-1', 's1e1-1-t1', 'blurred'),
+    c('noteTake', 's1e1', 's1e1-1', 's1e1-1-t1', 'keep the light'), c('recordTakeEndState', 's1e1', 's1e1-1', 's1e1-1-t1', { characters: [] }, { approve: true }), c('rejectTake', 's1e1', 's1e1-1', 's1e1-1-t1', 'blurred'),
     c('setCut', 's1e2', 'vid-cut', { inputs: 'x' }), c('recordExport', 's1e1', { assetId: 'vid-cut', format: 'mp4-h264', resolution: '1080', subtitles: 'none' }),
     c('selectTake', 's1e1', 's1e1-4', 's1e1-4-t1'), // the cut goes stale on a change
     c('removeTake', 's1e1', 's1e1-3', 's1e1-3-t1'), c('removeTake', 's1e1', 's1e1-3', 'gone'),

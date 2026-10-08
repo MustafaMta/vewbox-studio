@@ -76,7 +76,7 @@ export function identityDrift(p: Production, sh: Shot, chainLength: number, drop
 }
 
 export type FactSource =
-  | { kind: 'SHOT'; shotId: string } | { kind: 'PREVIOUS_SHOT'; shotId: string } | { kind: 'SCENE'; sceneId: string }
+  | { kind: 'SHOT'; shotId: string } | { kind: 'PREVIOUS_SHOT'; shotId: string } | { kind: 'PREVIOUS_TAKE'; shotId: string; takeId: string } | { kind: 'SCENE'; sceneId: string }
   | { kind: 'STORY'; sceneId: string; factId: string } | { kind: 'CHARACTER' } | { kind: 'LOCATION' } | { kind: 'WORLD'; productionId?: string; sceneId?: string }
   | { kind: 'UNKNOWN' };
 
@@ -235,6 +235,10 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
   const prevOwn = prevShot?.continuity;
   const gaps: string[] = [];
   const changes = changesInForce(p, sh);
+  // PLANNED vs ACTUAL END STATE (types.ts TakeEndState): what the previous shot's chosen take actually ended with, as
+  // the producer approved it, is where a same-moment shot starts — the plan's end pose only when nobody approved one
+  const chosenPrev = prevShot?.takes.find((t) => t.id === prevShot.selectedTakeId);
+  const actualEnd = chosenPrev?.endState?.approved;
   const changeSource = (c: { change: PersistentChange; sceneId: string }): FactSource => ({ kind: 'STORY', sceneId: c.sceneId, factId: c.change.id });
 
   // ---- characters
@@ -248,7 +252,10 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     const source = c ? primaryImageSourceOf(c) : null;
     const v = c?.voice.identity;
     const condition: CharacterContext['condition'] = [];
+    const ended = relation !== 'STORY_TRANSITION' ? actualEnd?.characters.find((x) => x.characterId === characterId) : undefined;
+    const endedSource: FactSource | undefined = ended && chosenPrev && prevShot ? { kind: 'PREVIOUS_TAKE', shotId: prevShot.id, takeId: chosenPrev.id } : undefined;
     if (clean(mine?.condition)) condition.push({ text: clean(mine!.condition)!, source: { kind: 'SHOT', shotId: sh.id } });
+    else if (clean(ended?.condition)) condition.push({ text: clean(ended!.condition)!, source: endedSource! });
     else if (relation !== 'STORY_TRANSITION' && clean(before?.condition)) condition.push({ text: clean(before!.condition)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } });
     let wardrobeChange: CharacterContext['wardrobeChange'];
     for (const ch of changes) {
@@ -261,7 +268,11 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
     const sameMoment = relation === 'CONTINUATION' || (relation === 'CUT' && prevShot?.sceneId === sh.sceneId);
     let startPose: CharacterContext['startPose'];
     if (clean(mine?.startPose)) startPose = { text: clean(mine!.startPose)!, source: { kind: 'SHOT', shotId: sh.id } };
-    else if (sameMoment && clean(before?.endPose)) startPose = { text: clean(before!.endPose)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } };
+    else if (sameMoment && clean(ended?.pose)) startPose = { text: clean(ended!.pose)!, source: endedSource! };
+    else if (sameMoment && clean(before?.endPose)) {
+      startPose = { text: clean(before!.endPose)!, source: { kind: 'PREVIOUS_SHOT', shotId: prevShot!.id } };
+      if (chosenPrev && c) gaps.push(`shot ${prevShot!.number}'s chosen take has no approved end state for ${c.name}: this shot starts from the PLANNED end pose, not what the take shows`);
+    }
     else if (relation === 'CONTINUATION' && c && prevShot && sh.characterIds.length && prevShot.characterIds.includes(characterId)) gaps.push(`shot list: shot ${prevShot.number} gives no end pose for ${c.name}, so where this continuous shot starts is unknown`);
     const interactingWith = (mine?.interactingWith ?? []).filter((id) => id !== characterId && sh.characterIds.includes(id));
     if (!c) gaps.push(`character ${characterId} is not in the studio`);
@@ -275,7 +286,7 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
       ...(wardrobeChange ? { wardrobeChange } : {}),
       condition,
       emotion: clean(mine?.emotion) ?? (sameMoment ? clean(before?.emotion) : undefined),
-      position: carried?.position, screenDirection: carried?.screenDirection, eyeline: clean(mine?.eyeline), holding: carried?.holding,
+      position: carried?.position, screenDirection: carried?.screenDirection, eyeline: clean(mine?.eyeline), holding: sameMoment && ended?.holding ? ended.holding : carried?.holding,
       startPose, endPose: clean(mine?.endPose), motion: mine?.motion ?? (relation === 'CONTINUATION' ? before?.motion : undefined),
       interactingWith, speaks: speakers.has(characterId),
     };
@@ -315,7 +326,7 @@ export function productionContextFor(state: Pick<StudioState, 'characters' | 'lo
   for (const x of characters) for (const h of x.holding ?? []) required.add(h);
   const constraints = [...(own?.constraints ?? []).map((x) => clean(x)!).filter(Boolean)];
   for (const x of characters) {
-    if (x.startPose?.source.kind === 'PREVIOUS_SHOT') constraints.push(`${x.name} starts as the previous shot ended: ${x.startPose.text}`);
+    if (x.startPose?.source.kind === 'PREVIOUS_SHOT' || x.startPose?.source.kind === 'PREVIOUS_TAKE') constraints.push(`${x.name} starts as the previous shot ended: ${x.startPose.text}`);
     if (relation !== 'STORY_TRANSITION' && x.motion?.direction && x.motion.direction !== 'STILL') constraints.push(`${x.name} keeps moving ${x.motion.direction.toLowerCase().replace(/_/g, ' ')}`);
   }
   const shot: ShotContext = {
