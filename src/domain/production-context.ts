@@ -384,6 +384,14 @@ export function contextRecord(c: ProductionContext): Record<string, unknown> {
   };
 }
 
+/** A pose without speech for a person who has no line in the shot (pure, tested): the planner carries the end of the
+ *  previous shot into the start pose ("standing upright, cloth in hand, speaking"), and a silent take was told both
+ *  that and "nobody speaks in this shot" (2026-10-08, "The Last Crossing" 2.4). */
+export function poseWithoutSpeech(text: string, speaks: boolean): string {
+  if (speaks) return text;
+  return text.split(/,\s*/).filter((part) => !/\b(speak\w*|talk\w*|say(s|ing)?|mid-sentence|mouth(s)? open(ed)? to speak|whisper\w*|shout\w*|calling out)\b/i.test(part)).join(', ').trim();
+}
+
 /** The context as prompt sentences about the people and the place, with people named by `who` (a bound subject or
  *  a description — never a name). Only what the shot's own continuity sentence does not already say: the persistent
  *  condition, emotion, interaction, start → end pose, motion, the place's persistent changes, the constraints. */
@@ -399,8 +407,8 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
       x.wardrobeChange?.text && `has changed clothes since the reference: ${x.wardrobeChange.text.replace(/\.$/, '')}`,
       x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
       x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
-      x.startPose && `starts ${x.startPose.text.replace(/\.$/, '')}`,
-      x.endPose && `ends ${x.endPose.replace(/\.$/, '')}`,
+      x.startPose && poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks) && `starts ${poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks)}`,
+      x.endPose && poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks) && `ends ${poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks)}`,
       x.motion?.direction && x.motion.direction !== 'STILL' && `moves ${x.motion.direction.toLowerCase().replace(/_/g, ' ')}${x.motion.path ? ` (${x.motion.path.replace(/\.$/, '')})` : ''}`,
     ].filter(Boolean);
     if (bits.length) out.push(`${w} ${bits.join(', ')}.`);

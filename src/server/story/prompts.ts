@@ -5,7 +5,7 @@ import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
 import { describeIdentity, locationIdentity } from '@/domain/location';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
-import { contextLines, type ProductionContext } from '@/domain/production-context';
+import { contextLines, poseWithoutSpeech, type ProductionContext } from '@/domain/production-context';
 import { shotPerformers } from '@/domain/music-performance';
 import { cutTime, markTime, scrubSpeech } from './beats';
 
@@ -192,7 +192,7 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
     // starting pose were dropped here, and the frames copied the canonical portrait's smile into a strained, soaked
     // climb (2026-10-08, "The Last Crossing" 1.1–1.2). Wardrobe stays the canonical image's (D30); a state such as
     // "soaked" arrives through the condition.
-    const pose = x.startPose || x.pose;
+    const pose = poseWithoutSpeech(x.startPose || x.pose || '', (sh.dialogue ?? []).some((d) => d.characterId === x.characterId));
     const bits = [pose && clean(pose).toLowerCase(), x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`, x.emotion && `with a ${clean(x.emotion).toLowerCase()} expression`, x.condition && `${clean(x.condition).toLowerCase()}`].filter(Boolean);
     return bits.length ? `${who} ${bits.join(', ')}.` : '';
   }).filter(Boolean);

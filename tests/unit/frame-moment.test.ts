@@ -82,6 +82,16 @@ describe('a face measure is read for the way the person faces', () => {
   });
 });
 
+describe('a person with no line in the shot is never said to speak', () => {
+  it('poseWithoutSpeech drops speech clauses only for a silent person', async () => {
+    const { poseWithoutSpeech } = await import('@/domain/production-context');
+    expect(poseWithoutSpeech('Standing upright, cloth in hand, speaking', false)).toBe('Standing upright, cloth in hand');
+    expect(poseWithoutSpeech('Standing upright, cloth in hand, speaking', true)).toBe('Standing upright, cloth in hand, speaking');
+    expect(poseWithoutSpeech('Leaning in, whispering to her', false)).toBe('Leaning in');
+    expect(poseWithoutSpeech('Speaking', false)).toBe('');
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');
