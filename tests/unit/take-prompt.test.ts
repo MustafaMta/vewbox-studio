@@ -75,6 +75,17 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(framed).not.toMatch(/is CENTER|faces screen left|standing still/);
     expect(framed).toMatch(/holds brass thermos, with a weary expression/);
   });
+  it('from a drawn frame, the frame is the setting: the planner\'s scene prose is left out, the background is kept (The Relief 1.4)', () => {
+    const { p, cast, loc } = setup();
+    const base = shotOf(p, 's12');
+    const [a] = base.characterIds;
+    const sh = { ...base, characterIds: [a], framing: 'MEDIUM_CLOSE_UP' as const, action: 'She nods and gestures toward the door.', prompt: 'Close-up on her, the door behind her, rain on the windows.' };
+    const noFrame: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }], location: { picture: 2 } };
+    expect(h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, noFrame, { relation: 'CUT' })).toContain('the door behind her');
+    const framed = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, { ...noFrame, opening: { kind: 'FRAME', picture: 3 } }, { relation: 'CUT' });
+    expect(framed).not.toContain('the door behind her');
+    expect(framed).toContain("<Picture 3>'s framing, positions, background and light");
+  });
   it('a close shot without an opening frame starts at its framing: the plate gives the look, not the framing (G13 shot 1 opened wide and pushed in)', () => {
     const { p, cast, loc } = setup();
     const base = shotOf(p, 's12');

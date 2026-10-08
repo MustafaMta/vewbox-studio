@@ -423,7 +423,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   else if (placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): weak_reference - described, no picture; the same architecture, layout and fixed features in every frame of the take.`);
   for (const x of described) ret.push(`<Subject ${subjectNo.get(x.characterId)}> (appears in ${shotTags}): weak_reference - ${x.characterId === pov ? 'the camera is their own eyes; they are never seen in frame' : 'described, no picture; the same face, hair and clothes in every frame of the take'}.`);
   extras.forEach((_e, i) => ret.push(`<Subject ${extraNo[i]}> (appears in ${shotTags}): weak_reference - distinct extras, never a cast member's likeness.`));
-  if (b.opening?.kind === 'FRAME' && b.opening.picture) ret.push(`${pictureLabel(b, b.opening.picture)} ([Shot 1] first frame): fully_preserved - the video starts exactly from ${pictureLabel(b, b.opening.picture)}'s framing, positions and light.`);
+  if (b.opening?.kind === 'FRAME' && b.opening.picture) ret.push(`${pictureLabel(b, b.opening.picture)} ([Shot 1] first frame): fully_preserved - the video starts exactly from ${pictureLabel(b, b.opening.picture)}'s framing, positions, background and light; where the people stand and what is behind them is what it shows.`);
   (b.audioRefs ?? []).forEach((a, j) => { if (subjectOf(a.characterId)) ret.push(`${audioLabel(b, j + 1)}: reference - guides the voice timbre of ${subjectOf(a.characterId)} without copying the original signal.`); });
   // detailed_description
   const includeDialogue = opts.includeDialogue !== false;
@@ -434,7 +434,11 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const quiet = (s: string) => (silent ? scrubSpeech(s).replace(/\s*Mouths stay closed; nobody speaks\.$/, '') : s);
   // the planner's own direction (tags stripped), else a body that leans on the bindings: the people and the place are
   // defined above, so the middle is the action, the camera and the light
-  const written = quiet(bind(opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : `${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`)));
+  // FROM A DRAWN FRAME the frame is the setting: the planner's own scene prose ("… gestures toward the door behind
+  // her", over a frame with the lens behind her) drew H3 away from the frame three times ("The Relief" 1.4) — the
+  // action alone
+  const framed = b.opening?.kind === 'FRAME' && !opts.body;
+  const written = quiet(bind(opts.body ?? (sh.prompt?.trim() && !framed ? shotBody(sh, cast, loc, scene, includeDialogue) : `${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`)));
   // a continuous shot's camera is the continuation's (continuationCamera): the planner's own "static two-shot" camera
   // sentence would contradict it again
   const body = continuing && !opts.body ? withoutStaticCamera(written) : written;
