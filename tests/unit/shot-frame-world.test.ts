@@ -214,8 +214,8 @@ describe('the insert, from words (The Relief 1.6)', () => {
     const sh = { ...shotOf(p, 's13'), characterIds: [cast[0].id, cast[1].id], framing: 'INSERT' as const, action: 'Elena Ward extends the thermos; Marcus Bell takes it gently and unscrews the cap.', continuity: { characters: [{ characterId: cast[0].id, condition: 'Soaked' }], props: [{ name: 'Brass thermos', state: 'dented' }], environment: { lighting: 'dim lamp light' } } } as never;
     const prompt = detailFramePrompt(p, sh, cast, undefined, undefined);
     expect(prompt).toContain('The person in the heavy dark green oilskin coat over a cream fisherman\'s sweater extends the thermos; the person in the charcoal three-piece suit with matching waistcoat takes it gently');
-    expect(prompt).toMatch(/\(soaked\)/);
-    expect(prompt).toMatch(/Brass thermos \(dented\)/);
+    expect(prompt).toMatch(/\(only that sleeve on that arm\), soaked/);
+    expect(prompt).toMatch(/exactly one brass thermos \(dented\)/);
     expect(prompt).toMatch(/no face, no head, no shoulders/);
     expect(prompt).not.toMatch(/Elena|Marcus/);
   });

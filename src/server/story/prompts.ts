@@ -640,10 +640,15 @@ export function detailFramePrompt(p: Production, sh: Shot, cast: Character[], lo
   const who = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the person in the ${worn(c)}` : undefined; };
   const absent = cast.filter((c) => !sh.characterIds.includes(c.id)).map((c) => c.name);
   const moment = bindNames(stillFrameAction(sh.action, absent), cast, who).replace(/[.;]\s*$/, '');
-  const hands = people.map((c) => { const x = sh.continuity?.characters.find((k) => k.characterId === c.id); return `the hand and sleeve of ${who(c.id)}${x?.condition ? ` (${clean(x.condition).toLowerCase()})` : ''}${x?.holding?.length ? `, holding ${x.holding.map(clean).join(' and ')}` : ''}`; });
-  const props = (sh.continuity?.props ?? []).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}`);
+  // each hand by its own skin and only its own sleeve; each prop once (the first word-drawn 1.6 gave both people pale
+  // hands, two thermoses, a suit sleeve with an oilskin cuff, and the lighthouse seen from outside)
+  const skin = (c: Character) => clean((c.skin ?? '').split(/,|;|\bwith\b/)[0]).replace(/\.$/, '').toLowerCase();
+  const hands = people.map((c) => { const x = sh.continuity?.characters.find((k) => k.characterId === c.id); const s = skin(c); return `the ${s ? `${s} ` : ''}hand and sleeve of ${who(c.id)} (only that sleeve on that arm)${x?.condition ? `, ${clean(x.condition).toLowerCase()}` : ''}${x?.holding?.length ? `, holding ${x.holding.map(clean).join(' and ')}` : ''}`; });
+  const seen = new Set<string>();
+  const props = (sh.continuity?.props ?? []).filter((x) => { const k = clean(x.name).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).map((x) => `exactly one ${clean(x.name).toLowerCase()}${x.state ? ` (${clean(x.state)})` : ''}`);
   const light = sh.continuity?.environment.lighting ? clean(sh.continuity.environment.lighting) : '';
-  const behind = loc ? `Behind them, soft and out of focus: ${clean(loc.name)}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}${light ? `, ${light}` : ''}.` : '';
+  const inside = loc && /interior/i.test(String((loc as { kind?: string }).kind ?? '')) ? 'inside ' : '';
+  const behind = loc ? `Behind them, soft and out of focus: ${inside}${clean(loc.name)}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}${light ? `, ${light}` : ''}.` : '';
   return `${d.visual}. An insert: a tight close-up in which hands and an object fill the whole frame. ${moment ? `${moment.charAt(0).toUpperCase()}${moment.slice(1)}.` : ''} In the picture: ${hands.join('; ')}${props.length ? `; ${props.join('; ')}` : ''}. ${behind} Only hands, sleeves and the object are in the picture: no face, no head, no shoulders, no whole person. Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ').trim();
 }
 
