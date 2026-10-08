@@ -26,7 +26,7 @@ import {
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, detailFramePrompt, frameContinuityLine, framePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { detectFaces, faceIdentity, isQaUnavailable, judgeIdentity } from '@/server/providers/qa-service';
 import { judgeFrameFraming, type FrameIdentity, type PreviousEnd } from '@/domain/frames';
 import { windowEndSourceFrame } from '@/domain/timeline';
@@ -740,7 +740,9 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // people counted; a wrong count is recorded on the frame and refused by the preflight until the producer redraws it
   // — it is never drawn again silently (it was, once, until 2026-10-08)
   let counted: number | undefined;
-  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+  // an insert is drawn from words (detailFramePrompt): every picture of a person pulled it back to a face close-up
+  const byWords = composition === 'DETAIL';
+  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt: byWords ? detailFramePrompt(p, sh, cast, loc, scene) : prompt, negative: byWords ? `${NEG}, face, head, portrait` : NEG, references: byWords ? [] : refs, crops: byWords ? [] : crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops: byWords ? [] : crops, drawnFrom: byWords ? 'WORDS' : 'REFERENCES', creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   let faces: number | undefined;
   if (expected !== undefined) { counted = await countPeople(ctx, kept.id, label); faces = await countFaces(kept.id); }
   await ctx.checkpoint();

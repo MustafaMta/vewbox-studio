@@ -628,6 +628,25 @@ export function stillFrameAction(action: string, absentNames: string[]): string 
   return kept.join(' ').replace(/[;,]\s*$/, '.').replace(/\.\.+$/, '.');
 }
 
+/** THE INSERT, FROM WORDS (continuity recovery 2026-10-08, "The Relief" 1.6): from any picture of a person — the
+ *  previous end, cut to its hands, or the canonical image cut to the clothes — the edit model drew a face close-up of
+ *  the man three times. An insert needs no face identity: it is hands, sleeves and an object, drawn by text to image
+ *  from the people's own clothes (the first clause of their wardrobe) and condition, the props as the plan has them and
+ *  the place's light. People are named by what they wear, never by name or face. Pure (tested). */
+export function detailFramePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined): string {
+  const d = styleDirection(p.style);
+  const people = cast.filter((c) => sh.characterIds.includes(c.id));
+  const worn = (c: Character) => clean((c.wardrobe ?? 'dark clothes').split(/,|;/)[0]).replace(/^(a|an|the)\s+/i, '').replace(/\.$/, '').toLowerCase();
+  const who = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the person in the ${worn(c)}` : undefined; };
+  const absent = cast.filter((c) => !sh.characterIds.includes(c.id)).map((c) => c.name);
+  const moment = bindNames(stillFrameAction(sh.action, absent), cast, who).replace(/[.;]\s*$/, '');
+  const hands = people.map((c) => { const x = sh.continuity?.characters.find((k) => k.characterId === c.id); return `the hand and sleeve of ${who(c.id)}${x?.condition ? ` (${clean(x.condition).toLowerCase()})` : ''}${x?.holding?.length ? `, holding ${x.holding.map(clean).join(' and ')}` : ''}`; });
+  const props = (sh.continuity?.props ?? []).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}`);
+  const light = sh.continuity?.environment.lighting ? clean(sh.continuity.environment.lighting) : '';
+  const behind = loc ? `Behind them, soft and out of focus: ${clean(loc.name)}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}${light ? `, ${light}` : ''}.` : '';
+  return `${d.visual}. An insert: a tight close-up in which hands and an object fill the whole frame. ${moment ? `${moment.charAt(0).toUpperCase()}${moment.slice(1)}.` : ''} In the picture: ${hands.join('; ')}${props.length ? `; ${props.join('; ')}` : ''}. ${behind} Only hands, sleeves and the object are in the picture: no face, no head, no shoulders, no whole person. Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ').trim();
+}
+
 export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
   const camera = `Camera: ${FRAMING_WORDS[sh.framing] ?? sh.framing.toLowerCase().replace(/_/g, ' ')}.${PLATE_WIDE_FRAMINGS.includes(sh.framing) ? '' : ' The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing.'}`;

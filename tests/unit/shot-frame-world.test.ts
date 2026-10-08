@@ -206,3 +206,17 @@ describe('an insert describes people by their hands (The Relief 1.6)', () => {
     if (cast[0].face) expect(prompt).not.toContain(cast[0].face.slice(0, 20));
   });
 });
+describe('the insert, from words (The Relief 1.6)', () => {
+  it('detailFramePrompt names people by what they wear, keeps their condition and props, and asks for no face', async () => {
+    const { detailFramePrompt } = await import('@/server/story/prompts');
+    const { state, p } = fixture();
+    const cast = state.characters.filter((c) => p.castIds.includes(c.id)).map((c, i) => ({ ...c, name: i === 0 ? 'Elena Ward' : 'Marcus Bell', wardrobe: i === 0 ? "A heavy dark green oilskin coat over a cream fisherman's sweater, dark navy trousers" : 'Charcoal three-piece suit with matching waistcoat, burgundy silk tie' }));
+    const sh = { ...shotOf(p, 's13'), characterIds: [cast[0].id, cast[1].id], framing: 'INSERT' as const, action: 'Elena Ward extends the thermos; Marcus Bell takes it gently and unscrews the cap.', continuity: { characters: [{ characterId: cast[0].id, condition: 'Soaked' }], props: [{ name: 'Brass thermos', state: 'dented' }], environment: { lighting: 'dim lamp light' } } } as never;
+    const prompt = detailFramePrompt(p, sh, cast, undefined, undefined);
+    expect(prompt).toContain('The person in the heavy dark green oilskin coat over a cream fisherman\'s sweater extends the thermos; the person in the charcoal three-piece suit with matching waistcoat takes it gently');
+    expect(prompt).toMatch(/\(soaked\)/);
+    expect(prompt).toMatch(/Brass thermos \(dented\)/);
+    expect(prompt).toMatch(/no face, no head, no shoulders/);
+    expect(prompt).not.toMatch(/Elena|Marcus/);
+  });
+});
