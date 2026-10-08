@@ -66,6 +66,18 @@ export function dialogueTags(p: Production, sh: Shot, cast: Character[], speaker
   }).join(' ');
 }
 
+/** WHEN THE LINES ARE HEARD (continuity recovery 2026-10-08, "The Relief" 1.5: "Duty calls." — a 1 s line in a clip
+ *  that cannot be shorter than ~5 s — was said at 0.05 s and again at 1.8 s, the told-once rule notwithstanding): the
+ *  recorded lines' windows on the clip's clock, and the silence after the last one, in the timed-beat form H3 follows.
+ *  `times` in seconds of the clip. Pure (tested). */
+export function lineTiming(times: Array<{ from: number; to: number }>): string {
+  const t = (s: number) => `0:${Math.max(0, s).toFixed(1).padStart(4, '0')}`;
+  const spans = [...times].sort((a, b) => a.from - b.from);
+  const end = Math.max(...spans.map((x) => x.to));
+  const said = spans.map((x) => `${t(x.from)}–${t(x.to)}`).join(', ');
+  return `Timing: the ${spans.length === 1 ? 'line is' : 'lines are'} spoken at ${said} and at no other moment; from ${t(end)} to the last frame nobody speaks and every mouth stays closed.`;
+}
+
 /** What follows the lines of a speaking shot: every line is said once, and the silence around it stays silent. */
 export const SAID_ONCE = 'Each line is said exactly once, in the order written; no word is repeated or added, and before and after the lines the mouths stay closed while the action goes on in silence.';
 
@@ -319,7 +331,7 @@ export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subj
   return { prompt: out, replaced: [...replaced] };
 }
 
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext; /** the previous shot's framing: a continuous shot reaches its own framing by a move from it */ previousFraming?: Framing } = { relation: 'CUT' }): string {
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext; /** the previous shot's framing: a continuous shot reaches its own framing by a move from it */ previousFraming?: Framing; /** the recorded lines' windows on the clip's clock (seconds): said at those moments only */ lineTimes?: Array<{ from: number; to: number }> } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
   // SUBJECT NUMBERING: the pictured characters (Subject k = Picture k), the place, then the characters declared from
@@ -458,7 +470,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const stateLine = opts.sceneState ? sceneStateLine(opts.sceneState, plainSubject, { environmentOnly: fromFrame }).split(/(?<=\.)\s+/).filter((s) => !cont.includes(s.replace(/^Scene state \([^)]*\): /, '').replace(/\.$/, ''))).join(' ') : '';
   // EACH LINE ONCE (continuity recovery 2026-10-08, "The Relief" 1.4: "Radio's dead. Had to row." in a 7 s shot was
   // heard as "… Had to row. Had to row." — H3 filled the silence by saying it again, as "The Last Crossing" 2.3 did)
-  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : `${dialogueTags(p, sh, cast, speaker, 'says,')} ${SAID_ONCE}`;
+  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : `${dialogueTags(p, sh, cast, speaker, 'says,')} ${SAID_ONCE}${opts.lineTimes?.length ? ` ${lineTiming(opts.lineTimes)}` : ''}`;
   // THE TIMED BEATS: `[M:SS]` point marks inside a shot (never read as cuts); a beat with a cut opens the next
   // `[Shot N] At MM:SS.mmm, hard cut to …`
   const marks: string[] = [];

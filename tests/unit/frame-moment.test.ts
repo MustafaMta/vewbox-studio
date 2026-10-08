@@ -140,3 +140,12 @@ describe('each line once ("The Relief" 1.4: "Had to row. Had to row.")', () => {
     expect(src).toMatch(/dialogueTags\(p, sh, cast, speaker, 'says,'\)\} \$\{SAID_ONCE\}/);
   });
 });
+describe('when the lines are heard (The Relief 1.5: "Duty calls." said again at 1.8 s)', () => {
+  it('lineTiming states each recorded window and the silence to the last frame', async () => {
+    const { lineTiming } = await import('@/server/story/prompts');
+    expect(lineTiming([{ from: 0.4, to: 1.55 }])).toBe('Timing: the line is spoken at 0:00.4–0:01.6 and at no other moment; from 0:01.6 to the last frame nobody speaks and every mouth stays closed.');
+    expect(lineTiming([{ from: 3.2, to: 4.0 }, { from: 0.4, to: 1.5 }])).toMatch(/^Timing: the lines are spoken at 0:00.4–0:01.5, 0:03.2–0:04.0 and at no other moment; from 0:04.0/);
+    const src = fs.readFileSync('src/worker/handlers/take.ts', 'utf8');
+    expect(src).toMatch(/lineTimes: soundtrack\.lines\.map/);
+  });
+});
