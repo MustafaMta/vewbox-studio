@@ -15,7 +15,7 @@ import { tmpRoot } from '@/server/media/ffmpeg';
 import { waitRequestOf } from './handlers/wait';
 import { startHeartbeat } from './heartbeat';
 import { JobCancelled, LeaseLost, deadlineExceeded, raceAbort, runInJobScope, throwIfAborted } from '@/server/jobs/context';
-import { jobDeadline } from '@/server/jobs/deadlines';
+import { jobDeadline, pausableDeadline } from '@/server/jobs/deadlines';
 import { workDeadlineMs } from '@/server/jobs/work-deadline';
 import { isFencedWrite } from '@/server/jobs/fence';
 import { sweepJobFiles } from '@/server/jobs/outputs';
@@ -80,11 +80,18 @@ async function run(job: Job, lane: Lane) {
   const frozen = () => new Promise<never>(() => {});
   // the flat deadline, or longer when the job's own work asks for it (PLAN_SHOTS: its scenes at the model's speed)
   const deadline = jobDeadline(job.type, process.env, await workDeadlineMs(job));
-  const deadlineTimer = deadline.mode === 'off' ? undefined : setTimeout(() => {
+  // the deadline counts the job's own work: it pauses while the job waits for the GPU lease (pausableDeadline)
+  const deadlineClock = deadline.mode === 'off' ? undefined : pausableDeadline(deadline.ms, () => {
     jl.warn({ deadlineMs: deadline.ms, mode: deadline.mode }, 'job passed its deadline');
-    void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms }).catch(() => undefined);
+    void addEvent(job.id, 'warn', deadline.mode === 'enforce' ? 'deadline passed: stopping the job' : 'deadline passed (JOB_DEADLINES=log: not stopped)', { deadlineMs: deadline.ms, waitedForGpuMs: deadlineClock?.waitedMs }).catch(() => undefined);
     if (deadline.mode === 'enforce') stop(deadlineExceeded(JOB_LABELS[job.type] ?? job.type, deadline.ms));
-  }, deadline.ms);
+  });
+  const gpuForJob: typeof gpuLease = (family, mb, fn, opts) => {
+    deadlineClock?.pause();
+    let admitted = false;
+    return gpuLease(family, mb, async () => { if (!admitted) { admitted = true; deadlineClock?.resume(); } return fn(); }, opts)
+      .finally(() => { if (!admitted) deadlineClock?.resume(); });
+  };
   // a lost lease (CONFLICT) stops the attempt; a transient database error is retried, never a cancellation (audit H6)
   const stopHeartbeat = startHeartbeat({
     beat: () => heartbeat(job.id, workerId, job.attempts), intervalMs: heartbeatIntervalMs(),
@@ -126,7 +133,7 @@ async function run(job: Job, lane: Lane) {
     checkpoint: async () => { if (handedBack.has(job.id)) return frozen(); if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); },
     progress: async (status, progress, extra) => { if (handedBack.has(job.id)) return frozen(); if (cancelRequested) throw new JobCancelled(); throwIfAborted(jobCtrl.signal); if (!(await setProgress(job.id, status, progress, extra, lease))) { leaseLost = true; cancelRequested = true; stop(new LeaseLost()); throw new LeaseLost(); } await phaseChanged(status, progress); },
     event: (level, message, data) => addEvent(job.id, level, message, data),
-    gpu: gpuLease,
+    gpu: gpuForJob,
     signal: jobCtrl.signal,
   };
   await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_STARTED', message: `${agent.name} started: ${label}${job.attempts > 1 ? ` (attempt ${job.attempts} of ${job.maxAttempts})` : ''}`, data: { attempt: job.attempts, shotId: job.shotId }, jobId: job.id });
@@ -220,7 +227,7 @@ async function run(job: Job, lane: Lane) {
       await studioEvent({ departmentId: agent.department, agentId: agent.id, productionId: job.productionId, kind: 'RUN_FAILED', message: `${agent.name} failed: ${label} — ${failureClass}: ${err.message.slice(0, 200)}`, data: { failureClass, code, attempt: job.attempts, retryable, shotId: job.shotId }, jobId: job.id });
     }
   } finally {
-    if (deadlineTimer) clearTimeout(deadlineTimer);
+    deadlineClock?.stop();
     stopHeartbeat();
     // this attempt is over (its outcome recorded, or its lease lost — a late write of it is fenced either way): the
     // files it — or an earlier attempt still finishing when it started — stored and did not commit are removed; a

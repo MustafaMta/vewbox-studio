@@ -42,6 +42,29 @@ describe('llmCallMs — one answer bounded by its own work', () => {
   });
 });
 
+describe('pausableDeadline — the deadline counts the job’s own work, not its wait for the card', () => {
+  it('pauses while waiting for the GPU lease (nested), fires after the job’s own time, reports the wait', async () => {
+    const { pausableDeadline } = await import('@/server/jobs/deadlines');
+    let t = 0; const pending: Array<{ at: number; fn: () => void; id: number }> = []; let n = 0;
+    const timers = { set: (fn: () => void, ms: number) => { const id = ++n; pending.push({ at: t + ms, fn, id }); return id; }, clear: (h: unknown) => { const i = pending.findIndex((p) => p.id === h); if (i >= 0) pending.splice(i, 1); } };
+    const advance = (ms: number) => { t += ms; for (const p of [...pending].filter((x) => x.at <= t)) { pending.splice(pending.indexOf(p), 1); p.fn(); } };
+    let fired = 0;
+    const d = pausableDeadline(40, () => fired++, () => t, timers);
+    advance(10);             // 10 of work
+    d.pause(); d.pause();    // waiting for the card (nested request)
+    advance(100);            // a long wait: no fire
+    d.resume();              // still paused (depth 1)
+    advance(5);
+    expect(fired).toBe(0);
+    d.resume();              // admitted: 30 of work remain
+    expect(d.waitedMs).toBe(105);
+    advance(29); expect(fired).toBe(0);
+    advance(1); expect(fired).toBe(1);
+    // stop cancels it
+    const e = pausableDeadline(10, () => fired++, () => t, timers); e.stop(); advance(50); expect(fired).toBe(1);
+  });
+});
+
 describe('jobDeadline with the work', () => {
   it('takes the longer of the flat value and the work, then the scale', () => {
     expect(jobDeadline('PLAN_SHOTS', {}).ms).toBe(JOB_DEADLINE_MS.PLAN_SHOTS);

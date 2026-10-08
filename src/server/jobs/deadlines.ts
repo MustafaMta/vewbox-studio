@@ -37,6 +37,21 @@ export function jobDeadline(type: JobType, env: Record<string, string | undefine
   return { ms, mode };
 }
 
+/** A JOB'S DEADLINE COUNTS ITS OWN WORK, NOT ITS WAIT FOR THE CARD: a frame job queued behind three H3 renders passed
+ *  its 40 min deadline while only waiting for the GPU lease, and was stopped (2026-10-08, "The Last Crossing" 2.3). The
+ *  timer pauses while the job waits for admission (`pause` / `resume`, nested) and fires `onFire` once the job's own
+ *  running time reaches `ms`. `waitedMs` reports the time paused. */
+export function pausableDeadline(ms: number, onFire: () => void, now: () => number = Date.now, timers: { set: (fn: () => void, ms: number) => unknown; clear: (h: unknown) => void } = { set: (fn, t) => setTimeout(fn, t), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) }) {
+  let remaining = ms; let since = now(); let handle: unknown = timers.set(fire, ms); let depth = 0; let waited = 0; let pausedAt = 0; let done = false;
+  function fire() { done = true; handle = undefined; onFire(); }
+  return {
+    pause() { if (done) return; if (depth++ === 0) { remaining -= now() - since; pausedAt = now(); if (handle !== undefined) timers.clear(handle); handle = undefined; } },
+    resume() { if (done || depth === 0) return; if (--depth === 0) { waited += now() - pausedAt; since = now(); handle = timers.set(fire, Math.max(0, remaining)); } },
+    stop() { done = true; if (handle !== undefined) timers.clear(handle); handle = undefined; },
+    get waitedMs() { return waited + (depth > 0 ? now() - pausedAt : 0); },
+  };
+}
+
 /** ONE LANGUAGE-MODEL ANSWER'S BOUND FROM ITS WORK: `answerTokens` (the call's token budget) at the model's measured
  *  speed plus one prompt read, twice over (a repair round), plus a minute. The tool's flat 600 s cut off a scene's shot
  *  plan at 13 tok/s (2026-10-07: 7,800 tokens is all 600 s holds; a scene's plan may take more). Never above 2 h. */
