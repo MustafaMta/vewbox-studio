@@ -508,3 +508,59 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - All downloads are in (phoneme model, Habibi verified, SoulX-Singer and whisper-base).
     - The SoulX-Singer SVC evaluation ran (b5d19d3): not production-approved (listening and provenance gates).
     - The phoneme gate formal run is done (above).
+## Video continuity recovery — root cause from real media (2026-10-08)
+
+Evidence: "The Last Crossing", scene 2 (six shots, one character, one room). Every shot's first and last frame, plus
+the opening frames and the location plate, inspected side by side.
+
+- **What the producer saw, in the media:**
+  - His suit flips between dry and soaked: dry at the start of 2.1, soaked at its end and in 2.2, dry in 2.3–2.6.
+  - A forehead wound appears at the end of 2.5.
+  - The lens assembly is a different object in different shots: the plate's large drum lens, a small table lantern
+    in 2.1 and 2.5, a flat round lens in 2.6.
+  - 2.1, 2.3, 2.4 (old take) and 2.5 change framing inside the take.
+- **The plan is consistent.** All six shots say "Soaked, out of breath", the same wardrobe and the right props. The
+  state is lost after planning.
+- **Loss 1 — the opening frame does not realise the shot.**
+  - Every frame is the location's one wide plate, edited with the character and then cropped to the framing (an
+    INSERT is a 538×307 crop, upscaled).
+  - The planned INSERTs (2.1, 2.5) came out as medium shots at an invented lantern.
+  - "Soaked" took in 2.2 only, even though the condition edit pass ran on every frame.
+  - Nothing checks the frame against the plan before filming.
+- **Loss 2 — the H3 prompt contradicts the frame.**
+  - 2.1's prompt says "close-up on the hands", "soaked and clinging" and "faces away from the camera". The frame shows
+    a dry man, side-on, in a medium shot.
+  - H3 resolves the conflict by cutting or morphing toward the text. This is the mechanism behind both the in-take
+    cuts and the dry→wet flips. The environment-only scene state (e3cef94) removed only part of the contradiction.
+- **Loss 3 — nothing actual is handed to the next shot.**
+  - Every shot is composed fresh from the same plate and the canonical portrait.
+  - The previous shot's real end state (its last frame: the wet suit, the lens as drawn, the light) never reaches
+    the next frame.
+  - Every boundary in the production is "cut" or "transition"; the planner never used a continuous boundary.
+- Fix plan: the next section, after the code audit.
+### Continuity handoff v2 — fixes (2026-10-08)
+
+- **The previous shot's actual end feeds the next frame.** On a CUT inside a scene, the last frame the cut shows of
+  the previous shot's chosen take is kept as a DERIVED asset (`take-end`, recording the take and frame). The CUT's
+  opening frame is drawn with it as a reference: after the people, before the plate, in place of the face crop.
+  - It carries the clothes and their condition, what each hand holds, the objects and the light, as filmed.
+  - Identity still comes from the canonical images. The end frame is a temporary production reference, never a new
+    identity.
+  - The frame records `previousEnd`. The preflight warns when the previous shot's chosen take has changed since
+    (stale frame).
+- **An insert is a detail.** It is drawn from the previous end (or the clothes and hands cut from the canonical image,
+  never the whole portrait) plus the plate around the middle, with "no face and no whole person". It is not
+  people-counted.
+- **The frame's framing is measured** by its largest face on a framing ladder. It is recorded on the frame
+  (`framingCheck`). The preflight refuses a frame two steps from its plan, or an insert with a face filling ≥ 10 % of
+  the frame height, and warns at one step.
+- **Who is in frame:**
+  - A speaker the plan does not put in frame is heard off-screen (`ShotDialogue.offscreen`): never added to the cast,
+    voiced in the H3 prompt as "a voice from off-screen" with no description of the speaker, and left out of the
+    lip-sync windows and speaker count.
+  - A name only addressed, looked at, spoken of or marked off-screen no longer puts the person in the picture (body
+    parts and actions still do).
+  - The planner is told that `characterNames` means only who the camera sees.
+- Tests: 208 files, 1,780 passed.
+- **Next:** the 6–8 shot continuity validation scene (two characters, one prop, dialogue, physical interaction).
+  One generation per shot; viewing decides (`WAITING_FOR_USER_ACCEPTANCE`).

@@ -14,7 +14,7 @@ import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
 import { assetFile, assetFromStored, ffprobe } from '@/server/media';
-import { ffmpeg, tmpDir } from '@/server/media/ffmpeg';
+import { ffmpeg, frameAt, tmpDir } from '@/server/media/ffmpeg';
 import { grayPixels, validateReferenceImage, type ReferenceValidation } from '@/server/media/image-check';
 import { fullBodyInFrame, type FramingCheck } from '@/server/media/figure-check';
 import { faceBoxFromReading } from '@/server/media/presentation';
@@ -28,7 +28,8 @@ import {
 } from '@/server/workflows';
 import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { detectFaces, faceIdentity, isQaUnavailable, judgeIdentity } from '@/server/providers/qa-service';
-import type { FrameIdentity } from '@/domain/frames';
+import { judgeFrameFraming, type FrameIdentity, type PreviousEnd } from '@/domain/frames';
+import { windowEndSourceFrame } from '@/domain/timeline';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
 import { styleDirection } from '@/server/story/style';
@@ -505,8 +506,20 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  (acceptance 2026-10-06, Tea 1.3: with the plate as image 1 Qwen-Image-Edit-2511 kept the plate's wide composition for a
  *  medium close-up 2/2 and the people check refused the frame): the canonical image(s) come first, cut to the part of
  *  the figure the framing shows (`personCropFor`), and the plate is the last picture, cut to the shot's distance around
- *  the middle (`plateCropFor`) — the place behind them, never the camera. `crops` lines up with `refs`. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' } {
+ *  the middle (`plateCropFor`) — the place behind them, never the camera. `crops` lines up with `refs`.
+ *
+ *  THE PREVIOUS SHOT'S ACTUAL END (`previousEnd`, continuity recovery 2026-10-08, "The Last Crossing" scene 2): every
+ *  frame of a scene was drawn fresh from the plate and the portrait, so the man's suit was soaked in one shot and dry in
+ *  the next and the lens changed shape although the plan said "soaked" six times. On a CUT inside a scene the last frame
+ *  the cut shows of the previous shot's chosen take is a reference too — the state as filmed (clothes and their
+ *  condition, what the hands hold, the objects, the light): after the people, before the plate (it shows the room as
+ *  well), in place of a face crop. A temporary production reference: identity still comes from the canonical images.
+ *
+ *  AN INSERT IS A DETAIL, NOT A PERSON (`composition: 'DETAIL'`): with the full-figure portrait as a picture the edit
+ *  model drew the whole man (2.1, 2.5 — medium shots). An insert is drawn from the previous shot's end (the hands,
+ *  sleeves and objects as filmed), else the person's clothes and hands cut from the canonical image, with the plate
+ *  around the middle; no face is in the picture. Pure. */
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
@@ -519,11 +532,33 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const order = (id: string) => { const i = p.castIds.indexOf(id); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
   const people = (sh.characterIds.map((id) => cast.find((c) => c.id === id)).filter(Boolean) as Character[]).sort((a, b) => order(a.id) - order(b.id));
   const pictured = people.slice(0, 2).map((c) => ({ c, a: byId(primaryImageOf(c)) })).filter((x) => usableImage(x.a)) as Array<{ c: Character; a: Asset }>;
-  const close = !PLATE_WIDE_FRAMINGS.includes(sh.framing) && pictured.length > 0;
+  const detail = sh.framing === 'INSERT';
+  const close = !detail && !PLATE_WIDE_FRAMINGS.includes(sh.framing) && pictured.length > 0;
   const refs: Asset[] = []; const crops: Array<CropPx | undefined> = []; const notes: string[] = [];
   const shown: number[] = [];
   const imageOf = new Map<string, number>();
   const who = (c: Character) => drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action';
+  const end = usableImage(previousEnd) ? previousEnd : undefined;
+  let usedPreviousEnd = false;
+  const addPreviousEnd = (note: string) => {
+    if (!end || refs.length >= 3) return;
+    refs.push(end); crops.push(undefined); usedPreviousEnd = true;
+    notes.push(`image ${refs.length} ${note}`);
+  };
+  const PREVIOUS_END_NOTE = 'is the moment just before this shot, filmed by the previous camera: keep the clothes and their condition (wet or dry, every mark and tear), what each hand holds, the objects and the light exactly as in it; the faces come from the people’s own pictures, the camera and framing from this shot';
+  if (detail) {
+    // the hands, sleeves and objects as filmed, else the person's clothes and hands from the canonical image (never
+    // the face); the place around the middle of the plate
+    addPreviousEnd('is the moment just before this shot: the hands, sleeves, clothes and their condition, the objects and the light are exactly as in it; this shot is much closer, on the detail alone');
+    if (!usedPreviousEnd) for (const { c, a } of pictured.slice(0, 1)) {
+      refs.push(a); imageOf.set(c.id, refs.length);
+      crops.push(a.width && a.height ? handsCropFor({ width: a.width, height: a.height }) : undefined);
+      notes.push(`image ${refs.length} shows the clothes, sleeves and hands of the person ${who(c)} — keep them exactly; the face is not in this shot`);
+    }
+    if (usableImage(plateAsset) && refs.length < 3) { refs.push(plateAsset); crops.push(plateAsset.width && plateAsset.height ? plateCropFor(sh.framing, { width: plateAsset.width, height: plateAsset.height }) : undefined); notes.push(`image ${refs.length} is the place around the detail (keep its materials, colours and light, soft in the background; not its framing)`); }
+    notes.push('only the hand or object detail fills the picture: no face and no whole person');
+    return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined, composition: 'DETAIL', usedPreviousEnd };
+  }
   const addPlate = () => {
     if (!usableImage(plateAsset)) return;
     refs.push(plateAsset);
@@ -538,7 +573,10 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
     // moment (2026-10-08, "The Last Crossing" 1.1–1.2); the expression, pose and condition are the moment's
     notes.push(`${close ? `image ${refs.length} is the person ${who(c)}, framed as this shot frames them` : `image ${refs.length} is the person ${who(c)}`} — keep the face, hair, skin and wardrobe exactly; take the expression, pose and condition from this moment, not from the picture`);
   }
-  if (close) addPlate();
+  // the state as filmed goes before the plate in a close shot (the plate is then dropped when three pictures are
+  // used: the previous end shows the room too) and in place of the face crop in a wide one
+  addPreviousEnd(PREVIOUS_END_NOTE);
+  if (close && refs.length < 3) addPlate();
   if (!close && people.length === 1 && refs.length < 3) {
     const faceCrop = byId(people[0].refs.find((r) => r.role === 'FACE')?.assetId);
     if (usableImage(faceCrop) && !refs.includes(faceCrop)) { refs.push(faceCrop); crops.push(undefined); notes.push(`image ${refs.length} is the same person's face, close up`); }
@@ -546,7 +584,14 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   // how many people the picture holds: shot 2.3 of "The Static Sky" came back with two strangers beside the pair (D30)
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
-  return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE' };
+  return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) && refs.includes(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE', usedPreviousEnd };
+}
+
+/** The band of a canonical full-body figure an insert of the hands shows: the full width, from the chest to below the
+ *  hips (where hands at work are). Pure. */
+export function handsCropFor(canonical: { width: number; height: number }): CropPx | undefined {
+  if (!canonical.width || !canonical.height) return undefined;
+  return { x: 0, y: Math.round(canonical.height * 0.3), width: canonical.width, height: Math.round(canonical.height * 0.42) };
 }
 
 /** The production's World Bible revision (pinned, else the latest) laid over the studio for this shot — the plate
@@ -562,6 +607,51 @@ async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: 
   }
 }
 
+/** THE PREVIOUS SHOT'S ACTUAL END STATE (continuity recovery 2026-10-08): for a CUT inside a scene, the last frame the
+ *  cut shows of the previous shot's CHOSEN take (its window's end on the production timeline, `windowEndSourceFrame`),
+ *  kept as a DERIVED library asset that records the take and the frame (`provenance.endOfTake`, `sourceFrame`) — made
+ *  once per take and frame, then found again. None for a story transition, a scene's first shot, a previous shot with
+ *  no chosen take or a rejected one, or an ending frame. */
+async function previousEndFrame(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ asset: Asset; end: PreviousEnd } | undefined> {
+  const { relation, previous } = effectiveRelation(p, sh);
+  if (relation !== 'CUT' || !previous || previous.sceneId !== sh.sceneId) return undefined;
+  const take = previous.takes.find((t) => t.id === previous.selectedTakeId);
+  if (!take || take.status === 'REJECTED' || take.rating === 'REJECTED') return undefined;
+  const video = state.assets.find((a) => a.id === take.assetId);
+  if (!video || video.kind !== 'VIDEO' || video.unavailable || video.sample) return undefined;
+  const sourceFrame = Math.max(0, windowEndSourceFrame(p, previous, take, video) - 1);
+  const end: PreviousEnd = { shotId: previous.id, takeId: take.id, assetId: '', sourceFrame };
+  const known = state.assets.find((a) => a.provenance?.endOfTake === take.id && a.provenance?.sourceFrame === sourceFrame && usableImage(a));
+  if (known) return { asset: known, end: { ...end, assetId: known.id } };
+  const dir = await tmpDir('take-end');
+  try {
+    const png = await frameAt(assetFile(video), path.join(dir, 'end.png'), sourceFrame);
+    const key = `take-end:${take.id}:${sourceFrame}`;
+    const { id, stored } = await jobOutputs(ctx.job).adopt(`image:${key}`, png, { expectKind: 'IMAGE' });
+    const scene = p.scenes.find((sc) => sc.id === previous.sceneId);
+    await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${previous.number} ${take.label}: its last frame in the cut`, tags: ['take-end', 'continuity'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { endOfTake: take.id, shotId: previous.id, productionId: p.id, sourceFrame, from: video.id } })], 'worker');
+    await ctx.event('info', `shot ${sh.number}: the previous shot's actual end (${take.label}, frame ${sourceFrame}) is a reference of this frame`, { shotId: sh.id, assetId: id, takeId: take.id, sourceFrame });
+    const asset = (await readState()).state.assets.find((a) => a.id === id);
+    return asset ? { asset, end: { ...end, assetId: id } } : undefined;
+  } catch (e) {
+    await ctx.event('warn', `shot ${sh.number}: the previous shot's last frame could not be taken (${(e as Error).message}); the frame is drawn from the plan alone`, { shotId: sh.id });
+    return undefined;
+  } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
+}
+
+/** The framing of the frame that will be filmed, measured by its largest confident face and recorded on it
+ *  (`judgeFrameFraming`); the preflight refuses a FAIL and warns on a REVIEW. */
+async function recordFraming(ctx: HandlerContext, assetId: string, sh: Shot, label: string): Promise<void> {
+  const a = (await readState()).state.assets.find((x) => x.id === assetId);
+  if (!usableImage(a)) return;
+  const r = await detectFaces(assetFile(a)).catch(() => undefined);
+  if (!r || isQaUnavailable(r)) return;
+  const largest = r.faces.filter((f) => f.score >= FACE_SCORE).reduce<number | undefined>((m, f) => Math.max(m ?? 0, f.box[3]), undefined);
+  const check = judgeFrameFraming(sh.framing, largest, r.height);
+  await command('updateAsset', [assetId, { provenance: { ...(a.provenance ?? {}), framingCheck: { ...check, at: new Date().toISOString() } } }], 'worker');
+  await ctx.event(check.verdict === 'FAIL' ? 'warn' : 'info', `${label}: framing ${check.verdict}${check.note ? ` — ${check.note}` : ''}`, { assetId, framingCheck: check });
+}
+
 /** Draws a shot's opening (or ending) frame; an ending frame that still holds the wrong people is not kept (undefined). */
 export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Production, sh: Shot, opts: { ending?: boolean } = {}): Promise<string | undefined> {
   const world = await frameWorld(ctx, studio, p, sh);
@@ -569,7 +659,8 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
-  const { refs, crops, notes, people, imageOf, plate, composition } = frameReferences(state, p, sh, world.read);
+  const prevEnd = opts.ending ? undefined : await previousEndFrame(ctx, state, p, sh);
+  const { refs, crops, notes, people, imageOf, plate, composition, usedPreviousEnd } = frameReferences(state, p, sh, world.read, prevEnd?.asset);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
@@ -583,12 +674,13 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const label = `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`;
   // D30: the prompt alone did not hold the number of people (two strangers in 2 of 10 frames); the vision model
   // counted 10/10 frames right, the portrait on the wall excluded — so the frame is counted and drawn once more
-  const expected = peopleExpected(sh, people);
+  // an insert of a hand or an object is not counted as people (its face check is the framing check below)
+  const expected = composition === 'DETAIL' ? undefined : peopleExpected(sh, people);
   // ONE REQUEST, ONE FRAME (the first-attempt rule, docs/MASTER-PRODUCTION-PLAN.md): the frame is drawn once and its
   // people counted; a wrong count is recorded on the frame and refused by the preflight until the producer redraws it
   // — it is never drawn again silently (it was, once, until 2026-10-08)
   let counted: number | undefined;
-  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, creativeAttempt: 1, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt, negative: NEG, references: refs, crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops, creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   let faces: number | undefined;
   if (expected !== undefined) { counted = await countPeople(ctx, kept.id, label); faces = await countFaces(kept.id); }
   await ctx.checkpoint();
@@ -628,6 +720,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
     }
   }
   if (kept && kept.id !== undefined) await recordPeople(kept.id);
+  if (kept && kept.id !== undefined) await recordFraming(ctx, kept.id, sh, label);
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
 }

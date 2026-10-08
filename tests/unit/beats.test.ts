@@ -61,6 +61,15 @@ describe('reconcileCast', () => {
     // a name inside another word is not a mention
     expect(reconcileCast([], ['Samantha waits.'], cast).added).toEqual([]);
   });
+  it('a name only addressed, looked at, spoken of or off-screen does not put the person in the picture (2026-10-08)', () => {
+    expect(reconcileCast(['a'], ['Layla listens to Abu Kareem, her eyes down.'], cast).added).toEqual([]);
+    expect(reconcileCast(['a'], ['Layla turns toward where Abu Kareem stands.'], cast).added).toEqual([]);
+    expect(reconcileCast(['a'], ['Abu Kareem speaks off-screen; Layla freezes.'], cast).added).toEqual([]);
+    expect(reconcileCast(['a'], ["Layla hears Abu Kareem's voice from the stairs."], cast).added).toEqual([]);
+    // a body part is the person in the picture; acting is acting
+    expect(reconcileCast(['a'], ["Abu Kareem's hand closes over hers."], cast).added).toEqual(['b']);
+    expect(reconcileCast(['a'], ['Layla waits, Abu Kareem sets the cup down.'], cast).added).toEqual(['b']);
+  });
 });
 
 describe('scrubSpeech', () => {

@@ -56,8 +56,18 @@ export function lineLanguageTag(text: string, productionLanguage: string): strin
 
 export function dialogueTags(p: Production, sh: Shot, cast: Character[], speaker: SpeakerLabel = describedSpeaker(cast), verb = ''): string {
   if (!sh.dialogue.length) return '';
-  return sh.dialogue.map((d) => { const text = p.language === 'AR' ? (d.textAr || d.text) : d.text; const who = speaker(d.characterId); return `${who}${who && verb ? ` ${verb}` : ''} <d>[${lineLanguageTag(text, p.language)}] ${spoken(text)}</d>`.trim(); }).join(' ');
+  return sh.dialogue.map((d) => {
+    const text = p.language === 'AR' ? (d.textAr || d.text) : d.text;
+    // a line heard while its speaker is not in the picture: the voice is named as off-screen, the speaker is never
+    // described (a description drew the person into the frame)
+    if (isOffscreenLine(sh, d)) return `A voice from off-screen${verb ? ` ${verb}` : ''} <d>[${lineLanguageTag(text, p.language)}] ${spoken(text)}</d> (the speaker is never shown; the people in the picture listen with their mouths closed while it plays)`;
+    const who = speaker(d.characterId);
+    return `${who}${who && verb ? ` ${verb}` : ''} <d>[${lineLanguageTag(text, p.language)}] ${spoken(text)}</d>`.trim();
+  }).join(' ');
 }
+
+/** A line heard off-screen: marked so by the plan, or spoken by someone who is not in the shot's cast. Pure. */
+export const isOffscreenLine = (sh: Pick<Shot, 'characterIds'>, d: Pick<Shot['dialogue'][number], 'characterId' | 'offscreen'>): boolean => Boolean(d.offscreen) || !sh.characterIds.includes(d.characterId);
 
 /** Music video: the lines the shot's window covers, sung by their assigned performer (described, never named), and
  *  nobody else. Listeners are told not to mouth the words; an instrumental window says so. */
@@ -488,7 +498,7 @@ export const FRAMING_WORDS: Record<Framing, string> = {
   // drawn with BOTH — the man on the stair and a giant second face in the lens (2026-10-08, "The Last Crossing" 1.1)
   CLOSE_UP: 'a close-up: what the moment is about fills the frame — the face, or the hand, foot or object the action happens to; one of each person, never a second face; the place is only a blurred background',
   EXTREME_CLOSE_UP: 'an extreme close-up: one detail the moment is about fills the frame — an eye, a mouth, a hand, an object',
-  INSERT: 'an insert: one object or hand detail fills the frame',
+  INSERT: 'an insert: one object or hand detail fills the frame; no face and no whole person in the picture',
   TWO_SHOT: 'a two-shot: both people from the waist up, side by side in the frame',
   OVER_THE_SHOULDER: 'an over-the-shoulder shot: the back of one person’s shoulder and head in the foreground, the other person facing the camera',
 };

@@ -244,7 +244,9 @@ export type PerformanceMode = 'SOLO' | 'DUET' | 'ALTERNATING' | 'ENSEMBLE' | 'LI
 
 /** A line of a shot. `audioAssetId` is its recording in the character's pinned voice; `voiceRevision` says which
  *  identity revision spoke it, so a rebuilt voice makes the recording stale and a take records it again. */
-export interface ShotDialogue { id: string; characterId: string; text: string; textAr?: string; delivery?: string; audioAssetId?: string; durationSeconds?: number; voiceRevision?: number }
+/** `offscreen`: the line is heard while its speaker is not in the picture (a reverse on the listener): the speaker is not
+ *  in the shot's cast, never drawn, and the lip-sync check does not look for their mouth (continuity recovery 2026-10-08). */
+export interface ShotDialogue { id: string; characterId: string; text: string; textAr?: string; delivery?: string; audioAssetId?: string; durationSeconds?: number; voiceRevision?: number; offscreen?: boolean }
 
 export interface Shot {
   id: string;

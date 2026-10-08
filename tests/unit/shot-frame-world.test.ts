@@ -101,3 +101,71 @@ it('Tea 1.3: a close shot is composed from its person — the canonical image fi
     expect(empty.composition).toBe('PLATE');
   });
 });
+
+describe('continuity recovery 2026-10-08: the previous shot’s actual end and the insert as a detail', () => {
+  const sized = () => {
+    const { state, p } = fixture();
+    const s: StudioState = { ...state, assets: [...state.assets.map((x) => (x.id === 'plate-dusk' ? { ...x, width: 1344, height: 768 } : x.id === 'canon-a' ? { ...x, width: 928, height: 1664 } : x)), { ...img('canon-b'), tier: 'CANONICAL' as const }, img('end-prev')] };
+    return { state: s, p, end: img('end-prev') };
+  };
+  it('a close shot of one person: the person, the previous end (the state as filmed), then the plate', () => {
+    const { state, p, end } = sized();
+    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'MEDIUM_CLOSE_UP' }, undefined, end);
+    expect(r.refs.map((x) => x.id)).toEqual(['canon-a', 'end-prev', 'plate-dusk']);
+    expect(r.usedPreviousEnd).toBe(true);
+    expect(r.notes[1]).toMatch(/^image 2 is the moment just before this shot.*wet or dry.*what each hand holds.*the faces come from the people’s own pictures/);
+    expect(r.crops[1]).toBeUndefined();
+  });
+  it('a close two-shot keeps both people and the previous end; the plate gives way (three pictures at most)', () => {
+    const { state, p, end } = sized();
+    const r = frameReferences(state, p, { ...shotOf(p, 's11'), characterIds: [p.castIds[0]!, p.castIds[1]!], framing: 'MEDIUM' }, undefined, end);
+    expect(r.refs.map((x) => x.id)).toEqual(['canon-a', 'canon-b', 'end-prev']);
+    expect(r.plate).toBeUndefined();
+  });
+  it('a wide shot of one person: the plate, the person, the previous end in place of the face crop', () => {
+    const { state, p, end } = sized();
+    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'WIDE' }, undefined, end);
+    expect(r.refs.map((x) => x.id)).toEqual(['plate-dusk', 'canon-a', 'end-prev']);
+  });
+  it('without a previous end nothing changes', () => {
+    const { state, p } = sized();
+    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'MEDIUM_CLOSE_UP' });
+    expect(r.refs.map((x) => x.id)).toEqual(['canon-a', 'plate-dusk']);
+    expect(r.usedPreviousEnd).toBe(false);
+  });
+  it('an insert is a DETAIL: from the previous end and the plate, never the full-figure portrait, and no face', () => {
+    const { state, p, end } = sized();
+    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'INSERT' }, undefined, end);
+    expect(r.composition).toBe('DETAIL');
+    expect(r.refs.map((x) => x.id)).toEqual(['end-prev', 'plate-dusk']);
+    expect(r.notes.at(-1)).toBe('only the hand or object detail fills the picture: no face and no whole person');
+    // without a previous end: the clothes and hands cut from the canonical image (chest to below the hips)
+    const alone = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'INSERT' });
+    expect(alone.refs.map((x) => x.id)).toEqual(['canon-a', 'plate-dusk']);
+    expect(alone.crops[0]).toEqual({ x: 0, y: Math.round(1664 * 0.3), width: 928, height: Math.round(1664 * 0.42) });
+    expect(alone.notes[0]).toMatch(/the face is not in this shot/);
+  });
+});
+
+describe('the frame realises its framing (judgeFrameFraming)', () => {
+  it('measures the largest face against the plan: two steps off is FAIL, one is REVIEW, no face is not measured', async () => {
+    const { judgeFrameFraming } = await import('@/domain/frames');
+    expect(judgeFrameFraming('MEDIUM_CLOSE_UP', 260, 768)).toMatchObject({ measured: 'MEDIUM_CLOSE_UP', verdict: 'PASS' });
+    expect(judgeFrameFraming('CLOSE_UP', 140, 768)).toMatchObject({ measured: 'MEDIUM', verdict: 'FAIL' });
+    expect(judgeFrameFraming('MEDIUM', 230, 768)).toMatchObject({ measured: 'MEDIUM_CLOSE_UP', verdict: 'REVIEW' });
+    expect(judgeFrameFraming('CLOSE_UP', undefined, 768)).toMatchObject({ measured: 'NO_FACE', verdict: 'NOT_MEASURED' });
+    expect(judgeFrameFraming('TWO_SHOT', 140, 768).verdict).toBe('PASS');
+  });
+  it('an insert with a whole face in it (2.1, 2.5: drawn as a medium shot of the man) is FAIL; a hand or no face passes', async () => {
+    const { judgeFrameFraming } = await import('@/domain/frames');
+    expect(judgeFrameFraming('INSERT', 140, 768)).toMatchObject({ verdict: 'FAIL', note: expect.stringMatching(/an insert shows a hand or an object/) });
+    expect(judgeFrameFraming('INSERT', undefined, 768).verdict).toBe('PASS');
+    expect(judgeFrameFraming('INSERT', 40, 768).verdict).toBe('PASS');
+  });
+  it('the preflight refuses a FAIL, warns on a REVIEW and on a frame drawn from another take of the previous shot', async () => {
+    const fs = await import('node:fs');
+    const src = fs.readFileSync('src/server/org/preflight.ts', 'utf8');
+    expect(src).toMatch(/ff\.verdict === 'FAIL'\) add\(`\$\{which\}-frame-framing`, false/);
+    expect(src).toMatch(/name: 'opening-frame-stale'/);
+  });
+});

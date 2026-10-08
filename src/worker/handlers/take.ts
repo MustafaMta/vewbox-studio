@@ -22,7 +22,7 @@ import { H3_FPS } from '@/server/workflows/minimax-h3';
 import { VOICE_GATES, transcribe } from '@/server/providers/speech';
 import { alignLyrics } from '@/server/media/lyrics';
 import { TAKE_COVERAGE, judgeHeard, lineLanguage, lineRecordingCurrent, referenceWav, isFailedCheck, speakLine, verifyLine, type LineCheck, type Reference } from './voice';
-import { bindNamesOutsideDialogue, h3ReferencePrompt, lintH3Prompt, takePrompt } from '@/server/story/prompts';
+import { bindNamesOutsideDialogue, h3ReferencePrompt, isOffscreenLine, lintH3Prompt, takePrompt } from '@/server/story/prompts';
 import { recordMetric } from '@/server/jobs/queue';
 import { env } from '@/server/env';
 import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
@@ -573,14 +573,16 @@ export const generateTake: Handler = async (ctx) => {
   let identityRecord: Record<string, unknown> | undefined;
   if (backend === 'local') {
     const headSeconds = trimStartFrames / H3_FPS;
-    const speaking = p.kind !== 'MUSIC_VIDEO' && sh.dialogue.length > 0;
+    // only a line spoken in the picture has a mouth to follow it (an off-screen line is heard over a listener)
+    const onScreenLines = new Set(sh.dialogue.filter((d) => !isOffscreenLine(sh, d)).map((d) => d.id));
+    const speaking = p.kind !== 'MUSIC_VIDEO' && onScreenLines.size > 0;
     const singing = p.kind === 'MUSIC_VIDEO' && soundtrack?.kind === 'SONG' && Boolean(soundtrackFile);
     if (speaking || singing) {
       try {
         const against: 'RECORDED' | 'SONG' | 'TAKE_AUDIO' = singing ? 'SONG' : soundtrackFile ? 'RECORDED' : 'TAKE_AUDIO';
         // word windows of the recorded lines, on the clip's clock (the soundtrack guide sits at the first new frame)
-        const windows = against === 'RECORDED' && plannedLines.length ? plannedLines.flatMap((l) => { const ws = alignedLines.get(l.lineId); return ws?.length ? ws.map((w) => ({ start: l.expectedFrom + w.start, end: l.expectedFrom + w.end })) : [{ start: l.expectedFrom, end: l.expectedFrom + l.recordedSeconds }]; }) : undefined;
-        const onScreen = singing && p.song ? shotPerformers(p.song, { from: songWindowFrames(p).windows.get(sh.id)!.fromFrame / CLOCK_FPS, to: songWindowFrames(p).windows.get(sh.id)!.toFrame / CLOCK_FPS }, sh.characterIds).lead.length : speakers.length;
+        const windows = against === 'RECORDED' && plannedLines.length ? plannedLines.filter((l) => onScreenLines.has(l.lineId) || singing).flatMap((l) => { const ws = alignedLines.get(l.lineId); return ws?.length ? ws.map((w) => ({ start: l.expectedFrom + w.start, end: l.expectedFrom + w.end })) : [{ start: l.expectedFrom, end: l.expectedFrom + l.recordedSeconds }]; }) : undefined;
+        const onScreen = singing && p.song ? shotPerformers(p.song, { from: songWindowFrames(p).windows.get(sh.id)!.fromFrame / CLOCK_FPS, to: songWindowFrames(p).windows.get(sh.id)!.toFrame / CLOCK_FPS }, sh.characterIds).lead.length : speakers.filter((id) => sh.characterIds.includes(id)).length;
         const measured = await step(ctx, 'audio-sync-inspector', `lip-sync-check: shot ${sh.number}`, () => mouthActivity(result.file, { ...(against !== 'TAKE_AUDIO' ? { audio: soundtrackFile!, audioOffset: headSeconds } : {}), windows, fps: H3_FPS, mode: singing ? 'singing' : 'speech', speakers: Math.max(1, onScreen), maxLagMs: MOUTH_SEARCH_MS }));
         const j = judgeLipSync(measured);
         lipSyncRecord = { verdict: j.verdict, against, lagFrames: j.lagFrames, lagMs: j.lagMs, rawLagFrames: j.rawLagFrames, calibration: MOUTH_LAG_CALIBRATION, offsetRepair: j.offsetRepair, speakerTrack: j.speakerTrack, flags: j.flags, thresholds: 'START' };

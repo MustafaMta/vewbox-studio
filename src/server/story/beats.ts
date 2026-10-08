@@ -62,11 +62,21 @@ export function limitCuts(beats: ShotBeat[], total: number, opts: { pace?: ShotP
   return beats.map((b, i) => (kept.includes(i) ? b : (({ cut: _c, ...rest }) => rest)(b)));
 }
 
-/** Whoever the action text names is in the shot's cast (a character who acts must be in the shot). Returns the cast
- *  in the shot's order with the named ones added, and who was added. Names are matched whole, in either script. */
+/** Whoever the action text names AS ACTING is in the shot's cast (a character who acts must be in the shot). Returns
+ *  the cast in the shot's order with the named ones added, and who was added. Names are matched whole, in either
+ *  script. A name only addressed, looked at or spoken of ("listens to Marcus", "turns toward where Layla stands",
+ *  "Marcus's voice", a clause saying off-screen) does not put the person in the picture (continuity recovery
+ *  2026-10-08: a mentioned or off-screen character became an extra person in the frame). */
+const OFFSCREEN_CLAUSE = /\b(off[- ]?screen|off[- ]?camera|out of (?:the )?(?:frame|shot|picture)|unseen|voice[- ]?over|o\.s\.|v\.o\.)/i;
+const ADDRESSED = /(?:\b(?:to|at|towards|toward|for|about|of|from|after|watching|watches|hears|heard|hearing|listens|listening|thinks|remembers)\s+(?:where\s+)?)$/i;
 export function reconcileCast(characterIds: string[], texts: string[], cast: Pick<Character, 'id' | 'name' | 'nameAr'>[]): { characterIds: string[]; added: string[] } {
-  const text = texts.filter(Boolean).join('\n');
-  const mentioned = (name?: string) => Boolean(name && name.trim().length > 1 && new RegExp(`(^|[^\\p{L}])${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'u').test(text));
+  const clauses = texts.filter(Boolean).join('\n').split(/[\n.;!?]+|,\s+/).map((s) => s.trim()).filter(Boolean).filter((s) => !OFFSCREEN_CLAUSE.test(s));
+  const mentioned = (name?: string) => {
+    if (!name || name.trim().length <= 1) return false;
+    // "Marcus's hand" is Marcus in the picture; "Marcus's voice / photo / letter" is not
+    const re = new RegExp(`(^|[^\\p{L}])${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])(['’]s\\s+(?:voice|words|call|cry|shout|photo|photograph|picture|portrait|letter|note|message|name|memory|ghost|shadow)\\b)?`, 'gu');
+    return clauses.some((s) => [...s.matchAll(re)].some((m) => !m[2] && !ADDRESSED.test(s.slice(0, m.index! + m[1].length))));
+  };
   const added: string[] = [];
   const out = [...characterIds];
   for (const c of cast) if (!out.includes(c.id) && (mentioned(c.name) || mentioned(c.nameAr))) { out.push(c.id); added.push(c.id); }

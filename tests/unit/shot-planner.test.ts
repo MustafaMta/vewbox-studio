@@ -98,9 +98,11 @@ describe('shapeShotPlan: an Iraqi Arabic story', () => {
     expect(shots[0].notes).toEqual(expect.arrayContaining([expect.stringMatching(/added to the cast from the actions: Abu Kareem/)]));
     expect(shots[0].staging!.beats!.map((x) => x.at)).toEqual([0, 2]);
     expect(shots[0].boundary).toBe('transition');
-    // the speaking shot: both speakers in frame, framed as a two-shot, the Iraqi lines untouched
-    expect(shots[1].characterIds).toEqual([b.id, a.id]);
-    expect(shots[1].framing).toBe('TWO_SHOT');
+    // the speaking shot names only أبو كريم in frame: أم حسن's line is heard off-screen (a reverse on the listener,
+    // 2026-10-08 — she used to be forced into a two-shot); the Iraqi lines untouched
+    expect(shots[1].characterIds).toEqual([b.id]);
+    expect(shots[1].dialogue.map((d) => Boolean(d.offscreen))).toEqual([true, false]);
+    expect(shots[1].framing).toBe('MEDIUM_CLOSE_UP');
     expect(shots[1].dialogue.map((d) => d.textAr)).toEqual(['نسد بعد عشر دقايق.', 'زين، راح أخلص بسرعة.']);
     expect(shots[1].boundary).toBe('cut');
     // an Arabic action without a speech verb in English is left alone
@@ -134,5 +136,29 @@ describe('shapeShotPlan: the shot list’s discipline (continuity gaps 2026-10-0
     expect(s.continuity.characters[0]).not.toHaveProperty('startPose');
     expect(s.continuity).not.toHaveProperty('constraints');
     expect(s.continuity.camera).not.toHaveProperty('crossesLine');
+  });
+});
+
+describe('shapeShotPlan: the reverse on the listener (continuity recovery 2026-10-08)', () => {
+  it('a speaker the plan does not put in frame is heard off-screen and never added to the cast', async () => {
+    const { cast, a, b, scene, lines } = setup();
+    const data = ShotPlanSchema.parse({ shots: [shot({ characterNames: [b.name], dialogueLineIndexes: [0], action: `${b.name} listens, eyes down.`, framing: 'CLOSE_UP' })] });
+    const shots = shapeShotPlan(data, { cast, scene, lines, maxShot: 10 });
+    expect(shots[0].characterIds).toEqual([b.id]);
+    expect(shots[0].dialogue[0]).toMatchObject({ id: 'l1', characterId: a.id, offscreen: true });
+    const { dialogueTags, isOffscreenLine } = await import('@/server/story/prompts');
+    const sh = { ...shots[0], id: 's', sceneId: scene.id, number: 1, takes: [] } as never;
+    expect(isOffscreenLine(sh, shots[0].dialogue[0])).toBe(true);
+    const p = { language: 'EN' } as never;
+    expect(dialogueTags(p, sh, cast, () => '<Subject 1>', 'says,')).toBe('A voice from off-screen says, <d>[English] We close in ten minutes.</d> (the speaker is never shown; the people in the picture listen with their mouths closed while it plays) <Subject 1> says, <d>[English] Then I will be quick.</d>');
+  });
+  it('without names in frame, the speakers are the cast (as before); a speaker who acts is in frame and speaks there', () => {
+    const { cast, a, b, scene, lines } = setup();
+    const none = shapeShotPlan(ShotPlanSchema.parse({ shots: [shot({ dialogueLineIndexes: [0] })] }), { cast, scene, lines, maxShot: 10 });
+    expect(none[0].characterIds).toEqual([a.id, b.id]); // both lines land here (the forgotten-line rule): both speak in frame
+    expect(none[0].dialogue[0].offscreen).toBeUndefined();
+    const acts = shapeShotPlan(ShotPlanSchema.parse({ shots: [shot({ characterNames: [b.name], dialogueLineIndexes: [0], action: `${a.name} sets the cup down in front of ${b.name}.` })] }), { cast, scene, lines, maxShot: 10 });
+    expect(acts[0].characterIds).toEqual([b.id, a.id]);
+    expect(acts[0].dialogue[0].offscreen).toBeUndefined();
   });
 });
