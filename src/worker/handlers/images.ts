@@ -520,7 +520,7 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  model drew the whole man (2.1, 2.5 — medium shots). An insert is drawn from the previous shot's end (the hands,
  *  sleeves and objects as filmed), else the person's clothes and hands cut from the canonical image, with the plate
  *  around the middle; no face is in the picture. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset, previousPeople?: string[]): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean } {
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset, previousPeople?: string[]): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean; staged?: Array<{ character: Character; image: Asset; line: string }> } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
@@ -566,18 +566,18 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
     notes.push('only the hand or object detail fills the picture: no face and no whole person');
     return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined, composition: 'DETAIL', usedPreviousEnd };
   }
-  // A WIDE FRAME OF SEVERAL PEOPLE IS DRAWN FROM THE PLACE (continuity validation 2026-10-08, "The Relief" 1.7: the plate
-  // and two full-figure canonical images gave a posed group portrait in a medium close-up, the man twice, scars drawn as
-  // fresh cuts — the only plate+two-people frame ever drawn). At a wide distance the people are small: the frame takes
-  // the room and the camera from the plate and the people from words (their clothes, build, where they stand); who they
-  // are is carried into the video by their canonical images, which the take still binds (canonical identity ≠ the
-  // moment's appearance)
+  // A WIDE FRAME OF SEVERAL PEOPLE IS COMPOSED ONE PERSON AT A TIME (continuity validation 2026-10-08, "The Relief" 1.7):
+  // - the plate and two full-figure canonical images in one edit gave a posed group portrait in a medium close-up, the
+  //   man twice (the only plate+two-people frame ever drawn);
+  // - the plate alone with the people in words kept the room and the camera but drew a third person and a stranger for
+  //   the man (words carry no identity).
+  // So the frame is STAGED (drawShotFrame): the plate, then each person added by one edit of [the picture so far, their
+  // canonical image] — one person per pass, the rest of the picture kept. `staged` lists them in screen order.
   const ensembleWide = !close && pictured.length >= 2 && (sh.framing === 'WIDE' || sh.framing === 'EXTREME_WIDE') && usableImage(plateAsset);
   if (ensembleWide) {
     refs.push(plateAsset!); crops.push(undefined);
     notes.push(`image 1 is the exact place and camera: keep its architecture, layout, props, light and the camera's position and lens — a wide view of the whole room`);
-    notes.push(`the ${people.length} people are small in the room, seen head to toe, described in words: ${people.map((c, i) => `${i === 0 ? 'on the left' : i === 1 ? 'on the right' : 'further back'}, ${appearanceInWords(c)}`).join('; ')} — exactly ${people.length} people and nobody else, each one once`);
-    return { refs, crops, notes, people, imageOf, plate, composition: 'PLATE', usedPreviousEnd };
+    return { refs, crops, notes, people, imageOf, plate, composition: 'PLATE', usedPreviousEnd, staged: pictured.slice(0, 2).map((x) => ({ character: x.c, image: x.a, line: who(x.c) })) };
   }
   const addPlate = () => {
     if (!usableImage(plateAsset)) return;
@@ -607,12 +607,28 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) && refs.includes(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE', usedPreviousEnd };
 }
 
-/** A person in words for a wide frame: sex and age, build, hair and skin in a few words, and the clothes — no face detail
- *  a small figure cannot carry, and the scar left to the close shots. Pure. */
-export function appearanceInWords(c: Character): string {
-  const first = (s?: string) => (s ?? '').split(/[,;.]/)[0].trim().toLowerCase();
-  const who = [c.sex === 'FEMALE' ? 'a woman' : c.sex === 'MALE' ? 'a man' : 'a person', c.ageYears ? `of about ${c.ageYears}` : ''].filter(Boolean).join(' ');
-  return [who, first(c.build), first(c.hair) && `${first(c.hair)} hair`.replace(/ hair hair$/, ' hair'), first(c.skin), c.wardrobe ? `wearing ${first(c.wardrobe).replace(/^(a|an)\s+/, 'a ')}` : ''].filter(Boolean).join(', ');
+/** THE STAGED WIDE FRAME (frameReferences `staged`): the plate, then each person added by one edit — [the picture so
+ *  far, the person's canonical image] — "add exactly this one person here; keep everything else". A defined process,
+ *  one pass per person, never a choice between candidates; the frame that comes out is counted like any other. */
+export function stagedPassPrompt(scenePrompt: string, line: string, index: number, total: number): string {
+  const side = total === 1 ? 'in the room' : index === 0 ? 'on the left of the room' : index === 1 ? 'on the right of the room' : 'further back in the room';
+  const already = index === 0 ? '' : `, with ${index === 1 ? 'one person' : `${index} people`} already in it — keep ${index === 1 ? 'that person' : 'them'} exactly as they are, where they are`;
+  return `${scenePrompt} Image 1 is this shot's picture so far: the room as the camera sees it${already}. Add exactly one ${index ? 'more ' : ''}person: the person of image 2, ${line} — keep their face, hair, skin and wardrobe exactly; take the pose and expression from this moment, not from the picture. Place them ${side}, small, seen head to toe, at the distance of a wide shot. Keep everything else in image 1 exactly: the room, the camera position and lens, the light. Afterwards exactly ${index + 1} ${index ? 'people are' : 'person is'} in the picture, each one once, and nobody else.`;
+}
+
+async function stagedFrame(ctx: HandlerContext, o: { refs: Asset[]; staged: Array<{ character: Character; image: Asset; line: string }>; scenePrompt: string; negative: string; size: { width: number; height: number }; key: string; label: string; tags: string[]; provenance: Record<string, unknown> }): Promise<Drawn> {
+  let base: Asset = o.refs[0];
+  let drawn: Drawn | undefined;
+  const passes: string[] = [];
+  for (const [i, s] of o.staged.entries()) {
+    drawn = await draw(ctx, { key: `${o.key}:stage${i}`, prompt: stagedPassPrompt(o.scenePrompt, s.line, i, o.staged.length), negative: `${o.negative}, twins, duplicate person, group portrait, close-up portrait`, references: [base, s.image], width: o.size.width, height: o.size.height, label: `${o.label} (stage ${i + 1}: ${s.character.name})`, tags: [...o.tags, 'staged'], provenance: { ...o.provenance, stage: { index: i + 1, of: o.staged.length, characterId: s.character.id, from: base.id, previousStages: [...passes] } } });
+    passes.push(drawn.id);
+    const next = (await readState()).state.assets.find((a) => a.id === drawn!.id);
+    if (!usableImage(next)) break;
+    base = next;
+  }
+  await ctx.event('info', `${o.label}: staged one person at a time (${passes.length} pass${passes.length === 1 ? '' : 'es'}: ${passes.join(' → ')})`, { passes });
+  return drawn!;
 }
 
 /** The lower half of a frame (the hands and what they hold, below the faces of a medium or closer shot). Pure. */
@@ -741,7 +757,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const prevEnd = opts.ending ? undefined : await previousEndFrame(ctx, state, p, sh);
-  const { refs, crops, notes, people, imageOf, plate, composition, usedPreviousEnd } = frameReferences(state, p, sh, world.read, prevEnd?.asset, prevEnd ? p.shots.find((x) => x.id === prevEnd.end.shotId)?.characterIds : undefined);
+  const { refs, crops, notes, people, imageOf, plate, composition, usedPreviousEnd, staged } = frameReferences(state, p, sh, world.read, prevEnd?.asset, prevEnd ? p.shots.find((x) => x.id === prevEnd.end.shotId)?.characterIds : undefined);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
@@ -763,7 +779,11 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   let counted: number | undefined;
   // an insert is drawn from words (detailFramePrompt): every picture of a person pulled it back to a face close-up
   const byWords = composition === 'DETAIL';
-  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt: byWords ? detailFramePrompt(p, sh, cast, loc, scene) : prompt, negative: byWords ? `${NEG}, face, head, portrait` : `${NEG}${[...new Set(people.map((c) => woundNegative(c)).filter(Boolean))].join('')}`, references: byWords ? [] : refs, crops: byWords ? [] : crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops: byWords ? [] : crops, drawnFrom: byWords ? 'WORDS' : 'REFERENCES', creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+  const negative = byWords ? `${NEG}, face, head, portrait` : `${NEG}${[...new Set(people.map((c) => woundNegative(c)).filter(Boolean))].join('')}`;
+  const baseProvenance = { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, creativeAttempt: 1, ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) };
+  let kept: Drawn | undefined = staged?.length
+    ? await stagedFrame(ctx, { refs, staged, scenePrompt: framePrompt(p, { ...sh, characterIds: [] }, cast, loc, scene) + (own ? ` Continuity: ${own}` : ''), negative, size: info, key: `frame:${sh.id}:${which}`, label, tags: ['frame', which], provenance: { ...baseProvenance, drawnFrom: 'STAGED' } })
+    : await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt: byWords ? detailFramePrompt(p, sh, cast, loc, scene) : prompt, negative: byWords ? `${NEG}, face, head, portrait` : `${NEG}${[...new Set(people.map((c) => woundNegative(c)).filter(Boolean))].join('')}`, references: byWords ? [] : refs, crops: byWords ? [] : crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops: byWords ? [] : crops, drawnFrom: byWords ? 'WORDS' : 'REFERENCES', creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   let faces: number | undefined;
   if (expected !== undefined) { counted = await countPeople(ctx, kept.id, label); faces = await countFaces(kept.id); }
   await ctx.checkpoint();
