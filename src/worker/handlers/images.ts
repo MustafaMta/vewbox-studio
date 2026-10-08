@@ -9,7 +9,7 @@ import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Pro
 import { overlayWorld } from '@/domain/world';
 import { identityForFacing } from '@/domain/blocking';
 import { worldOfProduction } from '@/server/world';
-import type { TimeOfDay } from '@/domain/vocabulary';
+import type { Framing, TimeOfDay } from '@/domain/vocabulary';
 import { ASPECT_INFO } from '@/domain/vocabulary';
 import { command, readState } from '@/server/studio/engine';
 import { castOf, worldOf } from '@/studio/selectors';
@@ -26,9 +26,9 @@ import {
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, detailFramePrompt, frameContinuityLine, framePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, appearanceShort, detailFramePrompt, frameContinuityLine, framePrompt, sameMomentFramePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { detectFaces, faceIdentity, isQaUnavailable, judgeIdentity } from '@/server/providers/qa-service';
-import { judgeFrameFraming, type FrameIdentity, type PreviousEnd } from '@/domain/frames';
+import { framingStepOfFace, judgeFrameFraming, type FrameIdentity, type PreviousEnd } from '@/domain/frames';
 import { windowEndSourceFrame } from '@/domain/timeline';
 import { effectiveRelation } from '@/server/production/shot-pack';
 import { LOOK_FIELDS, type LookField } from '@/server/story/schemas';
@@ -520,7 +520,7 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  model drew the whole man (2.1, 2.5 — medium shots). An insert is drawn from the previous shot's end (the hands,
  *  sleeves and objects as filmed), else the person's clothes and hands cut from the canonical image, with the plate
  *  around the middle; no face is in the picture. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset, previousPeople?: string[]): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean; staged?: Array<{ character: Character; image: Asset; line: string }> } {
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset, previousPeople?: string[]): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL' | 'SAME_MOMENT'; usedPreviousEnd: boolean; staged?: Array<{ character: Character; image: Asset; line: string }> } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
@@ -579,6 +579,25 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
     notes.push(`image 1 is the exact place and camera: keep its architecture, layout, props, light and the camera's position and lens — a wide view of the whole room`);
     return { refs, crops, notes, people, imageOf, plate, composition: 'PLATE', usedPreviousEnd, staged: pictured.slice(0, 2).map((x) => ({ character: x.c, image: x.a, line: who(x.c) })) };
   }
+  // THE SAME MOMENT FROM A NEW CAMERA (producer, 2026-10-09, "The Relief" 1.8: "camera B filmed the same scene — not AI
+  // generated another scene"): on a cut inside the scene where the previous take's actual end shows everyone in this
+  // shot, that end frame is image 1 — the evidence of the room, the windows, the lens, the light, who stands where,
+  // their clothes and condition, what they hold and which way they face — and each person's canonical image comes only
+  // as a FACE crop for who they are, never their frontal pose. Composed from the canonical full figures, two-person
+  // frames came back as posed portraits facing the camera (1.7 frame 1), and continuing a profile into frontal
+  // pictures cut the take (1.8, three times)
+  const sameMoment = !detail && Boolean(end) && people.length >= 2 && people.every((c) => (previousPeople ?? []).includes(c.id));
+  if (sameMoment) {
+    refs.push(end!); crops.push(undefined); usedPreviousEnd = true;
+    notes.push('image 1 is this exact moment, filmed by the previous camera: the same room, windows, lens, light and weather; the same people in the same places (whoever is on the left stays on the left), the same clothes and condition, what they hold, which way they face and where they look — all of it stays exactly as in image 1; only the camera position changes');
+    for (const { c, a } of pictured) {
+      refs.push(a); imageOf.set(c.id, refs.length);
+      crops.push(a.width && a.height ? personCropFor('CLOSE_UP', { width: a.width, height: a.height }) : undefined);
+      notes.push(`image ${refs.length} shows only WHO the ${appearanceShort(c)} is: keep the face recognisable from the new angle; do not copy that picture's pose, facing, framing or light`);
+    }
+    notes.push(`exactly ${people.length} people are in the picture, the same ${people.length} as in image 1, each once, and nobody else`);
+    return { refs, crops, notes, people, imageOf, plate: undefined, composition: 'SAME_MOMENT', usedPreviousEnd };
+  }
   const addPlate = () => {
     if (!usableImage(plateAsset)) return;
     refs.push(plateAsset);
@@ -605,6 +624,17 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
   return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) && refs.includes(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE', usedPreviousEnd };
+}
+
+/** THE NEW CAMERA FOR THE SAME MOMENT: a motivated angle that keeps the line (who is left stays left) — closer, wider
+ *  or a quarter turn around them, by the planned framing against the framing the previous take actually ends on. */
+export function sameMomentAngle(planned: Framing, endedAs?: Framing): string {
+  const rank = (f?: Framing) => ({ EXTREME_WIDE: 0, WIDE: 1, MEDIUM_WIDE: 2, MEDIUM: 3, TWO_SHOT: 3, OVER_THE_SHOULDER: 3, MEDIUM_CLOSE_UP: 4, CLOSE_UP: 5, EXTREME_CLOSE_UP: 6, INSERT: 6 } as Record<string, number>)[f ?? ''] ?? 3;
+  const words = planned.toLowerCase().replace(/_/g, ' ');
+  const d = rank(planned) - rank(endedAs);
+  const turn = 'moved a quarter of the way around them toward their faces, on the same side of them (whoever is on the left stays on the left)';
+  if (!endedAs || d === 0) return `the camera ${turn}, at the same distance: a ${words}`;
+  return d > 0 ? `the camera closer and ${turn}: a ${words}` : `the camera further back and ${turn}: a ${words}`;
 }
 
 /** THE STAGED WIDE FRAME (frameReferences `staged`): the plate, then each person added by one edit — [the picture so
@@ -736,6 +766,56 @@ export function previousEndUsable(previous: Pick<Shot, 'characterIds'>, sh: Pick
   return previous.characterIds.every((id) => sh.characterIds.includes(id));
 }
 
+/** THE SAME-MOMENT CONTINUITY CHECK (producer 2026-10-09: "if the frame feels like another room, refuse it BEFORE video
+ *  generation"): the new frame against the previous take's actual end — who stands left and right (each face matched
+ *  to its canonical image by SFace, in both pictures), and the light and colour (mean Y, U, V; the join QA's thresholds
+ *  for a cut on the same moment). FAIL is refused by the preflight; a person's eye still decides about the room. */
+export interface SameMomentCheck { verdict: 'PASS' | 'REVIEW' | 'FAIL'; order?: { before: string[]; after: string[]; same: boolean }; colour?: { dY: number; dU: number; dV: number; ok: boolean }; notes: string[]; at: string }
+export function judgeSameMoment(order: SameMomentCheck['order'], colour: SameMomentCheck['colour']): Omit<SameMomentCheck, 'at'> {
+  const notes: string[] = [];
+  if (order && !order.same) notes.push(`the people swapped sides (before: ${order.before.join(' | ')}; now: ${order.after.join(' | ')})`);
+  if (colour && !colour.ok) notes.push(`the light changed (ΔY ${colour.dY}, ΔU ${colour.dU}, ΔV ${colour.dV})`);
+  if (!order) notes.push('left/right order not measured');
+  const verdict = notes.some((n) => n.startsWith('the ')) ? 'FAIL' : !order || !colour ? 'REVIEW' : 'PASS';
+  return { verdict, ...(order ? { order } : {}), ...(colour ? { colour } : {}), notes };
+}
+
+async function meanYuv(file: string): Promise<{ y: number; u: number; v: number } | undefined> {
+  const { execFile } = await import('node:child_process');
+  const out = await new Promise<string>((resolve) => execFile('ffmpeg', ['-hide_banner', '-i', file, '-vf', 'signalstats,metadata=print:file=-', '-f', 'null', '-'], { maxBuffer: 1e7 }, (_e, o) => resolve(String(o))));
+  const num = (k: string) => Number(new RegExp(`lavfi\\.signalstats\\.${k}=([\\d.]+)`).exec(out)?.[1] ?? NaN);
+  const r = { y: num('YAVG'), u: num('UAVG'), v: num('VAVG') };
+  return Number.isFinite(r.y) ? r : undefined;
+}
+
+async function sameMomentContinuity(ctx: HandlerContext, before: Asset, after: Asset, people: Character[], state: State): Promise<SameMomentCheck> {
+  const dir = await tmpDir('same-moment');
+  try {
+    const refs = people.map((c) => ({ c, a: state.assets.find((x) => x.id === primaryImageOf(c)) })).filter((x) => usableImage(x.a)).map((x) => ({ characterId: x.c.id, image: assetFile(x.a!) }));
+    const orderOf = async (a: Asset, name: string): Promise<string[] | undefined> => {
+      const clip = path.join(dir, `${name}.mp4`);
+      await ffmpeg(['-hide_banner', '-nostdin', '-y', '-loop', '1', '-i', assetFile(a), '-t', '1', '-r', '24', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p', '-c:v', 'libx264', clip]);
+      const r = await ctx.gpu('ASR', 4000, () => faceIdentity(clip, refs), { jobId: ctx.job.id });
+      if (isQaUnavailable(r)) return undefined;
+      const xs = Object.entries(r.characters).map(([id, ch]) => { const f = ch.series.find((s) => s.box && s.cosine !== null); return f?.box ? { id, x: f.box[0] + f.box[2] / 2 } : undefined; }).filter((v): v is { id: string; x: number } => Boolean(v));
+      return xs.length === people.length ? xs.sort((m, n) => m.x - n.x).map((v) => people.find((c) => c.id === v.id)?.name ?? v.id) : undefined;
+    };
+    const [o1, o2] = refs.length ? [await orderOf(before, 'before'), await orderOf(after, 'after')] : [undefined, undefined];
+    const [c1, c2] = [await meanYuv(assetFile(before)), await meanYuv(assetFile(after))];
+    const colour = c1 && c2 ? { dY: Math.round((c2.y - c1.y) * 10) / 10, dU: Math.round((c2.u - c1.u) * 10) / 10, dV: Math.round((c2.v - c1.v) * 10) / 10, ok: Math.abs(c2.y - c1.y) <= 25 && Math.abs(c2.u - c1.u) <= 8 && Math.abs(c2.v - c1.v) <= 8 } : undefined;
+    return { ...judgeSameMoment(o1 && o2 ? { before: o1, after: o2, same: o1.join() === o2.join() } : undefined, colour), at: new Date().toISOString() };
+  } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
+}
+
+/** The framing a picture shows, from its largest confident face (undefined: no face, or the check is unavailable). */
+async function framingOfPicture(a: Asset): Promise<Framing | undefined> {
+  if (!usableImage(a)) return undefined;
+  const r = await detectFaces(assetFile(a)).catch(() => undefined);
+  if (!r || isQaUnavailable(r)) return undefined;
+  const largest = r.faces.filter((f) => f.score >= FACE_SCORE).reduce<number | undefined>((m, f) => Math.max(m ?? 0, f.box[3]), undefined);
+  return framingStepOfFace(largest, r.height);
+}
+
 /** The framing of the frame that will be filmed, measured by its largest confident face and recorded on it
  *  (`judgeFrameFraming`); the preflight refuses a FAIL and warns on a REVIEW. */
 async function recordFraming(ctx: HandlerContext, assetId: string, sh: Shot, label: string): Promise<void> {
@@ -767,7 +847,11 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   // people are named by their reference picture once; the previous shot carries only its props and light (D30)
   const own = frameContinuityLine(sh, cast, imageOf);
   const carried = relation === 'CUT' && previous && !opts.ending ? frameContinuityLine(previous, cast, imageOf, { peopleToo: false }) : '';
-  const prompt = framePrompt(p, sh, cast, loc, scene, { pictured: new Set(imageOf.keys()) }) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
+  // the same moment from a second camera: the words carry only the new angle and the action; image 1 carries the world
+  const endedAs = composition === 'SAME_MOMENT' && prevEnd ? await framingOfPicture(prevEnd.asset) : undefined;
+  const prompt = composition === 'SAME_MOMENT'
+    ? sameMomentFramePrompt(p, sh, cast, sameMomentAngle(sh.framing, endedAs)) + guidance
+    : framePrompt(p, sh, cast, loc, scene, { pictured: new Set(imageOf.keys()) }) + (opts.ending ? ' Show the end of the action.' : '') + (own ? ` Continuity: ${own}` : '') + (carried ? ` The same moment as the previous shot, seen from a new angle; it showed: ${carried}` : '') + guidance;
   const label = `${p.title} — shot ${scene?.number ?? '?'}.${sh.number} ${which} frame`;
   // D30: the prompt alone did not hold the number of people (two strangers in 2 of 10 frames); the vision model
   // counted 10/10 frames right, the portrait on the wall excluded — so the frame is counted and drawn once more
@@ -824,6 +908,16 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   }
   if (kept && kept.id !== undefined) await recordPeople(kept.id);
   if (kept && kept.id !== undefined) await recordFraming(ctx, kept.id, sh, label);
+  // the same moment from a second camera is compared with the moment it continues, before any video (FAIL → refused)
+  if (kept && composition === 'SAME_MOMENT' && prevEnd) {
+    const st = (await readState()).state;
+    const drawnAsset = st.assets.find((a) => a.id === kept!.id);
+    if (drawnAsset) {
+      const check = await sameMomentContinuity(ctx, prevEnd.asset, drawnAsset, people, st);
+      await command('updateAsset', [kept.id, { provenance: { ...(drawnAsset.provenance ?? {}), sameMomentCheck: { ...check, against: prevEnd.asset.id } } }], 'worker');
+      await ctx.event(check.verdict === 'FAIL' ? 'warn' : 'info', `${label}: same-moment continuity ${check.verdict}${check.notes.length ? ` — ${check.notes.join('; ')}` : ''}`, { assetId: kept.id, against: prevEnd.asset.id, check });
+    }
+  }
   await command('setShotFrames', [p.id, sh.id, opts.ending ? { endingFrameAssetId: kept!.id } : { openingFrameAssetId: kept!.id }], 'worker');
   return kept!.id;
 }

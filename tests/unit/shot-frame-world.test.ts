@@ -227,6 +227,40 @@ describe('an insert describes people by their hands (The Relief 1.6)', () => {
     if (cast[0].face) expect(prompt).not.toContain(cast[0].face.slice(0, 20));
   });
 });
+describe('the same moment from a second camera ("The Relief" 1.8, producer 2026-10-09)', () => {
+  it('image 1 is the previous take\'s actual end; the canonical images come only as face crops; the words never re-describe the room', async () => {
+    const { state, p } = fixture();
+    const [a, b] = p.castIds;
+    const end = { ...img('end-of-17'), width: 1344, height: 768 };
+    const withImages: StudioState = { ...state, assets: [...state.assets, end, { ...img('canon-a'), tier: 'CANONICAL', width: 928, height: 1664 }, { ...img('canon-b'), tier: 'CANONICAL', width: 928, height: 1664 }] };
+    const sh = { ...shotOf(p, 's13'), framing: 'MEDIUM' as const, characterIds: [a, b] };
+    const r = frameReferences(withImages, p, sh, undefined, end, [a, b]);
+    expect(r.composition).toBe('SAME_MOMENT');
+    expect(r.refs.map((x) => x.id)).toEqual(['end-of-17', 'canon-a', 'canon-b']);
+    expect(r.crops[0]).toBeUndefined();
+    expect(r.crops[1]).toMatchObject({ x: 0, y: 0 }); // the top of the canonical figure: its face region
+    expect(r.crops[1]!.height).toBeLessThan(r.refs[1].height ?? Infinity);
+    expect(r.notes[0]).toMatch(/image 1 is this exact moment.*whoever is on the left stays on the left.*only the camera position changes/);
+    expect(r.notes.join(' ')).toMatch(/do not copy that picture's pose, facing, framing or light/);
+    expect(r.plate).toBeUndefined();
+    // someone in this shot the previous end does not show: the ordinary composition
+    expect(frameReferences(withImages, p, sh, undefined, end, [a]).composition).not.toBe('SAME_MOMENT');
+    const { sameMomentAngle, judgeSameMoment } = await import('@/worker/handlers/images');
+    expect(sameMomentAngle('MEDIUM', 'MEDIUM_CLOSE_UP')).toMatch(/^the camera further back and moved a quarter of the way around them.*whoever is on the left stays on the left.*: a medium$/);
+    expect(sameMomentAngle('CLOSE_UP', 'MEDIUM')).toMatch(/^the camera closer/);
+    expect(judgeSameMoment({ before: ['M', 'E'], after: ['E', 'M'], same: false }, { dY: 2, dU: 1, dV: 1, ok: true }).verdict).toBe('FAIL');
+    expect(judgeSameMoment({ before: ['M', 'E'], after: ['M', 'E'], same: true }, { dY: 40, dU: 1, dV: 1, ok: false }).verdict).toBe('FAIL');
+    expect(judgeSameMoment({ before: ['M', 'E'], after: ['M', 'E'], same: true }, { dY: 3, dU: 1, dV: 1, ok: true }).verdict).toBe('PASS');
+    expect(judgeSameMoment(undefined, { dY: 3, dU: 1, dV: 1, ok: true }).verdict).toBe('REVIEW');
+    const { sameMomentFramePrompt } = await import('@/server/story/prompts');
+    const cast = withImages.characters.filter((c) => p.castIds.includes(c.id));
+    const words = sameMomentFramePrompt(p, { ...sh, action: `${cast[0].name} and ${cast[1].name} stand at the counter.` } as never, cast, 'the camera closer');
+    expect(words).toMatch(/The same moment as image 1, filmed by a second camera: the camera closer\./);
+    expect(words).not.toContain(cast[0].name);
+    expect(words).not.toMatch(/Setting:|pharmacy|shelves/i); // the room is image 1's, never re-described
+  });
+});
+
 describe('the insert, from words (The Relief 1.6)', () => {
   it('detailFramePrompt names people by what they wear, keeps their condition and props, and asks for no face', async () => {
     const { detailFramePrompt } = await import('@/server/story/prompts');

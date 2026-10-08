@@ -103,6 +103,10 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const ff = frameFramingOf(byId(aid));
     if (ff && ff.verdict === 'FAIL') add(`${which}-frame-framing`, false, 'INCONSISTENT_PLAN', `the ${which} frame does not show the planned framing: ${ff.note ?? ff.measured} — draw the frames again`);
     else if (ff && ff.verdict === 'REVIEW') warnings.push({ name: `${which}-frame-framing`, detail: `the ${which} frame is one step from the planned framing: ${ff.note ?? ff.measured}` });
+    // the same moment from a second camera, compared with the previous take's actual end (images.ts sameMomentContinuity)
+    const sm = (byId(aid)?.provenance as { sameMomentCheck?: { verdict: string; notes: string[] } } | undefined)?.sameMomentCheck;
+    if (sm?.verdict === 'FAIL') add(`${which}-frame-same-moment`, false, 'INCONSISTENT_PLAN', `the ${which} frame is not the same moment as the shot before: ${sm.notes.join('; ')} — draw the frames again`);
+    else if (sm?.verdict === 'REVIEW') warnings.push({ name: `${which}-frame-same-moment`, detail: `the ${which} frame's continuity with the shot before was not fully measured: ${sm.notes.join('; ')}` });
     // a frame drawn from the previous shot's actual end is stale once that shot's chosen take changed
     const pe = which === 'opening' ? previousEndOf(byId(aid)) : undefined;
     const prevShot = pe ? p.shots.find((x) => x.id === pe.shotId) : undefined;

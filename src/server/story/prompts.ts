@@ -695,6 +695,23 @@ export function detailFramePrompt(p: Production, sh: Shot, cast: Character[], lo
   return `${d.visual}. An insert: a tight close-up in which hands and an object fill the whole frame. ${moment ? `${moment.charAt(0).toUpperCase()}${moment.slice(1)}.` : ''} In the picture: ${hands.join('; ')}${props.length ? `; ${props.join('; ')}` : ''}. ${behind} Only hands, sleeves and the object are in the picture: no face, no head, no shoulders, no whole person. Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ').trim();
 }
 
+/** A person in a few words (sex, age, clothes) — to say which face picture is whom, never by name. Pure. */
+export function appearanceShort(c: Pick<Character, 'sex' | 'ageYears' | 'wardrobe'>): string {
+  const first = (s?: string) => (s ?? '').split(/[,;.]/)[0].trim().toLowerCase().replace(/^(a|an)\s+/, '');
+  return [c.sex === 'FEMALE' ? 'woman' : c.sex === 'MALE' ? 'man' : 'person', c.ageYears ? `of about ${c.ageYears}` : '', c.wardrobe ? `in the ${first(c.wardrobe)}` : ''].filter(Boolean).join(' ');
+}
+
+/** THE SAME MOMENT, A SECOND CAMERA (producer 2026-10-09, "The Relief" 1.8): the frame of a cut inside the scene, drawn
+ *  from the previous take's actual end (image 1). The words carry only the new camera and the moment's action — the
+ *  room, the light, the people's places, clothes and props are image 1's, never re-described (a described room is
+ *  rebuilt as another room). Pure. */
+export function sameMomentFramePrompt(p: Production, sh: Shot, cast: Character[], angle: string): string {
+  const d = styleDirection(p.style);
+  const who = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the ${appearanceShort(c)}` : undefined; };
+  const action = bindNames(clean(sh.action).replace(/\.+$/, ''), cast, who);
+  return `${d.visual}. The same moment as image 1, filmed by a second camera: ${angle}. ${action ? `${action.charAt(0).toUpperCase()}${action.slice(1)}.` : ''} Nothing in the room, the light, the weather or the people changes from image 1 except the camera's position and the moment's small movement. Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ').trim();
+}
+
 export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { pictured?: Set<string> } = {}): string {
   const d = styleDirection(p.style);
   const camera = `Camera: ${FRAMING_WORDS[sh.framing] ?? sh.framing.toLowerCase().replace(/_/g, ' ')}.${PLATE_WIDE_FRAMINGS.includes(sh.framing) ? '' : ' The camera is much closer than in the reference picture of the place: keep the place’s look, not its framing.'}`;
