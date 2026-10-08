@@ -216,7 +216,11 @@ export function speakerIds(p: Production, sh: Shot): Map<string, number> {
 
 const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
 
-function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string) => string | undefined, body = ''): string {
+/** `fromFrame`: the clip starts from a drawn frame or the previous take's tail, which already shows where each person
+ *  stands, which way they face and how they start: those words are left out. Said again, they contradicted the frame and
+ *  H3 cut inside the take to match them (continuity recovery 2026-10-08, "The Relief" 1.4: "is center, faces screen
+ *  left" over a frame with her on the right; the take jumped to a centred close-up at 0.46 s). */
+function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string) => string | undefined, body = '', opts: { fromFrame?: boolean } = {}): string {
   const c = sh.continuity;
   if (!c) return '';
   const parts = c.characters.map((x) => {
@@ -229,7 +233,8 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
     // climb (2026-10-08, "The Last Crossing" 1.1–1.2). Wardrobe stays the canonical image's (D30); a state such as
     // "soaked" arrives through the condition.
     const pose = poseWithoutSpeech(x.startPose || x.pose || '', (sh.dialogue ?? []).some((d) => d.characterId === x.characterId));
-    const bits = [pose && clean(pose).toLowerCase(), x.position && `is ${clean(x.position)}`, x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`, x.emotion && `with a ${clean(x.emotion).toLowerCase()} expression`, x.condition && `${clean(x.condition).toLowerCase()}`].filter(Boolean);
+    const placed = !opts.fromFrame;
+    const bits = [placed && pose && clean(pose).toLowerCase(), placed && x.position && `is ${clean(x.position)}`, placed && x.screenDirection && x.screenDirection !== 'NEUTRAL' && `faces ${x.screenDirection === 'TOWARD' ? 'the camera' : x.screenDirection === 'AWAY' ? 'away from the camera' : `screen ${x.screenDirection.toLowerCase()}`}`, x.eyeline && `looks ${clean(x.eyeline).replace(/^at\b/, 'at')}`, x.holding?.length && `holds ${x.holding.map(clean).join(' and ')}`, x.emotion && `with a ${clean(x.emotion).toLowerCase()} expression`, x.condition && `${clean(x.condition).toLowerCase()}`].filter(Boolean);
     return bits.length ? `${who} ${bits.join(', ')}.` : '';
   }).filter(Boolean);
   const props = c.props.filter((x) => x.position || x.state).map((x) => `${clean(x.name)}${x.state ? ` (${clean(x.state)})` : ''}${x.position ? ` ${clean(x.position)}` : ''}`);
@@ -442,7 +447,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const closer = b.location && !fromFrame && !PLATE_WIDE_FRAMINGS.includes(sh.framing) ? `From its very first frame the shot is a ${sh.framing.toLowerCase().replace(/_/g, ' ')}: the camera is much closer than in ${pictureLabel(b, b.location.picture)}, whose look is kept, not its framing.` : '';
   const opening = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL' ? 'The shot continues from the anchored end of the previous shot, same camera setup, same positions, same light; from there:' : b.opening?.kind === 'FRAME' ? `The shot begins from ${b.opening.picture ? pictureLabel(b, b.opening.picture) : 'the anchored opening frame'}.` : '';
   const povLine = pov ? `The camera is <Subject ${subjectNo.get(pov)}>'s own eyes: what they see fills the frame, and they are never seen.` : '';
-  const cont = continuitySentence(sh, cast, subjectOf, body);
+  const cont = continuitySentence(sh, cast, subjectOf, body, { fromFrame });
   // THE SCENE STATE (src/domain/scene-state.ts): the carried facts — time of day, weather, light, the place as the
   // story left it, what people hold, the props — after the shot's own continuity; nothing the body already says
   // from an opening frame, the frame shows the people and props: only the environment is carried in words

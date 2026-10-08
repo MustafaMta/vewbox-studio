@@ -63,6 +63,18 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(takePrompt(p, planned, cast, loc, { timeOfDay: 'DUSK' })).toContain('locked off on a tripod');
   });
 
+  it('from a frame, the people are not placed again in words (The Relief 1.4: "is center" over a frame with her on the right: a cut at 0.46 s)', () => {
+    const { p, cast, loc } = setup();
+    const base = shotOf(p, 's12');
+    const [a] = base.characterIds;
+    const sh = { ...base, characterIds: [a], framing: 'MEDIUM_CLOSE_UP' as const, cameraMove: 'STATIC' as const, continuity: { ...base.continuity!, characters: [{ characterId: a, position: 'CENTER', screenDirection: 'LEFT' as const, startPose: 'standing still', holding: ['brass thermos'], emotion: 'weary' }] } };
+    const noFrame: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }], location: { picture: 2 } };
+    const free = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, noFrame, { relation: 'CUT' });
+    expect(free).toMatch(/standing still, is CENTER, faces screen left/);
+    const framed = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, { ...noFrame, opening: { kind: 'FRAME', picture: 3 } }, { relation: 'CUT' });
+    expect(framed).not.toMatch(/is CENTER|faces screen left|standing still/);
+    expect(framed).toMatch(/holds brass thermos, with a weary expression/);
+  });
   it('a close shot without an opening frame starts at its framing: the plate gives the look, not the framing (G13 shot 1 opened wide and pushed in)', () => {
     const { p, cast, loc } = setup();
     const base = shotOf(p, 's12');
