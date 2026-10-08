@@ -132,3 +132,11 @@ describe('a scar is drawn healed (Marcus Bell and Elena Ward: "healed scar" drew
     expect(woundNegative({ distinguishing: ['Freckles'], face: 'Square jaw' })).toBe('');
   });
 });
+describe('each line once ("The Relief" 1.4: "Had to row. Had to row.")', () => {
+  it('a speaking shot tells H3 to say every line once and keep the mouths closed around it', async () => {
+    const { SAID_ONCE } = await import('@/server/story/prompts');
+    expect(SAID_ONCE).toMatch(/said exactly once.*no word is repeated/);
+    const src = fs.readFileSync('src/server/story/prompts.ts', 'utf8');
+    expect(src).toMatch(/dialogueTags\(p, sh, cast, speaker, 'says,'\)\} \$\{SAID_ONCE\}/);
+  });
+});

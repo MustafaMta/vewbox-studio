@@ -66,6 +66,9 @@ export function dialogueTags(p: Production, sh: Shot, cast: Character[], speaker
   }).join(' ');
 }
 
+/** What follows the lines of a speaking shot: every line is said once, and the silence around it stays silent. */
+export const SAID_ONCE = 'Each line is said exactly once, in the order written; no word is repeated or added, and before and after the lines the mouths stay closed while the action goes on in silence.';
+
 /** A line heard off-screen: marked so by the plan, or spoken by someone who is not in the shot's cast. Pure. */
 export const isOffscreenLine = (sh: Pick<Shot, 'characterIds'>, d: Pick<Shot['dialogue'][number], 'characterId' | 'offscreen'>): boolean => Boolean(d.offscreen) || !sh.characterIds.includes(d.characterId);
 
@@ -444,7 +447,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   // story left it, what people hold, the props — after the shot's own continuity; nothing the body already says
   // from an opening frame, the frame shows the people and props: only the environment is carried in words
   const stateLine = opts.sceneState ? sceneStateLine(opts.sceneState, plainSubject, { environmentOnly: fromFrame }).split(/(?<=\.)\s+/).filter((s) => !cont.includes(s.replace(/^Scene state \([^)]*\): /, '').replace(/\.$/, ''))).join(' ') : '';
-  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : dialogueTags(p, sh, cast, speaker, 'says,');
+  // EACH LINE ONCE (continuity recovery 2026-10-08, "The Relief" 1.4: "Radio's dead. Had to row." in a 7 s shot was
+  // heard as "… Had to row. Had to row." — H3 filled the silence by saying it again, as "The Last Crossing" 2.3 did)
+  const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : `${dialogueTags(p, sh, cast, speaker, 'says,')} ${SAID_ONCE}`;
   // THE TIMED BEATS: `[M:SS]` point marks inside a shot (never read as cuts); a beat with a cut opens the next
   // `[Shot N] At MM:SS.mmm, hard cut to …`
   const marks: string[] = [];
