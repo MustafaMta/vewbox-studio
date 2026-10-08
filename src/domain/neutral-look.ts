@@ -19,6 +19,17 @@ const MOOD_WORD = /\b(warm|kind|friendly|stern|cheerful|gentle|sad|angry|worried
 const TEMPORARY =/\b(fresh|bleeding|blood(y|ied)?|bruis\w*|swollen|wet|soaked|drenched|bandag\w*|plaster|stitch\w*|scab\w*|open wound|cut lip|black eye|sweat\w*|tear-stained|muddy)\b/i;
 const LOOK_FIELDS = ['face', 'eyes', 'hair', 'skin', 'build'] as const;
 
+/** A scar as the IDENTITY stores it: the word "healed" in its own words ("a thin scar through the left eyebrow" →
+ *  "a thin healed scar through the left eyebrow"), within the 120 characters a distinguishing detail may have. The
+ *  full drawing instruction (`healedMark`: "an old, fully healed scar: a thin pale flat line …") is added where a
+ *  picture or a video is described, never stored — stored, it made a detail too long for the character record and
+ *  Phase 1 character A's design was refused (2026-10-09, job-5f1863dfdd). */
+export function healedWord(d: string, max = 120): string {
+  if (/\bhealed\b/i.test(d) || healedMark(d) === d) return d;
+  const h = d.replace(/\bscar(s|red)?\b/i, (w) => `healed ${w}`);
+  return h.length <= max ? h : d;
+}
+
 export interface NeutralLookReport { movedToPersonality: string[]; droppedConditions: string[]; healed: string[] }
 
 const clauses = (s: string) => s.split(/(?<=[.;])\s+|,\s+(?=(?:and |with |but )?[a-z])/i).map((x) => x.trim()).filter(Boolean);
@@ -64,7 +75,7 @@ export function neutralLook<T extends Partial<Record<(typeof LOOK_FIELDS)[number
   if (report.movedToPersonality.length) out.personality = [d.personality?.trim(), ...report.movedToPersonality.map((m) => m.replace(/[.;]+$/, ''))].filter(Boolean).join('; ');
   if (Array.isArray(d.distinguishing)) {
     out.distinguishing = d.distinguishing.flatMap((x) => {
-      if (/\bscar(s|red)?\b/i.test(x) && !/\b(fresh|bleeding|open)\b/i.test(x)) { const h = healedMark(x); if (h !== x) report.healed.push(x); return [h]; }
+      if (/\bscar(s|red)?\b/i.test(x) && !/\b(fresh|bleeding|open)\b/i.test(x)) { const h = healedWord(x); if (h !== x) report.healed.push(x); return [h]; }
       if (TEMPORARY.test(x)) { report.droppedConditions.push(x); return []; }
       return [x];
     });

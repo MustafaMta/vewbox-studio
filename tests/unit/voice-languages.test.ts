@@ -19,7 +19,7 @@ function english(): StudioState {
   let s = seed();
   s = { ...s, characters: s.characters.map((c) => (c.id === 'nour' ? { ...c, language: 'EN', dialect: undefined, usage: { known: true, videos: [] }, voice: { pitch: 'MID', pace: 'MEASURED', timbre: 'warm', notes: '', samples: [] } } : c)) };
   s = addAsset(s, { id: 'gen-proof', kind: 'AUDIO', src: '/api/media/gen-proof', label: 'proof', tags: [], sample: false, origin: 'GENERATED' }).state;
-  s = addAsset(s, { id: 'up-1', kind: 'AUDIO', src: '/api/media/up-1', label: 'rec', tags: [], sample: false, origin: 'UPLOADED' }).state;
+  s = addAsset(s, { id: 'up-1', kind: 'AUDIO', src: '/api/media/up-1', label: 'rec', tags: [], sample: false, origin: 'UPLOAD' }).state;
   s = addVoiceSample(s, 'nour', { id: 'up-s', label: 'rec', assetId: 'up-1', source: 'UPLOADED', consent: { statement: 'MY_VOICE', by: 'PRODUCER', at: '2026-10-09T00:00:00.000Z' } }).state;
   return addVoiceSample(s, 'nour', { id: 'proof-1', label: 'proof', assetId: 'gen-proof', source: 'GENERATED', text: 'Hello.' }).state;
 }
