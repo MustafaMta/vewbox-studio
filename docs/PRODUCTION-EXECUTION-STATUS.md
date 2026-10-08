@@ -702,11 +702,34 @@ the opening frames and the location plate, inspected side by side.
     - **Attempt 5 (same seed):** no wide, no face, no second person; the hands match Marcus. One defect remains: an
       unplanned cross-dissolve at about 3.9–4.1 s to a second insert angle (a lamp appears behind, and the cloth moves
       to the lower hand). The clean part is the first ~3.8 s. Human viewing: `WAITING_FOR_USER_ACCEPTANCE`.
+    - **Status of 1.6: REVIEW** (`WAITING_FOR_USER_ACCEPTANCE`). If the dissolve is clearly visible at normal speed it
+      is a FAIL; the clean first ~3.8 s may be used as an intentional editorial trim if it holds everything the insert
+      needs. No regeneration without a new root-cause change.
     - **QA gap found:** the cut check missed the dissolve (no hard change) and the fade check looks only for black. A
       dissolve measure was built and calibrated over all 18 takes (`scripts/dissolve-calibration.ts`). It finds this
       dissolve and passes a dimming lamp. But it also fires on a man turning a knob and on a camera drift, and neither
       step coherence nor edge ghosting (at 64×36 and 256×144) separated them. It is **not wired into take QA**: an
       unplanned dissolve is caught by a person watching, until a measure separates it on real media.
+
+  - **1.7 (WIDE, Marcus and Elena move to the windows):**
+    - **Attempt 1 (job-5c758ed24e, seed 1807602179): REVIEW, by viewing a FAIL.** Planned *continuous* from the 1.6
+      hands insert. After the anchored tail (0–0.9 s) it jumped to a two-shot in an invented room (white walls, a
+      counter, square windows; `location-matches-plate` flagged), then cut at 3.42 s into the lantern room.
+    - **Root causes:**
+      1. A continuous boundary from a detail into a wide two-shot with a newcomer cannot be one camera move. Fixed
+         (b3d1744): the planner makes such a plan a cut on the same moment, and the preflight warns on a stored one.
+      2. The insert's background was drawn from the place's name alone; the continuation carried on in that invented
+         room. Fixed (81d1588): an insert's background is described from the place's identity.
+    - **Plan change through `updateShot` (recorded):** 1.7 is a cut on the same moment.
+    - **Opening frame 1** (plate + both canonical images in one edit): a posed group portrait with Marcus twice and
+      fresh cuts for scars. Refused by the people check before any video.
+    - **Frame 2** (plate + the people in words): the right room and camera, but a third person and a stranger for
+      Marcus. Refused.
+    - **Frame 3** (staged one person at a time: plate → +Marcus → +Elena; f66dc4f; wound terms and healed scars in 58757eb): the lantern
+      room, wide, exactly two people, Marcus left with the steaming thermos, Elena right. Passed the people check.
+      Finding: Marcus's skin reads lighter than his canonical deep brown.
+    - **Attempt 2** (job-54331fd9ed, same seed) is filmed from frame 3. It was prepared before the identity/moment
+      retention change (496941c).
 
 ### Shot-edit dependency contract (2026-10-08, a42f507)
 
