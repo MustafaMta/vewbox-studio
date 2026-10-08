@@ -86,6 +86,7 @@ function corpus(): Command[] {
     c('setVoiceIdentity', 'nour', { provider: 'LOCAL_TTS', model: 'indextts', mode: 'AUTOMATIC', origin: 'DESIGNED', designId: 'vd-1', seedSha256: sha(2), referenceAssetId: 'gen-seed-2', language: 'EN', params: { speed: 1, emotionAlpha: 1, seed: 77 }, proof: { sampleId: 'proof-1', assetId: 'gen-proof', text: 'Hello. My name is Nour.' } }),
     c('recordVoiceListening', 'nour', { natural: 4 }),
     c('setSpokenLanguages', 'nour', [{ language: 'EN' }, { language: 'AR', dialect: 'IRAQI_BAGHDADI' }]),
+    c('addVoiceLanguageProfiles', 'nour', [{ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'habibi', comparisonEngines: ['moss'], status: 'REVIEW' }]),
     c('selectVoiceSample', 'um-hassan', undefined), c('removeVoiceSample', 'um-hassan', 'v-warm'),
     c('setCanonicalImage', 'nour', { assetId: 'img-1', jobId: 'job-c1', seed: 1, check: { ok: true } }), c('approveCanonicalImage', 'nour', 1),
     c('setCanonicalImage', 'um-hassan', { assetId: 'img-1' }), // another character's canonical image: INVALID

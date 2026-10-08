@@ -72,7 +72,7 @@ export function neutralLook<T extends Partial<Record<(typeof LOOK_FIELDS)[number
       report.movedToPersonality.push(...moved.filter((m) => m && /\w/.test(m)));
     }
   }
-  if (report.movedToPersonality.length) out.personality = [d.personality?.trim(), ...report.movedToPersonality.map((m) => m.replace(/[.;]+$/, ''))].filter(Boolean).join('; ');
+  if (report.movedToPersonality.length) out.personality = [d.personality?.trim().replace(/[.;]+$/, ''), ...report.movedToPersonality.map((m) => m.replace(/[.;]+$/, ''))].filter(Boolean).join('; ');
   if (Array.isArray(d.distinguishing)) {
     out.distinguishing = d.distinguishing.flatMap((x) => {
       if (/\bscar(s|red)?\b/i.test(x) && !/\b(fresh|bleeding|open)\b/i.test(x)) { const h = healedWord(x); if (h !== x) report.healed.push(x); return [h]; }

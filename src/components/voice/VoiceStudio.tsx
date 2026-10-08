@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useStudio } from '@/studio/store';
 import { PageHead, nameLang } from '@/components/character/parts';
@@ -14,8 +13,8 @@ import { prepareLineText } from '@/server/providers/iraqi-text';
 import { VOICE_ENGINES, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { EVAL_VOICE_ENGINES } from '@/server/providers/voice-eval-engines';
 import type { PronunciationEntry } from '@/domain/pronunciation';
-import type { Character } from '@/domain/types';
 import type { Job } from '@/domain/jobs';
+import { PerformerVoice } from './PerformerVoice';
 
 /** THE VOICE STUDIO (docs/VOICE-ENGINE.md): the studio's voices in one place — each character's voice and how it was
  *  judged, the dialogue editor (what an engine will hear for a line), the pronunciation dictionary and its native
@@ -26,7 +25,7 @@ const TABS = [
   { id: 'voices', label: 'Character voices' },
   { id: 'dialogue', label: 'Dialogue editor' },
   { id: 'pronunciation', label: 'Pronunciations' },
-  { id: 'compare', label: 'Voice comparison' },
+  { id: 'compare', label: 'LAB comparisons' },
   { id: 'monitor', label: 'Generation monitor' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
@@ -51,43 +50,13 @@ export function VoiceStudio() {
 
 // ------------------------------------------------------------------------------------------------ character voices
 
-function voiceState(c: Character): { tone: StateTone; words: string } {
-  const id = c.voice?.identity;
-  if (!id) return { tone: 'idle', words: 'No voice yet' };
-  if (id.status === 'ACTIVE') return { tone: 'done', words: 'Voice ready' };
-  if (id.status === 'REVIEW') return { tone: 'waiting', words: 'Needs listening' };
-  return { tone: 'idle', words: String(id.status ?? 'Draft').toLowerCase() };
-}
-
 function CharacterVoices() {
   const { state } = useStudio();
   const cs = state.characters;
   if (!cs.length) return <SectionEmpty>No characters yet. A character's voice is made on its page.</SectionEmpty>;
-  return (
-    <div className="paper card-pad" style={{ overflowX: 'auto' }}>
-      <table className="table">
-        <thead><tr><th scope="col">Character</th><th scope="col">Language</th><th scope="col">Engine</th><th scope="col">State</th><th scope="col">Dialect</th><th scope="col">Listened</th></tr></thead>
-        <tbody>
-          {cs.map((c) => {
-            const id = c.voice?.identity; const s = voiceState(c);
-            const listened = id?.listening?.length ?? 0;
-            return (
-              <tr key={c.id}>
-                <td><Link href={`/characters/${c.id}#voice`}>{c.name}</Link></td>
-                <td>{c.language}{c.dialect === 'IRAQI_BAGHDADI' ? ' · Iraqi (Baghdadi)' : ''}</td>
-                <td>{id?.provider === 'MINIMAX' ? 'MiniMax (hosted)' : engineLabel(id?.model)}</td>
-                <td><StateWord tone={s.tone}>{s.words}</StateWord></td>
-                <td>{c.dialect === 'IRAQI_BAGHDADI' ? <Badge tone={id?.dialectStatus === 'LISTENER_APPROVED' ? 'ok' : id?.dialectStatus === 'LISTENER_REJECTED' ? 'bad' : 'warn'}>{id?.dialectStatus === 'LISTENER_APPROVED' ? 'A listener approved it' : id?.dialectStatus === 'LISTENER_REJECTED' ? 'A listener rejected it' : 'Not judged by a listener'}</Badge> : '—'}</td>
-                <td>{listened ? `${listened} ${listened === 1 ? 'time' : 'times'}` : 'Not yet'}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+  // one card per performer: its figure, what it performs, its languages, its one voice and each language's lines
+  return <div style={{ display: 'grid', gap: 16 }}>{cs.map((c) => <PerformerVoice key={c.id} c={c} />)}</div>;
 }
-
 // ------------------------------------------------------------------------------------------------ dialogue editor
 
 const ENGINE_OPTIONS = [

@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, SpokenLanguage, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, SpokenLanguage, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { reconcileShot } from './shot-dependencies';
@@ -913,6 +913,28 @@ export function recordVoiceListening(s: S, id: string, rec: { natural: number; d
   if (rec.samePerson !== undefined) throw new StudioError('INVALID', 'Same-person is judged for another language of the voice, against its own language.', { characterId: id });
   if (rec.dialectAuthentic !== undefined && identity.language !== 'AR') throw new StudioError('INVALID', 'Accent and dialect are judged for Arabic voices.', { characterId: id });
   return writeCharacter(s, id, { voice: { ...c.voice, identity: withListening(identity, rec, now()) } });
+}
+
+/** A language the character speaks that its pinned voice has no profile for (added — or lost on read, Phase 1
+ *  character A, 2026-10-09 — after the build): the SAME identity, with the same reference, parameters and revision,
+ *  gains that language's profile, REVIEW until a listener judges it. Nothing is spoken or regenerated: a profile says
+ *  which engine speaks the language from the identity's reference (the worker names it). */
+export function addVoiceLanguageProfiles(s: S, id: string, profiles: VoiceLanguageProfile[]): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const identity = c.voice.identity;
+  if (!identity) throw new StudioError('INVALID', `${c.name} has no voice yet; build it first.`, { characterId: id });
+  const spoken = spokenLanguages(c);
+  const own = { language: identity.language, dialect: identity.dialect };
+  const have: VoiceLanguageProfile[] = identity.languageProfiles?.length ? identity.languageProfiles : [{ ...own, engine: identity.model, status: 'PRIMARY' }];
+  const add: VoiceLanguageProfile[] = [];
+  for (const p of profiles) {
+    if (sameLanguage(p, own)) throw new StudioError('INVALID', `${languageLabel(p)} is the voice's own language.`, { characterId: id });
+    if (!spoken.some((l) => sameLanguage(l, p))) throw new StudioError('INVALID', `${c.name} does not speak ${languageLabel(p)}.`, { characterId: id });
+    if ([...have, ...add].some((x) => sameLanguage(x, p))) throw new StudioError('CONFLICT', `${c.name}'s voice already has a ${languageLabel(p)} profile.`, { characterId: id });
+    add.push({ ...p, status: 'REVIEW' });
+  }
+  if (!add.length) return s;
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, languageProfiles: [...have, ...add] } } });
 }
 
 /** THE LANGUAGES A CHARACTER SPEAKS (Phase 1): the primary first (it must be the character's own language), then the

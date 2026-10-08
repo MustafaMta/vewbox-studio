@@ -165,4 +165,8 @@ describe('normalizeVoice (rows written before the contract)', () => {
     expect(normalizeVoice(null).samples).toEqual([]);
     expect(normalizeVoice({ pitch: 'LOW' } as Voice)).toMatchObject({ pitch: 'LOW', pace: 'MEASURED', samples: [] });
   });
+  it('keeps the languages a character speaks (Phase 1, 2026-10-09: dropped on read, character A lost English + Iraqi)', () => {
+    const languages = [{ language: 'EN' as const }, { language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const }];
+    expect(normalizeVoice({ pitch: 'MID', pace: 'SLOW', timbre: '', notes: '', samples: [], languages }).languages).toEqual(languages);
+  });
 });

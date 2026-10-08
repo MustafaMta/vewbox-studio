@@ -20,7 +20,7 @@ export const COMMANDS = {
   setSong: A.setSong, updateSong: A.updateSong, recordSongListening: A.recordSongListening,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
-  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent, setSpokenLanguages: A.setSpokenLanguages,
+  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent, setSpokenLanguages: A.setSpokenLanguages, addVoiceLanguageProfiles: A.addVoiceLanguageProfiles,
   setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, setLocationAmbience: A.setLocationAmbience, duplicateLocationInStyle: A.duplicateLocationInStyle, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
@@ -162,6 +162,7 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   updateVoiceDesign: z.tuple([id, id, VoiceDesignPatchSchema]),
   recordVoiceListening: z.tuple([id, ListeningSchema]),
   setSpokenLanguages: z.tuple([id, z.array(spokenLanguage).min(1).max(4)]),
+  addVoiceLanguageProfiles: z.tuple([id, z.array(languageProfile).min(1).max(3)]),
   recordSongListening: z.tuple([id, z.object({ verdict: z.enum(['ACCEPTED', 'NOT_YET']), note: short(2000).optional() }).strict()]),
   confirmVoiceConsent: z.tuple([id, id, consentStatement]),
   proposePronunciation: z.tuple([z.object({ word: z.string().min(1).max(120), say: z.string().min(1).max(200), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), engines: z.array(short(40)).max(10).optional(), note: short(1000).optional(), proposedBy: short(80) }).strict()]),
@@ -192,7 +193,7 @@ export function validateCommandArgs(name: CommandName, args: unknown): void {
  *  runs. The browser keeps running every command locally (runCommand) — the split is about who may SEND one. */
 export const SYSTEM_COMMANDS = [
   'recordExport', 'setCut', 'replaceScript', 'replaceSceneShots', 'setShotFrames', 'setDialogueAudio',
-  'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign',
+  'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign', 'addVoiceLanguageProfiles',
   'setCanonicalImage', 'addLocationRefs', 'setLocationAmbience', 'addAsset', 'updateAsset',
   // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
   'addCastMember', 'addLocationMember', 'updateShowBible', 'finishEpisode', 'fillProductionFields',

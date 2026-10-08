@@ -64,6 +64,17 @@ describe('one voice identity, a profile per language', () => {
     expect(codeOf(() => recordVoiceListening(s, 'nour', { natural: 4, samePerson: true }))).toBe('INVALID');
     expect(codeOf(() => recordVoiceListening(s, 'nour', { natural: 4, language: 'AR', dialect: 'EGYPTIAN' }))).toBe('INVALID');
   });
+  it('a language the built voice has no profile for is added to the SAME identity (same revision), REVIEW; nothing twice', async () => {
+    const { addVoiceLanguageProfiles } = await import('@/domain/actions');
+    const built = setVoiceIdentity(english(), 'nour', identity());
+    const s = setSpokenLanguages(built, 'nour', [EN, IRAQI]);
+    const after = addVoiceLanguageProfiles(s, 'nour', [{ ...IRAQI, engine: 'habibi', comparisonEngines: ['moss'], status: 'LISTENER_APPROVED' }]);
+    const v = ch(after, 'nour').voice.identity!;
+    expect(v.revision).toBe(ch(built, 'nour').voice.identity!.revision);
+    expect(v.languageProfiles).toEqual([{ ...EN, engine: 'moss', status: 'PRIMARY' }, { ...IRAQI, engine: 'habibi', comparisonEngines: ['moss'], status: 'REVIEW' }]);
+    expect(codeOf(() => addVoiceLanguageProfiles(after, 'nour', [{ ...IRAQI, engine: 'habibi', status: 'REVIEW' }]))).toBe('CONFLICT');
+    expect(codeOf(() => addVoiceLanguageProfiles(built, 'nour', [{ ...IRAQI, engine: 'habibi', status: 'REVIEW' }]))).toBe('INVALID');
+  });
   it('a designed seed speaking Iraqi says what no measurement can claim', () => {
     expect(languageProfileNotes('DESIGNED', IRAQI).join(' | ')).toMatch(/native listener.*validation only.*consented Baghdadi recording.*same person/);
   });

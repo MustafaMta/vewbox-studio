@@ -96,6 +96,25 @@ async function main() {
     console.log(JSON.stringify({ character: key, characterId: id, jobs }, null, 1));
     return;
   }
+  if (cmd === 'profiles') {
+    // the languages the character speaks, and their profiles on the voice it already has — routing only, nothing is
+    // spoken or regenerated (character A lost its languages on read before the voice was built, 2026-10-09)
+    const key = k as Key;
+    const id = await created(key);
+    if (!id) throw new Error(`character ${key} has not been created yet`);
+    const { readState, commands } = await import('@/server/studio/engine');
+    const { languageProfilesFor } = await import('@/worker/handlers/voice');
+    const { sameLanguage, spokenLanguages } = await import('@/domain/voice-identity');
+    let c = (await readState()).state.characters.find((x) => x.id === id)!;
+    if (spokenLanguages(c).length < LANGUAGES.length) { await commands([{ name: 'setSpokenLanguages', args: [id, LANGUAGES] }], 'worker'); c = (await readState()).state.characters.find((x) => x.id === id)!; }
+    const v = c.voice.identity;
+    if (!v) throw new Error(`${c.name} has no voice yet`);
+    const missing = languageProfilesFor(c, v, v.origin).slice(1).filter((p) => !v.languageProfiles?.some((x) => sameLanguage(x, p)));
+    if (missing.length) await commands([{ name: 'addVoiceLanguageProfiles', args: [id, missing] }], 'worker');
+    c = (await readState()).state.characters.find((x) => x.id === id)!;
+    console.log(JSON.stringify({ character: key, name: c.name, languages: c.voice.languages, profiles: c.voice.identity?.languageProfiles, revision: c.voice.identity?.revision }, null, 1));
+    return;
+  }
   if (cmd === 'status') {
     for (const key of ['A', 'B', 'C'] as Key[]) console.log(key, (await created(key)) ?? '—');
     return;

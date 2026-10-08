@@ -369,6 +369,16 @@ export const proofLineFor = (c: Pick<Character, 'language' | 'dialect' | 'name' 
   return nameAr ? `أهلاً بك. اسمي ${nameAr}، وهذا صوتي.` : 'أهلاً بك. هذا صوتي، وسأقرأ لك اليوم.';
 };
 
+/** The profile of every language a character speaks for a voice whose own engine is `head.model`: its own language
+ *  first (PRIMARY), each other language through that language's production engine (Iraqi: Habibi, MOSS named once as
+ *  the comparison engine), REVIEW, with what no measurement can claim. A hosted voice speaks all of them itself. */
+export function languageProfilesFor(c: Character, head: Pick<VoiceIdentity, 'provider' | 'model'>, origin: VoiceIdentity['origin']): NonNullable<VoiceIdentity['languageProfiles']> {
+  return spokenLanguages(c).map((l, i) => {
+    const engine = i === 0 || head.provider === 'MINIMAX' ? head.model : pickEngine(l.language, l.dialect);
+    return { language: l.language, ...(l.dialect ? { dialect: l.dialect } : {}), engine, ...(engine === 'habibi' ? { comparisonEngines: ['moss'] } : {}), status: i === 0 ? 'PRIMARY' : 'REVIEW', ...(i === 0 ? {} : { notes: languageProfileNotes(origin, l) }) };
+  });
+}
+
 /** Build and pin a character's voice (docs/CONTRACTS-VOICE-IDENTITY-V2.md §2). Modes: REFERENCE clones from one
  *  consented upload; DESIGN pins the producer's chosen design candidate; AUTOMATIC uses a consented recording when there
  *  is one, otherwise designs an English or MSA voice from the profile and pins the best measured candidate (Iraqi:
@@ -464,10 +474,7 @@ export const voiceBuild: Handler = async (ctx) => {
   // ONE VOICE, EVERY LANGUAGE THE CHARACTER SPEAKS: its own language is proved by the proof line below; each other
   // language is spoken from the same reference by that language's engine (Iraqi: Habibi, with MOSS heard once beside
   // it for the producer's comparison) and stays REVIEW until a listener judges it
-  const languageProfiles: NonNullable<VoiceIdentity['languageProfiles']> = spokenLanguages(c).map((l, i) => {
-    const engine = i === 0 || head.provider === 'MINIMAX' ? head.model : pickEngine(l.language, l.dialect);
-    return { language: l.language, ...(l.dialect ? { dialect: l.dialect } : {}), engine, ...(engine === 'habibi' ? { comparisonEngines: ['moss'] } : {}), status: i === 0 ? 'PRIMARY' : 'REVIEW', ...(i === 0 ? {} : { notes: languageProfileNotes(origin, l) }) };
-  });
+  const languageProfiles = languageProfilesFor(c, head, origin);
   // the character as the proof line will see it: the identity-to-be, so routing and parameters are the ones pinned
   const trial: Character = { ...c, voice: { ...c.voice, identity: { ...head, mode, origin, language: c.language, dialect: c.dialect, params, status: 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: new Date().toISOString() } } };
 
