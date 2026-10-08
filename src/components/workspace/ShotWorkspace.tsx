@@ -271,6 +271,13 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
           </div>
         </details>
 
+        {shown && shot.characterIds.length > 0 && (
+          <details className="ws-disc">
+            <summary className="ws-disc-sum">How take {takeNo(shown)} ends</summary>
+            <div className="ws-disc-body"><TakeEnd key={`${shown.id}:${shown.endState?.approved?.at ?? ''}`} p={p} shot={shot} take={shown} /></div>
+          </details>
+        )}
+
         <details className="ws-disc">
           <summary className="ws-disc-sum">Details{shown ? ` · take ${takeNo(shown)}` : ''}</summary>
           <div className="ws-disc-body"><Provenance take={shown} shot={shot} /></div>
@@ -291,6 +298,43 @@ export function ShotWorkspace({ p, shot }: { p: Production; shot: Shot }) {
         </div>
       </aside>
     </WorkspaceShell>
+  );
+}
+
+/** HOW THE TAKE ENDS (planned vs actual end state, src/domain/types.ts TakeEndState): what each person is doing, holding
+ *  and how they are at the take's last frame. Filled from the approved record, else an observation, else the plan; the
+ *  producer approves it, and the next continuous shot (or a cut on the same moment) starts from it instead of the plan. */
+function TakeEnd({ p, shot, take }: { p: Production; shot: Shot; take: Take }) {
+  const { state, act } = useStudio();
+  const toast = useToast();
+  const cast = castOf(state, p).filter((c) => shot.characterIds.includes(c.id));
+  const from = take.endState?.approved ?? take.endState?.observed;
+  const planned = (id: string) => shot.continuity?.characters.find((x) => x.characterId === id);
+  const [rows, setRows] = useState(() => cast.map((c) => {
+    const r = from?.characters.find((x) => x.characterId === c.id);
+    return { characterId: c.id, pose: r?.pose ?? planned(c.id)?.endPose ?? '', holding: (r?.holding ?? planned(c.id)?.holding ?? []).join(', '), condition: r?.condition ?? '' };
+  }));
+  const set = (i: number, k: 'pose' | 'holding' | 'condition', v: string) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const approve = () => {
+    try {
+      act('recordTakeEndState', p.id, shot.id, take.id, { characters: rows.map((r) => ({ characterId: r.characterId, pose: r.pose, holding: r.holding.split(',').map((h) => h.trim()).filter(Boolean), condition: r.condition })), by: 'producer' }, { approve: true });
+      toast.ok('The end is approved: the next shot on the same moment starts from it.');
+    } catch (e) { toast.bad((e as Error).message); }
+  };
+  const status = take.endState?.approved ? `Approved ${shortWhen(take.endState.approved.at)}` : take.endState?.observed ? 'Observed, not approved: the next shot still starts from the plan' : 'Not recorded: the next shot starts from the plan';
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <p className="t-meta">{status}. Write what the take actually shows at its last frame.</p>
+      {cast.map((c, i) => (
+        <fieldset key={c.id} style={{ display: 'grid', gap: 8, border: 0, padding: 0, margin: 0 }}>
+          <legend className="t-label"><bdi>{c.name}</bdi></legend>
+          <Field label="Pose at the end"><Input dir="auto" value={rows[i].pose} onChange={(e) => set(i, 'pose', e.target.value)} placeholder="standing at the window" /></Field>
+          <Field label="Holding" optional><Input dir="auto" value={rows[i].holding} onChange={(e) => set(i, 'holding', e.target.value)} placeholder="the thermos, cap off" /></Field>
+          <Field label="Condition" optional><Input dir="auto" value={rows[i].condition} onChange={(e) => set(i, 'condition', e.target.value)} placeholder="soaked, out of breath" /></Field>
+        </fieldset>
+      ))}
+      <Button size="sm" variant="secondary" onClick={approve}>Approve this end</Button>
+    </div>
   );
 }
 

@@ -117,7 +117,7 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
   // the editorial transition agrees with the relation (relationToPrevious decides the request; transition only renders)
   if (pack.relation === 'CONTINUATION' && (sh.transition === 'DISSOLVE' || sh.transition === 'FADE')) warnings.push({ name: 'transition-matches-relation', detail: `a continuation is joined by a cut, not a ${sh.transition.toLowerCase()}` });
   if (pack.relation === 'CUT' && sh.transition === 'EXTEND') warnings.push({ name: 'transition-matches-relation', detail: 'EXTEND on a shot planned as a cut: it is generated as a cut (relationToPrevious decides)' });
-  if (pack.lowering) warnings.push({ name: 'hosted-lowering', detail: pack.lowering });
+  if (pack.lowering) warnings.push({ name: pack.insertFromFrame ? 'insert-from-frame' : 'hosted-lowering', detail: pack.lowering });
   // THE IDENTITY RE-APPLICATION RULE on the pack (src/server/production/identity-rule.ts): every present character's
   // canonical image and the place's plate are conditioned on, or the request is refused as MISSING_REFERENCE; the
   // worker checks the same rule again on the request it built (connected files, prompt bindings)
