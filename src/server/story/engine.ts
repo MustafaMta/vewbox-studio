@@ -12,6 +12,7 @@ import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type L
 import { styleDirection } from './style';
 import { continuousMoveBetween } from './prompts';
 import { continuousProblems } from '@/domain/continuous-feasibility';
+import { neutralLook } from '@/domain/neutral-look';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, designSex, voicePace, voicePitch, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
@@ -226,7 +227,10 @@ Return JSON: { name, nameAr?, role, sex, ageYears, species?, build, face, hair, 
   // look field mentions is carried over in the producer's own words, first among the distinguishing details
   const kept = keepBriefLook(req.brief, r.data);
   if (kept.carried.length || kept.moved.length) log.info({ carried: kept.carried, movedOutOfWardrobe: kept.moved, name: kept.design.name }, 'character design: look features kept in the look fields');
-  return kept.design;
+  // THE NEUTRAL IDENTITY (src/domain/neutral-look.ts): no expression in the look, no temporary condition in the identity
+  const neutral = neutralLook(kept.design);
+  if (neutral.report.movedToPersonality.length || neutral.report.droppedConditions.length || neutral.report.healed.length) log.info({ ...neutral.report, name: kept.design.name }, 'character design: the identity made neutral');
+  return neutral.design;
 }
 
 /** The orchestrator's second line in a REFERENCE design brief (D15): what the vision model saw in the producer's

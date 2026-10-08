@@ -72,7 +72,10 @@ describe('designCharacter keeps the brief’s look (regression: Abu Haidar, job-
   it('the model’s design without the moustache comes back with it in the face', async () => {
     llm.answer = { name: 'Abu Haidar', role: 'Tea Seller', sex: 'MALE', ageYears: 58, ...DESIGN, personality: 'Warm, teasing and unhurried', voice: { pitch: 'LOW', pace: 'SLOW', timbre: 'raspy and warm' } };
     const d = await designCharacter(seed(), { brief: BRIEF, name: 'Abu Haidar', style: 'CARTOON', language: 'AR', dialect: 'IRAQI_BAGHDADI' });
-    expect(d.face).toMatch(/; a grey moustache$/);
+    expect(d.face).toMatch(/[;,] a grey moustache$/);
+    // the neutral identity (src/domain/neutral-look.ts): "friendly" is a mood, not a look — it goes to the personality
+    expect(d.face).not.toMatch(/friendly/);
+    expect(d.face).toMatch(/^Round with prominent apple-cheeks and deep laughter lines/);
     expect(d.wardrobe).toBe(DESIGN.wardrobe);
     expect(d.distinguishing).toEqual(DESIGN.distinguishing);
   });
