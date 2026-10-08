@@ -105,7 +105,7 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     // a frame drawn from the previous shot's actual end is stale once that shot's chosen take changed
     const pe = which === 'opening' ? previousEndOf(byId(aid)) : undefined;
     const prevShot = pe ? p.shots.find((x) => x.id === pe.shotId) : undefined;
-    if (pe && prevShot && prevShot.selectedTakeId !== pe.takeId) warnings.push({ name: 'opening-frame-stale', detail: `the opening frame was drawn from the end of another take of shot ${prevShot.number} than the one now chosen: draw it again so the state carries from the chosen take` });
+    if (pe && prevShot && prevShot.selectedTakeId && prevShot.selectedTakeId !== pe.takeId) warnings.push({ name: 'opening-frame-stale', detail: `the opening frame was drawn from the end of another take of shot ${prevShot.number} than the one now chosen: draw it again so the state carries from the chosen take` });
   }
   add('identity-reference-present', identityOk, 'MISSING_REFERENCE', identityOk ? (identityNeeded ? (pack.graph === 'FRAMES' ? 'the previous take’s last frame (hosted frame mode)' : `${pack.subjects.length} character image(s) bound as subjects`) : undefined) : 'the shot has characters but none has a canonical image to hold their identity; draw them first');
   // guides: count and fit, as the request will chain them (the soundtrack guide exists for a speaking or singing shot)

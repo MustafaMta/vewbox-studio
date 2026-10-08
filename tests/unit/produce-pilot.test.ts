@@ -156,7 +156,8 @@ describe('PRODUCE with the pilot gate', () => {
     fake.state = state; fake.imagesReady = true;
     await produce(ctx(p.id));
     const frames = fake.order.filter((o) => o.startsWith('SHOT_FRAMES'));
-    expect(frames).toEqual(['SHOT_FRAMES:s11', 'SHOT_FRAMES:s13', 'SHOT_FRAMES:s21']);
+    // s13 is a CUT after s12 in the same scene: its frame is drawn later, by its take, from s12's actual end
+    expect(frames).toEqual(['SHOT_FRAMES:s11', 'SHOT_FRAMES:s21']);
   });
 
   it('a scene already proven by an accepted take has no pilot', async () => {
@@ -192,10 +193,11 @@ describe('PRODUCE is a dependency graph (step 14)', () => {
     expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21']);
     expect(first.jobIds).toEqual(['job-1', 'job-2']);
     expect(first.plan).toMatchObject({ round: 0, targets: ['s11', 's12', 's13', 's21'], takes: { s11: 'job-1', s21: 'job-2' } });
-    // the rest takes two more passes: the other shots (they settle at once here, so the same pass queues the cut), the report
+    // the rest takes three more passes: the scene is filmed in order (s12, then s13 drawn from s12's actual end), then
+    // the cut and the report
     c.job = { ...c.job, plan: first.plan, wakes: 1, attempts: 1 };
     await produce(c);
-    expect(passes).toBe(2);
+    expect(passes).toBe(3);
     expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13', 'ASSEMBLE']);
   });
 
@@ -238,5 +240,17 @@ describe('PRODUCE is a dependency graph (step 14)', () => {
     const { state, p } = unproven(); fake.state = state;
     process.env.PRODUCE_DAG = 'off';
     try { const r = await producePass(ctx(p.id)); expect(waitRequestOf(r)).toBeUndefined(); expect(fake.order).toEqual(['GENERATE_TAKE:s11', 'GENERATE_TAKE:s21', 'GENERATE_TAKE:s12', 'GENERATE_TAKE:s13', 'ASSEMBLE']); } finally { delete process.env.PRODUCE_DAG; }
+  });
+});
+describe('the state is handed on in order (continuity recovery 2026-10-08)', () => {
+  it('waitsForPredecessor: a continuation, and a CUT inside the scene whose predecessor is filmed in the run', async () => {
+    const { waitsForPredecessor } = await import('@/worker/handlers/produce');
+    const { p } = unproven();
+    const all = new Set(p.shots.map((s) => s.id));
+    expect(waitsForPredecessor(p, shotOf(p, 's11'), all)).toBe(false); // the scene's first shot opens it
+    expect(waitsForPredecessor(p, shotOf(p, 's12'), new Set(['s12']))).toBe(true); // a continuation always waits
+    expect(waitsForPredecessor(p, shotOf(p, 's13'), all)).toBe(true); // a cut after s12, filmed in this run
+    expect(waitsForPredecessor(p, shotOf(p, 's13'), new Set(['s13']))).toBe(false); // s12 already has its take
+    expect(waitsForPredecessor(p, shotOf(p, 's21'), all)).toBe(false); // a new scene
   });
 });

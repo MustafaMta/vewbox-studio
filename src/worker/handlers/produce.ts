@@ -257,9 +257,11 @@ export const produce: Handler = async (ctx) => {
     plan.imagesReady = await comfy.health().then(async (h) => h.ok && (await comfy.listModels('diffusion_models').catch(() => [] as string[])).some((m) => m.includes('qwen_image'))).catch(() => false);
     if (!plan.imagesReady) await ctx.event('warn', 'image engine not ready: opening frames skipped, takes generated from prompt and references');
     await ctx.activity('PRODUCTION_STARTED', `“${p.title}”: ${targets.length} shot(s) to ${respeak ? 're-record' : 'generate'}${framesOnly ? ' (frames only)' : ''}`, { shots: targets.length, respeak: Boolean(respeak) });
-    // frames first (local GPU, fast); a continuation starts from the previous take's tail and gets none
+    // frames first (local GPU, fast); a continuation starts from the previous take's tail and gets none, and a CUT
+    // whose previous shot is filmed in this run is drawn later, by its take, from that shot's actual end
+    const targetIds = new Set(targets.map((s) => s.id));
     for (const sh of targets) {
-      if (sh.openingFrameAssetId || !plan.imagesReady || effectiveRelation(p, sh).relation === 'CONTINUATION') continue;
+      if (sh.openingFrameAssetId || !plan.imagesReady || waitsForPredecessor(p, sh, targetIds)) continue;
       plan.frames[sh.id] = await enqueueChild({ type: 'SHOT_FRAMES', payload: { productionId, shotId: sh.id }, key: `produce:${ctx.job.id}:frame:${sh.id}:${round}`, priority: 2 });
     }
     const frameJobs = Object.values(plan.frames);
@@ -302,22 +304,25 @@ export const produce: Handler = async (ctx) => {
   //         pass after its predecessor's take settled, and is held back when that take was not accepted ----
   const isBlocked = (id: string) => plan.blocked.some((b) => b.shotId === id);
   const waitingOn: string[] = [];
+  const queuedNow = new Set<string>();
   for (const s of plan.scenes) {
     for (const id of s.rest) {
       if (plan.takes[id] || isBlocked(id)) continue;
       const sh = p.shots.find((x) => x.id === id);
       if (!sh) { plan.blocked.push({ shotId: id, reason: 'the shot no longer exists' }); continue; }
-      const { relation, previous } = effectiveRelation(p, sh);
-      if (relation === 'CONTINUATION' && previous) {
+      const { previous } = effectiveRelation(p, sh);
+      if (previous && waitsForPredecessor(p, sh, new Set(plan.targets))) {
         if (isBlocked(previous.id)) { plan.blocked.push({ shotId: id, reason: `continues shot ${previous.number}, which was not generated` }); continue; }
         const prevJobId = plan.takes[previous.id];
+        // a predecessor queued in this very pass is judged in the next one, on the state its take is recorded in
+        if (prevJobId && queuedNow.has(previous.id)) { waitingOn.push(prevJobId); continue; }
         if (prevJobId) {
           const prevJob = await getJob(prevJobId);
           if (!settledJob(prevJob)) { waitingOn.push(prevJobId); continue; }
           if (!pilotVerdict(prevJob, state, productionId, previous.id).passed) { plan.blocked.push({ shotId: id, reason: `continues shot ${previous.number}, whose take was not accepted` }); continue; }
         }
       }
-      await queueTake(sh);
+      await queueTake(sh); queuedNow.add(sh.id);
     }
   }
   const takeJobs = Object.values(plan.takes);
@@ -342,6 +347,17 @@ export const produce: Handler = async (ctx) => {
   await ctx.activity('PRODUCTION_ROUND', `“${p.title}”: ${completed} of ${plan.targets.length} shot(s) generated${failed ? `, ${failed} failed (each can be regenerated on its own)` : ''}${plan.blocked.length ? `, ${plan.blocked.length} held back by a pilot or a predecessor` : ''}${remaining ? `, ${remaining} still without a take` : ''}`, { completed, failed, remaining, blocked: plan.blocked.length });
   return { shots: plan.targets.length, completed, failed, failedShots, pilots: pilotsReport, blocked: plan.blocked, world: plan.world, remainingWithoutTake: remaining, awaitingReview: remaining > 0 };
 };
+
+/** THE STATE IS HANDED ON IN ORDER (continuity recovery 2026-10-08): a shot waits for its predecessor's take when it
+ *  continues it (it starts from that take's tail) or when it is a CUT inside the same scene whose predecessor is filmed
+ *  in this run (its opening frame is drawn from that take's actual end: the clothes, the props, the light as filmed —
+ *  frames drawn up front from the plan alone let a soaked man turn dry between cuts). Pure (tested). */
+export function waitsForPredecessor(p: Production, sh: Shot, targetIds: Set<string>): boolean {
+  const { relation, previous } = effectiveRelation(p, sh);
+  if (!previous) return false;
+  if (relation === 'CONTINUATION') return true;
+  return relation === 'CUT' && previous.sceneId === sh.sceneId && targetIds.has(previous.id);
+}
 
 /** A child job is settled when it is terminal or waits for a person (AWAITING_REVIEW is not terminal, but nothing more
  *  will happen to it without a person: waiting on it would never end). */

@@ -615,8 +615,12 @@ async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: 
 async function previousEndFrame(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ asset: Asset; end: PreviousEnd } | undefined> {
   const { relation, previous } = effectiveRelation(p, sh);
   if (relation !== 'CUT' || !previous || previous.sceneId !== sh.sceneId) return undefined;
-  const take = previous.takes.find((t) => t.id === previous.selectedTakeId);
-  if (!take || take.status === 'REJECTED' || take.rating === 'REJECTED') return undefined;
+  // the chosen take; before anyone chose (a production run films the scene in order), the latest accepted one — the
+  // frame records which, and the preflight calls it stale if another take is chosen later
+  const usable = (t: (typeof previous.takes)[number]) => t.status === 'READY' && t.rating !== 'REJECTED' && t.provider !== 'SAMPLE';
+  const chosen = previous.takes.find((t) => t.id === previous.selectedTakeId);
+  const take = chosen ? (usable(chosen) ? chosen : undefined) : [...previous.takes].reverse().find(usable);
+  if (!take) return undefined;
   const video = state.assets.find((a) => a.id === take.assetId);
   if (!video || video.kind !== 'VIDEO' || video.unavailable || video.sample) return undefined;
   const sourceFrame = Math.max(0, windowEndSourceFrame(p, previous, take, video) - 1);

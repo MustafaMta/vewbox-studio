@@ -564,3 +564,25 @@ the opening frames and the location plate, inspected side by side.
 - Tests: 208 files, 1,780 passed.
 - **Next:** the 6–8 shot continuity validation scene (two characters, one prop, dialogue, physical interaction).
   One generation per shot; viewing decides (`WAITING_FOR_USER_ACCEPTANCE`).
+### Continuity validation scene — setup (2026-10-08)
+
+- **Production:** Short "The Relief" (`short-78dc9a8d75`), Realistic, English, 1 min, 16:9, created through the real
+  UI.
+  - Cast: Marcus Bell and the new character Elena Ward (`char-6301606560`).
+  - Location: Blackrock Lighthouse Lantern Room, realistic (`loc-f24a33edef`).
+  - Prop: a dented brass thermos.
+- **Elena Ward**, created through the real UI: Actor, Realistic, English, Woman, 32.
+  - The sheet, the figure and a designed voice (MOSS) were made on the first attempt.
+  - **Defects found:**
+    - The designer gave her Marcus Bell's distinguishing detail ("a small healed scar on her left eyebrow").
+    - The figure drew it as a fresh red cut on the forehead: 2 of 2 characters now (Marcus in Phase 1).
+    - Her sheet says "clean-shaven skin", which added a shaving clause to a woman's identity line.
+  - **Fixed in code (dfa92d3):**
+    - A scar is written as old and healed.
+    - No clean-shaven clause for a woman.
+    - The designer must give each character their own detail.
+  - **Explicit redraw** (creative attempt 2, of the affected asset only, recorded): the red marks were smaller but
+    still there. **The healed wording did not fix it.** The open fix is a negative prompt against fresh wounds for
+    the canonical model (cfg 4 honours negatives). No further redraw.
+  - **Figure version 2 was approved by the engineering session** for the continuity validation, as in Phase 1. It is
+    not the producer's casting decision: the producer may redraw or re-cast. `WAITING_FOR_USER_ACCEPTANCE`.
