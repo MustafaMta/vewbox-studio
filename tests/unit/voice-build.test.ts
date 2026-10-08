@@ -394,3 +394,16 @@ describe('DIALOGUE_AUDIO reuse', () => {
     expect(again).toMatchObject({ unverified: 3, awaitingReview: true });
   });
 });
+
+describe('a take that repeats its line is not a wrong line (The Relief 1.5)', () => {
+  it('folds an immediate repeat before the characters are compared; other extra words still count', async () => {
+    const { withoutImmediateRepeats, judgeHeard } = await import('@/worker/handlers/voice');
+    expect(withoutImmediateRepeats('Duty Calls. Duty Calls.')).toBe('Duty Calls.');
+    expect(withoutImmediateRepeats("Radio's dead. Had to row. Had to row.")).toBe("Radio's dead. Had to row.");
+    expect(withoutImmediateRepeats('no no no')).toBe('no');
+    expect(withoutImmediateRepeats('I said yes and she said no')).toBe('I said yes and she said no');
+    expect(judgeHeard('Duty calls.', 'Duty Calls. Duty Calls.', 'EN', 'take').status).toBe('PASS');
+    // a recorded line (not a take) is still judged as heard
+    expect(judgeHeard('Duty calls.', 'Duty Calls. Duty Calls.', 'EN', 'line').status).not.toBe('PASS');
+  });
+});

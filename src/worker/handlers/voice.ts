@@ -270,7 +270,10 @@ export interface LineCheck { ok: boolean; status: VoiceVerdict['status']; reason
  *  included): a line that fails only on words with چ is REVIEW for a listener, "چ not confirmable by ASR", never FAIL;
  *  the numbers recorded stay the measured ones. Pure. */
 export function judgeHeard(text: string, heard: string, language: Language, context: 'line' | 'take' = 'line'): LineCheck {
-  const m = heardMetrics(text, heard, language);
+  // A TAKE'S REPEAT IS NOT A WRONG LINE (2026-10-08, "The Relief" 1.5: "Duty calls. Duty calls." — every word right,
+  // CER 1.10, rejected): coverage already ignores a repeated phrase, and the repeat is flagged on its own for review
+  // (no-repeated-speech); the characters are compared after an immediate repeat is folded away
+  const m = heardMetrics(text, context === 'take' ? withoutImmediateRepeats(heard) : heard, language);
   const v = verdict({ coverage: m.coverage, cer: m.cer, context });
   let status = v.status; let reasons = v.reasons;
   if (language === 'AR' && status !== 'PASS') {
@@ -283,6 +286,24 @@ export function judgeHeard(text: string, heard: string, language: Language, cont
     }
   }
   return { ok: status === 'PASS', status, reasons, wer: m.wer, cer: m.cer, coverage: m.coverage, heard };
+}
+
+/** The heard text with every phrase that immediately repeats the words before it removed ("Duty calls. Duty calls." →
+ *  "Duty calls."), compared word by word without case or punctuation. Pure (tested). */
+export function withoutImmediateRepeats(heard: string): string {
+  const words = heard.split(/\s+/).filter(Boolean);
+  const key = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const out: string[] = [];
+  for (let i = 0; i < words.length; ) {
+    let skipped = 0;
+    for (let n = Math.min(8, out.length, words.length - i); n >= 1; n--) {
+      const prev = out.slice(out.length - n).map(key); const next = words.slice(i, i + n).map(key);
+      if (prev.every((w, k) => w && w === next[k])) { skipped = n; break; }
+    }
+    if (skipped) { i += skipped; continue; }
+    out.push(words[i]); i++;
+  }
+  return out.join(' ');
 }
 
 /** A heard line that failed the gate outright. It is KEPT and flagged for the producer like every other line below the
