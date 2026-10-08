@@ -125,4 +125,10 @@ describe('a scar is drawn healed (Marcus Bell and Elena Ward: "healed scar" drew
     expect(line).not.toMatch(/shaved smooth/);
     expect(line).toMatch(/no redness, no blood, no cut/);
   });
+  it('the canonical figure of a character with a healed scar gets a negative against a fresh wound (cfg 4 honours it)', async () => {
+    const { woundNegative } = await import('@/server/workflows/canonical-image');
+    expect(woundNegative({ distinguishing: ['A small, healed scar on her left eyebrow'], face: '' })).toMatch(/^, fresh wound, bleeding cut/);
+    expect(woundNegative({ distinguishing: ['A fresh scar across the cheek'], face: '' })).toBe('');
+    expect(woundNegative({ distinguishing: ['Freckles'], face: 'Square jaw' })).toBe('');
+  });
 });

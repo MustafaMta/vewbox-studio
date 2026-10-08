@@ -233,6 +233,14 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   return { line: `Identity: ${lead}${[who, ...parts].join('; ')}.`, nonLatin, hasAge: /\d/.test(who) };
 }
 
+/** The negative words for a character whose look names a healed scar: the words alone did not stop a fresh wound
+ *  being drawn (Elena Ward's redraw, 2026-10-08), and the canonical model runs at cfg 4, where a negative prompt acts.
+ *  Empty when no healed scar is named. Pure (tested). */
+export function woundNegative(c: Pick<Character, 'distinguishing' | 'face'>): string {
+  const texts = [...(c.distinguishing ?? []), c.face ?? ''];
+  return texts.some((d) => /\bscar(s|red)?\b/i.test(d) && healedMark(d) !== d) ? ', fresh wound, bleeding cut, open gash, red scratch, blood, scab, stitches' : '';
+}
+
 /** A SCAR IS DRAWN HEALED (2026-10-08: "a small healed scar on his left eyebrow" drew Marcus Bell a fresh red cut, and the
  *  same words drew Elena Ward a bleeding gash — 2 of 2): a distinguishing detail naming a scar says what a healed one
  *  looks like, unless it says the wound is fresh. Pure (tested). */

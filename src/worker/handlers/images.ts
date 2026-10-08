@@ -22,7 +22,7 @@ import * as comfy from '@/server/providers/comfy';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
-  negativeFor, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
+  negativeFor, woundNegative, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
@@ -294,7 +294,8 @@ export const characterAppearance: Handler = async (ctx) => {
   await requireComfy();
   const style = c.style;
   const d = styleDirection(style);
-  const negative = negativeFor(style);
+  // a healed scar is never drawn as a fresh wound (2 of 2 figures, 2026-10-08)
+  const negative = negativeFor(style) + woundNegative(c);
   // a redraw is a new picture: the identity seed moves on by the version it replaces
   const seed = (identitySeedOf(c) + (c.canonicalImage?.version ?? 0)) % 2 ** 31;
 
