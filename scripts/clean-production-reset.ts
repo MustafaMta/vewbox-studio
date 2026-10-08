@@ -9,7 +9,7 @@
  *   pnpm exec tsx --env-file=.env --env-file=.env.local scripts/clean-production-reset.ts            dry run: the manifest
  *   pnpm exec tsx --env-file=.env --env-file=.env.local scripts/clean-production-reset.ts --apply --i-understand-this-deletes
  *
- * The dry run writes the concise audit manifest docs/history/CLEAN-RESET-2026-10-09-manifest.json (counts, names,
+ * The dry run writes the concise audit manifest docs/archive/CLEAN-RESET-2026-10-09-manifest.json (counts, names,
  * bytes — not a backup). --apply refuses while any job is running, then deletes for good and verifies the result.
  * Nothing is restored afterwards. */
 import fs from 'node:fs/promises';
@@ -66,7 +66,7 @@ async function main() {
     library: { root, files: media.length, bytes: media.reduce((n, f) => n + f.bytes, 0), byDir: Object.fromEntries(MEDIA_DIRS.map((d) => [d, media.filter((f) => f.file.startsWith(path.join(root, d) + path.sep)).length])) },
     kept: ['source and git history', 'model weights (D:\\models) and manifests', 'models, agents, tools, skills, departments, workflows registries', 'settings', 'metrics', 'migrations', 'tests', 'documentation', 'evaluation fixtures (var/eval, LAB)', 'configuration and secrets'],
   };
-  const out = path.resolve('docs/history/CLEAN-RESET-2026-10-09-manifest.json');
+  const out = path.resolve('docs/archive/CLEAN-RESET-2026-10-09-manifest.json');
   await fs.mkdir(path.dirname(out), { recursive: true });
   if (!apply) {
     await fs.writeFile(out, JSON.stringify(manifest, null, 2), 'utf8');
@@ -75,6 +75,17 @@ async function main() {
     return;
   }
   if (!confirmed) throw new Error('--apply needs --i-understand-this-deletes');
+  // the model store and the commit, for the audit record (the producer's list: timestamp, DB counts, generated files and
+  // bytes, the active model-store size, the git commit)
+  const { execFileSync } = await import('node:child_process');
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const modelRoot = process.env.VEWBOX_MODELS_ROOT ?? 'D:\\models';
+  const modelBytes = (await filesUnder(modelRoot)).reduce((s, f) => s + f.bytes, 0);
+  // RECOVERABLE UNTIL THE PRODUCER EMPTIES THE RECYCLE BIN: the rows being deleted are dumped (metadata, a small SQL
+  // file) and that dump and the library's media folders are sent to the Windows Recycle Bin — not kept as a backup
+  const dump = path.join(process.env.TEMP ?? '.', `vewbox-clean-reset-2026-10-09-rows.sql`);
+  const dumpSql = execFileSync('docker', ['exec', process.env.DB_CONTAINER ?? 'vewbox-db-1', 'pg_dump', '-U', 'vewbox', '-d', 'vewbox', '--data-only', ...[...STUDIO, ...HISTORY].flatMap((t) => ['-t', t])], { encoding: 'utf8', maxBuffer: 1024 * 1024 * 512 });
+  await fs.writeFile(dump, dumpSql, 'utf8');
   const running = await db().execute(sql.raw(`select count(*)::int as n from jobs where status in ('QUEUED','PREPARING','GENERATING','DOWNLOADING','VALIDATING','POSTPROCESSING')`));
   const n = Number((running as unknown as { rows: Array<{ n: number }> }).rows?.[0]?.n ?? 0);
   if (n > 0) throw new Error(`${n} job(s) are still active: stop them first (nothing was deleted)`);
@@ -83,14 +94,20 @@ async function main() {
   await replaceStudio('empty', true);
   // 2. the generated history, in one transaction
   await db().transaction(async (tx) => { for (const t of HISTORY) await tx.execute(sql.raw(`delete from ${t}`)); });
-  // 3. the library's generated media
-  let removed = 0, bytes = 0;
-  for (const f of media) { await fs.rm(f.file, { force: true }); removed++; bytes += f.bytes; }
+  // 3. the library's generated media folders and the row dump, to the Recycle Bin (the folders are made again, empty)
+  const recycle = (p: string, dir: boolean) => execFileSync('powershell', ['-NoProfile', '-Command', `Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.FileIO.FileSystem]::${dir ? 'DeleteDirectory' : 'DeleteFile'}('${p.replace(/'/g, "''")}', 'OnlyErrorDialogs', 'SendToRecycleBin')`]);
+  const removed = media.length, bytes = media.reduce((s, f) => s + f.bytes, 0);
+  for (const d of MEDIA_DIRS) {
+    const dir = path.join(root, d);
+    if (await fs.stat(dir).then(() => true, () => false)) { recycle(dir, true); await fs.mkdir(dir, { recursive: true }); }
+  }
+  recycle(dump, false);
   const after = await counts(db());
   const left = (await Promise.all(MEDIA_DIRS.map((d) => filesUnder(path.join(root, d))))).flat();
   const clean = Object.values(after).every((v) => v === 0) && left.length === 0;
-  await fs.writeFile(out, JSON.stringify({ ...manifest, applied: true, appliedAt: new Date().toISOString(), removedFiles: removed, removedBytes: bytes, after, libraryFilesLeft: left.length, clean }, null, 2), 'utf8');
-  console.log(JSON.stringify({ removedFiles: removed, removedBytes: bytes, after, libraryFilesLeft: left.length, clean }, null, 1));
+  const audit = { reset: manifest.reset, timestamp: new Date().toISOString(), gitCommit: commit, dbCountsBefore: before, dbCountsAfter: after, generatedFiles: removed, generatedMediaBytes: bytes, activeModelStoreBytes: modelBytes, modelStore: modelRoot, libraryFilesLeft: left.length, clean, recoverable: 'the removed media folders and a metadata dump of the removed rows are in the Windows Recycle Bin until it is emptied' };
+  await fs.writeFile(out, JSON.stringify(audit, null, 2), 'utf8');
+  console.log(JSON.stringify(audit, null, 1));
   if (!clean) process.exitCode = 1;
 }
 main().then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e); process.exit(1); });
