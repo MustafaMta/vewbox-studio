@@ -278,6 +278,22 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - Its weights are .pt pickles, so they are loaded only in an isolated evaluation container.
   - Pinned as manifest group `eval-svc-soulx-singer` (2.98 GB), queued after the phoneme model.
   - NOT production-approved. Seed-VC stays excluded (archived, GPL-3.0).
+- **SoulX-Singer SVC, first evaluation (2026-10-08; LAB TEST — NOT PRODUCTION / NO SPEAKER PERMISSION):**
+  - Container: docker/svc-eval, upstream 81aeb3a. torch 2.7.1+cu128 instead of upstream's 2.2, transformers 4.41.2,
+    whisper-base pinned and served offline. It runs on the RTX 5090.
+  - Input: the Iraqi ACE-Step control vocal (30 s), re-voiced with the Habibi demo speaker. The reference is
+    **speech**, which upstream does not claim to support.
+  - Timing: 4.3 s of conversion, 46 s in all.
+  - **ECAPA to the speaker: 0.668.** For comparison, the source was 0.05 and ACE's timbre reference 0.389;
+    same-person speech scores 0.76–0.81. Converted against source: 0.211.
+  - Pitch median moved to 233 Hz (the speaker's is 226 Hz). The F0 range widened to 16 semitones; possible octave
+    errors, to be checked by listening.
+  - The dialect ASR still hears the lyrics with گ and چ («يا گلبي، بشلونك هسه؟ باچر نرجع الدار…»), and more words than
+    in the source.
+  - The first mechanism that gives a singer a speaker's identity from a speech reference while keeping the Iraqi
+    lyrics.
+  - Gates: listening `WAITING_FOR_USER_ACCEPTANCE`; training-data provenance (legal review) `WAITING_FOR_USER`.
+    NOT production-approved until both are passed.
 
 ## Phase 5 — Shows / Seasons / Episodes — IN PROGRESS (2026-10-07)
 
