@@ -430,8 +430,13 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     if (st?.wardrobeChange?.text) {
       ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone and build of ${pictureLabel(b, s.picture)} are kept exactly${now}.`);
       ret.push(`<Subject ${i + 1}>'s clothes: attribute_transfer - not the clothes of ${pictureLabel(b, s.picture)}: ${st.wardrobeChange.text.replace(/\.$/, '')}.`);
+    } else if (sh.framing === 'INSERT') {
+      // AN INSERT SHOWS HANDS, NOT A PERSON ("The Relief" 1.6): "fully_preserved - the face, hair … build" sent H3 to a
+      // wide of the whole man, with a stranger, and back — three cuts in a take of his hands
+      ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): partially_preserved - only the hands, the skin tone and the sleeves of ${pictureLabel(b, s.picture)} appear; the face, head and body stay out of frame for the whole shot${now}.`);
     } else ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly${now}.`);
   }
+  if (sh.framing === 'INSERT') ret.push('The whole shot stays on the hands and the object at this distance: no face appears, nobody else enters, and the camera never cuts away.');
   for (const f of faceRefs) ret.push(`${pictureLabel(b, f.picture)} (the face of <Subject ${subjectNo.get(f.characterId)}>): fully_preserved - the facial features, skin tone, eyes and hair of <Subject ${subjectNo.get(f.characterId)}> are kept exactly as in ${pictureLabel(b, f.picture)}; the expression follows the action.`);
   if (b.location && placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): partially_preserved - the architecture, layout, materials and fixed props of ${pictureLabel(b, b.location.picture)} are kept; the camera position and framing may differ.`);
   else if (placeNo) ret.push(`<Subject ${placeNo}> (appears in ${shotTags}): weak_reference - described, no picture; the same architecture, layout and fixed features in every frame of the take.`);

@@ -86,6 +86,17 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(framed).not.toContain('the door behind her');
     expect(framed).toContain("<Picture 3>'s framing, positions, background and light");
   });
+  it('an insert keeps hands, skin and sleeves, never the face, and stays on the detail (The Relief 1.6 cut to a wide)', () => {
+    const { p, cast, loc } = setup();
+    const base = shotOf(p, 's12');
+    const [a] = base.characterIds;
+    const sh = { ...base, characterIds: [a], framing: 'INSERT' as const, action: 'He unscrews the cap of the thermos.' };
+    const binding: H3Binding = { labels: 'LOCAL', subjects: [{ characterId: a, picture: 1 }], location: { picture: 2 }, opening: { kind: 'FRAME', picture: 3 } };
+    const prompt = h3ReferencePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' }, binding, { relation: 'CUT' });
+    expect(prompt).toMatch(/<Subject 1> \(appears in \[Shot 1\]\): partially_preserved - only the hands, the skin tone and the sleeves of <Picture 1> appear/);
+    expect(prompt).toContain('no face appears, nobody else enters, and the camera never cuts away');
+    expect(prompt).not.toMatch(/<Subject 1>[^\n]*fully_preserved - the face/);
+  });
   it('a close shot without an opening frame starts at its framing: the plate gives the look, not the framing (G13 shot 1 opened wide and pushed in)', () => {
     const { p, cast, loc } = setup();
     const base = shotOf(p, 's12');
