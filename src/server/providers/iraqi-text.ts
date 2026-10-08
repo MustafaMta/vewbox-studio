@@ -1,6 +1,8 @@
 import type { Dialect, Language } from '@/domain/vocabulary';
 import { VOICE_ENGINES, type LocalTtsEngine } from './voice-engines';
 import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
+import type { EvalTtsEngine } from './voice-eval-engines';
+import { applyPronunciations, type PronunciationEntry } from '@/domain/pronunciation';
 
 /** LINE PREPARATION FOR THE ARABIC ENGINES — pure text, applied in `speakLine` between the script and the
  *  `/synthesize` call (docs/voice/IRAQI-EVAL-SET-2026-10.md §5; research: docs/research/VOICE-IDENTITY-V2.md §2.5
@@ -35,8 +37,8 @@ import { ONE_WORD_LEAD_IN, isOneWordLine } from '../media/lead-in';
  *  گ چ are never mapped to ق ج for synthesis: that fold is for evaluation only. */
 
 /** The engine the line goes to (src/server/providers/voice-engines.ts ids); only IndexTTS gets the one-word lead-in. */
-export type PrepareEngine = LocalTtsEngine;
-export interface PrepareOptions { engine: PrepareEngine; language: Language; dialect?: Dialect }
+export type PrepareEngine = LocalTtsEngine | EvalTtsEngine;
+export interface PrepareOptions { engine: PrepareEngine; language: Language; dialect?: Dialect; /** the studio's dictionary (settings.voice.pronunciations); only native-approved entries apply */ pronunciations?: readonly PronunciationEntry[] }
 /** `leadIn`: the sentence spoken before a one-word IndexTTS line (src/server/media/lead-in.ts) — the handler cuts it off
  *  after synthesis at the silence before the word. */
 export interface PreparedText { text: string; changes: string[]; leadIn?: string }
@@ -196,11 +198,17 @@ export function prepareLineText(text: string, opts: PrepareOptions): PreparedTex
   // 6. numbers
   const style: NumberStyle = opts.language !== 'AR' ? 'NONE' : opts.dialect === 'IRAQI_BAGHDADI' ? 'IRAQI' : 'MSA';
   t = spellNumbers(t, style, changes);
+  // 6b. the pronunciation dictionary: only entries a native reviewer approved (src/domain/pronunciation.ts)
+  if (opts.pronunciations?.length) {
+    const p = applyPronunciations(t, opts.pronunciations, { language: opts.language, dialect: opts.dialect, engine: opts.engine });
+    for (const a of p.applied) changes.push(`pronunciation: «${a.word}» → «${a.say}»`);
+    t = p.text;
+  }
   // 7. spacing
   t = t.replace(/\s+([،؛؟!?.,;:])/g, '$1').replace(/\s+/g, ' ').trim();
   // 8. a one-word line on IndexTTS is spoken after a lead-in sentence and cut after synthesis (lead-in.ts): alone, the
   //    engine runs on past the word into an invented syllable (MODEL-EVAL-2026-10 §4, open item 7)
-  if (VOICE_ENGINES[opts.engine]?.oneWordLeadIn && isOneWordLine(t)) return { text: `${ONE_WORD_LEAD_IN} ${t}`, changes: [...changes, 'one-word line: spoken after a lead-in sentence, cut after synthesis'], leadIn: ONE_WORD_LEAD_IN };
+  if ((VOICE_ENGINES as Partial<Record<PrepareEngine, { oneWordLeadIn: boolean }>>)[opts.engine]?.oneWordLeadIn && isOneWordLine(t)) return { text: `${ONE_WORD_LEAD_IN} ${t}`, changes: [...changes, 'one-word line: spoken after a lead-in sentence, cut after synthesis'], leadIn: ONE_WORD_LEAD_IN };
   if (t === original) return { text: original, changes: [] };
   return { text: t, changes };
 }

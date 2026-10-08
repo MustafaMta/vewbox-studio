@@ -16,6 +16,7 @@ import { cutInputsHash } from './cut';
 import { reconcileContinuationChain } from './continuation';
 import { advanceIdentity, withLocationIdentity } from './location';
 import { withEditorialTransition } from './editorial';
+import { proposePronunciation as proposeEntry, reviewPronunciation as reviewEntry, type PronunciationEntry, type PronunciationInput } from './pronunciation';
 
 export { nid } from './ids';
 
@@ -1189,9 +1190,36 @@ export function singingCast(characters: readonly Pick<Character, 'id' | 'kind'>[
   return ids.filter((id) => { const c = characters.find((x) => x.id === id); return !!c && sings(c.kind); });
 }
 
+// ------------------------------------------------------------------------------------- pronunciation dictionary
+
+const withPronunciations = (s: S, list: PronunciationEntry[]): S => ({ ...s, settings: { ...s.settings, voice: { ...(s.settings.voice ?? {}), pronunciations: list } } });
+
+/** Propose how a word is said (PROPOSED: not spoken until a native reviewer approves it). */
+export function proposePronunciation(s: S, input: PronunciationInput): { state: S; entry: PronunciationEntry } {
+  const list = s.settings.voice?.pronunciations ?? [];
+  const entry = proposeEntry(list, nid('pron'), input, now());
+  return { state: withPronunciations(s, [...list, entry]), entry };
+}
+
+/** A reviewer's verdict on an entry: a native reviewer's approval makes it spoken; any rejection rejects it. */
+export function reviewPronunciation(s: S, id: string, review: { by: string; native: boolean; verdict: 'APPROVED' | 'REJECTED'; note?: string }): S {
+  const list = s.settings.voice?.pronunciations ?? [];
+  const e = mustFind(list, id, 'Pronunciation');
+  return withPronunciations(s, list.map((x) => (x.id === e.id ? reviewEntry(x, review, now()) : x)));
+}
+
+export function removePronunciation(s: S, id: string): S {
+  const list = s.settings.voice?.pronunciations ?? [];
+  mustFind(list, id, 'Pronunciation');
+  return withPronunciations(s, list.filter((x) => x.id !== id));
+}
+
 // ---------------------------------------------------------------------------------------------------- settings
 
 export function updateSettings(s: S, patch: Partial<Settings>): S {
-  const voice = patch.voice || s.settings.voice ? { voice: { ...(s.settings.voice ?? {}), ...(patch.voice ?? {}) } } : {};
+  // the dictionary changes only through its own commands (the native review rule), never a settings patch
+  const { pronunciations: _p, ...voicePatch } = patch.voice ?? {};
+  void _p;
+  const voice = patch.voice || s.settings.voice ? { voice: { ...(s.settings.voice ?? {}), ...voicePatch } } : {};
   return { ...s, settings: { ...s.settings, ...patch, defaults: { ...s.settings.defaults, ...(patch.defaults ?? {}) }, generation: { ...(s.settings.generation ?? {}), ...(patch.generation ?? {}) }, ...voice } };
 }

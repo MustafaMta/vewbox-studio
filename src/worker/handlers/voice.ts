@@ -217,7 +217,9 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   // what the engine hears (src/server/providers/iraqi-text.ts): digits as Baghdadi (or MSA) number words, no tatweel
   // or invisible marks, line breaks as sentence ends — the script stays as written and is what the line is verified
   // against (the dialect fold reads spelled numbers back to digits)
-  const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect });
+  // the studio's pronunciation dictionary: only the entries a native reviewer approved (src/domain/pronunciation.ts)
+  const pronunciations = (await readState()).state.settings.voice?.pronunciations;
+  const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect, pronunciations });
   if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
   const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine, ...(durationFor(route.engine, text, opts.targetSeconds) ? { durationSeconds: durationFor(route.engine, text, opts.targetSeconds) } : {}) };
   if (local.durationSeconds && !opts.targetSeconds) await ctx.event('info', `one-word line: ${route.engine} is asked for ${local.durationSeconds} s (its token budget) so it stops after the word`, { characterId: c.id });

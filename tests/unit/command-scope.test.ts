@@ -98,6 +98,9 @@ function corpus(): Command[] {
     c('duplicateLocationInStyle', 'cafe', 'REALISTIC'), c('duplicateLocationInStyle', 'cafe', 'CARTOON'), // already cartoon: INVALID
     // settings and cross-cutting commands
     c('updateSettings', { reducedMotion: true }),
+    c('proposePronunciation', { word: 'باچر', say: 'باچِر', language: 'AR', dialect: 'IRAQI_BAGHDADI', proposedBy: 'producer' }),
+    c('reviewPronunciation', 'pron-missing', { by: 'reviewer', native: true, verdict: 'APPROVED' }), // not found: refused
+    c('removePronunciation', 'pron-missing'), // not found: refused
     c('acceptProposal', { kind: 'SHORT', aspect: 'WIDE_16_9', proposal, keepCast: ['a', 'b', 'c'], keepLocations: ['x'], preferences: {} }),
     c('deleteAsset', 'img-2'), c('deleteLocation', 'alley'), c('deleteCharacter', 'um-hassan'),
     c('deleteSeason', 'paper-kites-s1'), c('deleteProduction', 'paper-boats'), c('deleteShow', 'paper-kites'),

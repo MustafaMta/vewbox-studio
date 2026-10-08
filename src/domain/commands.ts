@@ -26,6 +26,7 @@ export const COMMANDS = {
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
   acceptProposal: A.acceptProposal,
   updateSettings: A.updateSettings,
+  proposePronunciation: A.proposePronunciation, reviewPronunciation: A.reviewPronunciation, removePronunciation: A.removePronunciation,
 } as const;
 
 export type CommandName = keyof typeof COMMANDS;
@@ -159,6 +160,9 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   recordVoiceListening: z.tuple([id, ListeningSchema]),
   recordSongListening: z.tuple([id, z.object({ verdict: z.enum(['ACCEPTED', 'NOT_YET']), note: short(2000).optional() }).strict()]),
   confirmVoiceConsent: z.tuple([id, id, consentStatement]),
+  proposePronunciation: z.tuple([z.object({ word: z.string().min(1).max(120), say: z.string().min(1).max(200), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), engines: z.array(short(40)).max(10).optional(), note: short(1000).optional(), proposedBy: short(80) }).strict()]),
+  reviewPronunciation: z.tuple([id, z.object({ by: short(80).min(1), native: z.boolean(), verdict: z.enum(['APPROVED', 'REJECTED']), note: short(1000).optional() }).strict()]),
+  removePronunciation: z.tuple([id]),
 };
 
 /** Refuse malformed arguments with INVALID and the field named; commands without a schema pass through. */
@@ -301,6 +305,7 @@ export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>>
   deleteAsset: argList([id]), setAssetTier: existing('setAssetTier'),
   acceptProposal: argList([AcceptProposal]),
   updateSettings: argList([SettingsPatch]),
+  proposePronunciation: existing('proposePronunciation'), reviewPronunciation: existing('reviewPronunciation'), removePronunciation: existing('removePronunciation'),
 };
 
 export const systemCommandMessage = (name: string) => `${name} is written by the studio's workers; a page cannot send it.`;

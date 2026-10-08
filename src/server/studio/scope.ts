@@ -149,6 +149,9 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   // cross-cutting
   acceptProposal: full,
   updateSettings: (sc) => { sc.settings = true; sc.locks.add(lockKey('settings')); },
+  proposePronunciation: (sc) => { sc.settings = true; sc.locks.add(lockKey('settings')); },
+  reviewPronunciation: (sc) => { sc.settings = true; sc.locks.add(lockKey('settings')); },
+  removePronunciation: (sc) => { sc.settings = true; sc.locks.add(lockKey('settings')); },
 };
 
 /** The scope of a batch: the union of its commands' scopes (and of the aggregates whose versions it expects). */

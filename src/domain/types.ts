@@ -900,6 +900,9 @@ export interface VoiceSettings {
   /** EXPERIMENT (default off): an Iraqi character without an Iraqi recording may get a designed Arabic seed spoken by
    *  the Iraqi engine — always `dialectStatus: UNVERIFIED` and identity status REVIEW. */
   allowDesignedIraqi?: boolean;
+  /** THE PRONUNCIATION DICTIONARY (src/domain/pronunciation.ts): what an engine hears for a word; an entry takes effect
+   *  only once a native reviewer approved it */
+  pronunciations?: import('./pronunciation').PronunciationEntry[];
 }
 
 export interface Settings {
