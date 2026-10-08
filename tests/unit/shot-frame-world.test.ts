@@ -135,9 +135,14 @@ describe('continuity recovery 2026-10-08: the previous shot’s actual end and t
   });
   it('an insert is a DETAIL: from the previous end and the plate, never the full-figure portrait, and no face', () => {
     const { state, p, end } = sized();
-    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'INSERT' }, undefined, end);
+    const r = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'INSERT' }, undefined, { ...end, width: 1344, height: 768 }, [p.castIds[0]!]);
     expect(r.composition).toBe('DETAIL');
     expect(r.refs.map((x) => x.id)).toEqual(['end-prev', 'plate-dusk']);
+    // the previous end cut to its lower half (hands and what they hold): whole, a face close-up stayed one (1.6)
+    expect(r.crops[0]).toEqual({ x: 0, y: 384, width: 1344, height: 384 });
+    // a handover: the other person's clothes and hands join from their canonical image
+    const both = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!, p.castIds[1]!], framing: 'INSERT' }, undefined, { ...end, width: 1344, height: 768 }, [p.castIds[0]!]);
+    expect(both.refs.map((x) => x.id)).toEqual(['end-prev', 'canon-b', 'plate-dusk']);
     expect(r.notes.at(-1)).toBe('only the hand or object detail fills the picture: no face and no whole person');
     // without a previous end: the clothes and hands cut from the canonical image (chest to below the hips)
     const alone = frameReferences(state, p, { ...shotOf(p, 's13'), characterIds: [p.castIds[0]!], framing: 'INSERT' });

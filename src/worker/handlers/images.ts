@@ -520,7 +520,7 @@ type State = Awaited<ReturnType<typeof readState>>['state'];
  *  model drew the whole man (2.1, 2.5 — medium shots). An insert is drawn from the previous shot's end (the hands,
  *  sleeves and objects as filmed), else the person's clothes and hands cut from the canonical image, with the plate
  *  around the middle; no face is in the picture. Pure. */
-export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean } {
+export function frameReferences(state: State, p: Production, sh: Shot, read?: WorldRead, previousEnd?: Asset, previousPeople?: string[]): { refs: Asset[]; crops: Array<CropPx | undefined>; notes: string[]; people: Character[]; imageOf: Map<string, number>; plate?: { assetId: string; why: string }; composition: 'PLATE' | 'PEOPLE' | 'DETAIL'; usedPreviousEnd: boolean } {
   const scene = p.scenes.find((sc) => sc.id === sh.sceneId);
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
@@ -550,8 +550,14 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   if (detail) {
     // the hands, sleeves and objects as filmed, else the person's clothes and hands from the canonical image (never
     // the face); the place around the middle of the plate
-    addPreviousEnd('is the moment just before this shot: the hands, sleeves, clothes and their condition, the objects and the light are exactly as in it; this shot is much closer, on the detail alone');
-    if (!usedPreviousEnd) for (const { c, a } of pictured.slice(0, 1)) {
+    // the previous end CUT TO ITS LOWER HALF (hands, sleeves, what they hold): whole, a face close-up stayed a face
+    // close-up — the edit model keeps its picture's composition ("The Relief" 1.6, a face filling 45 % of an insert)
+    addPreviousEnd('is the moment just before this shot, the hands and sleeves: the clothes and their condition, what the hands hold and the light are exactly as in it; this shot is much closer, on the detail alone');
+    if (usedPreviousEnd) crops[crops.length - 1] = end!.width && end!.height ? lowerHalfCrop({ width: end!.width, height: end!.height }) : undefined;
+    // the clothes and hands of every person in the insert the previous end does not show (the other hand of a handover)
+    const shownBefore = new Set(usedPreviousEnd ? previousPeople ?? [] : []);
+    for (const { c, a } of pictured.filter((x) => !shownBefore.has(x.c.id)).slice(0, usedPreviousEnd ? 1 : 2)) {
+      if (refs.length >= 2) break;
       refs.push(a); imageOf.set(c.id, refs.length);
       crops.push(a.width && a.height ? handsCropFor({ width: a.width, height: a.height }) : undefined);
       notes.push(`image ${refs.length} shows the clothes, sleeves and hands of the person ${who(c)} — keep them exactly; the face is not in this shot`);
@@ -586,6 +592,13 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
   return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) && refs.includes(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE', usedPreviousEnd };
+}
+
+/** The lower half of a frame (the hands and what they hold, below the faces of a medium or closer shot). Pure. */
+export function lowerHalfCrop(frame: { width: number; height: number }): CropPx | undefined {
+  if (!frame.width || !frame.height) return undefined;
+  const height = Math.round(frame.height / 2);
+  return { x: 0, y: frame.height - height, width: frame.width, height };
 }
 
 /** The band of a canonical full-body figure an insert of the hands shows: the full width, from the chest to below the
@@ -707,7 +720,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   const cast = castOf(state, p);
   const loc = worldOf(state, p).find((l) => l.id === scene?.locationId);
   const prevEnd = opts.ending ? undefined : await previousEndFrame(ctx, state, p, sh);
-  const { refs, crops, notes, people, imageOf, plate, composition, usedPreviousEnd } = frameReferences(state, p, sh, world.read, prevEnd?.asset);
+  const { refs, crops, notes, people, imageOf, plate, composition, usedPreviousEnd } = frameReferences(state, p, sh, world.read, prevEnd?.asset, prevEnd ? p.shots.find((x) => x.id === prevEnd.end.shotId)?.characterIds : undefined);
   const info = ASPECT_INFO[p.aspect];
   const which = opts.ending ? 'ending' : 'opening';
   const guidance = refs.length ? ` Use the reference pictures: ${notes.join('; ')}.` : '';
