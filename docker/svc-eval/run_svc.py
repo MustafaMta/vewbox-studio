@@ -30,15 +30,12 @@ def stage_models() -> None:
     link = rm / "rmvpe.pt"
     if not link.exists():
         link.symlink_to(STORE / "rmvpe" / "rmvpe.pt")
-    hub = Path(os.environ.get("HF_HOME", "/opt/hf")) / "hub" / "models--openai--whisper-base"
-    snap = hub / "snapshots" / WHISPER_REV
-    snap.mkdir(parents=True, exist_ok=True)
-    (hub / "refs").mkdir(parents=True, exist_ok=True)
-    (hub / "refs" / "main").write_text(WHISPER_REV)
-    for f in ("config.json", "preprocessor_config.json", "generation_config.json", "model.safetensors"):
-        t = snap / f
-        if not t.exists():
-            t.symlink_to(STORE / "whisper-base" / f)
+    # the store's own Hugging Face cache (HF_HOME=/models/cache/hf, read-only here): the whisper-base snapshot is a set of
+    # relative links to the pinned files, made once with the store writable (scripts/svc-eval-hf-layout.sh)
+    snap = Path(os.environ.get("HF_HOME", "/models/cache/hf")) / "hub" / "models--openai--whisper-base" / "snapshots" / WHISPER_REV
+    missing = [f for f in ("config.json", "preprocessor_config.json", "model.safetensors") if not (snap / f).exists()]
+    if missing:
+        raise SystemExit(f"whisper-base is not in the store's HF cache ({snap}: {', '.join(missing)} missing) - run scripts/svc-eval-hf-layout.sh once")
 
 
 def run(cmd: list[str]) -> float:

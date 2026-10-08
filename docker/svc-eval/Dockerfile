@@ -26,5 +26,5 @@ RUN uv pip install --python /opt/venv/bin/python "torch==2.7.1" "torchaudio==2.7
  && python -c "import torch, transformers; assert torch.__version__.startswith('2.7.1'), torch.__version__; assert transformers.__version__ == '4.41.2'; print('torch', torch.__version__, 'transformers', transformers.__version__)"
 WORKDIR /opt/soulx
 COPY docker/svc-eval/run_svc.py /opt/soulx/vewbox_run_svc.py
-ENV PYTHONPATH=/opt/soulx HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HOME=/opt/hf MODEL_ROOT=/models
+ENV PYTHONPATH=/opt/soulx HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HOME=/models/cache/hf MODEL_ROOT=/models
 ENTRYPOINT ["python", "/opt/soulx/vewbox_run_svc.py"]
