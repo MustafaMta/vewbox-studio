@@ -80,6 +80,10 @@ export interface ShotPack {
   /** THE DERIVED FACE REFERENCES (src/domain/face-reference.ts): per pictured character, whether its face crop rides
    *  beside its canonical image (a picture after the plate, never a subject of its own) and why */
   faceReferences: FaceReferenceDecision[];
+  /** THE INSERT RULE: a local INSERT with a drawn opening frame is filmed from that frame alone (FL2VA) — the frame
+   *  already carries the hands, skin, sleeves and the place; the full-body image and the wide plate bound as pictures
+   *  made H3 cut to them ("The Relief" 1.6, 2026-10-08: insert → a wide of the whole man by the lamp → insert) */
+  insertFromFrame?: { /** the place's plate the frame was drawn against (the location rule still requires one) */ plateAssetId?: string };
   notes: string[];
 }
 
@@ -225,13 +229,15 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   const withImage = people.filter((c) => { const ok = usableImage(byId(primaryImageOf(c))); if (!ok) unreferenced.push({ characterId: c.id, reason: 'no usable canonical image' }); return ok; });
   const plate = plateFor(loc, scene?.timeOfDay, state.assets);
   const hostedFrames = !local && opening.kind === 'LAST_FRAME_AS_FIRST';
-  const wantsOpeningPicture = local && OPENING_FRAME_AS_PICTURE && opening.kind === 'FRAME';
+  const insertFromFrame = local && sh.framing === 'INSERT' && opening.kind === 'FRAME';
+  if (insertFromFrame) { lowering = 'insert: filmed from its drawn opening frame alone (it carries the hands, skin, sleeves and the place); the full-body image and the wide plate are not bound, or H3 cuts to them'; notes.push(lowering); }
+  const wantsOpeningPicture = local && OPENING_FRAME_AS_PICTURE && opening.kind === 'FRAME' && !insertFromFrame;
   // slot budget: never drop the place; the opening frame takes a slot only when bound; characters beyond the budget
   // are dropped last-to-first (the shot lists its people in order of importance)
   const reserved = (plate ? 1 : 0) + (wantsOpeningPicture ? 1 : 0);
   const budget = Math.max(0, PACK_LIMITS.pictures - reserved);
-  const kept = hostedFrames ? [] : withImage.slice(0, budget);
-  for (const c of withImage.slice(kept.length)) unreferenced.push({ characterId: c.id, reason: hostedFrames ? 'hosted frame mode carries no references' : `over the ${PACK_LIMITS.pictures}-picture budget` });
+  const kept = hostedFrames || insertFromFrame ? [] : withImage.slice(0, budget);
+  for (const c of withImage.slice(kept.length)) unreferenced.push({ characterId: c.id, reason: hostedFrames ? 'hosted frame mode carries no references' : insertFromFrame ? 'an insert: identity rides in the drawn opening frame' : `over the ${PACK_LIMITS.pictures}-picture budget` });
   const pictures: PackPicture[] = [];
   const subjects: ShotPack['subjects'] = kept.map((c) => {
     const assetId = primaryImageOf(c)!;
@@ -240,7 +246,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   });
   let location: ShotPack['location'];
   const identity = loc ? locationIdentity(loc) : undefined;
-  if (plate && loc && identity && !hostedFrames) { pictures.push({ assetId: plate.assetId, role: 'LOCATION', locationId: loc.id, binding: '' }); location = { locationId: loc.id, assetId: plate.assetId, role: plate.role, picture: pictures.length, identity: { version: identity.version, line: identity.line } }; }
+  if (plate && loc && identity && !hostedFrames && !insertFromFrame) { pictures.push({ assetId: plate.assetId, role: 'LOCATION', locationId: loc.id, binding: '' }); location = { locationId: loc.id, assetId: plate.assetId, role: plate.role, picture: pictures.length, identity: { version: identity.version, line: identity.line } }; }
   // the place has no plate: only a scene declared "establish here" may film it (from its identity line); the first
   // accepted take's opening frame then becomes its plate (take.ts)
   const establishing: ShotPack['establishing'] = !plate && loc && identity && scene?.establishLocation ? { locationId: loc.id, name: loc.name, identity: { version: identity.version, line: identity.line } } : undefined;
@@ -274,7 +280,7 @@ export function resolveShotPack(state: StudioState, p: Production, sh: Shot, opt
   if (subjects.some((s) => s.source === 'PORTRAIT')) notes.push('a legacy portrait stands in for a canonical image');
   // THE SCENE STATE (src/domain/scene-state.ts): what is true when this shot is filmed, carried shot to shot
   const sceneState = context.sceneState;
-  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, context, faceReferences, notes };
+  return { backend: opts.backend, shotId: sh.id, relation, plannedRelation: planned, boundary, previousShotId: previous?.id, graph, subjects, location, establishing, pictures, opening, openingPicture, ending, unreferenced, trimStartFrames: opening.kind === 'TAIL' ? opening.frames : 0, lowering, sceneState, continuation, context, faceReferences, ...(insertFromFrame ? { insertFromFrame: { plateAssetId: plate?.assetId } } : {}), notes };
 }
 
 /** The prompt binding of a pack (what `h3ReferencePrompt` names). */

@@ -35,6 +35,18 @@ describe('stripDialogueTags (P0.3)', () => {
     expect(prompt).not.toContain('We close soon');
     expect(prompt).toContain('<d>[English] We close in ten minutes.</d>');
   });
+  it('an insert filmed from its frame (FL2VA) describes hands and sleeves, not the whole person, and stays on the detail', () => {
+    const { state, p } = fixture({ shots: (shots) => shots.map((s) => (s.id === 's13' ? { ...s, framing: 'INSERT' as const, action: 'She unscrews the cap of the thermos' } : s)) });
+    const sh = shotOf(p, 's13');
+    const cast = state.characters.filter((c) => p.castIds.includes(c.id));
+    const prompt = takePrompt(p, sh, cast, state.locations.find((l) => l.id === 'loc-pharmacy'), { timeOfDay: 'DUSK' });
+    expect(prompt).toContain('The hands and sleeves of a person wearing');
+    expect(prompt).toContain('the camera never cuts away');
+    expect(prompt).toContain('inside Corner Pharmacy, out of focus behind the hands');
+    expect(prompt).not.toContain('green cross'); // the whole room is not described
+    // a planner's own prose keeps the stay line too
+    expect(takePrompt(p, { ...sh, prompt: 'Close on the thermos.' }, cast, undefined, undefined)).toContain('Close on the thermos. The whole shot stays on the hands');
+  });
 });
 
 describe('h3ReferencePrompt (P1 grammar)', () => {

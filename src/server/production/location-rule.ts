@@ -33,10 +33,13 @@ export interface LocationPlateVerdict {
 }
 
 /** Judge a shot's place against the rule, from the pack it resolves to. */
-export function locationPlateVerdict(pack: Pick<ShotPack, 'location' | 'establishing' | 'graph' | 'opening'>, scene: Pick<Scene, 'establishLocation' | 'timeOfDay'> | undefined, loc: Location | undefined): LocationPlateVerdict {
+export function locationPlateVerdict(pack: Pick<ShotPack, 'location' | 'establishing' | 'graph' | 'opening' | 'insertFromFrame'>, scene: Pick<Scene, 'establishLocation' | 'timeOfDay'> | undefined, loc: Location | undefined): LocationPlateVerdict {
   if (!loc) return { ok: true, rule: LOCATION_RULE, mode: 'NONE', detail: 'the scene has no place' };
   const identity = locationIdentity(loc);
   const id = { version: identity.version, line: identity.line };
+  // THE INSERT RULE (shot-pack.ts): the place has its plate; the drawn opening frame carries a crop of it, the wide
+  // plate itself is not bound (H3 cut to it)
+  if (pack.insertFromFrame?.plateAssetId) return { ok: true, rule: LOCATION_RULE, locationId: loc.id, name: loc.name, mode: 'PLATE', identity: id, detail: `${loc.name}: an insert filmed from its drawn opening frame, which carries a crop of the plate (${pack.insertFromFrame.plateAssetId}); the wide plate is not bound` };
   // the hosted frame mode carries no pictures at all (the documented lowering of the identity rule): the plate exists,
   // it is the mode that cannot send it
   if (pack.location || (pack.graph === 'FRAMES' && pack.opening.kind === 'LAST_FRAME_AS_FIRST')) return { ok: true, rule: LOCATION_RULE, locationId: loc.id, name: loc.name, mode: 'PLATE', identity: id, detail: pack.location ? `${loc.name}: ${pack.location.role === 'STATE' ? `the plate for ${(scene?.timeOfDay ?? '').toLowerCase().replace('_', ' ') || 'this time of day'}` : 'the master plate'} (${pack.location.assetId}), identity v${identity.version}` : `${loc.name}: hosted frame mode (no pictures travel with a first frame)` };

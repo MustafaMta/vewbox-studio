@@ -43,13 +43,18 @@ export interface ConditioningRequest {
 }
 
 /** Judge a pack (and, when given, the request built from it) against the rule. */
-export function identityConditioning(pack: Pick<ShotPack, 'backend' | 'graph' | 'subjects' | 'location' | 'establishing' | 'pictures' | 'opening' | 'unreferenced' | 'lowering'>, sh: Pick<Shot, 'characterIds'>, cast: Character[], loc: Location | undefined, request: ConditioningRequest = {}): IdentityConditioningReport {
+export function identityConditioning(pack: Pick<ShotPack, 'backend' | 'graph' | 'subjects' | 'location' | 'establishing' | 'pictures' | 'opening' | 'unreferenced' | 'lowering' | 'insertFromFrame'>, sh: Pick<Shot, 'characterIds'>, cast: Character[], loc: Location | undefined, request: ConditioningRequest = {}): IdentityConditioningReport {
   const problems: string[] = [];
   const local = pack.backend === 'local';
   const label = (k: number) => (local ? `<Picture ${k}>` : `Image ${k}`);
   // the hosted frame mode: no references can travel with a first frame (documented lowering)
   if (pack.graph === 'FRAMES' && pack.opening.kind === 'LAST_FRAME_AS_FIRST') {
     return { ok: true, rule: IDENTITY_RULE, lowered: pack.lowering ?? 'hosted frame mode: no references travel with a first frame', characters: sh.characterIds.map((id) => ({ characterId: id, name: cast.find((c) => c.id === id)?.name ?? id, ok: true, why: 'identity rests on the previous take\'s last frame (hosted frame mode)' })), problems: [] };
+  }
+  // THE INSERT RULE (shot-pack.ts insertFromFrame): the drawn opening frame carries the hands, skin and sleeves of the
+  // canonical image and the place; binding the full-body image and the wide plate made H3 cut to them
+  if (pack.insertFromFrame && pack.graph === 'FL2VA' && pack.opening.kind === 'FRAME') {
+    return { ok: true, rule: IDENTITY_RULE, lowered: pack.lowering ?? 'insert: filmed from its drawn opening frame alone', characters: sh.characterIds.map((id) => ({ characterId: id, name: cast.find((c) => c.id === id)?.name ?? id, ok: true, why: 'an insert: identity rests on the drawn opening frame (hands, skin, sleeves)' })), problems: [] };
   }
   const connected = (picture: number | undefined, assetId: string | undefined): string | undefined => {
     if (!picture || !assetId) return undefined;

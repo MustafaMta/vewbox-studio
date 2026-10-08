@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IDENTITY_RULE, IdentityConditioningError, assertIdentityConditioning, identityConditioning } from '@/server/production/identity-rule';
 import { resolveShotPack } from '@/server/production/shot-pack';
+import { locationPlateVerdict } from '@/server/production/location-rule';
 import { preflightTake } from '@/server/org/preflight';
 import { classifyFailure } from '@/server/org/runs';
 import { isStudioError } from '@/domain/errors';
@@ -42,6 +43,29 @@ describe('identityConditioning', () => {
     expect(noPlate.problems).toEqual(['Corner Pharmacy has no usable plate: draw the place first']);
     // no place in the scene (a music video without a location): nothing to check for the place
     expect(identityConditioning(resolveShotPack(state, p, sh, { backend: 'local' }), sh, cast, undefined).location).toBeUndefined();
+  });
+
+  it('THE INSERT RULE: a local insert with a drawn opening frame is filmed from the frame alone (no full-body image, no plate bound) and the rule is waived, named', () => {
+    // "The Relief" 1.6 (2026-10-08): with Marcus's full-body image and the wide plate bound, H3 cut insert → wide → insert
+    const { state, p, cast, loc } = setup({ shots: (s) => s.map((x) => (x.id === 's13' ? { ...x, framing: 'INSERT' as const } : x)) });
+    const sh = shotOf(p, 's13');
+    const pack = resolveShotPack(state, p, sh, { backend: 'local' });
+    expect(pack).toMatchObject({ graph: 'FL2VA', insertFromFrame: { plateAssetId: 'plate-dusk' }, subjects: [], pictures: [], opening: { kind: 'FRAME', assetId: 'open-13' } });
+    expect(pack.location).toBeUndefined();
+    // the location rule still requires the place's plate (the frame was drawn against it), and passes on it
+    expect(locationPlateVerdict(pack, { timeOfDay: 'DUSK' }, loc)).toMatchObject({ ok: true, mode: 'PLATE' });
+    expect(locationPlateVerdict({ ...pack, insertFromFrame: {} }, { timeOfDay: 'DUSK' }, loc)).toMatchObject({ ok: false, mode: 'REFUSED' });
+    expect(pack.lowering).toMatch(/^insert: filmed from its drawn opening frame alone/);
+    const r = identityConditioning(pack, sh, cast, loc);
+    expect(r).toMatchObject({ ok: true, lowered: expect.stringMatching(/^insert/) });
+    // an insert without a drawn frame keeps its references (nothing else would carry the identity); hosted is unchanged
+    const bare = { ...state, productions: state.productions.map((x) => (x.id !== p.id ? x : { ...x, shots: x.shots.map((s) => (s.id === 's13' ? { ...s, openingFrameAssetId: undefined } : s)) })) };
+    const unframed = resolveShotPack(bare, bare.productions.find((x) => x.id === p.id)!, { ...sh, openingFrameAssetId: undefined }, { backend: 'local' });
+    expect(unframed).toMatchObject({ graph: 'REF2VA' });
+    expect(unframed.insertFromFrame).toBeUndefined();
+    expect(resolveShotPack(state, p, sh, { backend: 'api' }).insertFromFrame).toBeUndefined();
+    // a medium shot with a frame keeps its references
+    expect(resolveShotPack(state, p, shotOf(fixture().p, 's13'), { backend: 'local' }).graph).toBe('REF2VA');
   });
 
   it('the request must connect each picture in order and the prompt must bind it', () => {

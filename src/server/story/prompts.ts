@@ -158,12 +158,17 @@ export function continuationCamera(sh: Pick<Shot, 'framing' | 'cameraMove'>, fro
  *  shot: setting, people by appearance, action, light. The camera is said apart (cameraDirection). */
 function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, stripTags: boolean): string {
   const people = cast.filter((c) => sh.characterIds.includes(c.id));
-  if (sh.prompt?.trim()) return stripTags ? stripDialogueTags(sh.prompt.trim()) : sh.prompt.trim();
+  const insert = sh.framing === 'INSERT';
+  // an insert stays on the detail: the whole person described (or a planner's prose naming the room) invited H3 to cut
+  // to a wide of the whole man ("The Relief" 1.6, 2026-10-08)
+  const stays = insert ? 'The whole shot stays on the hands and the object at this distance: no face appears, nobody else enters, and the camera never cuts away.' : '';
+  if (sh.prompt?.trim()) return [stripTags ? stripDialogueTags(sh.prompt.trim()) : sh.prompt.trim(), stays].filter(Boolean).join(' ');
   return [
-    loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '',
-    ...people.map((c) => `A ${describeCharacter(c)}.`),
+    loc ? `Setting: ${insert ? `inside ${clean(loc.name)}, out of focus behind the hands` : describeLocation(loc, scene?.timeOfDay)}.` : '',
+    ...(insert ? people.map((c) => `The hands and sleeves of a person wearing ${clean(c.wardrobe ?? 'their clothes').replace(/\.$/, '')}.`) : people.map((c) => `A ${describeCharacter(c)}.`)),
     `Action: ${clean(sh.action)}.`,
     sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : '',
+    stays,
   ].filter(Boolean).join(' ');
 }
 

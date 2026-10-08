@@ -370,6 +370,22 @@
         { "repo": "SWivid/Habibi-TTS", "revision": "3ad11a152851245c002156526c5e1d0b12f2b9d5", "file": "Specialized/IRQ/model_100000.safetensors", "folder": "tts/habibi/Specialized/IRQ", "bytes": 1348775729, "sha256": "1801bcc5f7baea63bd74bc8424821ad1f0f06200138380a47921113cb1c7f500", "license": "Apache-2.0 (Habibi-TTS Specialized IRQ, per the model card)" },
         { "repo": "SWivid/Habibi-TTS", "revision": "3ad11a152851245c002156526c5e1d0b12f2b9d5", "file": "Specialized/IRQ/vocab.txt", "folder": "tts/habibi/Specialized/IRQ", "bytes": 11829, "sha256": "55484bc3dda8b8e6a7fbf04261b47a8788d4b553a85b93dc46dac6fd39c9fd88", "license": "Apache-2.0 (Habibi-TTS Specialized IRQ, per the model card)" }
       ]
+    },
+    {
+      "name": "eval-tts-fish-s2-pro",
+      "purpose": "EVALUATION ONLY — NOT COMMERCIAL-SAFE. Fish Audio S2 Pro (5B, BF16, ~11 GB): expressive voice cloning with inline [tags], English Tier 1, Arabic Tier 2, compared against Habibi IRQ in the Voice Studio (docs/VOICE-ENGINE.md). Fish Audio Research License: research and non-commercial use only; commercial use needs a separate licence from Fish Audio. Never in the default MODEL_GROUPS: --groups eval-tts-fish-s2-pro.",
+      "files": [
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "codec.pth", "folder": "tts/fish-s2-pro", "bytes": 1871099728, "sha256": "74fc41c5a7151c6f350af8bd7e5d6e3accfcc7f3dfbfac23afd35af07052bb2f", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "model-00001-of-00002.safetensors", "folder": "tts/fish-s2-pro", "bytes": 4986872984, "sha256": "c4218e8ac93be83b35eee30b4f94cb2e9b5ecff40f3e21611438d2f4f8804aad", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "model-00002-of-00002.safetensors", "folder": "tts/fish-s2-pro", "bytes": 4136876104, "sha256": "76738d23465deaac431433232c0762908cc99a6eddc3d49f67307d92680827be", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "tokenizer.json", "folder": "tts/fish-s2-pro", "bytes": 12217872, "sha256": "f24e08099d45a8adf3f52f5f0b03276e433bb9d689bb15fcbcc48ce58744588b", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "config.json", "folder": "tts/fish-s2-pro", "bytes": 1863, "sha256": "261b519a2a9576710fc8533a77297fae007f0e7b3aa28a217f8352b7f32fe993", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "model.safetensors.index.json", "folder": "tts/fish-s2-pro", "bytes": 32686, "sha256": "c8cb9974d3d17663a95dba1d6c3ea531fc42d377c0dff946f3a01a0ec48d45a3", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "tokenizer_config.json", "folder": "tts/fish-s2-pro", "bytes": 860832, "sha256": "b8d149343ae425b0da67e6708686aceb51be7815d9792f265fc12ff04d5e9856", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "special_tokens_map.json", "folder": "tts/fish-s2-pro", "bytes": 101864, "sha256": "c2ff18fde6e43b7408435bc8ed079af74531befba549358a97cbc59ce606bc6b", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "chat_template.jinja", "folder": "tts/fish-s2-pro", "bytes": 4116, "sha256": "87a2728cb8dc9fe424d624542f6060ec05a1d285ebbec578bb078900e33396b5", "license": "Fish Audio Research License (non-commercial)" },
+        { "repo": "fishaudio/s2-pro", "revision": "1de9996b6be38b745688de084d87a5633f714e4e", "file": "LICENSE.md", "folder": "tts/fish-s2-pro", "bytes": 10360, "sha256": "aa7d9206e9d710590987a3636934f643529c00cd490323594e6206aaa0c32d80", "license": "Fish Audio Research License (non-commercial)" }
+      ]
     }
   ],
   "service_fetched": {
