@@ -4,6 +4,7 @@ import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
 import { describeIdentity, identityFacts, locationIdentity } from '@/domain/location';
+import { hasHealedScar, healedMark } from '@/domain/scars';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
 import { contextLines, poseWithoutSpeech, type ProductionContext } from '@/domain/production-context';
 import { shotPerformers } from '@/domain/music-performance';
@@ -385,7 +386,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   for (const [i, s] of b.subjects.entries()) {
     const c = cast.find((x) => x.id === s.characterId);
     if (!c) continue;
-    const [first, ...rest] = describeCharacter(c).split(', ');
+    // every scar is described healed (src/domain/scars.ts): "The Relief" 1.8 drew fresh cuts on both faces from the
+    // stored "A small, healed scar on his left eyebrow"
+    const [first, ...rest] = describeCharacter(c).split(', ').map(healedMark);
     defs.push(`<Subject ${i + 1}> is the ${first} in ${pictureLabel(b, s.picture)}${rest.length ? `, featuring ${rest.join(', ')}` : ''}.`);
   }
   // THE PLACE'S IDENTITY LINE (the Location Bible, src/domain/location.ts) rides with the plate on every shot: the
@@ -516,7 +519,9 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   });
   // THE PRODUCTION CONTEXT (src/domain/production-context.ts): what persists about the people and the place
   const contextLine = opts.context ? contextLines(opts.context, plainSubject, contextOptions(sh, cast, fromFrame)) : '';
-  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, camera, closer, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const scarred = hasHealedScar(b.subjects.flatMap((s) => { const c = cast.find((x) => x.id === s.characterId); return c ? [...(c.distinguishing ?? []), c.face] : []; }));
+  const noWounds = scarred ? 'Every scar stays an old, healed scar: no fresh wound, no cut, no blood, no red scratch on any face.' : '';
+  const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, camera, closer, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', noWounds, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;
   return [

@@ -145,7 +145,7 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(h3ReferencePrompt(p, mcu, cast, loc, { timeOfDay: 'DUSK' }, { ...noFrame, opening: { kind: 'FRAME', picture: 3 } }, { relation: 'CUT' })).not.toContain('From its very first frame');
   });
 
-  it('binds each canonical picture to its subject, the plate to the place, the opening frame as a frame — in the six sections, in order', () => {
+  it('binds each canonical picture to its subject, the plate to the place, the opening frame as a frame — in the six sections, in order', async () => {
     const { p, cast, loc } = setup();
     const sh = shotOf(p, 's12');
     const [a, b] = sh.characterIds;
@@ -163,6 +163,11 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     // with an opening frame: identity from the canonical picture, the moment's appearance from the frame (item 12)
     expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - who they are: the facial features, eyes, skin tone and build of <Picture 1> are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression, the pose and which way they face — is as in the opening frame (<Picture 4>) and holds through the shot; they are not turned to the camera to match <Picture 1>.');
     expect(prompt).not.toMatch(/wardrobe of <Picture 1> are kept exactly/);
+    // a scar in a subject's description is drawn healed and the take says no fresh wounds ("The Relief" 1.8)
+    const { healedLine, hasHealedScar } = await import('@/domain/scars');
+    expect(healedLine('Tall, A small, healed scar on his left eyebrow')).toMatch(/left eyebrow \(an old, fully healed scar.*no cut\)$/);
+    expect(hasHealedScar(['a small scar on the chin'])).toBe(true);
+    expect(hasHealedScar(['a fresh bleeding scar'])).toBe(false);
     expect(prompt).toContain('<Subject 3> (appears in [Shot 1]): partially_preserved');
     expect(prompt).toContain('<Picture 4> ([Shot 1] first frame): fully_preserved');
     expect(prompt).toContain('<Subject 1> (S1) says, <d>[English] We close in ten minutes.</d>');
