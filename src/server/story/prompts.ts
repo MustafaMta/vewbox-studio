@@ -3,7 +3,7 @@ import type { Framing } from '@/domain/vocabulary';
 import { performanceFor, shotWindows, sungLinesFor } from '@/domain/timeline';
 import { styleDirection } from './style';
 import { nonHumanSpecies } from '@/domain/identity';
-import { describeIdentity, locationIdentity } from '@/domain/location';
+import { describeIdentity, identityFacts, locationIdentity } from '@/domain/location';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
 import { contextLines, poseWithoutSpeech, type ProductionContext } from '@/domain/production-context';
 import { shotPerformers } from '@/domain/music-performance';
@@ -667,7 +667,12 @@ export function detailFramePrompt(p: Production, sh: Shot, cast: Character[], lo
   const props = (sh.continuity?.props ?? []).filter((x) => { const k = clean(x.name).toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).map((x) => `exactly one ${clean(x.name).toLowerCase()}${x.state ? ` (${clean(x.state)})` : ''}`);
   const light = sh.continuity?.environment.lighting ? clean(sh.continuity.environment.lighting) : '';
   const inside = loc && /interior/i.test(String((loc as { kind?: string }).kind ?? '')) ? 'inside ' : '';
-  const behind = loc ? `Behind them, soft and out of focus: ${inside}${clean(loc.name)}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}${light ? `, ${light}` : ''}.` : '';
+  // the place behind the hands, from its own identity (materials, the first fixed features, its key light and palette):
+  // its name alone let text to image invent a room — a desk, a lamp, a square window — that "The Relief" 1.7's
+  // continuation then carried on in, instead of the circular lantern room (2026-10-08)
+  const f = loc ? identityFacts(loc) : undefined;
+  const look = f ? [f.materials.slice(0, 3).join(', '), f.fixedFeatures.slice(0, 2).join(', '), f.light?.key, f.light?.palette.length ? `colours ${f.light.palette.slice(0, 3).join(', ')}` : ''].map((x) => clean(x ?? '').replace(/\.$/, '').toLowerCase()).filter(Boolean).join('; ') : '';
+  const behind = loc ? `Behind them, soft and out of focus: ${inside}${clean(loc.name)}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}${light ? `, ${light}` : ''}${look ? ` (${look})` : ''}.` : '';
   return `${d.visual}. An insert: a tight close-up in which hands and an object fill the whole frame. ${moment ? `${moment.charAt(0).toUpperCase()}${moment.slice(1)}.` : ''} In the picture: ${hands.join('; ')}${props.length ? `; ${props.join('; ')}` : ''}. ${behind} Only hands, sleeves and the object are in the picture: no face, no head, no shoulders, no whole person. Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ').trim();
 }
 

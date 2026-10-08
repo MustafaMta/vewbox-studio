@@ -218,5 +218,9 @@ describe('the insert, from words (The Relief 1.6)', () => {
     expect(prompt).toMatch(/exactly one brass thermos \(dented\)/);
     expect(prompt).toMatch(/no face, no head, no shoulders/);
     expect(prompt).not.toMatch(/Elena|Marcus/);
+    // the place behind the hands is described from its identity, not by its name alone ("The Relief" 1.7)
+    const loc = { ...state.locations.find((l) => l.id === 'loc-pharmacy')!, layout: { materials: ['white tile', 'pine shelves'], light: { key: 'cold strip light', palette: ['white', 'green'] } } } as never;
+    const placed = detailFramePrompt(p, sh, cast, loc, { timeOfDay: 'DUSK' });
+    expect(placed).toMatch(/Behind them, soft and out of focus: inside Corner Pharmacy at dusk, dim lamp light \(white tile, pine shelves; a green cross sign; cold strip light; colours white, green\)\./);
   });
 });
