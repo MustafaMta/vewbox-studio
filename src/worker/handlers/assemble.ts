@@ -6,6 +6,7 @@ import { StudioError } from '@/domain/errors';
 import type { Asset, StudioState } from '@/domain/types';
 import { timelineDigest } from '@/domain/timeline';
 import { cutInputsHash } from '@/domain/cut';
+import { inputSnapshot } from '@/domain/input-snapshot';
 import { commands, readState, type CommandSpec } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
 import { assetFile, assetFromStored } from '@/server/media';
@@ -191,7 +192,7 @@ async function renderInto(ctx: Parameters<Handler>[0], opts: RenderOpts, dirs: s
   const digest = timelineDigest(timeline.audio);
   const assets: Array<Omit<Asset, 'createdAt'>> = [
     assetFromStored(posterId, storedPoster, { label: `${p.title} — ${opts.kind} poster`, tags: [opts.kind, 'poster'], origin: 'DERIVED', jobId: ctx.job.id }),
-    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis, relation: it.relation, join: it.join })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, sync, validation, loudness: result.loudness, subtitles: opts.subtitles, disclosure, credits: credits ? { seconds: credits.seconds, engines: disclosure.engines } : undefined, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
+    assetFromStored(videoId, stored, { label: `${p.title} — ${opts.kind === 'cut' ? 'assembled cut' : `export ${opts.resolution}p ${opts.format}`}`, tags: [opts.kind, opts.format, `${opts.resolution}p`], origin: 'DERIVED', jobId: ctx.job.id, provenance: { shots: timeline.items.map((it) => ({ shotId: it.shot.id, takeAssetId: it.take.id, start: it.start, duration: it.duration, startFrame: it.startFrame, frames: it.frames, trimStartFrames: it.trimStartFrames, holdFrames: it.holdFrames, basis: it.basis, relation: it.relation, join: it.join })), fps: 24, mix, timeline: digest, joins, world: { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }, inputs: inputSnapshot(state, p, { revisionId: world.revision.id, revision: world.revision.number, pinned: world.pinned }), sync, validation, loudness: result.loudness, subtitles: opts.subtitles, disclosure, credits: credits ? { seconds: credits.seconds, engines: disclosure.engines } : undefined, dialogueAudio: mix.tracks.filter((t) => t.kind === 'DIALOGUE').length, song: song?.id, durationSeconds: result.durationSeconds, size, shotCount: timeline.items.length }, poster: `/api/media/${posterId}` }),
   ];
   // sidecar subtitle files
   const sidecars: string[] = [];
