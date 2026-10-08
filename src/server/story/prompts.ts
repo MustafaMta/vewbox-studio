@@ -235,7 +235,9 @@ const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + 
 function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string) => string | undefined, body = '', opts: { fromFrame?: boolean } = {}): string {
   const c = sh.continuity;
   if (!c) return '';
-  const parts = c.characters.map((x) => {
+  // only the people in the shot: a continuity entry left over from a cast edit was described in words and drawn as a
+  // stranger ("The Relief" 1.6, Elena taken out of the insert)
+  const parts = c.characters.filter((x) => !sh.characterIds || sh.characterIds.includes(x.characterId)).map((x) => {
     const who = subjectOf(x.characterId) ?? (cast.find((k) => k.id === x.characterId) ? `(${describeCharacter(cast.find((k) => k.id === x.characterId)!).split(',').slice(0, 2).join(',')})` : '');
     if (!who) return '';
     // no "wears": a character's wardrobe is its canonical image; the planner's words for it ("tweed jacket" for a man in

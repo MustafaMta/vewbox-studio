@@ -378,7 +378,16 @@ export type ShotPatchInput = Partial<Omit<Shot, 'id' | 'number' | 'openingFrameA
 export function updateShot(s: S, productionId: string, shotId: string, input: ShotPatchInput): S {
   const { openingFrameAssetId: o, endingFrameAssetId: e, ...rest } = input;
   const patch: Partial<Omit<Shot, 'id' | 'number'>> = { ...rest, ...(o !== undefined ? { openingFrameAssetId: o ?? undefined } : {}), ...(e !== undefined ? { endingFrameAssetId: e ?? undefined } : {}) };
-  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? withEditorialTransition({ ...sh, ...patch, ...plannedDirectionAfter(sh, patch) }) : sh))) }; });
+  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? withEditorialTransition({ ...sh, ...patch, ...plannedDirectionAfter(sh, patch), ...continuityAfterCast(sh, patch) }) : sh))) }; });
+}
+
+/** A PERSON TAKEN OUT OF A SHOT LEAVES ITS CONTINUITY (continuity recovery 2026-10-08, "The Relief" 1.6: Elena removed
+ *  from the insert kept her continuity entry, the take's prompt described her in words, and H3 drew a stranger): when
+ *  the cast changes and the edit brings no continuity of its own, the entries of people no longer in the shot go. */
+export function continuityAfterCast(sh: Pick<Shot, 'characterIds' | 'continuity'>, patch: Partial<Pick<Shot, 'characterIds' | 'continuity'>>): Partial<Pick<Shot, 'continuity'>> {
+  if (!patch.characterIds || patch.continuity !== undefined || !sh.continuity) return {};
+  const kept = sh.continuity.characters.filter((c) => patch.characterIds!.includes(c.characterId));
+  return kept.length === sh.continuity.characters.length ? {} : { continuity: { ...sh.continuity, characters: kept } };
 }
 
 /** THE PRODUCER'S "WHAT HAPPENS" WINS. The planner's direction of a shot — its prompt body and its timed staging beats —

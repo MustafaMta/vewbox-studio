@@ -181,3 +181,12 @@ describe('a continuous shot reaches a new framing by a move ("The Relief" 1.3)',
     expect(withoutStaticCamera('The camera drifts closer. He turns.')).toBe('The camera drifts closer. He turns.');
   });
 });
+describe('a person taken out of a shot leaves its continuity (The Relief 1.6)', () => {
+  it('continuityAfterCast drops the entries of people no longer in the shot; an edit with its own continuity wins', async () => {
+    const { continuityAfterCast } = await import('@/domain/actions');
+    const sh = { characterIds: ['m', 'e'], continuity: { characters: [{ characterId: 'm' }, { characterId: 'e' }], props: [], environment: {} } } as never;
+    expect(continuityAfterCast(sh, { characterIds: ['m'] })).toEqual({ continuity: { characters: [{ characterId: 'm' }], props: [], environment: {} } });
+    expect(continuityAfterCast(sh, { characterIds: ['m', 'e'] })).toEqual({});
+    expect(continuityAfterCast(sh, { characterIds: ['m'], continuity: { characters: [], props: [], environment: {} } as never })).toEqual({});
+  });
+});
