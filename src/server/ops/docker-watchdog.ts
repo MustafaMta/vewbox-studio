@@ -148,10 +148,13 @@ export async function spawnOutsideJob(commandLine: string, cwd?: string): Promis
   return pid;
 }
 
+/** Windows PowerShell 5.1 appends with `*>>` as UTF-16: the logs became unreadable mixtures (2026-10-08). Its redirection is`n *  Out-File, so the default encoding is set to UTF-8 first. */
+export const UTF8_LOG = `$PSDefaultParameterValues['Out-File:Encoding']='utf8'; `;
+
 /** The host worker's command line, as the operations notes run it (env files, log appended), hidden window. */
 export function workerCommandLine(repo: string, node = process.execPath): string {
   const tsx = path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-  const inner = `Set-Location -LiteralPath '${repo}'; $env:SERVICE_NAME='worker'; & '${node}' '${tsx}' --env-file=.env --env-file=.env.local src/worker/index.ts *>> var/worker-detached.log`;
+  const inner = `Set-Location -LiteralPath '${repo}'; ${UTF8_LOG}$env:SERVICE_NAME='worker'; & '${node}' '${tsx}' --env-file=.env --env-file=.env.local src/worker/index.ts *>> var/worker-detached.log`;
   return `powershell.exe -NoProfile -WindowStyle Hidden -Command "${inner.replace(/"/g, '\\"')}"`;
 }
 
@@ -159,7 +162,7 @@ export function workerCommandLine(repo: string, node = process.execPath): string
  *  checkout, its output appended to var/web-detached.log, hidden window. */
 export function webCommandLine(repo: string, node = process.execPath, port = 4200): string {
   const tsx = path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-  const inner = `Set-Location -LiteralPath '${repo}'; $env:WEB_PORT='${port}'; & '${node}' '${tsx}' scripts/serve.ts dev *>> var/web-detached.log`;
+  const inner = `Set-Location -LiteralPath '${repo}'; ${UTF8_LOG}$env:WEB_PORT='${port}'; & '${node}' '${tsx}' scripts/serve.ts dev *>> var/web-detached.log`;
   return `powershell.exe -NoProfile -WindowStyle Hidden -Command "${inner.replace(/"/g, '\\"')}"`;
 }
 

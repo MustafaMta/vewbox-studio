@@ -83,7 +83,12 @@ export const generateTake: Handler = async (ctx) => {
   // THE OPENING FRAME OF A CLOSE SHOT (acceptance 2026-10-06, G13): drawn before anything else when the shot has none
   // (src/server/production/shot-pack.ts needsOpeningFrame) — without it H3 opens on the plate's wide view and pushes in
   // (only for a request the preflight below would let through: a refused shot draws nothing)
-  if (needsOpeningFrame(resolveShotPack(studio, p, sh, { backend: chooseBackend() }), sh, studio.settings, { customPrompt: Boolean(payload.prompt) }) && preflightTake(studio, p, sh, { backend: chooseBackend(), customPrompt: Boolean(payload.prompt) }).ok) {
+  const firstPack = resolveShotPack(studio, p, sh, { backend: chooseBackend() });
+  if (needsOpeningFrame(firstPack, sh, studio.settings, { customPrompt: Boolean(payload.prompt) }) && preflightTake(studio, p, sh, { backend: chooseBackend(), customPrompt: Boolean(payload.prompt) }).ok) {
+    // the pictures the frame is drawn from are on disk first (drawing is inference too: a missing canonical file
+    // failed inside the image engine as UNKNOWN instead of being refused as MISSING_REFERENCE)
+    const r = await referenceFilesReadiness(referenceNeeds({ pictures: firstPack.pictures, opening: { kind: 'NONE' } }), (id) => { const a = studio.assets.find((x) => x.id === id); return a ? assetFile(a) : undefined; });
+    if (!r.ok) throw Object.assign(new StudioError('INVALID', `Shot ${sh.number} cannot be filmed: ${r.detail}. Restore the files (docs/OPERATIONS-BACKUP.md) or choose other references.`, { missing: r.missing }), { failureClass: 'MISSING_REFERENCE', retryable: false });
     await ctx.progress('PREPARING', { phase: 'drawing', message: `Drawing the opening frame of shot ${sh.number}: a ${sh.framing.toLowerCase().replace(/_/g, ' ')} starts at its own framing` });
     const frameId = await drawShotFrame(ctx, studio, p, sh);
     await ctx.event('info', `opening frame drawn before the take (${frameId}): a ${sh.framing.toLowerCase().replace(/_/g, ' ')} with no frame would open on the plate's wide view`, { shotId: sh.id, assetId: frameId, setting: 'settings.generation.autoOpeningFrame' });

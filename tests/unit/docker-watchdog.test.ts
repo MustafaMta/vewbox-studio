@@ -66,7 +66,7 @@ describe('docker watchdog: the studio web server (:4200)', () => {
   });
   it('the command line runs `pnpm dev` (scripts/serve.ts dev) on the port, logging to var/web-detached.log', () => {
     const cl = webCommandLine('D:\\vewbox', 'D:\\tools\\node\\node.exe', 4200);
-    expect(cl).toContain("Set-Location -LiteralPath 'D:\\vewbox'; $env:WEB_PORT='4200'; & 'D:\\tools\\node\\node.exe' 'D:\\vewbox\\node_modules\\tsx\\dist\\cli.mjs' scripts/serve.ts dev *>> var/web-detached.log");
+    expect(cl).toContain("Set-Location -LiteralPath 'D:\\vewbox'; $PSDefaultParameterValues['Out-File:Encoding']='utf8'; $env:WEB_PORT='4200'; & 'D:\\tools\\node\\node.exe' 'D:\\vewbox\\node_modules\\tsx\\dist\\cli.mjs' scripts/serve.ts dev *>> var/web-detached.log");
   });
   it('probes: a port with a listener answers; /api/health is judged by its status', async () => {
     const http = await import('node:http');

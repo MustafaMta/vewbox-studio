@@ -22,7 +22,7 @@
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { attachModelStore, dockerDesktopExe, modelStoreConfig, planWatchdog, probeDb, probeEngine, probeModelMounts, probeModelStore, probePortListening, probeProcesses, probeStranded, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
+import { attachModelStore, dockerDesktopExe, modelStoreConfig, planWatchdog, probeDb, probeEngine, probeModelMounts, probeModelStore, probePortListening, probeProcesses, probeStranded, probeWebHealth, renameStaleSocketFolder, secretsSocketExists, spawnOutsideJob, UTF8_LOG, webCommandLine, workerAliveAgeMs, workerCommandLine, type WatchdogAction } from '../src/server/ops/docker-watchdog';
 
 const argv = process.argv.slice(2);
 const has = (f: string) => argv.includes(f);
@@ -98,9 +98,23 @@ if (has('--start-docker')) {
 }
 if (has('--start-self')) {
   const rest = argv.filter((a) => a !== '--start-self');
-  const pid = await spawnOutsideJob(`powershell.exe -NoProfile -WindowStyle Hidden -Command "Set-Location -LiteralPath '${repo}'; & '${process.execPath}' '${path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs')}' scripts/docker-watchdog.ts ${rest.join(' ')} *>> var/docker-watchdog.log"`, repo);
+  const pid = await spawnOutsideJob(`powershell.exe -NoProfile -WindowStyle Hidden -Command "Set-Location -LiteralPath '${repo}'; ${UTF8_LOG}& '${process.execPath}' '${path.join(repo, 'node_modules', 'tsx', 'dist', 'cli.mjs')}' scripts/docker-watchdog.ts ${rest.join(' ')} *>> var/docker-watchdog.log"`, repo);
   say(`watchdog started outside the app's job (pid ${pid}); log: var/docker-watchdog.log`);
   process.exit(0);
 }
 if (!watchS) process.exit((await pass()) ? 0 : 1);
+// ONE WATCHER AT A TIME (reboot recovery, 2026-10-08): the sign-in task now also runs every 10 minutes so a watcher that
+// died is replaced (after the 15:17 boot it was killed by a Ctrl+C in its console and nothing restarted it — the
+// worker and web stayed down and a take sat in GENERATING for two hours); a second watcher steps aside while the first
+// is alive
+{
+  const fs = await import('node:fs');
+  const lock = path.join(repo, 'var', 'watchdog.lock');
+  const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  const held = (() => { try { return Number(fs.readFileSync(lock, 'utf8').trim()); } catch { return 0; } })();
+  if (held && held !== process.pid && alive(held)) { say(`another watcher (pid ${held}) is watching: this one exits`); process.exit(0); }
+  fs.mkdirSync(path.dirname(lock), { recursive: true });
+  fs.writeFileSync(lock, String(process.pid));
+  say(`watching every ${Math.max(15, watchS)} s (pid ${process.pid}; lock ${path.relative(repo, lock)})`);
+}
 for (;;) { try { await pass(); } catch (e) { say(`pass failed: ${(e as Error).message}`); } await new Promise((r) => setTimeout(r, Math.max(15, watchS) * 1000)); }
