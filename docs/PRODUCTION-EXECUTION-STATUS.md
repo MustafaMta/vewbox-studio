@@ -730,6 +730,15 @@ the opening frames and the location plate, inspected side by side.
       Finding: Marcus's skin reads lighter than his canonical deep brown.
     - **Attempt 2** (job-54331fd9ed, same seed) is filmed from frame 3. It was prepared before the identity/moment
       retention change (496941c).
+      - **Result: REVIEW (only repeated frames flagged: 12 of 191, 6.3 %, never two in a row). Read from the media:
+        one continuous take.** It opens on the staged wide; both walk to the windows while the camera follows; it
+        ends on a medium two-shot at the glass.
+      - No cut, the room is the lantern room throughout, and the thermos is steaming in Marcus's hand.
+      - Marcus's face and skin come back to his canonical image in the video (deep brown skin, beard), not the
+        frame's lighter rendering.
+      - Chosen for the cut. Human viewing: `WAITING_FOR_USER_ACCEPTANCE`.
+  - **1.8 (MEDIUM, both at the windows; continuous from 1.7):** attempt 1, job-8e9755f117, is continuing from 1.7's
+    last 22 frames.
 
 ### Shot-edit dependency contract (2026-10-08, a42f507)
 
