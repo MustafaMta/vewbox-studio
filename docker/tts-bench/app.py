@@ -322,7 +322,7 @@ async def sfx(prompt: str = Form(...), duration: str = Form(""), seed: str = For
 async def synthesize(
     text: str = Form(...), language: str = Form("en"), reference: UploadFile = File(...), reference_text: str = Form(""),
     emotion: str = Form(""), seed: str = Form(""), speed: str = Form(""), duration: str = Form(""), mode: str = Form(""),
-    cfg: str = Form(""), steps: str = Form(""),
+    cfg: str = Form(""), steps: str = Form(""), raw: str = Form(""),
 ):
     if ENGINE == "sfx":
         raise HTTPException(status_code=404, detail="the sound-effect engine does not speak: POST /sfx")
@@ -350,6 +350,13 @@ async def synthesize(
         t0 = time.time()
         with _lock:
             try:
+                try:
+                    import torch  # type: ignore
+
+                    if torch.cuda.is_available() and torch.cuda.is_initialized():
+                        torch.cuda.reset_peak_memory_stats()  # this request's peak (the loaded weights included)
+                except Exception:  # noqa: BLE001
+                    pass
                 wav = e.synthesize(text, language, ref, reference_text.strip() or None, emotion or None, p)
             except Exception as ex:  # noqa: BLE001
                 raise HTTPException(status_code=500, detail=f"{ENGINE} failed: {type(ex).__name__}: {str(ex)[:300]}") from ex
@@ -357,9 +364,13 @@ async def synthesize(
         if wav.size == 0:
             raise HTTPException(status_code=500, detail="the engine returned no audio")
         sr = int(e.sample_rate)
-        wav, lim = limit_peaks(wav, sr)
+        # RAW (listening comparisons): the engine's samples as produced — no limiter, 32-bit float
+        is_raw = raw.strip().lower() in ("1", "true", "yes")
+        lim = {"output_true_peak_db": float("nan"), "gain_reduction_db": 0.0} if is_raw else None
+        if not is_raw:
+            wav, lim = limit_peaks(wav, sr)
         buf = io.BytesIO()
-        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="PCM_16", format="WAV") as out:
+        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="FLOAT" if is_raw else "PCM_16", format="WAV") as out:
             out.software = f"vewbox-tts-bench {e.name}"
             out.comment = f"synthetic speech; engine={e.name}; seed={p['seed']}; benchmark; not a voice reference"
             out.write(wav)
@@ -369,6 +380,7 @@ async def synthesize(
             "x-sample-rate": str(sr), "x-duration": f"{dur:.3f}", "x-engine": e.name, "x-model": e.model, "x-ms": str(ms), "x-engine-version": e.version,
             "x-seed": str(p["seed"]), "x-params": json.dumps({k: v for k, v in p.items() if isinstance(v, (int, float))}), "x-true-peak": f"{lim['output_true_peak_db']:.2f}",
             "x-gain-reduction": f"{lim['gain_reduction_db']:.2f}", "x-attempts": "1", "x-peak-vram-mb": str(torch_peak_mb() or ""), "x-duration-control": e.duration_control,
+            "x-raw": "1" if is_raw else "0",
         }
         return Response(content=buf.getvalue(), media_type="audio/wav", headers=headers)
     finally:

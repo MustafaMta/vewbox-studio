@@ -187,53 +187,65 @@ function Pronunciations() {
 // ------------------------------------------------------------------------------------------------ comparison
 
 interface CompareView {
-  ready: boolean; why?: string; labOnly?: boolean;
+  ready: boolean; why?: string; labOnly?: boolean; run?: string; runs?: Array<{ id: string; label: string }>; scales?: string[];
   tests?: Array<{ id: string; language: 'AR' | 'EN'; intent: string; text: string; clips: Array<{ letter: string; src: string }>; reference?: string; failed: number }>;
   graded?: Array<{ by: string; native: boolean; at: string; ratings: number }>;
   results?: Array<{ arm: string; engine: string; acting: string; ratings: number; listeners: Record<string, number | null>; nativeListeners: Record<string, number | null>; machine: { attempted: number; failed: Array<{ test: string; error?: string }>; rtf: number | null; cer: number | null; peakVramMb: number | null }; licence: string | null }> | null;
 }
-const SCALES = [['natural', 'Natural'], ['baghdadi', 'Baghdadi'], ['emotion', 'Emotion fits'], ['pronunciation', 'Pronunciation'], ['same_voice', 'Same voice']] as const;
+type Reveal = Record<string, Record<string, { arm: string; engine: string; acting: string }>>;
+const SCALE_LABELS: Record<string, string> = { natural: 'Naturalness', baghdadi: 'Iraqi / Baghdadi', pronunciation: 'Pronunciation', emotion: 'Emotional performance', same_voice: 'Same speaker as the reference', cinematic: 'Cinematic / acting quality' };
+const scaleLabel = (k: string) => SCALE_LABELS[k] ?? k;
 
 function VoiceComparison() {
   const toast = useToast();
+  const [run, setRun] = useState<string | undefined>(undefined);
   const [view, setView] = useState<CompareView | null>(null);
   const [by, setBy] = useState(''); const [native, setNative] = useState(false);
   const [ratings, setRatings] = useState<Record<string, Record<string, number | string>>>({});
+  const [reveal, setReveal] = useState<Reveal | null>(null);
   const [busy, setBusy] = useState(false);
-  const load = () => fetch('/api/voice-eval', { cache: 'no-store' }).then((r) => r.json()).then(setView).catch(() => setView({ ready: false, why: 'The comparison could not be read.' }));
+  const load = (id?: string) => fetch(`/api/voice-eval${id ? `?run=${encodeURIComponent(id)}` : ''}`, { cache: 'no-store' }).then((r) => r.json()).then((v: CompareView) => { setView(v); setRun(v.run); }).catch(() => setView({ ready: false, why: 'The comparison could not be read.' }));
   useEffect(() => { void load(); }, []);
   if (!view) return <p className="t-meta">Loading the comparison…</p>;
-  if (!view.ready) return <SectionEmpty>{view.why}</SectionEmpty>;
+  const picker = view.runs && view.runs.length > 1 ? (
+    <Field label="Listening pack" htmlFor="vc-run"><Select id="vc-run" value={run ?? ''} onChange={(e) => { setRatings({}); setReveal(null); void load(e.target.value); }} options={view.runs.map((r) => ({ value: r.id, label: r.label }))} /></Field>
+  ) : null;
+  if (!view.ready) return <div style={{ display: 'grid', gap: 12 }}>{picker}<SectionEmpty>{view.why}</SectionEmpty></div>;
+  const scales = view.scales ?? [];
   const set = (key: string, k: string, v: string) => setRatings((r) => ({ ...r, [key]: { ...(r[key] ?? {}), [k]: k === 'note' ? v : Number(v) } }));
   const submit = async () => {
     setBusy(true);
     try {
       const rs = Object.entries(ratings).map(([key, v]) => { const [test, letter] = key.split(':'); const out: Record<string, unknown> = { test, letter }; for (const [k, x] of Object.entries(v)) if (x !== '' && !(typeof x === 'number' && Number.isNaN(x))) out[k] = x; return out; });
-      const r = await fetch('/api/voice-eval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ by, native, ratings: rs }) });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message ?? 'Not stored');
-      toast.ok('Your ratings are stored.'); setRatings({}); void load();
+      const r = await fetch(`/api/voice-eval?run=${encodeURIComponent(run ?? '')}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ by, native, ratings: rs }) });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.message ?? 'Not stored');
+      setReveal(body.reveal ?? null);
+      toast.ok('Your ratings are stored. The engines behind each letter are now shown.'); setRatings({}); void load(run);
     } catch (e) { toast.bad((e as Error).message); } finally { setBusy(false); }
   };
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      {view.labOnly && <Notice tone="warn" title="Lab test">The Arabic clips copy the voice of an upstream demo recording used without the speaker's permission. They are for this comparison only, never for a film.</Notice>}
-      <p className="t-body">Blind: each line's versions are labelled A, B, C in a random order, and the engines are named only after someone has rated. Rate what you hear from 1 (poor) to 5 (as a native speaker would say it). Leave a scale empty when it does not apply.</p>
+      {picker}
+      {view.labOnly && <Notice tone="warn" title="Lab test — not production, no speaker permission">The Arabic clips copy the voice of an upstream demo recording used without the speaker's permission. They are for this comparison only, never for a film or a character.</Notice>}
+      <p className="t-body">Blind: each line's versions are labelled in a random order, and which engine made a letter is shown only after you store your ratings. Every clip is each engine's first and only result for the line, at the same loudness and otherwise untouched. Rate what you hear from 1 (poor) to 5 (as a native speaker would say it); leave a scale empty when it does not apply.</p>
       {view.tests!.map((t) => (
         <section key={t.id} className="paper card-pad" style={{ display: 'grid', gap: 10 }} aria-labelledby={`vc-${t.id}`}>
           <p id={`vc-${t.id}`} className="t-lead" dir={t.language === 'AR' ? 'rtl' : 'ltr'} lang={t.language === 'AR' ? 'ar' : 'en'} style={{ unicodeBidi: 'isolate' }}>{t.text}</p>
           <p className="t-meta">Intended delivery: {t.intent}{t.failed ? ` · ${t.failed} engine ${t.failed === 1 ? 'attempt' : 'attempts'} failed and ${t.failed === 1 ? 'is' : 'are'} not shown` : ''}</p>
-          {t.reference && <div className="t-meta">Reference voice <audio controls preload="none" src={t.reference} style={{ verticalAlign: 'middle', maxInlineSize: '100%' }} /></div>}
+          {t.reference && <div className="t-meta">Reference <audio controls preload="none" src={t.reference} style={{ verticalAlign: 'middle', maxInlineSize: '100%' }} /></div>}
           {t.clips.map((c) => {
             const key = `${t.id}:${c.letter}`;
+            const shown = reveal?.[t.id]?.[c.letter];
             return (
               <div key={c.letter} className="well card-pad" style={{ display: 'grid', gap: 8 }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><strong>{c.letter}</strong><audio controls preload="none" src={c.src} style={{ maxInlineSize: '100%' }} /></div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><strong>{c.letter}</strong><audio controls preload="none" src={c.src} style={{ maxInlineSize: '100%' }} />{shown && <Badge tone="info">{engineLabel(shown.engine)} — {shown.acting}</Badge>}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                  {SCALES.filter(([k]) => k !== 'baghdadi' || t.language === 'AR').map(([k, label]) => (
-                    <Field key={k} label={label} htmlFor={`${key}-${k}`}><Select id={`${key}-${k}`} value={String(ratings[key]?.[k] ?? '')} onChange={(e) => set(key, k, e.target.value)} options={[{ value: '', label: '—' }, ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></Field>
+                  {scales.filter((k) => k !== 'baghdadi' || t.language === 'AR').map((k) => (
+                    <Field key={k} label={scaleLabel(k)} htmlFor={`${key}-${k}`}><Select id={`${key}-${k}`} value={String(ratings[key]?.[k] ?? '')} onChange={(e) => set(key, k, e.target.value)} options={[{ value: '', label: '—' }, ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))]} /></Field>
                   ))}
                 </div>
-                <Field label="What you heard" optional htmlFor={`${key}-note`}><Input id={`${key}-note`} dir="auto" value={String(ratings[key]?.note ?? '')} onChange={(e) => set(key, 'note', e.target.value)} placeholder="Words said wrong, robotic parts…" /></Field>
+                <Field label="What you heard" optional htmlFor={`${key}-note`}><Input id={`${key}-note`} dir="auto" value={String(ratings[key]?.note ?? '')} onChange={(e) => set(key, 'note', e.target.value)} placeholder="Words said wrong, robotic parts, what works…" /></Field>
               </div>
             );
           })}
@@ -245,17 +257,18 @@ function VoiceComparison() {
         <Button variant="primary" loading={busy} disabled={!by.trim() || !Object.keys(ratings).length} onClick={submit}>Store my ratings</Button>
       </div>
       {view.graded?.length ? (
-        <div className="paper card-pad" style={{ display: 'grid', gap: 12 }}>
-          <div className="t-section">Results so far</div>
+        <details className="paper card-pad">
+          {/* closed by default: it names the engines, and a listener who has not rated yet must not see them */}
+          <summary className="t-section">Results so far (names the engines — open only after you have rated)</summary>
           <p className="t-meta">Rated by {view.graded.map((g) => `${g.by}${g.native ? ' (native)' : ''}`).join(', ')}. Averages are the listeners' own ratings; the machine's numbers are supporting evidence only.</p>
           <div style={{ overflowX: 'auto' }}>
             <table className="table">
-              <thead><tr><th scope="col">Engine</th>{SCALES.map(([k, l]) => <th key={k} scope="col">{l}</th>)}<th scope="col">Native: natural</th><th scope="col">Speed (RTF)</th><th scope="col">Errors (CER)</th><th scope="col">Licence</th></tr></thead>
+              <thead><tr><th scope="col">Engine</th>{scales.map((k) => <th key={k} scope="col">{scaleLabel(k)}</th>)}<th scope="col">Native: naturalness</th><th scope="col">Speed (RTF)</th><th scope="col">Errors (CER)</th><th scope="col">Licence</th></tr></thead>
               <tbody>
                 {view.results!.map((r) => (
                   <tr key={r.arm}>
                     <td>{engineLabel(r.engine)} <span className="t-meta">({r.acting})</span></td>
-                    {SCALES.map(([k]) => <td key={k}>{r.listeners[k] ?? '—'}</td>)}
+                    {scales.map((k) => <td key={k}>{r.listeners[k] ?? '—'}</td>)}
                     <td>{r.nativeListeners.natural ?? '—'}</td>
                     <td>{r.machine.rtf ?? '—'}</td>
                     <td>{r.machine.cer ?? '—'}</td>
@@ -265,7 +278,7 @@ function VoiceComparison() {
               </tbody>
             </table>
           </div>
-        </div>
+        </details>
       ) : null}
     </div>
   );

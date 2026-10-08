@@ -1,0 +1,21 @@
+{
+  "name": "Iraqi voice listening pack 2026-10 (the producer's controlled comparison; docs/VOICE-ENGINE.md §7)",
+  "note": "LAB TEST — NOT PRODUCTION / NO SPEAKER PERMISSION: the reference is the upstream Habibi IRQ demo clip. The lines are the producer's, as written, never rewritten for an engine. `tagged` is used ONLY by the fish-tagged arm; Habibi and MOSS never receive tags. Fish tags are from the S2 Pro model card's common-tag list (fishaudio/s2-pro@1de9996 README); the warm line has no listed tag, so it uses the card's documented free-form form and is marked tagSource FREE_FORM. Lines with no emotion asked for carry no tag in either Fish arm. One result per engine per line, one fixed seed, no retries.",
+  "seed": 20261009,
+  "tests": [
+    { "id": "natural", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "natural, everyday", "text": "شلونك حبيبي، وينك من الصبح؟ صارلي ساعة أدور عليك!", "tagged": "شلونك حبيبي، وينك من الصبح؟ صارلي ساعة أدور عليك!", "tagSource": "NONE" },
+    { "id": "warm", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "warm, reassuring", "text": "تعال يمّي، لا تشيل هم، كلشي راح يصير زين.", "tagged": "[warm, gentle voice] تعال يمّي، لا تشيل هم، كلشي راح يصير زين.", "tagSource": "FREE_FORM" },
+    { "id": "angry", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "angry", "text": "يمعود گتلك لا تفتح الباب! ليش ما تسمع الحچي؟", "tagged": "[angry] يمعود گتلك لا تفتح الباب! ليش ما تسمع الحچي؟", "tagSource": "LISTED" },
+    { "id": "fear", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "fear, quiet", "text": "اسكت شوية... أكو واحد واقف ورا الباب.", "tagged": "[whisper] اسكت شوية... أكو واحد واقف ورا الباب.", "tagSource": "LISTED" },
+    { "id": "sad", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "sad, hurt", "text": "آني چنت واثق بيك... ما توقعت منك هيچ.", "tagged": "[sad] آني چنت واثق بيك... ما توقعت منك هيچ.", "tagSource": "LISTED" },
+    { "id": "excited", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "excited", "text": "هااا! أخيراً وصلت! تدري شكد فرحت من شفتك؟", "tagged": "[excited] هااا! أخيراً وصلت! تدري شكد فرحت من شفتك؟", "tagSource": "LISTED" },
+    { "id": "phonology", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "Iraqi phonology: گ and چ", "text": "گلتلك باچر نكعد نحچي ونشرب چاي.", "tagged": "گلتلك باچر نكعد نحچي ونشرب چاي.", "tagSource": "NONE" }
+  ],
+  "arms": [
+    { "id": "habibi", "engine": "habibi", "base": "http://127.0.0.1:8021", "languages": ["AR"], "textField": "text", "acting": "reference only (Habibi-TTS Specialized IRQ)", "lease": "TTS" },
+    { "id": "moss", "engine": "moss", "base": "http://127.0.0.1:8023", "languages": ["AR", "EN"], "textField": "text", "acting": "reference only (MOSS-TTS v1.5, Arabic)", "lease": "TTS" },
+    { "id": "fish-plain", "engine": "fish-s2-pro", "base": "http://127.0.0.1:8025", "languages": ["AR", "EN"], "textField": "text", "acting": "reference only (Fish S2 Pro, EVALUATION ONLY)", "lease": "TTS" },
+    { "id": "fish-tagged", "engine": "fish-s2-pro", "base": "http://127.0.0.1:8025", "languages": ["AR", "EN"], "textField": "tagged", "acting": "inline [tags] (Fish S2 Pro, EVALUATION ONLY)", "lease": "TTS" }
+  ],
+  "scales": ["natural", "baghdadi", "pronunciation", "emotion", "same_voice", "cinematic"]
+}

@@ -91,6 +91,30 @@ def engine_version() -> str:
 ENGINE_VERSION = engine_version()
 
 
+# ------------------------------------------------------------------------------------------------ peak VRAM
+def reset_peak_vram() -> None:
+    """Start a request's peak count (the loaded weights stay allocated, so the peak includes them)."""
+    try:
+        import torch  # type: ignore
+
+        if torch.cuda.is_available() and torch.cuda.is_initialized():
+            torch.cuda.reset_peak_memory_stats()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def peak_vram_mb() -> int | None:
+    """The process's peak reserved card memory since the last reset (MB), or None."""
+    try:
+        import torch  # type: ignore
+
+        if torch.cuda.is_available() and torch.cuda.is_initialized():
+            return int(torch.cuda.max_memory_reserved() / 1048576)
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
 # ------------------------------------------------------------------------------------------------ seeding
 def seed_everything(seed: int) -> None:
     """Both engines draw noise (IndexTTS's GPT sampling and flow matching, F5's ODE start): seed every generator so
@@ -405,6 +429,7 @@ async def synthesize(
     text: str = Form(...), language: str = Form("en"), dialect: str = Form(""), engine_name: str = Form("", alias="engine"),
     reference: UploadFile = File(...), reference_text: str = Form(""), emotion: str = Form(""), emotion_alpha: float = Form(0.7),
     speed: str = Form(""), seed: str = Form(""), nfe_step: str = Form(""), cfg_strength: str = Form(""), cfg: str = Form(""), sway_sampling_coef: str = Form(""),
+    raw: str = Form(""),
 ):
     if not weights_present():
         raise HTTPException(status_code=503, detail=f"{ENGINE} weights are still downloading; try again in a few minutes")
@@ -437,14 +462,21 @@ async def synthesize(
         t0 = time.time()
         e = engine()
         with _lock:
+            reset_peak_vram()
             wav, sr = e.synthesize(text, language, ref_path, reference_text or None, emotion or None, float(params.get("emotion_alpha", emotion_alpha)), params)
         if wav.size == 0:
             raise HTTPException(status_code=500, detail="the engine returned no audio")
-        wav, limiter = limit_peaks(wav, sr)
+        # RAW (listening comparisons, 2026-10-09): the engine's samples exactly as produced — no limiter, 32-bit float;
+        # otherwise the live path's peak limiter and PCM-16
+        is_raw = raw.strip().lower() in ("1", "true", "yes")
+        if is_raw:
+            limiter = {"input_true_peak_db": float("nan"), "output_true_peak_db": float("nan"), "gain_reduction_db": 0.0, "limited_samples": 0}
+        else:
+            wav, limiter = limit_peaks(wav, sr)
         buf = io.BytesIO()
         # the file carries its own provenance (WAV INFO chunk: ISFT/ICMT, read by ffprobe as encoder/comment) so that
         # a generated line can never pass for a recording when someone tries to clone a voice from it
-        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="PCM_16", format="WAV") as out:
+        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="FLOAT" if is_raw else "PCM_16", format="WAV") as out:
             out.software = f"vewbox-tts {e.name}"
             out.comment = f"synthetic speech; engine={e.name}; seed={params['seed']}; not a voice reference"
             out.write(wav)
@@ -455,6 +487,7 @@ async def synthesize(
             "x-sample-rate": str(sr), "x-duration": f"{dur:.3f}", "x-engine": e.name, "x-model": e.model, "x-ms": str(ms),
             "x-engine-version": ENGINE_VERSION, "x-seed": str(params["seed"]), "x-params": json.dumps(params),
             "x-true-peak": f"{limiter['output_true_peak_db']:.2f}", "x-gain-reduction": f"{limiter['gain_reduction_db']:.2f}", "x-input-true-peak": f"{limiter['input_true_peak_db']:.2f}",
+            "x-raw": "1" if is_raw else "0", "x-peak-vram-mb": str(peak_vram_mb() or ""),
         }
         return Response(content=buf.getvalue(), media_type="audio/wav", headers=headers)
     finally:

@@ -133,7 +133,7 @@ async def synthesize(
     text: str = Form(...), language: str = Form("en"), dialect: str = Form(""), engine_name: str = Form("", alias="engine"),
     reference: UploadFile = File(...), reference_text: str = Form(""), seed: str = Form(""),
     temperature: str = Form(""), top_p: str = Form(""), repetition_penalty: str = Form(""), chunk_length: str = Form(""),
-    max_new_tokens: str = Form(""), normalize: str = Form(""),
+    max_new_tokens: str = Form(""), normalize: str = Form(""), raw: str = Form(""),
 ):
     missing = missing_weights()
     if missing:
@@ -174,6 +174,10 @@ async def synthesize(
         t0 = time.time()
         with _lock:
             try:
+                import torch  # type: ignore
+
+                if torch.cuda.is_available() and torch.cuda.is_initialized():
+                    torch.cuda.reset_peak_memory_stats()  # this request's peak (the loaded weights included)
                 seed_everything(params["seed"])
                 engine = m.tts_inference_engine
                 sr = int(engine.decoder_model.sample_rate)
@@ -185,9 +189,13 @@ async def synthesize(
         ms = int((time.time() - t0) * 1000)
         if wav.size == 0 or not np.isfinite(wav).all():
             raise HTTPException(status_code=500, detail="the engine returned no usable audio")
-        wav, lim = limit_peaks(wav, sr)
+        # RAW (listening comparisons): the engine's samples as produced — no limiter, 32-bit float
+        is_raw = raw.strip().lower() in ("1", "true", "yes")
+        lim = {"input_true_peak_db": float("nan"), "output_true_peak_db": float("nan"), "gain_reduction_db": 0.0} if is_raw else None
+        if not is_raw:
+            wav, lim = limit_peaks(wav, sr)
         buf = io.BytesIO()
-        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="PCM_16", format="WAV") as out:
+        with sf.SoundFile(buf, mode="w", samplerate=sr, channels=1, subtype="FLOAT" if is_raw else "PCM_16", format="WAV") as out:
             out.software = "vewbox-tts fish-s2-pro (evaluation)"
             out.comment = f"synthetic speech; engine=fish-s2-pro; seed={params['seed']}; not a voice reference; {LICENSE}"
             out.write(wav)
@@ -197,7 +205,7 @@ async def synthesize(
             "x-sample-rate": str(sr), "x-duration": f"{dur:.3f}", "x-engine": "fish-s2-pro", "x-model": MODEL, "x-ms": str(ms),
             "x-engine-version": ENGINE_VERSION, "x-seed": str(params["seed"]), "x-params": json.dumps(params),
             "x-true-peak": f"{lim['output_true_peak_db']:.2f}", "x-gain-reduction": f"{lim['gain_reduction_db']:.2f}", "x-input-true-peak": f"{lim['input_true_peak_db']:.2f}",
-            "x-peak-vram-mb": str(torch_peak_mb() or ""), "x-license": "fish-audio-research-non-commercial",
+            "x-peak-vram-mb": str(torch_peak_mb() or ""), "x-license": "fish-audio-research-non-commercial", "x-raw": "1" if is_raw else "0",
         })
     finally:
         try:

@@ -24,21 +24,46 @@ const argv = process.argv.slice(2);
 const mode = argv[0];
 const opt = (n: string, d = '') => { const i = argv.indexOf(`--${n}`); return i >= 0 && argv[i + 1] !== undefined && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const RUN = path.resolve(opt('run', 'var/eval/voice-acting-2026-10'));
-const SET = path.resolve('tests/fixtures/voice/acting-eval-2026-10.json');
+// --set: the fixture (default the acting evaluation; the producer's Iraqi listening pack is iraqi-listening-2026-10)
+const SET = path.resolve(opt('set', 'tests/fixtures/voice/acting-eval-2026-10.json'));
 const refuseStudio = (u: string) => { if (!u || /:4200\b|\/api(\/|$)/.test(u)) { console.error(`refusing: ${u || '(no url)'}`); process.exit(2); } return u.replace(/\/$/, ''); };
 
-interface Test { id: string; language: 'AR' | 'EN'; dialect?: string; intent: string; text: string; tagged: string; dialectWords?: string[] }
-interface Arm { id: string; engine: string; languages: Array<'AR' | 'EN'>; textField: 'text' | 'tagged'; acting: string; seed: number }
-interface Ref { language: 'AR' | 'EN'; file: string; text: string; source: string; licence: string; labOnly: boolean }
+interface Test { id: string; language: 'AR' | 'EN'; dialect?: string; intent: string; text: string; tagged: string; tagSource?: string; dialectWords?: string[] }
+interface Arm { id: string; engine: string; base?: string; languages: Array<'AR' | 'EN'>; textField: 'text' | 'tagged'; acting: string; seed?: number }
+interface Ref { language: 'AR' | 'EN'; file: string; text: string; source: string; licence: string; labOnly: boolean; sha256?: string }
 interface Take {
   arm: string; test: string; engine: string; attempt: 1; seed: number; sent: string; ok: boolean; error?: string; file?: string;
+  /** the engine's output as produced (32-bit float, no limiter) and the gain-only listening copy made from it */
+  raw?: { file: string; sha256: string; peakDbfs?: number; lufs?: number }; listening?: { file: string; gainDb: number; targetLufs: number };
+  referenceSha256?: string; at?: string;
   seconds?: number; ms?: number; rtf?: number; sampleRate?: number; model?: string; engineVersion?: string; params?: unknown; peakVramMb?: number; licence?: string;
   score?: Record<string, unknown>;
 }
 
 const readJson = async <T>(f: string, d: T): Promise<T> => { try { return JSON.parse(await fs.readFile(f, 'utf8')) as T; } catch { return d; } };
 const writeJson = (f: string, v: unknown) => fs.mkdir(path.dirname(f), { recursive: true }).then(() => fs.writeFile(f, JSON.stringify(v, null, 2), 'utf8'));
-const set = () => readJson<{ tests: Test[]; arms: Arm[] }>(SET, { tests: [], arms: [] });
+const set = () => readJson<{ tests: Test[]; arms: Arm[]; seed?: number; scales?: string[] }>(SET, { tests: [], arms: [] });
+const sha256File = async (f: string) => crypto.createHash('sha256').update(await fs.readFile(f)).digest('hex');
+
+/** Integrated loudness (LUFS) and true peak (dBTP) of a file, by ffmpeg's EBU R128 meter. */
+async function loudnessOf(file: string): Promise<{ lufs: number; truePeak: number }> {
+  const { execFile } = await import('node:child_process');
+  const out = await new Promise<string>((resolve, reject) => execFile('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128=peak=true', '-f', 'null', '-'], { maxBuffer: 1e7 }, (e, _o, err) => (e ? reject(e) : resolve(String(err)))));
+  const summary = out.slice(out.lastIndexOf('Summary:'));
+  const lufs = Number(/I:\s+(-?[\d.]+) LUFS/.exec(summary)?.[1] ?? NaN);
+  const truePeak = Number(/Peak:\s+(-?[\d.]+) dBFS/.exec(summary)?.[1] ?? NaN);
+  return { lufs, truePeak };
+}
+
+/** THE LISTENING COPY: the raw file with ONE gain to -20 LUFS (less when that would push the true peak over -1 dBTP) —
+ *  no limiter, no compression, no denoise, nothing else; the raw file is never touched. */
+async function listeningCopy(raw: string, out: string, targetLufs = -20): Promise<{ gainDb: number; lufs: number; truePeak: number }> {
+  const m = await loudnessOf(raw);
+  const gainDb = Number.isFinite(m.lufs) ? Math.min(targetLufs - m.lufs, Number.isFinite(m.truePeak) ? -1 - m.truePeak : 0) : 0;
+  const { execFile } = await import('node:child_process');
+  await new Promise<void>((resolve, reject) => execFile('ffmpeg', ['-y', '-v', 'error', '-i', raw, '-af', `volume=${gainDb.toFixed(2)}dB`, '-c:a', 'pcm_s16le', out], (e) => (e ? reject(e) : resolve())));
+  return { gainDb: Math.round(gainDb * 100) / 100, ...m };
+}
 const takesFile = path.join(RUN, 'takes.json');
 const refsFile = path.join(RUN, 'refs.json');
 const media = (f: string) => path.join(RUN, f);
@@ -48,6 +73,14 @@ async function refs() {
   const arText = (await fs.readFile(path.join(lab, '_ref_text.txt'), 'utf8')).trim();
   await fs.mkdir(path.join(RUN, 'media'), { recursive: true });
   await fs.copyFile('C:/Users/MTA/Downloads/src_habibi_tts_assets_IRQ.wav', media('media/ref-ar.wav'));
+  const arRef: Ref = { language: 'AR', file: 'media/ref-ar.wav', text: arText, source: 'SWivid/Habibi-TTS assets IRQ demo clip (upstream)', licence: 'upstream demo — LAB TEST ONLY, no speaker permission', labOnly: true, sha256: await sha256File(media('media/ref-ar.wav')) };
+  const { tests } = await set();
+  if (!tests.some((t) => t.language === 'EN')) {
+    await writeJson(refsFile, { refs: [arRef] });
+    await fs.writeFile(path.join(RUN, 'LAB-TEST-NOT-PRODUCTION.txt'), 'The Arabic outputs clone the upstream Habibi demo speaker (no speaker permission): LAB TEST ONLY, never production, never published, never a Vewbox character.\n', 'utf8');
+    console.log(JSON.stringify([{ ...arRef, text: arRef.text.slice(0, 60) }], null, 1));
+    return;
+  }
   const { readState } = await import('@/server/studio/engine');
   const { state } = await readState();
   const marcus = state.characters.find((c) => c.name === 'Marcus Bell');
@@ -67,33 +100,46 @@ async function refs() {
 }
 
 async function synth() {
-  const { tests, arms } = await set();
+  const s = await set();
+  const { tests, arms } = s;
   const arm = arms.find((a) => a.id === opt('arm'));
   if (!arm) throw new Error(`--arm must be one of ${arms.map((a) => a.id).join(', ')}`);
-  const base = refuseStudio(opt('base'));
+  const base = refuseStudio(opt('base', arm.base ?? ''));
+  const seed = s.seed ?? arm.seed ?? 20261008;
+  // --as-prepared: the acting evaluation sent Habibi the studio's prepared text; the listening pack sends every engine
+  // the line exactly as written (the producer: "do not rewrite these lines")
+  const prepared = argv.includes('--as-prepared');
   const { refs: rs } = await readJson<{ refs: Ref[] }>(refsFile, { refs: [] });
   const store = await readJson<{ takes: Take[] }>(takesFile, { takes: [] });
+  await fs.mkdir(media('media/raw'), { recursive: true });
   for (const t of tests) {
     if (store.takes.some((x) => x.arm === arm.id && x.test === t.id)) { console.log(`${arm.id}/${t.id}: already attempted (attempt 1 is final)`); continue; }
-    if (!arm.languages.includes(t.language)) { store.takes.push({ arm: arm.id, test: t.id, engine: arm.engine, attempt: 1, seed: arm.seed, sent: '', ok: false, error: `NOT_SUPPORTED: ${arm.engine} does not speak ${t.language}` }); continue; }
+    if (!arm.languages.includes(t.language)) { store.takes.push({ arm: arm.id, test: t.id, engine: arm.engine, attempt: 1, seed, sent: '', ok: false, error: `NOT_SUPPORTED: ${arm.engine} does not speak ${t.language}` }); continue; }
     const ref = rs.find((r) => r.language === t.language)!;
-    const raw = t[arm.textField];
-    const sent = arm.engine === 'habibi' ? prepareLineText(raw, { engine: 'habibi', language: 'AR', dialect: 'IRAQI_BAGHDADI' }).text : raw;
+    const line = t[arm.textField];
+    const sent = prepared && arm.engine === 'habibi' ? prepareLineText(line, { engine: 'habibi', language: 'AR', dialect: 'IRAQI_BAGHDADI' }).text : line;
     const fd = new FormData();
     fd.set('text', sent); fd.set('language', t.language === 'AR' ? 'ar' : 'en'); fd.set('engine', arm.engine);
     if (t.language === 'AR') fd.set('dialect', 'IRQ');
     fd.set('reference', new Blob([await fs.readFile(media(ref.file))]), path.basename(ref.file));
-    fd.set('reference_text', ref.text); fd.set('seed', String(arm.seed));
-    const take: Take = { arm: arm.id, test: t.id, engine: arm.engine, attempt: 1, seed: arm.seed, sent, ok: false };
+    fd.set('reference_text', ref.text); fd.set('seed', String(seed)); fd.set('raw', '1');
+    const take: Take = { arm: arm.id, test: t.id, engine: arm.engine, attempt: 1, seed, sent, ok: false, referenceSha256: ref.sha256 ?? await sha256File(media(ref.file)), at: new Date().toISOString() };
     const t0 = Date.now();
     try {
       const r = await fetch(`${base}/synthesize`, { method: 'POST', body: fd, signal: AbortSignal.timeout(15 * 60_000) });
       if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 300)}`);
-      const file = `media/${arm.id}-${t.id}.wav`;
-      await fs.writeFile(media(file), Buffer.from(await r.arrayBuffer()));
       const h = (k: string) => r.headers.get(k) ?? undefined;
+      if (h('x-raw') !== '1') throw new Error('the service did not return its raw output (x-raw): restart it on the current code');
+      const rawFile = `media/raw/${arm.id}-${t.id}.wav`;
+      await fs.writeFile(media(rawFile), Buffer.from(await r.arrayBuffer()));
+      const file = `media/${arm.id}-${t.id}.wav`;
+      const copy = await listeningCopy(media(rawFile), media(file));
       const seconds = Number(h('x-duration') ?? 0); const ms = Number(h('x-ms') ?? Date.now() - t0);
-      Object.assign(take, { ok: true, file, seconds, ms, rtf: seconds ? Math.round((ms / 1000 / seconds) * 100) / 100 : undefined, sampleRate: Number(h('x-sample-rate') ?? 0), model: h('x-model'), engineVersion: h('x-engine-version'), params: JSON.parse(h('x-params') ?? '{}'), peakVramMb: h('x-peak-vram-mb') ? Number(h('x-peak-vram-mb')) : undefined, licence: h('x-license') });
+      Object.assign(take, {
+        ok: true, file, raw: { file: rawFile, sha256: await sha256File(media(rawFile)), peakDbfs: copy.truePeak, lufs: copy.lufs }, listening: { file, gainDb: copy.gainDb, targetLufs: -20 },
+        seconds, ms, rtf: seconds ? Math.round((ms / 1000 / seconds) * 100) / 100 : undefined, sampleRate: Number(h('x-sample-rate') ?? 0), model: h('x-model'), engineVersion: h('x-engine-version'),
+        params: JSON.parse(h('x-params') ?? '{}'), peakVramMb: h('x-peak-vram-mb') ? Number(h('x-peak-vram-mb')) : undefined, licence: h('x-license'),
+      });
     } catch (e) { take.error = (e as Error).message; }
     store.takes.push(take);
     await writeJson(takesFile, store);
@@ -116,11 +162,17 @@ async function score() {
     if (!tk.ok || !tk.file || (tk.score && !argv.includes('--rescore'))) continue;
     const t = tests.find((x) => x.id === tk.test)!;
     const L = t.language;
-    const file = media(tk.file);
+    // the machine measures what the engine produced (the raw file when there is one), never the listening copy
+    const file = media(tk.raw?.file ?? tk.file);
     const fd = new FormData();
     fd.set('file', new Blob([await fs.readFile(file)]), path.basename(file)); fd.set('language', L === 'AR' ? 'ar' : 'en'); fd.set('words', '0');
     const r = await fetch(`${asr}/transcribe`, { method: 'POST', body: fd, signal: AbortSignal.timeout(5 * 60_000) });
     const heard = r.ok ? ((await r.json()) as { text: string }).text.trim() : '';
+    // the second ear: Qwen3-ASR (the frozen stack's transcriber), beside the dialect Whisper
+    const fq = new FormData();
+    fq.set('file', new Blob([await fs.readFile(file)]), path.basename(file)); fq.set('language', L === 'AR' ? 'ar' : 'en');
+    const rq = await fetch(`${asr}/transcribe_qwen`, { method: 'POST', body: fq, signal: AbortSignal.timeout(5 * 60_000) }).catch(() => undefined);
+    const heardQwen = rq?.ok ? ((await rq.json()) as { text: string }).text.trim() : undefined;
     const coverage = scriptCoverage(t.text, heard, L); const cer = charErrorRate(t.text, heard, L);
     const v = verdict({ coverage, cer, context: 'line' });
     const m = await measureAudio(file);
@@ -143,12 +195,35 @@ async function score() {
     const inner = silences.filter((s) => s.start > (m.silence?.leadingSeconds ?? 0) + 0.01 && s.end < (m.durationSeconds ?? 0) - (m.silence?.trailingSeconds ?? 0) - 0.01);
     tk.score = {
       heard, heardFolded: L === 'AR' ? normalizeIraqi(heard) : foldEn(heard), cer: Math.round(cer * 1000) / 1000, coverage: Math.round(coverage * 1000) / 1000, intelligibility: v.status, reasons: v.reasons,
+      ...(heardQwen !== undefined ? { heardQwen, cerQwen: Math.round(charErrorRate(stripTags(t.text), heardQwen, L) * 1000) / 1000 } : {}),
       phonology, speakerSimilarity: similarity, lufs: m.lufs, truePeakDbtp: m.truePeakDbtp, leadingSilence: m.silence?.leadingSeconds, trailingSilence: m.silence?.trailingSeconds,
       innerPauses: inner.length, longestPause: m.silence?.longestPauseSeconds, silenceRatio: m.silence?.ratio,
     };
     await writeJson(takesFile, store);
     console.log(`${tk.arm}/${tk.test}: CER ${tk.score.cer} coverage ${tk.score.coverage} ${v.status}; pauses ${inner.length}; sim ${similarity ?? '-'}; phonology ${(phonology as { verdict?: string } | undefined)?.verdict ?? '-'} | heard: ${heard}`);
   }
+}
+
+/** PITCH (supporting evidence): pYIN F0 statistics of every raw take and of the reference, computed in the tts-habibi
+ *  container (it has librosa); written into each take's score and into refs.json. */
+async function pitch() {
+  const { execFile } = await import('node:child_process');
+  const sh = (cmd: string, args: string[]) => new Promise<string>((resolve, reject) => execFile(cmd, args, { maxBuffer: 1e8 }, (e, o, err) => (e ? reject(new Error(`${e.message} ${err}`)) : resolve(String(o)))));
+  const box = opt('container', 'vewbox-tts-habibi-1');
+  const store = await readJson<{ takes: Take[] }>(takesFile, { takes: [] });
+  const r = await readJson<{ refs: Ref[] }>(refsFile, { refs: [] });
+  const files = [...store.takes.filter((t) => t.ok).map((t) => t.raw?.file ?? t.file!), ...r.refs.map((x) => x.file)];
+  await sh('docker', ['exec', box, 'sh', '-c', 'rm -rf /tmp/pitch && mkdir -p /tmp/pitch']);
+  await sh('docker', ['cp', path.resolve('scripts/pitch-stats.py'), `${box}:/tmp/pitch/pitch-stats.py`]);
+  const inBox = files.map((f, i) => `/tmp/pitch/${i}.wav`);
+  for (const [i, f] of files.entries()) await sh('docker', ['cp', media(f), `${box}:${inBox[i]}`]);
+  const json = JSON.parse(await sh('docker', ['exec', box, '/opt/habibi/.venv/bin/python', '/tmp/pitch/pitch-stats.py', ...inBox])) as Record<string, unknown>;
+  const of = (f: string) => json[inBox[files.indexOf(f)]];
+  for (const t of store.takes) if (t.ok) t.score = { ...(t.score ?? {}), pitch: of(t.raw?.file ?? t.file!) };
+  for (const x of r.refs) (x as Ref & { pitch?: unknown }).pitch = of(x.file);
+  await writeJson(takesFile, store); await writeJson(refsFile, r);
+  for (const t of store.takes.filter((x) => x.ok)) console.log(`${t.arm}/${t.test}: ${JSON.stringify((t.score as { pitch?: unknown }).pitch)}`);
+  for (const x of r.refs) console.log(`reference ${x.language}: ${JSON.stringify((x as Ref & { pitch?: unknown }).pitch)}`);
 }
 
 async function report() {
@@ -198,5 +273,5 @@ async function grades() {
   console.log(`${unblinded.length} ratings by ${g.by} imported`);
 }
 
-const modes: Record<string, () => Promise<void>> = { refs, synth, score, report, grades };
+const modes: Record<string, () => Promise<void>> = { refs, synth, score, pitch, report, grades };
 (modes[mode] ?? (async () => { console.error(`mode: ${Object.keys(modes).join(' | ')}`); process.exit(2); }))().then(() => process.exit(0), (e) => { console.error(e); process.exit(1); });
