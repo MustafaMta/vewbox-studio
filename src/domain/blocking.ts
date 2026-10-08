@@ -164,6 +164,15 @@ export function blockingFor(p: Production, sh: Shot): BlockingState {
 }
 
 const SIDE_WORDS: Record<FrameSide, string> = { LEFT: 'the left of the frame', CENTER: 'the centre of the frame', RIGHT: 'the right of the frame' };
+/** A face measure (SFace against a frontal canonical image) read for the way the person faces: from behind there is no
+ *  face (NOT_MEASURED); in profile (facing screen left or right) the measure is unreliable — a FAIL becomes REVIEW
+ *  ("The Last Crossing" 2.3: polishing the lens in profile, SFace 0.26, the same man). Pure (tested). */
+export function identityForFacing<V extends string>(verdict: V, facing: ScreenDirection | undefined): { verdict: V | 'REVIEW' | 'NOT_MEASURED'; note?: string } {
+  if (facing === 'AWAY') return { verdict: 'NOT_MEASURED', note: 'seen from behind: no face to measure' };
+  if ((facing === 'LEFT' || facing === 'RIGHT') && verdict === 'FAIL') return { verdict: 'REVIEW', note: 'in profile: the face measure is unreliable' };
+  return { verdict };
+}
+
 /** The people a shot shows from behind (their continuity faces AWAY from the camera): no face to measure. Pure. */
 export function facingAway(sh: Pick<Shot, 'continuity'>): string[] {
   return (sh.continuity?.characters ?? []).filter((c) => c.screenDirection === 'AWAY').map((c) => c.characterId);

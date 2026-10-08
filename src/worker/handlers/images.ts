@@ -7,6 +7,7 @@ import { canCountPeople, countPeopleInFiles, peopleExpected } from './people';
 import { StudioError, missingReference } from '@/domain/errors';
 import type { Asset, Character, CharacterRef, LocationRef, PendingReference, Production, Shot, WorldRead } from '@/domain/types';
 import { overlayWorld } from '@/domain/world';
+import { identityForFacing } from '@/domain/blocking';
 import { worldOfProduction } from '@/server/world';
 import type { TimeOfDay } from '@/domain/vocabulary';
 import { ASPECT_INFO } from '@/domain/vocabulary';
@@ -653,7 +654,10 @@ async function momentState(ctx: HandlerContext, drawn: Drawn, sh: Shot, person: 
       const r = await ctx.gpu('ASR', 4000, () => faceIdentity(clip, [{ characterId: person.id, image: assetFile(canonical) }]), { jobId: ctx.job.id });
       const j = judgeIdentity(r);
       const c = j.characters[person.id];
-      identity = { characterId: person.id, median: c?.median ?? null, verdict: (c?.verdict ?? j.verdict) as FrameIdentity['verdict'] };
+      // read for the way the person faces in this shot (profile: unreliable; from behind: nothing to measure)
+      const read = identityForFacing((c?.verdict ?? j.verdict) as FrameIdentity['verdict'], x?.screenDirection);
+      identity = { characterId: person.id, median: c?.median ?? null, verdict: read.verdict as FrameIdentity['verdict'] };
+      if (read.note) await ctx.event('info', `shot ${sh.number}: ${read.note} (SFace ${c?.median?.toFixed(2) ?? '?'})`, { shotId: sh.id });
     } catch (e) { await ctx.event('warn', `shot ${sh.number}: the frame's face could not be measured (${(e as Error).message})`, { shotId: sh.id }); }
     finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
   }

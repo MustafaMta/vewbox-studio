@@ -71,6 +71,17 @@ describe('a person seen from behind has no face to measure', () => {
   });
 });
 
+describe('a face measure is read for the way the person faces', () => {
+  it('profile: a FAIL is REVIEW (unreliable); from behind: not measured; facing the camera: as measured', async () => {
+    const { identityForFacing } = await import('@/domain/blocking');
+    expect(identityForFacing('FAIL', 'LEFT')).toEqual({ verdict: 'REVIEW', note: 'in profile: the face measure is unreliable' });
+    expect(identityForFacing('PASS', 'RIGHT')).toEqual({ verdict: 'PASS' });
+    expect(identityForFacing('FAIL', 'AWAY').verdict).toBe('NOT_MEASURED');
+    expect(identityForFacing('FAIL', 'TOWARD')).toEqual({ verdict: 'FAIL' });
+    expect(identityForFacing('FAIL', undefined)).toEqual({ verdict: 'FAIL' });
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');
