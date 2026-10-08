@@ -162,3 +162,22 @@ describe('shapeShotPlan: the reverse on the listener (continuity recovery 2026-1
     expect(acts[0].dialogue[0].offscreen).toBeUndefined();
   });
 });
+describe('a continuous shot reaches a new framing by a move ("The Relief" 1.3)', () => {
+  it('a static continuous shot whose framing differs pushes in or pulls back; the prompt never says locked off', async () => {
+    const { cast, a, b, scene, lines } = setup();
+    const shots = shapeShotPlan(ShotPlanSchema.parse({ shots: [
+      shot({ characterNames: [b.name], framing: 'MEDIUM_WIDE', cameraMove: 'HANDHELD' }),
+      shot({ characterNames: [a.name, b.name], framing: 'TWO_SHOT', cameraMove: 'STATIC', boundary: 'continuous' }),
+      shot({ characterNames: [a.name, b.name], framing: 'WIDE', cameraMove: 'STATIC', boundary: 'continuous' }),
+      shot({ characterNames: [a.name, b.name], framing: 'WIDE', cameraMove: 'STATIC', boundary: 'continuous' }),
+    ] }), { cast, scene, lines, maxShot: 10 });
+    expect(shots.map((s) => s.cameraMove)).toEqual(['HANDHELD', 'PUSH_IN', 'PULL_BACK', 'STATIC']);
+    const { continuationCamera } = await import('@/server/story/prompts');
+    expect(continuationCamera({ framing: 'TWO_SHOT', cameraMove: 'STATIC' }, 'MEDIUM_WIDE')).toBe('Camera: it carries on exactly where the previous shot ended (the first frames), from the same camera position, with no cut and no jump, then pushes in slowly and smoothly until it frames a two shot: one continuous camera move, never a cut.');
+    expect(continuationCamera({ framing: 'WIDE', cameraMove: 'STATIC' }, 'WIDE')).toMatch(/no cut and no jump; the framing then holds\.$/);
+    expect(continuationCamera({ framing: 'WIDE', cameraMove: 'STATIC' }, 'INSERT')).toMatch(/then pulls back slowly/);
+    const { withoutStaticCamera } = await import('@/server/story/prompts');
+    expect(withoutStaticCamera('She stops before him. Camera: 50mm lens, eye-level, static two-shot. The mood is intimate.')).toBe('She stops before him. The mood is intimate.');
+    expect(withoutStaticCamera('The camera drifts closer. He turns.')).toBe('The camera drifts closer. He turns.');
+  });
+});

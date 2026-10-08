@@ -10,6 +10,7 @@ import { primaryImageOf } from '@/domain/identity';
 import { editorialTransition } from '@/domain/editorial';
 import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
+import { continuousMoveBetween } from './prompts';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, designSex, voicePace, voicePitch, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
@@ -685,6 +686,15 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
       sh.dialogue.push({ id: l.id || nid('line'), characterId: l.characterId, text: l.text, textAr: l.textAr });
       if (!sh.characterIds.includes(l.characterId)) sh.characterIds.push(l.characterId);
     }
+  }
+  // A CONTINUOUS SHOT REACHES A NEW FRAMING BY A MOVE (continuity recovery 2026-10-08, "The Relief" 1.3: a static
+  // two-shot "continuing" a medium wide was filmed as a cut inside the take): its framing differs from the shot before
+  // and its camera is static → the camera pushes in or pulls back from where the previous shot ended
+  for (let i = 1; i < shots.length; i++) {
+    const sh = shots[i]; const prev = shots[i - 1];
+    if (sh.boundary !== 'continuous' || sh.framing === prev.framing || sh.cameraMove !== 'STATIC') continue;
+    sh.cameraMove = continuousMoveBetween(prev.framing, sh.framing);
+    sh.notes = [...(sh.notes ?? []), `continuous from a ${prev.framing.toLowerCase().replace(/_/g, ' ')}: the camera ${sh.cameraMove === 'PUSH_IN' ? 'pushes in' : 'pulls back'} to its framing (a jump would be a cut)`];
   }
   return shots;
 }

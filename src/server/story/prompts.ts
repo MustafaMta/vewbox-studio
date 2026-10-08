@@ -116,6 +116,29 @@ export function cameraDirection(sh: Pick<Shot, 'framing' | 'cameraMove'>): strin
   return `Camera: ${framing}, ${sh.cameraMove.toLowerCase().replace(/_/g, ' ')}: one smooth, steady move through the shot and no other camera movement.`;
 }
 
+/** How close a framing is, for the direction of a camera move between two framings. */
+const CLOSENESS: Record<string, number> = { EXTREME_WIDE: 0, WIDE: 1, MEDIUM_WIDE: 2, MEDIUM: 3, TWO_SHOT: 3, OVER_THE_SHOULDER: 3, MEDIUM_CLOSE_UP: 4, CLOSE_UP: 5, INSERT: 6, EXTREME_CLOSE_UP: 6 };
+
+/** A planner's text without its sentences that hold the camera still ("Camera: 50mm lens, eye-level, static two-shot.",
+ *  "The camera is locked off."). Pure (tested). */
+export function withoutStaticCamera(text: string): string {
+  return text.split(/(?<=[.!?])\s+/).filter((s) => !(/\bcamera\b/i.test(s) && /\b(static|still|locked[- ]off|tripod|fixed|holds? the framing)\b/i.test(s))).join(' ').trim();
+}
+
+/** The move that takes a continuous shot from the previous shot's framing to its own. Pure (tested). */
+export const continuousMoveBetween = (from: Framing, to: Framing): 'PUSH_IN' | 'PULL_BACK' => ((CLOSENESS[to] ?? 3) > (CLOSENESS[from] ?? 3) ? 'PUSH_IN' : 'PULL_BACK');
+
+/** THE CAMERA OF A CONTINUOUS SHOT (continuity recovery 2026-10-08, "The Relief" 1.3): told both "it continues the
+ *  previous shot without a cut" (its first frames are the previous take's end, Elena alone, medium wide) and "a two-shot,
+ *  locked off: the framing of the first frame holds", H3 cut inside the take to a static two-shot. A continuous shot
+ *  starts where the previous one ended; a new framing is reached by ONE smooth move from there, never by a cut. Pure. */
+export function continuationCamera(sh: Pick<Shot, 'framing' | 'cameraMove'>, fromFraming?: Framing): string {
+  const framing = sh.framing.toLowerCase().replace(/_/g, ' ');
+  const start = 'Camera: it carries on exactly where the previous shot ended (the first frames), from the same camera position, with no cut and no jump';
+  if (!fromFraming || fromFraming === sh.framing) return `${start}; ${sh.cameraMove === 'STATIC' ? 'the framing then holds' : `then one smooth ${sh.cameraMove.toLowerCase().replace(/_/g, ' ')}`}.`;
+  const closer = (CLOSENESS[sh.framing] ?? 3) > (CLOSENESS[fromFraming] ?? 3);
+  return `${start}, then ${closer ? 'pushes in' : 'pulls back'} slowly and smoothly until it frames a ${framing}: one continuous camera move, never a cut.`;
+}
 /** The shot's middle: the planner's (or producer's) prompt with its dialogue tags stripped, else one written from the
  *  shot: setting, people by appearance, action, light. The camera is said apart (cameraDirection). */
 function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, stripTags: boolean): string {
@@ -288,7 +311,7 @@ export function bindNamesOutsideDialogue(prompt: string, cast: Character[], subj
   return { prompt: out, replaced: [...replaced] };
 }
 
-export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext } = { relation: 'CUT' }): string {
+export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string; entryState?: string } | undefined, b: H3Binding, opts: { relation: ShotRelationKind; includeDialogue?: boolean; body?: string; /** every place of the world, to name the place an in-take cut goes to */ locations?: Location[]; /** the scene state the shot is filmed in (src/domain/scene-state.ts), written after the shot's own continuity */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts): condition, emotion, interaction, start → end pose, motion, persistent changes, constraints */ context?: ProductionContext; /** the previous shot's framing: a continuous shot reaches its own framing by a move from it */ previousFraming?: Framing } = { relation: 'CUT' }): string {
   const d = styleDirection(p.style);
   const ids = speakerIds(p, sh);
   // SUBJECT NUMBERING: the pictured characters (Subject k = Picture k), the place, then the characters declared from
@@ -368,7 +391,8 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     : opts.relation === 'CUT' ? 'It is a new camera setup on the same moment as the previous shot: the same people, the same place, the same story state; only the camera changes.'
     : opts.relation === 'STORY_TRANSITION' ? `It opens a new scene${placeNo ? ` in <Subject ${placeNo}>` : ''}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}; nothing continues from the previous shot.${storyState}` : '';
   const pace = sh.staging?.pace === 'DWELL' ? ' One continuous moment held in one framing, no cuts.' : sh.staging?.pace === 'MONTAGE' ? ' A run of distinct actions, each one complete before the next.' : '';
-  const still = sh.cameraMove === 'STATIC' && shotCount <= 1 ? ' The camera is locked off: the framing never changes.' : '';
+  const continuing = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL';
+  const still = continuing ? (opts.previousFraming && opts.previousFraming !== sh.framing ? ` The camera then moves, without a cut, to a ${sh.framing.toLowerCase().replace(/_/g, ' ')}.` : '') : sh.cameraMove === 'STATIC' && shotCount <= 1 ? ' The camera is locked off: the framing never changes.' : '';
   const hardCuts = shotCount > 1 ? ` The take holds ${shotCount} shots; every shot change is a hard cut: no dissolve, no fade, no on-screen text.` : '';
   const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}${pace}${still}${hardCuts}`.trim();
   // retention_analysis (every subject appears in every shot of the take)
@@ -402,9 +426,12 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const quiet = (s: string) => (silent ? scrubSpeech(s).replace(/\s*Mouths stay closed; nobody speaks\.$/, '') : s);
   // the planner's own direction (tags stripped), else a body that leans on the bindings: the people and the place are
   // defined above, so the middle is the action, the camera and the light
-  const body = quiet(bind(opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : `${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`)));
+  const written = quiet(bind(opts.body ?? (sh.prompt?.trim() ? shotBody(sh, cast, loc, scene, includeDialogue) : `${cast2.length ? cast2.join(' and ') : 'The scene'}${where}: ${action}.`)));
+  // a continuous shot's camera is the continuation's (continuationCamera): the planner's own "static two-shot" camera
+  // sentence would contradict it again
+  const body = continuing && !opts.body ? withoutStaticCamera(written) : written;
   // a take of several shots (in-take hard cuts) holds the camera still inside each shot, not across the cuts
-  const camera = shotCount > 1 && sh.cameraMove === 'STATIC' ? `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, locked off inside each shot: no zoom, no push-in, no pan between the cuts.` : cameraDirection(sh);
+  const camera = continuing ? continuationCamera(sh, opts.previousFraming) : shotCount > 1 && sh.cameraMove === 'STATIC' ? `Camera: ${sh.framing.toLowerCase().replace(/_/g, ' ')}, locked off inside each shot: no zoom, no push-in, no pan between the cuts.` : cameraDirection(sh);
   // A CLOSE SHOT WITHOUT AN OPENING FRAME (acceptance 2026-10-06, G13 shot 1: a planned medium close-up opened on the
   // plate's wide view and pushed in for a second to reach it): the first frame is already at the shot's framing, the
   // place's picture gives its look, never its framing

@@ -28,7 +28,7 @@ import { env } from '@/server/env';
 import { VIDEO_H3_VRAM_MB } from '@/server/gpu/estimates';
 import { recordHandoff } from '@/server/org/runs';
 import { preflightTake } from '@/server/org/preflight';
-import { bindingOf, clipSecondsFor, needsOpeningFrame, resolveShotPack } from '@/server/production/shot-pack';
+import { bindingOf, clipSecondsFor, effectiveRelation, needsOpeningFrame, resolveShotPack } from '@/server/production/shot-pack';
 import { drawShotFrame } from './images';
 import { contextRecord } from '@/domain/production-context';
 import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
@@ -386,7 +386,7 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const draftPrompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, previousFraming: effectiveRelation(p, sh).previous?.framing, ...(custom ? { body: custom, includeDialogue: false } : {}) }))
     : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context })].filter(Boolean).join(' '));
   // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
   const subjectOfPack = (id: string) => { const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
