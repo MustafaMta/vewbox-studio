@@ -20,7 +20,7 @@ export const COMMANDS = {
   setSong: A.setSong, updateSong: A.updateSong, recordSongListening: A.recordSongListening,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
-  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent,
+  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent, setSpokenLanguages: A.setSpokenLanguages,
   setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, setLocationAmbience: A.setLocationAmbience, duplicateLocationInStyle: A.duplicateLocationInStyle, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
@@ -94,7 +94,9 @@ const sampleExtra = { text: short(4000).optional(), language: z.enum(LANGUAGES).
 /** The producer's consent statement (contract v2 §1). */
 const consentStatement = z.enum(['MY_VOICE', 'SPEAKER_PERMISSION']);
 const consent = z.object({ statement: consentStatement, by: z.literal('PRODUCER'), at: z.string().min(1).max(40) });
-const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), consent: consent.optional(), ...sampleExtra });
+const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), consent: consent.optional(), engine: short(40).optional(), role: z.enum(['PRODUCTION', 'COMPARISON']).optional(), ...sampleExtra });
+const spokenLanguage = z.object({ language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional() }).strict();
+const languageProfile = spokenLanguage.extend({ engine: short(40).min(1), comparisonEngines: z.array(short(40)).max(3).optional(), status: z.enum(['PRIMARY', 'REVIEW', 'LISTENER_APPROVED', 'LISTENER_REJECTED']), notes: z.array(short(400)).max(8).optional() }).strict();
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const measure = z.object({ cer: z.number().min(0).optional(), coverage: z.number().min(0).max(1).optional(), lufs: z.number().optional(), truePeakDbtp: z.number().optional() });
 const VoiceIdentitySchema = z.object({
@@ -109,6 +111,7 @@ const VoiceIdentitySchema = z.object({
   origin: z.enum(['UPLOAD_CONSENTED', 'DESIGNED', 'HOSTED', 'GENERATED']).optional(), designId: id.optional(), seedSha256: sha256.optional(), consent: consent.optional(),
   dialectStatus: z.enum(['NOT_APPLICABLE', 'UNVERIFIED', 'LISTENER_APPROVED', 'LISTENER_REJECTED']).optional(),
   evaluation: measure.extend({ clipped: z.number().int().nonnegative().optional(), seedToLineSimilarity: z.number().min(-1).max(1).optional(), measuredAt: z.string().min(1).max(40), asrModel: short(120).optional(), similarityModel: short(200).optional() }).optional(),
+  languageProfiles: z.array(languageProfile).min(1).max(4).optional(),
 });
 
 const designMeasure = measure.extend({ durationSeconds: z.number().nonnegative(), heard: short(4000).optional(), asrModel: short(120).optional(), clippedSamples: z.number().int().nonnegative().optional() });
@@ -125,7 +128,7 @@ const VoiceDesignRecordSchema = z.object({
   ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), jobId: id, createdAt: z.string().max(40).optional(),
 });
 const VoiceDesignPatchSchema = z.object({ candidates: z.array(z.object({ index: z.number().int().min(1).max(3), measured: designMeasure, gate: designGate, ...designScores })).max(3), ranking: z.array(z.number().int().min(1).max(3)).max(3).optional(), rankedBy: short(400).optional(), similarityModel: short(200).optional() });
-const ListeningSchema = z.object({ natural: z.number().int().min(1).max(5), dialectAuthentic: z.boolean().optional(), note: short(1000).optional() });
+const ListeningSchema = z.object({ natural: z.number().int().min(1).max(5), dialectAuthentic: z.boolean().optional(), samePerson: z.boolean().optional(), note: short(1000).optional(), language: z.enum(LANGUAGES).optional(), dialect: z.enum(DIALECTS).optional() });
 
 /** The canonical image (docs/CONTRACTS-IDENTITY-PACK.md v2) as the worker reports a drawing. Status, version and
  *  approval are never taken from the caller (the reducer sets them). */
@@ -158,6 +161,7 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   addVoiceDesign: z.tuple([id, VoiceDesignRecordSchema]),
   updateVoiceDesign: z.tuple([id, id, VoiceDesignPatchSchema]),
   recordVoiceListening: z.tuple([id, ListeningSchema]),
+  setSpokenLanguages: z.tuple([id, z.array(spokenLanguage).min(1).max(4)]),
   recordSongListening: z.tuple([id, z.object({ verdict: z.enum(['ACCEPTED', 'NOT_YET']), note: short(2000).optional() }).strict()]),
   confirmVoiceConsent: z.tuple([id, id, consentStatement]),
   proposePronunciation: z.tuple([z.object({ word: z.string().min(1).max(120), say: z.string().min(1).max(200), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), engines: z.array(short(40)).max(10).optional(), note: short(1000).optional(), proposedBy: short(80) }).strict()]),
@@ -305,7 +309,7 @@ export const CLIENT_ARG_SCHEMAS: Record<ClientCommandName, z.ZodType<unknown[]>>
   setSong: argList([id], [Song]), updateSong: argList([id, SongPatch]), recordSongListening: existing('recordSongListening'),
   addCharacter: existing('addCharacter'), updateCharacter: existing('updateCharacter'), setPendingReference: existing('setPendingReference'), deleteCharacter: argList([id]),
   addVoiceRecording: existing('addVoiceRecording'), removeVoiceSample: argList([id, id]), selectVoiceSample: existing('selectVoiceSample'),
-  recordVoiceListening: existing('recordVoiceListening'), confirmVoiceConsent: existing('confirmVoiceConsent'), approveCanonicalImage: existing('approveCanonicalImage'),
+  recordVoiceListening: existing('recordVoiceListening'), confirmVoiceConsent: existing('confirmVoiceConsent'), setSpokenLanguages: existing('setSpokenLanguages'), approveCanonicalImage: existing('approveCanonicalImage'),
   addLocation: argList([LocationInput]), updateLocation: argList([id, LocationPatch]), duplicateLocationInStyle: argList([id, style]), deleteLocation: argList([id]),
   deleteAsset: argList([id]), setAssetTier: existing('setAssetTier'),
   acceptProposal: argList([AcceptProposal]),

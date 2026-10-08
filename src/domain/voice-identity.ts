@@ -1,4 +1,5 @@
-import type { Asset, Character, DialectStatus, Settings, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceDesignRecord, VoiceIdentity, VoiceListeningRecord, VoiceSample } from './types';
+import type { Asset, Character, DialectStatus, Settings, SpokenLanguage, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceListeningRecord, VoiceSample } from './types';
+import { StudioError } from './errors';
 import type { Dialect, Language } from './vocabulary';
 import { isCloneSource, voiceLock } from './rules';
 
@@ -229,14 +230,53 @@ function timbreWords(raw: string | undefined): string {
  *  accent), no LLM (contract §2: none unless it measurably improves results). The personality text is left out: it
  *  is free prose that can name people. Example: "A husky, resonant, low female voice, about 31, speaking formal Modern
  *  Standard Arabic at a steady, measured pace, close-microphone studio recording". */
-export function describeVoiceFromProfile(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'voice'>): string {
+export function describeVoiceFromProfile(c: Pick<Character, 'sex' | 'ageYears' | 'language' | 'voice'> & Partial<Pick<Character, 'dialect'>>): string {
   const age = Math.max(1, Math.round(c.ageYears));
   const kid = c.sex === 'MALE' ? 'boy' : 'girl';
   const who = age < 13 ? `young ${kid}'s voice` : age < 18 ? `teenage ${kid}'s voice` : `${c.sex === 'MALE' ? 'male' : 'female'} voice`;
   const pitch = c.voice.pitch === 'LOW' ? 'low' : c.voice.pitch === 'HIGH' ? 'high' : 'mid-pitched';
   const pace = c.voice.pace === 'SLOW' ? 'a slow, unhurried pace' : c.voice.pace === 'QUICK' ? 'a quick, lively pace' : 'a steady, measured pace';
-  const speech = c.language === 'AR' ? 'speaking formal Modern Standard Arabic' : 'speaking English';
+  // the seed speaks the primary language; a character who speaks more than one says so (a bilingual speaker, not a
+  // second voice). Iraqi is never described as Modern Standard Arabic.
+  const name = (l: SpokenLanguage) => (l.language === 'EN' ? 'English' : l.dialect === 'IRAQI_BAGHDADI' ? 'Iraqi Arabic' : l.dialect && l.dialect !== 'MSA' ? 'Arabic' : 'Modern Standard Arabic');
+  const all = spokenLanguages({ language: c.language, dialect: c.dialect, voice: c.voice });
+  const speech = `speaking ${c.language === 'AR' && (!c.dialect || c.dialect === 'MSA') ? 'formal Modern Standard Arabic' : name(all[0])}${all.length > 1 ? ` (bilingual, also speaks ${all.slice(1).map(name).join(' and ')})` : ''}`;
   return `A ${timbreWords(c.voice.timbre) || 'clear'}, ${pitch} ${who}, about ${age}, ${speech} at ${pace}, close-microphone studio recording`;
+}
+
+// ------------------------------------------------------------------------------------ one voice, several languages
+
+/** Every language a character speaks: its primary (`language`/`dialect`) first, then the others it was given, each
+ *  once. Pure. */
+export function spokenLanguages(c: { language: Language; dialect?: Dialect; voice?: Pick<Character['voice'], 'languages'> }): SpokenLanguage[] {
+  const out: SpokenLanguage[] = [{ language: c.language, ...(c.language === 'AR' && c.dialect ? { dialect: c.dialect } : {}) }];
+  for (const l of c.voice?.languages ?? []) if (!out.some((x) => sameLanguage(x, l))) out.push({ language: l.language, ...(l.language === 'AR' && l.dialect ? { dialect: l.dialect } : {}) });
+  return out;
+}
+
+export const sameLanguage = (a: SpokenLanguage, b: SpokenLanguage) => a.language === b.language && (a.language !== 'AR' || (a.dialect ?? 'MSA') === (b.dialect ?? 'MSA'));
+export const languageLabel = (l: SpokenLanguage) => (l.language === 'EN' ? 'English' : l.dialect === 'IRAQI_BAGHDADI' ? 'Iraqi Arabic' : l.dialect === 'MSA' || !l.dialect ? 'Arabic (MSA)' : `Arabic (${l.dialect.toLowerCase()})`);
+
+/** What no measurement can claim for a language a voice speaks from its reference. */
+export function languageProfileNotes(origin: VoiceIdentity['origin'], l: SpokenLanguage): string[] {
+  const out: string[] = [];
+  if (l.language === 'AR') out.push(l.dialect === 'IRAQI_BAGHDADI' ? IRAQI_DIALECT_PENDING : MSA_ACCENT_PENDING);
+  if (origin === 'DESIGNED' && l.dialect === 'IRAQI_BAGHDADI') out.push('designed synthetic seed speaking Iraqi: validation only — an Iraqi production voice waits for a consented Baghdadi recording');
+  out.push('same person across languages not yet judged by a listener');
+  return out;
+}
+
+/** A listener's record for one of the identity's languages: an Arabic profile is LISTENER_APPROVED only when both the
+ *  dialect is authentic and it is the same person; a "no" to either rejects it; without an answer it stays. Pure. */
+export function withProfileListening(identity: VoiceIdentity, l: SpokenLanguage, rec: { natural: number; dialectAuthentic?: boolean; samePerson?: boolean; note?: string }, at: string): VoiceIdentity {
+  const profiles = identity.languageProfiles ?? [];
+  const i = profiles.findIndex((p) => sameLanguage(p, l));
+  if (i < 0) return identity;
+  const answers = [rec.samePerson, ...(l.language === 'AR' ? [rec.dialectAuthentic] : [])];
+  const p = profiles[i];
+  const status = p.status === 'PRIMARY' ? 'PRIMARY' : answers.some((x) => x === false) ? 'LISTENER_REJECTED' : answers.every((x) => x === true) ? 'LISTENER_APPROVED' : p.status;
+  const record: VoiceListeningRecord = { by: 'PRODUCER', natural: rec.natural, language: l.language, ...(l.dialect ? { dialect: l.dialect } : {}), ...(rec.dialectAuthentic !== undefined ? { dialectAuthentic: rec.dialectAuthentic } : {}), ...(rec.samePerson !== undefined ? { samePerson: rec.samePerson } : {}), ...(rec.note?.trim() ? { note: rec.note.trim() } : {}), at };
+  return { ...identity, listening: [...(identity.listening ?? []), record], languageProfiles: profiles.map((x, k) => (k === i ? { ...x, status } : x)) };
 }
 
 // --------------------------------------------------------------------------------------- candidates and ranking
@@ -342,4 +382,24 @@ export function speakingVoices(p: { shots: Array<{ dialogue: Array<{ characterId
   const ids = new Set(p.shots.flatMap((sh) => sh.dialogue.map((d) => d.characterId)));
   const speakers = cast.filter((c) => ids.has(c.id));
   return { speakers: speakers.length, voiced: speakers.filter(hasVoice).length };
+}
+
+/** The character as a line in `language` is spoken: its own language → itself; another language it speaks → the same
+ *  character and voice speaking that language, through that language profile's production engine, or — asked for by
+ *  name — one of its comparison engines. A language the character does not speak, or an engine the profile does not
+ *  name, is refused (nothing is spoken by an engine nobody chose). Pure but for the error. */
+export function speakingAs(c: Character, ask: { language?: Language; dialect?: Dialect; engine?: string }): { character: Character; profile?: VoiceLanguageProfile; engine?: string; role: 'PRODUCTION' | 'COMPARISON' } {
+  const own = { language: c.language, dialect: c.dialect };
+  const want = ask.language ? { language: ask.language, ...(ask.language === 'AR' ? { dialect: ask.dialect ?? (c.language === 'AR' ? c.dialect : undefined) } : {}) } : own;
+  const identity = c.voice.identity;
+  const profile = identity?.languageProfiles?.find((p) => sameLanguage(p, want));
+  if (!sameLanguage(want, own) && !profile) {
+    const speaks = spokenLanguages(c).some((l) => sameLanguage(l, want));
+    throw new StudioError('INVALID', speaks ? `${c.name}'s voice has no ${languageLabel(want)} profile yet: build the voice again so it covers every language ${c.name} speaks.` : `${c.name} does not speak ${languageLabel(want)}.`, { characterId: c.id, language: want.language, dialect: want.dialect });
+  }
+  if (ask.engine && ask.engine !== (profile?.engine ?? identity?.model) && !profile?.comparisonEngines?.includes(ask.engine)) throw new StudioError('INVALID', `${ask.engine} is not an engine of ${c.name}'s ${languageLabel(want)} voice (${[profile?.engine ?? identity?.model, ...(profile?.comparisonEngines ?? [])].filter(Boolean).join(', ')}).`, { characterId: c.id, engine: ask.engine });
+  const engine = ask.engine ?? (profile && !sameLanguage(want, own) ? profile.engine : undefined);
+  const role = ask.engine && profile?.comparisonEngines?.includes(ask.engine) ? 'COMPARISON' : 'PRODUCTION';
+  const character = sameLanguage(want, own) ? c : { ...c, language: want.language, dialect: want.dialect };
+  return { character, profile, engine, role };
 }

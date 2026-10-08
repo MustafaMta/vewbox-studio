@@ -149,7 +149,10 @@ export const JOB_PAYLOADS = {
    *  candidates speaking the calibration sentence, each measured (CER, loudness, true peak, clipping, ≤ 11.5 s) and
    *  heard through the line engine; the producer then builds with VOICE_BUILD { mode: 'DESIGN', designId, candidate }. */
   VOICE_DESIGN: z.object({ characterId: id, description: z.string().trim().min(3).max(300).optional(), text: z.string().trim().min(10).max(400).optional(), seed: z.number().int().min(0).max(2 ** 31 - 4).optional(), n: z.number().int().min(1).max(1).optional() }),
-  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), emotion: z.string().optional() }),
+  /** One line in the character's voice. language/dialect: one of the languages the character speaks (its voice's
+   *  language profile decides the engine); engine: that profile's production engine or one of its comparison engines,
+   *  spoken once from the same reference. */
+  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), dialect: dialect.optional(), engine: z.string().max(40).optional(), emotion: z.string().optional() }),
   /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),
   WRITE_SONG: z.object({ productionId: id, brief: z.string().trim().max(2000).optional(), singerIds: z.array(id).max(4).optional() }),
@@ -172,6 +175,8 @@ export const JOB_PAYLOADS = {
     style: style.optional(), language: language.optional(), dialect: dialect.optional(), productionId: id.optional(), showId: id.optional(),
     voice: z.object({ mode: z.enum(['NONE', 'REFERENCE', 'AUTOMATIC']), referenceSampleId: id.optional() }).optional(),
     draw: z.boolean().optional(),
+    /** every language the character speaks, its own (language) first: one voice speaks them all */
+    languages: z.array(z.object({ language, dialect: dialect.optional() })).min(1).max(4).optional(),
   })
     .refine((p) => p.mode !== 'AUTO' || Boolean(p.brief?.trim() || p.name?.trim()), { message: 'AUTO needs a brief or a name', path: ['brief'] })
     .refine((p) => p.mode === 'AUTO' || Boolean(p.profile?.name?.trim() || p.name?.trim()), { message: 'a name is required', path: ['profile', 'name'] })

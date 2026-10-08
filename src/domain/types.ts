@@ -566,7 +566,11 @@ export interface VoiceEvaluation {
 }
 
 /** A listener's record ("I listened"): naturalness 1–5 and, for Arabic, whether the accent/dialect is authentic. */
-export interface VoiceListeningRecord { by: 'PRODUCER'; natural: number; dialectAuthentic?: boolean; note?: string; at: string }
+export interface VoiceListeningRecord { by: 'PRODUCER'; natural: number; dialectAuthentic?: boolean; note?: string; at: string;
+  /** the language listened to when it is not the identity's own (a language profile); absent = the identity's */
+  language?: Language; dialect?: Dialect;
+  /** for another language: whether it sounds like the SAME person as the identity's own language */
+  samePerson?: boolean }
 
 /** What was measured on one design candidate (its 24 kHz reference) or one preview rendering. */
 export interface VoiceDesignMeasure {
@@ -673,6 +677,29 @@ export interface VoiceIdentity {
   evaluation?: VoiceEvaluation;
   /** "I listened" records, newest last; allowed on a locked voice. */
   listening?: VoiceListeningRecord[];
+  /** ONE VOICE, SEVERAL LANGUAGES (Phase 1, 2026-10-09): how this same identity — the same reference, the same
+   *  parameters — speaks each language the character speaks, the identity's own language first. Written by the
+   *  build (`setVoiceIdentity`); a listener's record moves a profile's status. Absent on identities pinned before it. */
+  languageProfiles?: VoiceLanguageProfile[];
+}
+
+/** A language a character speaks (an Arabic one with its dialect). */
+export interface SpokenLanguage { language: Language; dialect?: Dialect }
+
+/** PRIMARY: the identity's own language (proved by its proof line). REVIEW: spoken from the same reference, not yet
+ *  judged by a listener. LISTENER_APPROVED / LISTENER_REJECTED: only a listener's record sets them. */
+export type VoiceLanguageProfileStatus = 'PRIMARY' | 'REVIEW' | 'LISTENER_APPROVED' | 'LISTENER_REJECTED';
+
+/** How one voice identity speaks one language: the production engine for it (cloned from the identity's reference),
+ *  the engines each heard once beside it for the producer's comparison (never used in production), and its state. */
+export interface VoiceLanguageProfile {
+  language: Language;
+  dialect?: Dialect;
+  engine: string;
+  comparisonEngines?: string[];
+  status: VoiceLanguageProfileStatus;
+  /** what no measurement can claim for this language (e.g. a designed seed speaking Iraqi: dialect unverified) */
+  notes?: string[];
 }
 
 export interface Voice {
@@ -688,6 +715,9 @@ export interface Voice {
   /** Every voice design made for this character (VOICE_DESIGN, or the design step of an AUTOMATIC build). Written only
    *  by the design commands; a whole-form save never touches it. */
   designs?: VoiceDesignRecord[];
+  /** Every language the character speaks, the primary (`Character.language`) first; absent = the primary only.
+   *  Written only by `setSpokenLanguages`; a whole-form save never touches it. */
+  languages?: SpokenLanguage[];
 }
 
 /** What the upload endpoint measured on a voice reference before accepting it (docs/research/CHARACTER-VOICE-DIAGNOSIS.md §3.2). */
@@ -714,6 +744,10 @@ export interface VoiceSample {
   text?: string;
   language?: Language;
   dialect?: Dialect;
+  /** A generated line: the engine that spoke it, and whether that engine is the language's production engine or a
+   *  one-time comparison (VoiceLanguageProfile.comparisonEngines). */
+  engine?: string;
+  role?: 'PRODUCTION' | 'COMPARISON';
   durationSeconds?: number;
   jobId?: string;
   /** For an upload: the producer's consent statement (contract v2 §1). An upload without one is never cloned from in

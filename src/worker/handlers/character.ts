@@ -158,6 +158,16 @@ export const createCharacter: Handler = async (ctx) => {
   const fresh = async (): Promise<Character> => { const c = (await readState()).state.characters.find((x) => x.id === characterId); if (!c) throw new StudioError('NOT_FOUND', `Character ${characterId} no longer exists.`); return c; };
   let c = await fresh();
 
+  // the languages the character speaks (its own first): set before the voice, so one build covers them all
+  if (payload.languages?.length) {
+    const want = payload.languages.map((l) => ({ language: l.language, ...(l.language === 'AR' ? { dialect: l.dialect ?? (l.language === c.language ? c.dialect : undefined) } : {}) }));
+    const now = c.voice.languages ?? [];
+    if (want.length !== now.length || want.some((l, i) => l.language !== now[i]?.language || l.dialect !== now[i]?.dialect)) {
+      await commands([{ name: 'setSpokenLanguages', args: [c.id, want] }], 'worker');
+      c = await fresh();
+    }
+  }
+
   // REFERENCE: the validated picture becomes the pending reference the portrait is drawn from
   if (payload.mode === 'REFERENCE' && refAsset && c.pendingReference?.assetId !== refAsset.id) {
     const validation = refAsset.provenance?.validation as NonNullable<Character['pendingReference']>['validation'];

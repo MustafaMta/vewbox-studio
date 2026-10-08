@@ -17,7 +17,7 @@ import { REFERENCE_WINDOW } from '@/server/studio/voice-reference';
 import { isQaUnavailable, transcribeQwen } from '@/server/providers/qa-service';
 import { VOICE_GATES, latinFallbackOf, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
-import { VOICE_ENGINES, durationFor, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
+import { VOICE_ENGINES, durationFor, isLocalTtsEngine, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -25,7 +25,7 @@ import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { designChoiceProblem } from '@/server/org/preflight';
 import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
-import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
+import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, languageLabel, languageProfileNotes, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, speakingAs, spokenLanguages, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
 import type { VoiceIdentityInput } from '@/domain/actions';
 import { assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
 import { designAndMeasure, designSummary } from './voice-design';
@@ -73,8 +73,8 @@ const pinnedEngine = (c: Pick<Character, 'language' | 'voice'>): LocalTtsEngine 
  *  Iraqi suite uses too): the engine and the verification language follow the line's script — Arabic script → the
  *  character's engine (the pinned one); Latin only → IndexTTS; mixed → IndexTTS, heard in the language most of its
  *  letters are in; the fallback is named for the job event. The identity's `model` is never rewritten. */
-export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string): LineRoute {
-  const r = routeLineByScript(text, c.language, c.dialect, pinnedEngine(c));
+export function routeLine(c: Pick<Character, 'language' | 'dialect' | 'voice'>, text: string, engine?: LocalTtsEngine): LineRoute {
+  const r = routeLineByScript(text, c.language, c.dialect, engine ?? pinnedEngine(c));
   return { engine: r.engine, language: r.asrLanguage === 'ar' ? 'AR' : 'EN', script: r.script, fallback: r.fallback ? `${r.fallback} (same reference)` : undefined };
 }
 
@@ -194,11 +194,11 @@ export interface SpokenLine { file: string; engine: string; model: string; ms: n
 
 /** Speak one line as the character: the engine and language follow the line's script (routeLine); the speech
  *  parameters are the identity's (speed from the pace, the seed), so every line of a voice sounds like its proof. */
-export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string; /** a target length (s), honoured by an engine with token-level duration control (MOSS) */ targetSeconds?: number } = {}): Promise<SpokenLine> {
+export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string; /** a target length (s), honoured by an engine with token-level duration control (MOSS) */ targetSeconds?: number; /** a language profile's engine (production or comparison) instead of the routed one */ engine?: LocalTtsEngine } = {}): Promise<SpokenLine> {
   const identity = c.voice.identity;
   // LINE PREPARATION (the Iraqi Arabic Language Specialist's step, for an Iraqi character): the engine and the
   // verification language follow the line's script (a fallback off the Iraqi engine is named below)
-  const route = c.dialect === 'IRAQI_BAGHDADI' ? await step(ctx, 'iraqi-specialist', `line-preparation: ${c.name} — “${text.slice(0, 40)}”`, async () => routeLine(c, text)) : routeLine(c, text);
+  const route = c.dialect === 'IRAQI_BAGHDADI' ? await step(ctx, 'iraqi-specialist', `line-preparation: ${c.name} — “${text.slice(0, 40)}”`, async () => routeLine(c, text, opts.engine)) : routeLine(c, text, opts.engine);
   const provider = (identity?.provider ?? (env().MINIMAX_API_KEY && (await readState()).state.settings.generation?.voiceProvider === 'MINIMAX' ? 'MINIMAX' : 'LOCAL_TTS')) as 'LOCAL_TTS' | 'MINIMAX';
   if (provider === 'MINIMAX') {
     const voiceId = identity?.providerVoiceId;
@@ -461,6 +461,13 @@ export const voiceBuild: Handler = async (ctx) => {
     // an Iraqi voice speaks its English lines with the English engine, cloned from the same consented reference
     head = { provider: 'LOCAL_TTS', model, fallbackModel: model === 'habibi' ? latinFallbackOf() : undefined };
   }
+  // ONE VOICE, EVERY LANGUAGE THE CHARACTER SPEAKS: its own language is proved by the proof line below; each other
+  // language is spoken from the same reference by that language's engine (Iraqi: Habibi, with MOSS heard once beside
+  // it for the producer's comparison) and stays REVIEW until a listener judges it
+  const languageProfiles: NonNullable<VoiceIdentity['languageProfiles']> = spokenLanguages(c).map((l, i) => {
+    const engine = i === 0 || head.provider === 'MINIMAX' ? head.model : pickEngine(l.language, l.dialect);
+    return { language: l.language, ...(l.dialect ? { dialect: l.dialect } : {}), engine, ...(engine === 'habibi' ? { comparisonEngines: ['moss'] } : {}), status: i === 0 ? 'PRIMARY' : 'REVIEW', ...(i === 0 ? {} : { notes: languageProfileNotes(origin, l) }) };
+  });
   // the character as the proof line will see it: the identity-to-be, so routing and parameters are the ones pinned
   const trial: Character = { ...c, voice: { ...c.voice, identity: { ...head, mode, origin, language: c.language, dialect: c.dialect, params, status: 'ACTIVE', revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: new Date().toISOString() } } };
 
@@ -494,7 +501,7 @@ export const voiceBuild: Handler = async (ctx) => {
   const identity: VoiceIdentityInput = {
     ...head, mode, origin, ...source, referenceText: ref?.text,
     language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, cer: check?.cer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
-    dialectStatus, evaluation,
+    dialectStatus, evaluation, languageProfiles,
   };
   try {
     await commands([
@@ -528,29 +535,35 @@ export const voiceBuild: Handler = async (ctx) => {
 // ---------------------------------------------------------------------------------------------- VOICE_PREVIEW
 
 export const voicePreview: Handler = async (ctx) => {
-  const { characterId, text, emotion } = ctx.job.payload as { characterId: string; text: string; emotion?: string };
+  const { characterId, text, emotion, language, dialect, engine } = ctx.job.payload as JobPayloadParsed<'VOICE_PREVIEW'>;
   const { state } = await readState();
-  const c = state.characters.find((x) => x.id === characterId);
-  if (!c) throw new StudioError('NOT_FOUND', 'Character not found');
+  const found = state.characters.find((x) => x.id === characterId);
+  if (!found) throw new StudioError('NOT_FOUND', 'Character not found');
+  // ANOTHER LANGUAGE OF THE SAME VOICE: the line is spoken as the character speaking that language — the same
+  // reference and parameters, that language's profile's engine (or one of its comparison engines, once)
+  const speaking = speakingAs(found, { language, dialect, engine });
+  const c = speaking.character;
   const dir = await tmpDir('voice');
-  const ref = await referenceWav(c, state.assets, dir);
+  const ref = await referenceWav(found, state.assets, dir);
   if (!ref) {
     const waiting = unconsentedUploads(c, state.assets);
     if (waiting.length) throw consentRequired(`${c.name}'s recording “${waiting[0].label}” has no consent statement; confirm it before the voice speaks from it.`, { characterId, sampleId: waiting[0].id });
     throw missingReference(`${c.name} has no voice to speak with yet: build the voice (from a consented recording, or a studio-designed voice) first.`, { characterId });
   }
-  await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}` });
-  const line = await speakLine(ctx, c, text, ref, dir, { emotion });
+  await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}${speaking.profile ? ` (${languageLabel(speaking.profile)}, ${speaking.engine ?? speaking.profile.engine})` : ''}` });
+  const line = await speakLine(ctx, c, text, ref, dir, { emotion, engine: speaking.engine && isLocalTtsEngine(speaking.engine) ? speaking.engine : undefined });
   const check = await verifyLine(ctx, line.file, text, line.language);
   const measured = await measureVoiceLine(ctx, line.file, ref.file);
   const id = nid('gen');
   const stored = await adoptFile(id, line.file, { expectKind: 'AUDIO' });
+  const role = speaking.role;
+  const sampleDialect = line.language === 'AR' ? c.dialect : undefined;
   await commands([
-    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, origin: ref.origin, check, measured } })] },
-    { name: 'addVoiceSample', args: [c.id, { label: text.slice(0, 48), assetId: id, source: 'GENERATED', text, language: line.language, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
+    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview', ...(role === 'COMPARISON' ? ['comparison'] : [])], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, referenceSha256: ref.design?.sha256, origin: ref.origin, designId: ref.design?.designId, language: line.language, dialect: sampleDialect, role, voiceRevision: found.voice.identity?.revision, params: found.voice.identity?.params, check, measured } })] },
+    { name: 'addVoiceSample', args: [c.id, { label: text.slice(0, 48), assetId: id, source: 'GENERATED', text, language: line.language, ...(sampleDialect ? { dialect: sampleDialect } : {}), engine: line.engine, role, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
   ], 'worker');
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
-  return { assetId: id, engine: line.engine, durationSeconds: stored.probe?.durationSeconds, check, measured, awaitingReview: check === null || !check.ok };
+  return { assetId: id, engine: line.engine, model: line.model, role, language: line.language, dialect: sampleDialect, durationSeconds: stored.probe?.durationSeconds, check, measured, awaitingReview: check === null || !check.ok };
 };
 
 // --------------------------------------------------------------------------------------------- DIALOGUE_AUDIO

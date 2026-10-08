@@ -111,7 +111,7 @@ export function protectedVoiceAssetOwner(s: StudioState, assetId: string): Chara
 }
 
 /** The keys of `voice` only the dedicated voice commands may write; `updateCharacter` drops them from any patch. */
-export const VOICE_INTERNAL_KEYS = ['identity', 'samples', 'selectedSampleId', 'designs'] as const;
+export const VOICE_INTERNAL_KEYS = ['identity', 'samples', 'selectedSampleId', 'designs', 'languages'] as const;
 
 /** A voice sample the identity may be cloned from: the producer's upload. Bundled samples are placeholders for the
  *  interface and generated lines are engine output: cloning from either would drift the voice away from the person. */

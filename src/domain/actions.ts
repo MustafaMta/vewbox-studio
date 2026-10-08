@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, SpokenLanguage, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { reconcileShot } from './shot-dependencies';
@@ -9,7 +9,7 @@ import { canonical } from './hash';
 import { approvalProblem, canonicalCheckFailed, canonicalImageOwner } from './identity';
 import { developmentIntentOf } from './development';
 import { VOICE_INTERNAL_KEYS, appearanceLock, canChangeAppearance, guardCanonicalChange, guardCharacterPatch, guardVoiceBuild, guardVoiceChange, isCloneSource, markTakeRemoved, protectedAssetOwner, protectedVoiceAssetOwner, recordTakeUsage, voiceBuildLockProblem } from './rules';
-import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, withListening, type ConsentStatement } from './voice-identity';
+import { DESIGN_LABEL, IRAQI_NEEDS_RECORDING, designedIraqiOn, designedSeedProblem, initialDialectStatus, isConsentStatement, isConsentedUpload, isIraqi, languageLabel, sameLanguage, spokenLanguages, withListening, withProfileListening, type ConsentStatement } from './voice-identity';
 import { splitLyrics } from './lyrics';
 import { sceneSetupFrom } from './scene-setup';
 import { cutInputsHash } from './cut';
@@ -816,6 +816,20 @@ export function setVoiceIdentity(s: S, id: string, identity: VoiceIdentityInput)
     dialectStatus: initialDialectStatus(identity.language),
     revision: (c.voice.identity?.revision ?? 0) + 1, createdAt: now(),
   };
+  // the languages it speaks: its own first (PRIMARY), then only languages the character speaks, each REVIEW until a
+  // listener's record — never a listener's status from the caller
+  if (identity.languageProfiles?.length) {
+    const spoken = spokenLanguages(c);
+    const own = { language: identity.language, dialect: identity.dialect };
+    if (!sameLanguage(identity.languageProfiles[0], own)) throw new StudioError('INVALID', 'A voice identity’s first language profile is its own language.', { characterId: id });
+    const seen: SpokenLanguage[] = [];
+    next.languageProfiles = identity.languageProfiles.map((p, i) => {
+      if (!spoken.some((l) => sameLanguage(l, p))) throw new StudioError('INVALID', `${c.name} does not speak ${languageLabel(p)}.`, { characterId: id });
+      if (seen.some((l) => sameLanguage(l, p))) throw new StudioError('INVALID', `${languageLabel(p)} has two profiles.`, { characterId: id });
+      seen.push(p);
+      return { ...p, status: i === 0 ? 'PRIMARY' : 'REVIEW' };
+    });
+  } else delete next.languageProfiles;
   // what the identity says about its source is the source's, never the caller's
   if (consent) next.consent = consent; else delete next.consent;
   if (design) { next.designId = design.record.id; next.seedSha256 = design.candidate.sha256; } else { delete next.designId; delete next.seedSha256; }
@@ -884,13 +898,37 @@ export function updateVoiceDesign(s: S, id: string, designId: string, patch: Voi
 
 /** "I listened" (contract v2 §4): naturalness 1–5 and, for an Arabic voice, whether it sounds authentic; the dialect
  *  status follows a listener's answer and nothing else. Allowed on a locked voice — listening changes nothing in it. */
-export function recordVoiceListening(s: S, id: string, rec: { natural: number; dialectAuthentic?: boolean; note?: string }): S {
+export function recordVoiceListening(s: S, id: string, rec: { natural: number; dialectAuthentic?: boolean; samePerson?: boolean; note?: string; language?: Language; dialect?: Dialect }): S {
   const c = mustFind(s.characters, id, 'Character');
   const identity = c.voice.identity;
   if (!identity) throw new StudioError('INVALID', `${c.name} has no voice to listen to yet; build the voice first.`, { characterId: id });
   if (!Number.isInteger(rec.natural) || rec.natural < 1 || rec.natural > 5) throw new StudioError('INVALID', 'Naturalness is a whole number from 1 to 5.', { characterId: id });
+  // another language of the same voice: its profile's record
+  if (rec.language && !sameLanguage({ language: rec.language, dialect: rec.dialect }, { language: identity.language, dialect: identity.dialect })) {
+    const l = { language: rec.language, ...(rec.language === 'AR' ? { dialect: rec.dialect } : {}) };
+    if (!identity.languageProfiles?.some((p) => sameLanguage(p, l))) throw new StudioError('INVALID', `${c.name}'s voice has no ${languageLabel(l)} profile; build the voice with that language first.`, { characterId: id });
+    if (rec.dialectAuthentic !== undefined && rec.language !== 'AR') throw new StudioError('INVALID', 'Accent and dialect are judged for Arabic voices.', { characterId: id });
+    return writeCharacter(s, id, { voice: { ...c.voice, identity: withProfileListening(identity, l, rec, now()) } });
+  }
+  if (rec.samePerson !== undefined) throw new StudioError('INVALID', 'Same-person is judged for another language of the voice, against its own language.', { characterId: id });
   if (rec.dialectAuthentic !== undefined && identity.language !== 'AR') throw new StudioError('INVALID', 'Accent and dialect are judged for Arabic voices.', { characterId: id });
   return writeCharacter(s, id, { voice: { ...c.voice, identity: withListening(identity, rec, now()) } });
+}
+
+/** THE LANGUAGES A CHARACTER SPEAKS (Phase 1): the primary first (it must be the character's own language), then the
+ *  others, each once; an Arabic one names its dialect. The voice keeps one identity for all of them: a language added
+ *  after the voice was built has no profile until the voice is built again, a language removed keeps nothing. */
+export function setSpokenLanguages(s: S, id: string, languages: SpokenLanguage[]): S {
+  const c = mustFind(s.characters, id, 'Character');
+  if (!Array.isArray(languages) || languages.length === 0) throw new StudioError('INVALID', 'A character speaks at least one language.', { characterId: id });
+  if (languages.length > 4) throw new StudioError('INVALID', 'At most four spoken languages.', { characterId: id });
+  for (const l of languages) if (l.language === 'AR' && !l.dialect) throw new StudioError('INVALID', 'An Arabic language names its dialect.', { characterId: id });
+  const primary = { language: c.language, dialect: c.dialect };
+  if (!sameLanguage(languages[0], primary)) throw new StudioError('INVALID', `The first spoken language is ${c.name}'s own (${languageLabel(primary)}).`, { characterId: id });
+  const list = spokenLanguages({ ...primary, voice: { languages } });
+  const profiles = c.voice.identity?.languageProfiles?.filter((p) => list.some((l) => sameLanguage(l, p)));
+  const identity = c.voice.identity ? { ...c.voice.identity, ...(profiles ? { languageProfiles: profiles } : {}) } : undefined;
+  return writeCharacter(s, id, { voice: { ...c.voice, languages: list, ...(identity ? { identity } : {}) } });
 }
 
 /** The producer's consent for a recording uploaded before consent was recorded (contract v2 §1): the same statement
