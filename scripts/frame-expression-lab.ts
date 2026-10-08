@@ -62,6 +62,24 @@ async function main() {
     await fs.writeFile(path.join(out, 'D.png'), await comfy.view(o));
     (report.variants as Record<string, string>).D = edit;
     console.log(`D: ${path.join(out, 'D.png')} (${Date.now() - t0} ms)`);
+    // D3: the same edit naming the character's own hair and facial hair as what to keep (from the design record)
+    const who = state.characters.find((c) => c.id === [...imageOf.keys()][0]);
+    if (who) {
+      const keep = [who.hair, (who.face ?? '').split(/[,;]/).find((s) => /beard|moustache|mustache|stubble|goatee|clean-shaven/i.test(s))].filter(Boolean).join('; ');
+      const edit3 = edit.replace('Keep everything else exactly as it is:', `Keep everything else exactly as it is: ${keep};`);
+      const t4 = Date.now();
+      const run3 = await comfy.run(qwenEdit({ prompt: edit3, negative: 'smile, grin, laughing, clean-shaven, text, watermark', references: [editRef], width: info.width, height: info.height, seed }), { promptKey: `:frame-lab:${shotId}:D3:${seed}:${Date.now()}`, timeoutMs: 15 * 60_000 });
+      const o3 = comfy.firstOutput(run3.outputs, 'images'); if (!o3) throw new Error('D3: no image');
+      await fs.writeFile(path.join(out, 'D3.png'), await comfy.view(o3));
+      (report.variants as Record<string, string>).D3 = edit3;
+      console.log(`D3: ${path.join(out, 'D3.png')} (${Date.now() - t4} ms) keep="${keep}"`);
+    }
+    // D2: the same edit in quality mode (no Lightning LoRA, the full step count)
+    const tq = Date.now();
+    const runQ = await comfy.run(qwenEdit({ prompt: edit, negative: 'smile, grin, laughing, text, watermark', references: [editRef], width: info.width, height: info.height, seed, quality: true }), { promptKey: `:frame-lab:${shotId}:D2:${seed}:${Date.now()}`, timeoutMs: 15 * 60_000 });
+    const oQ = comfy.firstOutput(runQ.outputs, 'images'); if (!oQ) throw new Error('D2: no image');
+    await fs.writeFile(path.join(out, 'D2.png'), await comfy.view(oQ));
+    console.log(`D2: ${path.join(out, 'D2.png')} (${Date.now() - tq} ms)`);
     // E: the same edit with the canonical portrait as a second picture, the face's identity anchor
     const person = refs.find((r) => r.tags?.includes('canonical') || r.label?.toLowerCase().includes('canonical')) ?? refs.find((r) => [...imageOf.values()].includes(refs.indexOf(r) + 1));
     if (person) {
@@ -73,6 +91,31 @@ async function main() {
       await fs.writeFile(path.join(out, 'E.png'), await comfy.view(oE));
       (report.variants as Record<string, string>).E = editE;
       console.log(`E: ${path.join(out, 'E.png')} (${Date.now() - t1} ms)`);
+    }
+  }
+  // F: compose from a NEUTRAL close-up portrait of the person (drawn here from the canonical image, the studio's PORTRAIT
+  // secondary material) instead of the smiling full figure, with C's instruction — no edit pass afterwards
+  if (opt('portrait') !== 'no') {
+    const { qwenSecondary } = await import('@/server/workflows/qwen-image');
+    const { secondaryPrompt } = await import('@/server/workflows/canonical-image');
+    const personId = [...imageOf.keys()][0];
+    const person = state.characters.find((c) => c.id === personId);
+    const canonicalIdx = person ? imageOf.get(person.id)! - 1 : -1;
+    if (person && canonicalIdx >= 0) {
+      const line = person.canonicalImage?.identityLine ?? '';
+      const t2 = Date.now();
+      const runP = await comfy.run(qwenSecondary({ canonical: uploaded[canonicalIdx], kind: 'PORTRAIT', prompt: secondaryPrompt({ kind: 'PORTRAIT', style: person.style, identityLine: line }), negative: 'text, watermark', seed }), { promptKey: `:frame-lab:${shotId}:portrait:${seed}:${Date.now()}`, timeoutMs: 15 * 60_000 });
+      const oP = comfy.firstOutput(runP.outputs, 'images'); if (!oP) throw new Error('portrait: no image');
+      await fs.writeFile(path.join(out, 'portrait.png'), await comfy.view(oP));
+      console.log(`portrait: ${path.join(out, 'portrait.png')} (${Date.now() - t2} ms)`);
+      const portraitRef = await comfy.uploadInput(path.join(out, 'portrait.png'));
+      const refsF = uploaded.map((u, k) => (k === canonicalIdx ? portraitRef : u));
+      const cropsF = crops.map((c, k) => (k === canonicalIdx ? undefined : c));
+      const t3 = Date.now();
+      const runF = await comfy.run(qwenEdit({ prompt: variants.C, negative: 'text, watermark, logo, signature, blurry, deformed hands, extra fingers, extra limbs, duplicate person, cropped head', references: refsF, width: info.width, height: info.height, seed, crops: cropsF.some(Boolean) ? cropsF : undefined }), { promptKey: `:frame-lab:${shotId}:F:${seed}:${Date.now()}`, timeoutMs: 15 * 60_000 });
+      const oF = comfy.firstOutput(runF.outputs, 'images'); if (!oF) throw new Error('F: no image');
+      await fs.writeFile(path.join(out, 'F.png'), await comfy.view(oF));
+      console.log(`F: ${path.join(out, 'F.png')} (${Date.now() - t3} ms)`);
     }
   }
   await fs.writeFile(path.join(out, 'report.json'), JSON.stringify(report, null, 2));

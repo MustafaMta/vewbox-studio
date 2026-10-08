@@ -206,13 +206,23 @@ function continuitySentence(sh: Shot, cast: Character[], subjectOf: (id: string)
  *  on the drawn frame, with that frame as the only picture, changes the expression and condition and keeps the rest
  *  (SFace 0.44–0.47 against the canonical image: the same person; the strained face itself lowers it). The instruction
  *  for one person's emotion and condition, or undefined when the moment names neither. Pure (tested). */
-export function momentEditPrompt(x: { emotion?: string; condition?: string } | undefined): string | undefined {
+export function momentEditPrompt(x: { emotion?: string; condition?: string } | undefined, keep?: string): string | undefined {
   const emotion = clean(x?.emotion ?? '').toLowerCase();
   const condition = clean(x?.condition ?? '').toLowerCase();
   if (!emotion && !condition) return undefined;
   const parts = [emotion && `the expression becomes ${emotion}`, condition && `the person is ${condition}, and it shows on the face, hair and clothes`].filter(Boolean);
-  // facial hair and hair colour named: "every mark on the face" kept the scar but shaved the beard (2026-10-08, 1.1)
-  return `Edit this picture. Change only the person's face and condition: ${parts.join('; ')}. Keep everything else exactly as it is: the same person and face shape, the same facial hair and hair colour, every mark on the face, the same clothes, place, framing, light and colours.`;
+  // the person's OWN hair and facial hair named (`keep`, from the design record): "the same facial hair" still shaved
+  // the beard (SFace 0.44); "Close-cropped black hair with silver greying…; a neatly trimmed short beard" kept it
+  // (SFace 0.52, PASS — frame lab 2026-10-08)
+  const own = clean(keep ?? '').replace(/[.;\s]+$/, '');
+  return `Edit this picture. Change only the person's face and condition: ${parts.join('; ')}. Keep everything else exactly as it is: ${own ? `${own}; ` : ''}the same person and face shape, the same facial hair and hair colour, every mark on the face, the same clothes, place, framing, light and colours.`;
+}
+
+/** What of a person's look an expression edit must not touch: their hair and their facial hair, in the design
+ *  record's own words (the face description's beard/moustache clause only — never its expression words). Pure. */
+export function identityKeepOf(c: Pick<Character, 'hair' | 'face'>): string {
+  const facial = (c.face ?? '').split(/[,;]/).map((s) => s.trim()).find((s) => /\b(beard|moustache|mustache|stubble|goatee|clean-shaven|sideburns)\b/i.test(s));
+  return [clean(c.hair ?? '').replace(/[.]+$/, ''), facial].filter(Boolean).join('; ');
 }
 
 /** The continuity of a storyboard frame: each person named by the reference picture that shows them ("the person of

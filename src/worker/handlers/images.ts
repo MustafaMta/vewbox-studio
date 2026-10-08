@@ -25,7 +25,7 @@ import {
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
-import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
+import { PLATE_WIDE_FRAMINGS, frameContinuityLine, framePrompt, framingCropFromFace, identityKeepOf, locationPrompt, momentEditPrompt, personCropFor, plateCropFor } from '@/server/story/prompts';
 import { detectFaces, faceIdentity, isQaUnavailable, judgeIdentity } from '@/server/providers/qa-service';
 import type { FrameIdentity } from '@/domain/frames';
 import { effectiveRelation } from '@/server/production/shot-pack';
@@ -636,7 +636,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
  *  on the frame. The frame is returned unchanged when the moment names no emotion or condition. */
 async function momentState(ctx: HandlerContext, drawn: Drawn, sh: Shot, person: Character, size: { width: number; height: number }, key: string, label: string): Promise<Drawn> {
   const x = sh.continuity?.characters?.find((c) => c.characterId === person.id);
-  const instruction = momentEditPrompt(x);
+  const instruction = momentEditPrompt(x, identityKeepOf(person));
   if (!instruction) return drawn;
   const st = (await readState()).state;
   const from = st.assets.find((a) => a.id === drawn.id);

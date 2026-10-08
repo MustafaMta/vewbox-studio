@@ -32,6 +32,14 @@ describe('the moment’s state, as one edit of the drawn frame', () => {
     expect(momentEditPrompt({})).toBeUndefined();
     expect(momentEditPrompt(undefined)).toBeUndefined();
   });
+  it('the person’s own hair and facial hair are named as what to keep (the beard stayed: SFace 0.44 → 0.52)', async () => {
+    const { momentEditPrompt, identityKeepOf } = await import('@/server/story/prompts');
+    const keep = identityKeepOf({ hair: 'Close-cropped black hair with silver greying at the temples.', face: "Square jawline with high cheekbones, a warm, approachable expression despite his formal attire, a neatly trimmed short beard" });
+    expect(keep).toBe('Close-cropped black hair with silver greying at the temples; a neatly trimmed short beard');
+    expect(keep).not.toMatch(/approachable|expression/);
+    expect(momentEditPrompt({ emotion: 'Strained' }, keep)).toContain('Keep everything else exactly as it is: Close-cropped black hair with silver greying at the temples; a neatly trimmed short beard; the same person');
+    expect(identityKeepOf({ hair: 'Long red hair', face: 'Round face, freckles' })).toBe('Long red hair');
+  });
   it('the measured face is read back from the frame; a FAIL is refused by the preflight, a REVIEW is a warning', async () => {
     const { frameIdentityOf } = await import('@/domain/frames');
     expect(frameIdentityOf({ provenance: { identityCheck: { characterId: 'c1', median: 0.44, verdict: 'REVIEW' } } })).toEqual({ characterId: 'c1', median: 0.44, verdict: 'REVIEW' });
