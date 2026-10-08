@@ -101,7 +101,7 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 19)', () => {
+describe('the studio organisation (ORG_VERSION 20)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
     // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first
@@ -110,7 +110,9 @@ describe('the studio organisation (ORG_VERSION 19)', () => {
     // 15: the story agents run on the one planner, Qwen3.8-27B-NVFP4 (vLLM); no Ollama or hosted LLM (Phase 0)
     // 16: the Music Director writes the song (WRITE_SONG, the planner) and records it with ACE-Step XL-SFT only (Phase 2)
     // 19: the Sound Designer (SOUND): AMBIENCE with audio.generate_effect, MOSS-SoundEffect v2 (Phase 5 sound design)
-    expect(ORG_VERSION).toBe(19);
+    // 20: the Audio Synchronization Inspector may call Qwen3-ASR (the primary transcriber) — the voice proof was heard
+    //     by Whisper alone (Phase 1, 2026-10-09)
+    expect(ORG_VERSION).toBe(20);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);
@@ -174,7 +176,9 @@ describe('the studio organisation (ORG_VERSION 19)', () => {
     for (const a of AGENTS) {
       const used = new Set<string>();
       for (const t of [...a.jobTypes, ...(a.payloadRoutes ?? []).map((r) => r.jobType)]) { expect(table[t], `handler for ${t}`).toBeTruthy(); for (const x of toolsReachedBy(table[t], fns)) used.add(x); }
-      for (const c of calls.filter((x) => x.agentId === a.id)) for (const x of toolIdsIn(c.text)) used.add(x);
+      // a step's own text AND the functions it calls (2026-10-09: the proof-line step called verifyLine, which calls
+      // Qwen3-ASR; the scan read only the step's text and the missing permission fell back to Whisper at run time)
+      for (const c of calls.filter((x) => x.agentId === a.id)) { for (const x of toolIdsIn(c.text)) used.add(x); for (const f of c.text.matchAll(/\b(\w+)\(/g)) if (fns.has(f[1])) for (const x of toolsReachedBy(f[1], fns)) used.add(x); }
       for (const x of branchOnly[a.id] ?? []) { expect(a.tools, `${a.id} must not hold ${x}`).not.toContain(x); used.delete(x); }
       expect([...a.tools].sort(), `${a.id} allow-list`).toEqual([...used].sort());
     }

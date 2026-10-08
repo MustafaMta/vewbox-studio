@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 19;
+export const ORG_VERSION = 20;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -421,7 +421,7 @@ export const AGENTS: AgentDef[] = [
   { id: 'audio-sync-inspector', name: 'Audio Synchronization Inspector', department: 'QA', role: 'Speech heard back; songs checked',
     description: 'Transcribes each speaking take and compares it with the script (coverage ≥ 0.7, WER reported, lines placed on the take); checks a new song’s length, stems and lyric placement; reports on a voice’s proof line.',
     systemInstructions: S(`Coverage ≥ 0.7 of the script in order; a take that could not be heard back goes to review, never passed on trust; report LIP_SYNC_FAILURE when the lines were not spoken.`),
-    model: 'faster-whisper large-v3 + rule set', skills: ['take-inspection', 'audio-first-dialogue'], tools: ['speech.transcribe'], inputSchema: 'take audio / song', outputSchema: 'script check / song checks', limits: { timeoutMs: 600_000, maxAttempts: 1, resource: 'ASR' }, version: '2.0.0',
+    model: 'Qwen3-ASR-1.7B (primary) + faster-whisper large-v3 (reference) + rule set', skills: ['take-inspection', 'audio-first-dialogue'], tools: ['speech.transcribe', 'speech.transcribe_qwen'], inputSchema: 'take audio / song', outputSchema: 'script check / song checks', limits: { timeoutMs: 600_000, maxAttempts: 1, resource: 'ASR' }, version: '2.1.0',
     qualityRequirements: ['every speaking take transcribed'], jobTypes: [],
     steps: [
       { id: 'take-speech-check', name: 'Speech check of a take', where: W('handlers/take.ts') },
