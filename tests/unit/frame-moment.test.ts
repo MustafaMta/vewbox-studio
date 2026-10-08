@@ -113,3 +113,16 @@ describe('one request, one frame', () => {
     expect((fn.match(/await draw\(ctx/g) ?? []).length).toBe(1);
   });
 });
+
+describe('a scar is drawn healed (Marcus Bell and Elena Ward: "healed scar" drew a fresh cut, 2 of 2)', () => {
+  it('healedMark says what a healed scar looks like, unless the wound is fresh; a woman gets no clean-shaven clause', async () => {
+    const { healedMark, canonicalIdentityLine } = await import('@/server/workflows/canonical-image');
+    expect(healedMark('A small, healed scar on her left eyebrow.')).toBe('A small, healed scar on her left eyebrow (an old, fully healed scar: a thin pale flat line, the skin closed, no redness, no blood, no cut)');
+    expect(healedMark('A fresh scar across the cheek')).toBe('A fresh scar across the cheek');
+    expect(healedMark('Freckles across the nose')).toBe('Freckles across the nose');
+    const elena = { sex: 'FEMALE' as const, ageYears: 32, build: 'Compact', face: 'Strong jawline with a slightly upturned nose and clean-shaven skin.', hair: 'Short auburn bob', eyes: 'Grey-blue', skin: 'Fair, freckled', wardrobe: 'A green oilskin coat', distinguishing: ['A small, healed scar on her left eyebrow.'] };
+    const line = canonicalIdentityLine(elena).line;
+    expect(line).not.toMatch(/shaved smooth/);
+    expect(line).toMatch(/no redness, no blood, no cut/);
+  });
+});

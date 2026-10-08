@@ -182,7 +182,7 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   const nonLatin: string[] = [];
   const who = whoPhrase(c);
   const lead = opts.style ? `${STYLE_MEDIUM[opts.style].identity}, ` : '';
-  const stored = squash(c.canon?.identityLine).replace(/^identity:\s*/i, '').replace(/[.;]+$/, '');
+  const stored = healedMark(squash(c.canon?.identityLine).replace(/^identity:\s*/i, '').replace(/[.;]+$/, ''));
   if (stored && !hasNonLatinLetters(stored)) {
     const statesAge = AGE_WORDS.test(stored);
     const facial = facialHairStatement([stored]);
@@ -210,7 +210,7 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   const eyes = latin(c.eyes && lookPiece(c.eyes, 'eyes'));
   const skin = latin(c.skin && c.skin !== '—' && lookPiece(c.skin, 'skin'));
   const wardrobe = latin(c.wardrobe && `wearing ${c.wardrobe}`);
-  const distinguishing = (c.distinguishing ?? []).slice(0, 8).map((d) => latin(d));
+  const distinguishing = (c.distinguishing ?? []).slice(0, 8).map((d) => healedMark(latin(d)));
   const acc = (c.canon?.accessories ?? []).map((a) => squash(a)).filter(Boolean);
   nonLatin.push(...acc.filter(hasNonLatinLetters));
   const accLatin = acc.filter((a) => !hasNonLatinLetters(a));
@@ -219,7 +219,9 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   const quiet = (s?: string) => (s && hasNonLatinLetters(s) ? latinizeField(s).text : s ?? '');
   push(build);
   push(face);
-  push(facialHairStatement([quiet(c.face), quiet(c.hair), ...distinguishing, ...restrictions]) ?? '');
+  // a woman's "clean-shaven" is no statement to draw (the designer wrote "clean-shaven skin" for Elena Ward, 2026-10-08)
+  const facialHair = facialHairStatement([quiet(c.face), quiet(c.hair), ...distinguishing, ...restrictions]) ?? '';
+  push(c.sex === 'FEMALE' && /^clean-shaven/i.test(facialHair) ? '' : facialHair);
   push(hair);
   push(eyes);
   push(skin);
@@ -229,6 +231,14 @@ export function canonicalIdentityLine(c: IdentitySource, opts: { style?: Style }
   for (const r of restrictions) push(r);
   if (!parts.length && who === 'a person') return { line: '', nonLatin, hasAge: false };
   return { line: `Identity: ${lead}${[who, ...parts].join('; ')}.`, nonLatin, hasAge: /\d/.test(who) };
+}
+
+/** A SCAR IS DRAWN HEALED (2026-10-08: "a small healed scar on his left eyebrow" drew Marcus Bell a fresh red cut, and the
+ *  same words drew Elena Ward a bleeding gash — 2 of 2): a distinguishing detail naming a scar says what a healed one
+ *  looks like, unless it says the wound is fresh. Pure (tested). */
+export function healedMark(d: string): string {
+  if (!/\bscar(s|red)?\b/i.test(d) || /\b(fresh|new|bleeding|open|raw|recent)\b/i.test(d)) return d;
+  return `${d.replace(/[.;]+$/, '')} (an old, fully healed scar: a thin pale flat line, the skin closed, no redness, no blood, no cut)`;
 }
 
 // ------------------------------------------------------------------------------------------ the canonical image
