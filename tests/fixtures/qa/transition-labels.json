@@ -1,0 +1,13 @@
+{
+  "note": "Labelled real H3 media for the in-take transition measures (src/server/media/continuity-qa.ts). Each label was set by looking at the frames around the time (contact sheets at 8-10 fps), never from a measure's output. kind: DISSOLVE | HARD_CUT | CAMERA_MOVE | SUBJECT_MOTION | LIGHT_CHANGE | CLEAN. `at` seconds from the take's start; CLEAN labels a whole take a person watched with no transition in it. Grow this before promoting any measure to a gate.",
+  "labels": [
+    { "takeId": "take-eb7a9a29a9a6cd04285b", "shot": "The Relief 1.6 attempt 5", "kind": "DISSOLVE", "at": 3.95, "by": "frames 3.6-5.0 s at 8 fps: two insert angles superimposed over ~0.3 s", "labelledAt": "2026-10-08" },
+    { "takeId": "take-4a03fa7672b2afa573d8", "shot": "The Relief 1.6 attempt 3", "kind": "HARD_CUT", "at": 2.04, "by": "contact sheet: insert -> wide of the room", "labelledAt": "2026-10-08" },
+    { "takeId": "take-4a03fa7672b2afa573d8", "shot": "The Relief 1.6 attempt 3", "kind": "HARD_CUT", "at": 4.38, "by": "contact sheet: wide -> insert", "labelledAt": "2026-10-08" },
+    { "takeId": "take-e9e0f871c215fcb774b2", "shot": "The Relief 1.6 attempt 4", "kind": "HARD_CUT", "at": 2.04, "by": "contact sheet: insert -> wide of an invented room", "labelledAt": "2026-10-08" },
+    { "takeId": "take-e9e0f871c215fcb774b2", "shot": "The Relief 1.6 attempt 4", "kind": "HARD_CUT", "at": 4.42, "by": "contact sheet: wide -> insert", "labelledAt": "2026-10-08" },
+    { "takeId": "take-73a6a3beed8d3cc95bc7", "shot": "The Last Crossing 3", "kind": "LIGHT_CHANGE", "at": 5.71, "by": "frames 5.3-6.2 s at 10 fps: the lamp dims warm -> blue, same composition", "labelledAt": "2026-10-08" },
+    { "takeId": "take-d807393739a588192918", "shot": "The Last Crossing 4 take 2", "kind": "SUBJECT_MOTION", "at": 3.92, "by": "frames 3.5-4.4 s at 10 fps: a man turning a brass knob, no superimposition", "labelledAt": "2026-10-08" },
+    { "takeId": "take-8c331d41323321ba448e", "shot": "The Relief 1.2", "kind": "CAMERA_MOVE", "at": 5.42, "by": "frames 5.0-5.9 s at 10 fps: slight camera drift on Elena, no superimposition", "labelledAt": "2026-10-08" }
+  ]
+}
