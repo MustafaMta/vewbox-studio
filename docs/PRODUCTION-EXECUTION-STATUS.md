@@ -737,8 +737,41 @@ the opening frames and the location plate, inspected side by side.
       - Marcus's face and skin come back to his canonical image in the video (deep brown skin, beard), not the
         frame's lighter rendering.
       - Chosen for the cut. Human viewing: `WAITING_FOR_USER_ACCEPTANCE`.
-  - **1.8 (MEDIUM, both at the windows; continuous from 1.7):** attempt 1, job-8e9755f117, is continuing from 1.7's
-    last 22 frames.
+  - **1.8 (MEDIUM, both at the windows; continuous from 1.7):**
+    - job-8e9755f117 (seed 220513895) was **stopped by the producer** before it produced anything. That is not a
+      creative attempt.
+    - **Attempt 1** (job-3d57355f01, seed 1315710515): REVIEW, a FAIL by viewing.
+      - After the anchored tail (the two of them in profile at the glass) it cut at 1.83 s to a frontal wide of both
+        standing apart, then pushed in.
+      - They face the camera instead of watching the storm.
+    - **Root cause: planned vs actual end state.** 1.7 was planned WIDE, but its take ends on about a medium close-up
+      (Marcus's face is 28 % of the frame's height). The prompt said "push in from the wide to a medium" and, in the
+      same breath, "one continuous moment held in one framing". H3 cut back out to a wide to have something to push in
+      from.
+    - **Fixed (a12fedf):** a continuation's camera is written from the framing the previous take's last frame actually
+      shows (YuNet's largest face on the framing ladder); the plan is only the fallback.
+    - **Attempt 2** (job-faaac7b2f0, same seed): its event records "the previous take ends on about a medium close up
+      (planned wide)"; the camera pulls back slightly to a medium.
+
+### Iraqi voice listening pack (2026-10-09, the producer's order) — `WAITING_FOR_USER_ACCEPTANCE`
+
+- **Rule:** actual audio → the producer's listening → the decision. No engine is promoted, rerouted or switched
+  before that.
+- **The pack:** `tests/fixtures/voice/iraqi-listening-2026-10.json`, run `var/eval/iraqi-listening-2026-10/`.
+  - LAB TEST, no speaker permission: the reference is the upstream Habibi demo clip (sha256 d6180049…).
+  - Seven lines as written: natural, warm, angry, fear, sad, excited, and a گ/چ phonology line.
+  - Four arms: Habibi IRQ, MOSS-TTS Arabic, Fish S2 Pro plain, Fish S2 Pro tagged (Fish is evaluation only).
+  - Seed 20261009; one result per engine per line.
+- **Raw output kept:** the services return the engine's samples untouched on request (`raw=1`: no limiter, 32-bit
+  float). The listening copy is a single gain to −20 LUFS with a −1 dBTP ceiling; nothing else is applied.
+- **Fish tags:** only from the model card's list; the warm line uses the card's documented free-form form, marked as
+  such. Habibi and MOSS never receive tags.
+- **Status:**
+  - Habibi and MOSS: 7 + 7 samples made.
+  - Fish: weights verified; the service image is being built.
+  - The machine checks (dialect Whisper, Qwen3-ASR, phoneme gate, ECAPA, pYIN pitch, pauses, loudness, RTF, VRAM)
+    are queued.
+  - The blind page (Voice Studio → Voice comparison → "Iraqi listening pack") opens when all four arms are in.
 
 ### Shot-edit dependency contract (2026-10-08, a42f507)
 
