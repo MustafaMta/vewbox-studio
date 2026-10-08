@@ -1,6 +1,7 @@
 import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, StudioState, Take, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceProfileInput, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
+import { reconcileShot } from './shot-dependencies';
 import { nid, now } from './ids';
 import { StudioError, consentRequired, missingReference } from './errors';
 import { assertOneStyle, offStyle } from './style-rule';
@@ -378,17 +379,11 @@ export type ShotPatchInput = Partial<Omit<Shot, 'id' | 'number' | 'openingFrameA
 export function updateShot(s: S, productionId: string, shotId: string, input: ShotPatchInput): S {
   const { openingFrameAssetId: o, endingFrameAssetId: e, ...rest } = input;
   const patch: Partial<Omit<Shot, 'id' | 'number'>> = { ...rest, ...(o !== undefined ? { openingFrameAssetId: o ?? undefined } : {}), ...(e !== undefined ? { endingFrameAssetId: e ?? undefined } : {}) };
-  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? withEditorialTransition({ ...sh, ...patch, ...plannedDirectionAfter(sh, patch), ...continuityAfterCast(sh, patch) }) : sh))) }; });
+  // THE DEPENDENCY CONTRACT (src/domain/shot-dependencies.ts): what the edit made stale is invalidated from the shot
+  // before and after — the same for the full-form editor and a partial update
+  return withProduction(s, productionId, (p) => { mustFind(p.shots, shotId, 'Shot'); return { ...p, shots: renumberShots(p.shots.map((sh) => (sh.id === shotId ? withEditorialTransition(reconcileShot(sh, { ...sh, ...patch }).shot) : sh))) }; });
 }
 
-/** A PERSON TAKEN OUT OF A SHOT LEAVES ITS CONTINUITY (continuity recovery 2026-10-08, "The Relief" 1.6: Elena removed
- *  from the insert kept her continuity entry, the take's prompt described her in words, and H3 drew a stranger): when
- *  the cast changes and the edit brings no continuity of its own, the entries of people no longer in the shot go. */
-export function continuityAfterCast(sh: Pick<Shot, 'characterIds' | 'continuity'>, patch: Partial<Pick<Shot, 'characterIds' | 'continuity'>>): Partial<Pick<Shot, 'continuity'>> {
-  if (!patch.characterIds || patch.continuity !== undefined || !sh.continuity) return {};
-  const kept = sh.continuity.characters.filter((c) => patch.characterIds!.includes(c.characterId));
-  return kept.length === sh.continuity.characters.length ? {} : { continuity: { ...sh.continuity, characters: kept } };
-}
 
 /** THE PRODUCER'S "WHAT HAPPENS" WINS. The planner's direction of a shot — its prompt body and its timed staging beats —
  *  describes the action it planned; when the action is rewritten (and the same edit does not bring a new prompt or
