@@ -27,14 +27,16 @@ describe('shapeShotPlan: the boundary', () => {
     const { cast, a, b, scene, lines } = setup();
     const data = ShotPlanSchema.parse({ shots: [
       shot({ characterNames: [a.name], dialogueLineIndexes: [0], boundary: 'continuous', continuity: { characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CONTINUATION' } }),
-      shot({ characterNames: [a.name, b.name], boundary: 'Continuous', continuity: { characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CUT' } }),
+      shot({ characterNames: [a.name, b.name], boundary: 'Continuous', action: `${b.name} walks in.`, continuity: { characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CUT' } }),
       shot({ characterNames: [b.name], dialogueLineIndexes: [1], boundary: 'new angle' }),
       shot({ characterNames: [b.name], continuity: { characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'STORY_TRANSITION' } }),
       shot({ characterNames: [a.name], boundary: null, continuity: { characters: [], props: [], environment: {}, camera: {}, relationToPrevious: 'CONTINUATION' } }),
     ] });
     const shots = shapeShotPlan(data, { cast, scene, lines, maxShot: 10 });
-    expect(shots.map((s) => s.boundary)).toEqual(['transition', 'continuous', 'cut', 'transition', 'continuous']);
-    expect(shots.map((s) => s.continuity.relationToPrevious)).toEqual(['STORY_TRANSITION', 'CONTINUATION', 'CUT', 'STORY_TRANSITION', 'CONTINUATION']);
+    // the fifth "continues" a shot of Layla alone into one of Abu Samir alone, who does not enter: not filmable in one
+    // move (src/domain/continuous-feasibility.ts), so it is a cut on the same moment
+    expect(shots.map((s) => s.boundary)).toEqual(['transition', 'continuous', 'cut', 'transition', 'cut']);
+    expect(shots.map((s) => s.continuity.relationToPrevious)).toEqual(['STORY_TRANSITION', 'CONTINUATION', 'CUT', 'STORY_TRANSITION', 'CUT']);
     // names resolved, lines assigned once each
     expect(shots[0].characterIds).toEqual([a.id]);
     expect(shots[1].characterIds).toEqual([a.id, b.id]);
@@ -162,16 +164,38 @@ describe('shapeShotPlan: the reverse on the listener (continuity recovery 2026-1
     expect(acts[0].dialogue[0].offscreen).toBeUndefined();
   });
 });
+describe('a continuous boundary must be filmable in one move ("The Relief" 1.7)', () => {
+  it('a detail opened out to a wide, or a newcomer who does not enter, becomes a cut on the same moment, with the reason', () => {
+    const { cast, a, b, scene, lines } = setup();
+    const shots = shapeShotPlan(ShotPlanSchema.parse({ shots: [
+      shot({ characterNames: [a.name], framing: 'INSERT', cameraMove: 'STATIC', action: `${a.name} unscrews the thermos cap.` }),
+      shot({ characterNames: [a.name, b.name], framing: 'WIDE', cameraMove: 'FOLLOW', boundary: 'continuous', action: 'They move side by side to the windows.' }),
+      shot({ characterNames: [a.name, b.name], framing: 'MEDIUM', cameraMove: 'STATIC', boundary: 'continuous', action: 'Both stand at the windows.' }),
+    ] }), { cast, scene, lines, maxShot: 10 });
+    expect(shots[1].boundary).toBe('cut');
+    expect(shots[1].notes?.join(' ')).toMatch(/a detail, no room or faces.*make it a cut/);
+    expect(shots[1].notes?.join(' ')).toMatch(new RegExp(`${b.name} is not in shot 1`));
+    expect(shots[2].boundary).toBe('continuous'); // same people, wide → medium: one move
+  });
+  it('the rule itself: an entrance written in the action keeps the continuous boundary', async () => {
+    const { continuousProblems } = await import('@/domain/continuous-feasibility');
+    expect(continuousProblems({ framing: 'MEDIUM', characterIds: ['x'], number: 3 }, { framing: 'TWO_SHOT', characterIds: ['x', 'y'], action: 'Y walks in from the stairs.' })).toEqual([]);
+    expect(continuousProblems({ framing: 'CLOSE_UP', characterIds: ['x'], number: 3 }, { framing: 'WIDE', characterIds: ['x'], action: 'He turns away.' })).toEqual([]); // a close-up shows a face and its room: a pull-back is filmable
+    expect(continuousProblems({ framing: 'INSERT', characterIds: ['x'], number: 3 }, { framing: 'MEDIUM_CLOSE_UP', characterIds: ['x'], action: '' })).toEqual([]); // two steps: a short pull-back
+  });
+});
+
 describe('a continuous shot reaches a new framing by a move ("The Relief" 1.3)', () => {
   it('a static continuous shot whose framing differs pushes in or pulls back; the prompt never says locked off', async () => {
     const { cast, a, b, scene, lines } = setup();
     const shots = shapeShotPlan(ShotPlanSchema.parse({ shots: [
       shot({ characterNames: [b.name], framing: 'MEDIUM_WIDE', cameraMove: 'HANDHELD' }),
-      shot({ characterNames: [a.name, b.name], framing: 'TWO_SHOT', cameraMove: 'STATIC', boundary: 'continuous' }),
+      shot({ characterNames: [a.name, b.name], framing: 'TWO_SHOT', cameraMove: 'STATIC', boundary: 'continuous', action: `${a.name} steps in beside ${b.name}.` }),
       shot({ characterNames: [a.name, b.name], framing: 'WIDE', cameraMove: 'STATIC', boundary: 'continuous' }),
       shot({ characterNames: [a.name, b.name], framing: 'WIDE', cameraMove: 'STATIC', boundary: 'continuous' }),
     ] }), { cast, scene, lines, maxShot: 10 });
     expect(shots.map((s) => s.cameraMove)).toEqual(['HANDHELD', 'PUSH_IN', 'PULL_BACK', 'STATIC']);
+    expect(shots.map((s) => s.boundary)).toEqual([undefined, 'continuous', 'continuous', 'continuous'].map((x, i) => (i === 0 ? shots[0].boundary : x)));
     const { continuationCamera } = await import('@/server/story/prompts');
     expect(continuationCamera({ framing: 'TWO_SHOT', cameraMove: 'STATIC' }, 'MEDIUM_WIDE')).toBe('Camera: it carries on exactly where the previous shot ended (the first frames), from the same camera position, with no cut and no jump, then pushes in slowly and smoothly until it frames a two shot: one continuous camera move, never a cut.');
     expect(continuationCamera({ framing: 'WIDE', cameraMove: 'STATIC' }, 'WIDE')).toMatch(/no cut and no jump; the framing then holds\.$/);

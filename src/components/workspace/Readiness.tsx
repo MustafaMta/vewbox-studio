@@ -46,6 +46,7 @@ const WARN: Record<string, string> = {
   'transition-matches-relation': 'Transition and join disagree',
   'hosted-lowering': 'Hosted engine lowers the join',
   'insert-from-frame': 'Insert filmed from its frame alone',
+  'continuous-not-filmable': 'Continuous join cannot be filmed in one move',
   'context-gap': 'Missing from the production context',
   're-anchor': 'Re-anchoring on the canonical images',
   'cuts-sung-line': 'The shot cuts a sung line',

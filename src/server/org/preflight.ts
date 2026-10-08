@@ -6,6 +6,7 @@ import type { JobType } from '@/domain/jobs';
 import { H3_MAX_FRAMES, H3_MIN_FRAMES } from '@/server/workflows/minimax-h3';
 import { boundaryOf, boundaryProblem, clipSecondsFor, continuationTail, guideProblems, needsOpeningFrame, plannedGuides, previousShot, resolveShotPack } from '@/server/production/shot-pack';
 import { frameBudget } from '@/server/production/guide';
+import { continuousProblems } from '@/domain/continuous-feasibility';
 import { PLATE_WIDE_FRAMINGS } from '@/server/story/prompts';
 import { identityConditioning } from '@/server/production/identity-rule';
 import { locationPlateVerdict } from '@/server/production/location-rule';
@@ -205,6 +206,8 @@ export function preflightTake(state: StudioState, p: Production, sh: Shot, opts:
     const sameScene = Boolean(prev && prev.sceneId === sh.sceneId);
     const tail = sameScene ? continuationTail(state, p, prev, pack.continuation.guideFrames || undefined) : undefined;
     const ok = !sameScene || Boolean(tail?.source);
+    // THE BOUNDARY MUST BE FILMABLE (src/domain/continuous-feasibility.ts): a warning, the producer may intend it
+    if (prev && sameScene) for (const w of continuousProblems(prev, sh, (id) => state.characters.find((c) => c.id === id)?.name ?? id)) warnings.push({ name: 'continuous-not-filmable', detail: w });
     add('continuation-source-ready', ok, 'INCONSISTENT_PLAN', ok ? (sameScene ? `previous take available (${pack.opening.kind === 'TAIL' ? `its last ${pack.opening.frames} frames${pack.opening.withAudio ? ' and their sound' : ' without their sound (it speaks there; this shot has no lines)'} at frame 0; its window shows ${tail?.windowFrames ?? '?'} frames` : pack.opening.kind === 'LAST_FRAME_AS_FIRST' ? 'its last frame as the first frame (hosted)' : 'tail'})` : 'first shot of its scene; treated as a cut') : `this shot continues shot ${prev?.number}: ${tail?.problem ?? 'no usable tail'}`);
   }
   return { ok: checks.every((c) => c.ok), checks, warnings };

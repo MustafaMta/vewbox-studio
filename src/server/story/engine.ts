@@ -11,6 +11,7 @@ import { editorialTransition } from '@/domain/editorial';
 import { isTruncatedAnswer, json as llmJson, outputRoom, type LlmMessage, type LlmOptions, type LlmResult } from '../providers/llm';
 import { styleDirection } from './style';
 import { continuousMoveBetween } from './prompts';
+import { continuousProblems } from '@/domain/continuous-feasibility';
 import { DevelopSchema, PerformancePlanSchema, ProposalSchema, ScriptSchema, ShotPlanSchema, type ShotPlanOut } from './schemas';
 import { CharacterDesignFromReferenceSchema, designSex, voicePace, voicePitch, LOOK_FIELDS, REFERENCE_LOOK_BRIEF, isReferenceLookBrief, type LookField } from './schemas';
 import { agentPrompt } from '../org/skills';
@@ -690,6 +691,15 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
   // A CONTINUOUS SHOT REACHES A NEW FRAMING BY A MOVE (continuity recovery 2026-10-08, "The Relief" 1.3: a static
   // two-shot "continuing" a medium wide was filmed as a cut inside the take): its framing differs from the shot before
   // and its camera is static → the camera pushes in or pulls back from where the previous shot ended
+  // A CONTINUOUS BOUNDARY MUST BE FILMABLE (src/domain/continuous-feasibility.ts; "The Relief" 1.7: continuous from a
+  // hands insert into a wide two-shot with a newcomer — H3 jumped to an invented room and cut): otherwise a cut on the
+  // same moment
+  for (let i = 1; i < shots.length; i++) {
+    const sh = shots[i]; const prev = shots[i - 1];
+    if (sh.boundary !== 'continuous') continue;
+    const problems = continuousProblems({ ...prev, number: i }, sh, (id) => ctx.cast.find((c) => c.id === id)?.name ?? id);
+    if (problems.length) { sh.boundary = 'cut'; sh.continuity = { ...sh.continuity, relationToPrevious: 'CUT' }; sh.notes = [...(sh.notes ?? []), `planned continuous, made a cut on the same moment: ${problems.join('; ')}`]; }
+  }
   for (let i = 1; i < shots.length; i++) {
     const sh = shots[i]; const prev = shots[i - 1];
     if (sh.boundary !== 'continuous' || sh.framing === prev.framing || sh.cameraMove !== 'STATIC') continue;
