@@ -91,7 +91,8 @@ describe('story state', () => {
     const prompt = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState });
     expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone and build of <Picture 1> are kept exactly; as the story has them now: a bandage on her left hand.');
     expect(prompt).toContain("<Subject 1>'s clothes: attribute_transfer - not the clothes of <Picture 1>: a dark blue police uniform with a peaked cap.");
-    expect(prompt).toContain('<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, skin tone, build and wardrobe of <Picture 2> are kept exactly.');
+    // s12 continues s11 from its anchored tail: who from the picture, how they are now (and which way they face) from the tail
+    expect(prompt).toContain('<Subject 2> (appears in [Shot 1]): fully_preserved - who they are: the facial features, eyes, skin tone and build of <Picture 2> are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression, the pose and which way they face — is as in the anchored first frames (the end of the previous shot) and holds through the shot; they are not turned to the camera to match <Picture 2>.');
     // the change cleared later: the canonical clothes again
     const back = withScenes(q, (scs) => scs.map((sc) => (sc.id === 'sc1' ? { ...sc, story: { changes: [...sc.story!.changes!, { id: 'w2', subject: { kind: 'CHARACTER', characterId: a }, key: 'wardrobe', text: '', cleared: true, atShotId: 's12' }] } } : sc)));
     expect(productionContextFor(state, back, shotOf(back, 's13')).characters[0].wardrobeChange).toBeUndefined();

@@ -450,13 +450,16 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
       // AN INSERT SHOWS HANDS, NOT A PERSON ("The Relief" 1.6): "fully_preserved - the face, hair … build" sent H3 to a
       // wide of the whole man, with a stranger, and back — three cuts in a take of his hands
       ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): partially_preserved - only the hands, the skin tone and the sleeves of ${pictureLabel(b, s.picture)} appear; the face, head and body stay out of frame for the whole shot${now}.`);
-    } else if (b.opening?.kind === 'FRAME') {
+    } else if (b.opening?.kind === 'FRAME' || continuing) {
       // CANONICAL IDENTITY ≠ THE MOMENT'S APPEARANCE (directive 2026-10-08 item 12; scripts/identity-drift.ts: in 5 of 12
       // one-person takes from an edited opening frame the face moved off the frame toward the canonical portrait, told
       // to keep the picture's "face, hair … and wardrobe exactly"): the canonical picture holds WHO they are, the opening
-      // frame holds HOW they are now — hair's state, the clothes' condition, the expression and the pose
-      const frame = b.opening.picture ? ` (${pictureLabel(b, b.opening.picture)})` : '';
-      ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - who they are: the facial features, eyes, skin tone and build of ${pictureLabel(b, s.picture)} are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression and the pose — is as in the opening frame${frame} and holds through the shot${now}.`);
+      // frame — or, continuing, the anchored end of the previous shot — holds HOW they are now: hair's state, the clothes'
+      // condition, the expression, the pose and WHICH WAY THEY FACE ("The Relief" 1.8, twice: the tail showed them in
+      // profile facing the glass, the frontal canonical pictures were to be "kept exactly", and H3 cut at 1.9 s to a
+      // frontal two-shot that matched the pictures)
+      const anchor = continuing ? 'the anchored first frames (the end of the previous shot)' : `the opening frame${b.opening?.kind === 'FRAME' && b.opening.picture ? ` (${pictureLabel(b, b.opening.picture)})` : ''}`;
+      ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - who they are: the facial features, eyes, skin tone and build of ${pictureLabel(b, s.picture)} are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression, the pose and which way they face — is as in ${anchor} and holds through the shot; they are not turned to the camera to match ${pictureLabel(b, s.picture)}${now}.`);
     } else ret.push(`<Subject ${i + 1}> (appears in ${shotTags}): fully_preserved - the face, hair, skin tone, build and wardrobe of ${pictureLabel(b, s.picture)} are kept exactly${now}.`);
   }
   if (sh.framing === 'INSERT') ret.push('The whole shot stays on the hands and the object at this distance: no face appears, nobody else enters, and the camera never cuts away.');

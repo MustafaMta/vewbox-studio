@@ -161,7 +161,7 @@ describe('h3ReferencePrompt (P1 grammar)', () => {
     expect(prompt).toContain('<Picture 4> is the first frame of [Shot 1]');
     expect(prompt).toContain('[keyframe completion + reference generation]');
     // with an opening frame: identity from the canonical picture, the moment's appearance from the frame (item 12)
-    expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - who they are: the facial features, eyes, skin tone and build of <Picture 1> are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression and the pose — is as in the opening frame (<Picture 4>) and holds through the shot.');
+    expect(prompt).toContain('<Subject 1> (appears in [Shot 1]): fully_preserved - who they are: the facial features, eyes, skin tone and build of <Picture 1> are kept exactly; how they are now — the state of the hair, the condition of the clothes (wet, dry, torn, marked), the expression, the pose and which way they face — is as in the opening frame (<Picture 4>) and holds through the shot; they are not turned to the camera to match <Picture 1>.');
     expect(prompt).not.toMatch(/wardrobe of <Picture 1> are kept exactly/);
     expect(prompt).toContain('<Subject 3> (appears in [Shot 1]): partially_preserved');
     expect(prompt).toContain('<Picture 4> ([Shot 1] first frame): fully_preserved');
