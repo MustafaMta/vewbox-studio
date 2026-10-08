@@ -405,7 +405,8 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
   const cont = continuitySentence(sh, cast, subjectOf, body);
   // THE SCENE STATE (src/domain/scene-state.ts): the carried facts — time of day, weather, light, the place as the
   // story left it, what people hold, the props — after the shot's own continuity; nothing the body already says
-  const stateLine = opts.sceneState ? sceneStateLine(opts.sceneState, plainSubject).split(/(?<=\.)\s+/).filter((s) => !cont.includes(s.replace(/^Scene state \([^)]*\): /, '').replace(/\.$/, ''))).join(' ') : '';
+  // from an opening frame, the frame shows the people and props: only the environment is carried in words
+  const stateLine = opts.sceneState ? sceneStateLine(opts.sceneState, plainSubject, { environmentOnly: fromFrame }).split(/(?<=\.)\s+/).filter((s) => !cont.includes(s.replace(/^Scene state \([^)]*\): /, '').replace(/\.$/, ''))).join(' ') : '';
   const lines = !includeDialogue ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast, speaker) : silent ? 'Nobody speaks in this shot; mouths stay closed.' : dialogueTags(p, sh, cast, speaker, 'says,');
   // THE TIMED BEATS: `[M:SS]` point marks inside a shot (never read as cuts); a beat with a cut opens the next
   // `[Shot N] At MM:SS.mmm, hard cut to …`

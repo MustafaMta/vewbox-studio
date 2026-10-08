@@ -92,6 +92,19 @@ describe('a person with no line in the shot is never said to speak', () => {
   });
 });
 
+describe('a take from an opening frame carries only the environment in words', () => {
+  it('sceneStateLine environmentOnly drops the carried people and props, keeps time, weather, light, place', async () => {
+    const { sceneStateLine } = await import('@/domain/scene-state');
+    const s = { boundary: 'cut', timeOfDay: 'NIGHT', weather: 'Heavy rain', lighting: 'Dim, flickering bulb', placeState: 'Light sputters', present: [{ characterId: 'c1', position: 'CENTER', holding: ['Brass knob'] }], props: [{ name: 'Wrench', state: 'Set down or held loosely', position: 'In his left hand or on floor' }] } as never;
+    const full = sceneStateLine(s, () => '<Subject 1>');
+    expect(full).toContain('Wrench (Set down or held loosely) In his left hand or on floor');
+    expect(full).toContain('<Subject 1> is CENTER, holds Brass knob');
+    const env = sceneStateLine(s, () => '<Subject 1>', { environmentOnly: true });
+    expect(env).toMatch(/^Scene state \(carried across the cut\): night, weather: Heavy rain, light: Dim, flickering bulb, the place: Light sputters\.$/);
+    expect(env).not.toMatch(/Wrench|Subject 1/);
+  });
+});
+
 describe('one request, one frame', () => {
   it('drawShotFrame draws once: no "drawn again" loop', () => {
     const src = fs.readFileSync('src/worker/handlers/images.ts', 'utf8');

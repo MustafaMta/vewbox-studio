@@ -184,8 +184,13 @@ const tod = (t?: string) => (t ?? '').toLowerCase().replace(/_/g, ' ');
 /** The scene state as one prompt sentence, with people named by `who` (a bound subject, a described person) — never
  *  by name. Wardrobe is not written (a character's wardrobe is its canonical image; words for it drew a third person,
  *  D30): it is carried in the record for the planner and the inspectors. */
-export function sceneStateLine(s: SceneState, who: (characterId: string) => string | undefined): string {
+/** `environmentOnly`: the take starts from an opening frame that already shows who is where and what they hold — the
+ *  carried people and props are left to the frame and only the time, weather, light and place are said (a take told
+ *  the previous shot's props "in his left hand or on the floor" beside a frame showing him reach for a knob cut inside
+ *  itself to show them, 2026-10-08, "The Last Crossing" 2.4). */
+export function sceneStateLine(s: SceneState, who: (characterId: string) => string | undefined, opts: { environmentOnly?: boolean } = {}): string {
   const env = [s.timeOfDay && tod(s.timeOfDay), s.weather && `weather: ${s.weather}`, s.lighting && `light: ${s.lighting}`, s.placeState && `the place: ${s.placeState.replace(/\.$/, '')}`].filter(Boolean);
+  if (opts.environmentOnly) return env.length ? `Scene state (${s.boundary === 'transition' ? 'a new scene' : s.boundary === 'cut' ? 'carried across the cut' : 'carried on'}): ${env.join(', ')}.` : '';
   const people = s.present.map((x) => { const w = who(x.characterId); if (!w) return ''; const bits = [x.position && `is ${x.position}`, x.holding?.length && `holds ${x.holding.join(' and ')}`].filter(Boolean); return bits.length ? `${w} ${bits.join(', ')}` : ''; }).filter(Boolean);
   const props = s.props.filter((x) => x.state || x.position).map((x) => `${x.name}${x.state ? ` (${x.state})` : ''}${x.position ? ` ${x.position}` : ''}`);
   const parts = [env.length ? env.join(', ') : '', people.join('; '), props.length ? `props: ${props.join('; ')}` : ''].filter(Boolean);
