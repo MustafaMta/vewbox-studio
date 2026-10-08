@@ -1,0 +1,17 @@
+{
+  "name": "Voice acting evaluation 2026-10 (docs/VOICE-ENGINE.md)",
+  "note": "The producer's six tests. `text` is the line as written (what Habibi hears after prepareLineText, and what Fish 'plain' hears). `tagged` is the same words with Fish S2 Pro's own acting mechanism: free-form inline [tags] before the words they colour (fishaudio/s2-pro model card). The words never change between arms. Seeds are fixed; one attempt per arm per test.",
+  "tests": [
+    { "id": "t1", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "warm, a little worried, relieved to find him; then mild exasperation", "text": "شلونك حبيبي، وينك من الصبح؟ صارلي ساعة أدور عليك!", "tagged": "[warm, relieved] شلونك حبيبي، وينك من الصبح؟ [mildly exasperated] صارلي ساعة أدور عليك!", "dialectWords": ["شلونك", "وينك", "صارلي", "أدور"] },
+    { "id": "t2", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "angry, raised voice, frustrated", "text": "يمعود گتلك لا تفتح الباب! ليش ما تسمع الحچي؟", "tagged": "[angry, shouting] يمعود گتلك لا تفتح الباب! [frustrated] ليش ما تسمع الحچي؟", "dialectWords": ["يمعود", "گتلك", "الحچي"] },
+    { "id": "t3", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "whispered, tense, afraid of being heard", "text": "اسكت شوية... أكو واحد واقف ورا الباب.", "tagged": "[whispering] اسكت شوية... [tense whisper] أكو واحد واقف ورا الباب.", "dialectWords": ["شوية", "أكو", "ورا"] },
+    { "id": "t4", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "hurt, quiet disappointment, close to tears", "text": "آني چنت واثق بيك... ما توقعت منك هيچ.", "tagged": "[sad, hurt] آني چنت واثق بيك... [quiet, disappointed] ما توقعت منك هيچ.", "dialectWords": ["آني", "چنت", "هيچ"] },
+    { "id": "t5", "language": "AR", "dialect": "IRAQI_BAGHDADI", "intent": "joyful surprise, laughing, excited", "text": "هااا! أخيراً وصلت! تدري شكد فرحت من شفتك؟", "tagged": "[laughing] هااا! [excited] أخيراً وصلت! [joyful] تدري شكد فرحت من شفتك؟", "dialectWords": ["تدري", "شكد", "شفتك"] },
+    { "id": "t6", "language": "EN", "intent": "exhausted relief, emotional, voice catching", "text": "I can't believe you're here. We've been looking for you all night.", "tagged": "[relieved, emotional] I can't believe you're here. [exhausted] We've been looking for you all night." }
+  ],
+  "arms": [
+    { "id": "habibi", "engine": "habibi", "languages": ["AR"], "textField": "text", "acting": "reference only (F5: the prompt's delivery)", "seed": 20261008 },
+    { "id": "fish-plain", "engine": "fish-s2-pro", "languages": ["AR", "EN"], "textField": "text", "acting": "reference only", "seed": 20261008 },
+    { "id": "fish-tagged", "engine": "fish-s2-pro", "languages": ["AR", "EN"], "textField": "tagged", "acting": "inline [tags]", "seed": 20261008 }
+  ]
+}

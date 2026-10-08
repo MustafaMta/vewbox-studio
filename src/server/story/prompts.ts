@@ -166,7 +166,7 @@ function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene:
   return [
     loc ? `Setting: ${insert ? `inside ${clean(loc.name)}, out of focus behind the hands` : describeLocation(loc, scene?.timeOfDay)}.` : '',
     ...(insert ? people.map((c) => `The hands and sleeves of a person wearing ${clean(c.wardrobe ?? 'their clothes').replace(/\.$/, '')}.`) : people.map((c) => `A ${describeCharacter(c)}.`)),
-    `Action: ${clean(sh.action)}.`,
+    `Action: ${clean(sh.action).replace(/\.+$/, '')}.`,
     sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : '',
     stays,
   ].filter(Boolean).join(' ');
@@ -175,14 +175,21 @@ function shotBody(sh: Shot, cast: Character[], loc: Location | undefined, scene:
 /** The full prompt for a first-frame (FL2VA) or text-only take: look + setting + people + action + camera + dialogue.
  *  The shot's own `prompt` (written by the story engine or the producer) replaces the generated middle when present;
  *  its dialogue tags are replaced by the exact script lines. */
-export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts) */ context?: ProductionContext } = {}): string {
+export function takePrompt(p: Production, sh: Shot, cast: Character[], loc: Location | undefined, scene: { timeOfDay?: string } | undefined, opts: { includeDialogue?: boolean; /** the scene state the shot is filmed in (src/domain/scene-state.ts) */ sceneState?: SceneState; /** the production context (src/domain/production-context.ts) */ context?: ProductionContext; /** the take starts from a drawn opening frame: who stands where, holding what, is the frame's to show */ fromFrame?: boolean } = {}): string {
   const d = styleDirection(p.style);
   const dialogue = opts.includeDialogue === false ? '' : p.kind === 'MUSIC_VIDEO' ? singingTags(p, sh, cast) : dialogueTags(p, sh, cast);
   const body = shotBody(sh, cast, loc, scene, opts.includeDialogue !== false);
-  const described = (id: string) => { const c = cast.find((x) => x.id === id); return c ? `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}` : undefined; };
-  const state = opts.sceneState ? sceneStateLine(opts.sceneState, described) : '';
-  const context = opts.context ? contextLines(opts.context, described) : '';
+  const described = (id: string) => { const c = cast.find((x) => x.id === id); return !c ? undefined : sh.framing === 'INSERT' ? 'the person whose hands are in the frame' : `the ${describeCharacter(c).split(',').slice(0, 2).join(',')}`; };
+  const state = opts.sceneState ? sceneStateLine(opts.sceneState, described, { environmentOnly: Boolean(opts.fromFrame) }) : '';
+  const context = opts.context ? contextLines(opts.context, described, contextOptions(sh, cast, Boolean(opts.fromFrame))) : '';
   return [d.visual + '.', body, cameraDirection(sh), state, context, dialogue, d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/** What the context lines may say in this shot (src/domain/production-context.ts ContextLineOptions): from a frame,
+ *  the frame shows the start; an insert is hands and an object; a constraint naming someone outside the shot belongs to
+ *  another shot. */
+export function contextOptions(sh: Pick<Shot, 'framing' | 'characterIds'>, cast: Character[], fromFrame: boolean) {
+  return { fromFrame, insert: sh.framing === 'INSERT', absentNames: cast.filter((c) => !sh.characterIds.includes(c.id)).flatMap((c) => nameForms(c, cast)) };
 }
 
 // -------------------------------------------------------------------------------- MiniMax H3 reference grammar
@@ -494,7 +501,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     } else marks.push(`[${markTime(bt.at)}] ${text}`);
   });
   // THE PRODUCTION CONTEXT (src/domain/production-context.ts): what persists about the people and the place
-  const contextLine = opts.context ? contextLines(opts.context, plainSubject) : '';
+  const contextLine = opts.context ? contextLines(opts.context, plainSubject, contextOptions(sh, cast, fromFrame)) : '';
   const detailed = [`${d.visual}.`, '[Shot 1]', opening, povLine, body, camera, closer, cont, stateLine, contextLine, ...marks, lines, b.ending ? 'The shot ends on the anchored ending frame.' : '', d.avoid].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   // sound
   const soundscape = p.kind === 'MUSIC_VIDEO' ? 'The song carries the shot; quiet room tone under it.' : `${loc ? `${loc.kind === 'INTERIOR' ? 'Indoor' : 'Outdoor'} ambience of the place${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}` : 'Natural ambience'}${sh.dialogue.length ? '; the spoken lines are clear and close' : silent ? '; no dialogue and no voices' : ''}.`;

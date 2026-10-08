@@ -88,4 +88,15 @@ describe('voice engines', () => {
   it('lists only commercial-safe engines (producer’s rule 2026-10-06)', () => {
     for (const e of Object.values(VOICE_ENGINES)) expect(e.licence).not.toMatch(/non-commercial|NC\b|research/i);
   });
+
+  it('keeps Fish S2 Pro an evaluation engine: never routed, never pinned, never the English default', async () => {
+    const { EVAL_VOICE_ENGINES, isEvalTtsEngine } = await import('@/server/providers/voice-eval-engines');
+    expect(isEvalTtsEngine('fish-s2-pro')).toBe(true);
+    expect(EVAL_VOICE_ENGINES['fish-s2-pro']).toMatchObject({ commercialUse: false, licence: expect.stringMatching(/non-commercial/) });
+    expect(isLocalTtsEngine('fish-s2-pro')).toBe(false);
+    expect(englishEngine('fish-s2-pro')).toBe('indextts');
+    expect(pinnable('fish-s2-pro', 'EN')).toBeUndefined();
+    expect(pinnable('fish-s2-pro', 'AR')).toBeUndefined();
+    expect(pickEngine('AR', 'IRAQI_BAGHDADI', 'fish-s2-pro' as never, 'moss')).toBe('habibi');
+  });
 });

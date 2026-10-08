@@ -89,8 +89,14 @@ describe('in the production context, the preflight and the prompt', () => {
     const c = productionContextFor(state, q, shotOf(q, 's13'));
     expect(c.characters[0].startPose).toEqual({ text: 'reaching for the till', source: { kind: 'PREVIOUS_SHOT', shotId: 's12' } });
     const pack = resolveShotPack(state, q, shotOf(q, 's12'), { backend: 'local' });
-    const prompt = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState });
-    expect(prompt).toContain('<Subject 1> is to the left of <Subject 2>, on screen.');
+    // nothing anchors the picture: the blocking is said in words
+    const unanchored = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], { ...bindingOf(pack), opening: undefined }, { relation: 'CUT', context: pack.context, sceneState: pack.sceneState });
+    expect(unanchored).toContain('<Subject 1> is to the left of <Subject 2>, on screen.');
+    // the anchored tail of a continuation shows who stands where: the blocking is left to it (placement words beside a
+    // picture that already shows the placement made H3 cut, "The Relief" 1.4 and 1.6)
+    const anchored = h3ReferencePrompt(q, shotOf(q, 's12'), state.characters, state.locations.find((l) => l.id === 'loc-pharmacy'), q.scenes[0], bindingOf(pack), { relation: pack.relation, context: pack.context, sceneState: pack.sceneState });
+    expect(pack.opening.kind).toBe('TAIL');
+    expect(anchored).not.toContain('is to the left of');
     expect(contextRecord(pack.context).blocking).toMatchObject({ relations: [[a, b]] });
   });
 

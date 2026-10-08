@@ -47,6 +47,31 @@ describe('stripDialogueTags (P0.3)', () => {
     // a planner's own prose keeps the stay line too
     expect(takePrompt(p, { ...sh, prompt: 'Close on the thermos.' }, cast, undefined, undefined)).toContain('Close on the thermos. The whole shot stays on the hands');
   });
+  it('the context lines leave the start and the blocking to the frame, keep an insert to the hands, and drop a constraint naming someone outside the shot ("The Relief" 1.6)', async () => {
+    const { contextLines } = await import('@/domain/production-context');
+    const { contextOptions } = await import('@/server/story/prompts');
+    const { state, p } = fixture();
+    const cast = state.characters.filter((c) => p.castIds.includes(c.id));
+    const [a, b] = cast;
+    const ctx = {
+      characters: [{ characterId: a.id, name: a.name, condition: [{ text: 'soaked to the skin' }], emotion: 'gentle, attentive', interactingWith: [b.id], startPose: { text: 'standing still' }, endPose: 'holding the thermos, cap off', motion: { direction: 'TOWARD_CAMERA' }, speaks: false }],
+      blocking: undefined, location: { changes: [{ text: 'the stair door open' }] },
+      shot: { relation: 'CUT', constraints: [`thermos moves from ${b.name.split(' ')[0]} to ${a.name.split(' ')[0]}`, 'cap is unscrewed'] },
+    } as never;
+    const who = () => 'the person';
+    const insert = { framing: 'INSERT' as const, characterIds: [a.id] };
+    const wide = { framing: 'MEDIUM' as const, characterIds: [a.id] };
+    const ins = contextLines(ctx, who, contextOptions(insert, cast, true));
+    expect(ins).toContain('is soaked to the skin');
+    expect(ins).not.toMatch(/feels|starts|ends|moves|is with|stair door/);
+    expect(ins).toContain('Must hold: cap is unscrewed.');
+    expect(ins).not.toContain(b.name.split(' ')[0]);
+    const med = contextLines(ctx, who, contextOptions(wide, cast, true));
+    expect(med).toContain('feels gentle');
+    expect(med).not.toContain('starts standing still'); // the frame shows the start
+    expect(med).toContain('ends holding the thermos');
+    expect(contextLines(ctx, who, contextOptions({ ...wide, characterIds: [a.id, b.id] }, cast, false))).toContain(`thermos moves from ${b.name.split(' ')[0]}`); // both in the shot: kept
+  });
 });
 
 describe('h3ReferencePrompt (P1 grammar)', () => {

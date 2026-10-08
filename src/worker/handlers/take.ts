@@ -392,9 +392,11 @@ export const generateTake: Handler = async (ctx) => {
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const draftPrompt = refsGraph
     ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, previousFraming: effectiveRelation(p, sh).previous?.framing, ...(soundtrack?.kind === 'DIALOGUE' && soundtrack.lines.length ? { lineTimes: soundtrack.lines.map((l) => ({ from: trimStartFrames / H3_FPS + l.from, to: trimStartFrames / H3_FPS + l.to })) } : {}), ...(custom ? { body: custom, includeDialogue: false } : {}) }))
-    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context })].filter(Boolean).join(' '));
+    : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context, fromFrame: pack.opening.kind === 'FRAME' || tailAnchored })].filter(Boolean).join(' '));
   // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
-  const subjectOfPack = (id: string) => { const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
+  // an insert filmed from its frame names its person by the hands the frame shows: a description ("the 41-year-old
+  // man, tall and broad-shouldered") asks for the whole man ("The Relief" 1.6)
+  const subjectOfPack = (id: string) => { if (pack.insertFromFrame && sh.characterIds.includes(id)) return 'the person whose hands are in the frame'; const i = refsGraph ? pack.subjects.findIndex((x) => x.characterId === id) : -1; return i >= 0 ? `<Subject ${i + 1}>` : undefined; };
   const named = bindNamesOutsideDialogue(draftPrompt, cast, subjectOfPack);
   const prompt = named.prompt;
   if (named.replaced.length) await ctx.event('info', `names bound in the prompt: ${named.replaced.join(', ')}`, { replaced: named.replaced });

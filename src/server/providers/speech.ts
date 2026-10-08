@@ -6,7 +6,7 @@ import { env } from '../env';
 import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
-import { VOICE_ENGINES, englishEngine, type LocalTtsEngine } from './voice-engines';
+import { VOICE_ENGINES, englishEngine, isLocalTtsEngine, type LocalTtsEngine } from './voice-engines';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
@@ -103,9 +103,10 @@ export function wavProblem(buf: Buffer): string | null {
 
 /** Which engine speaks this character: the pinned one when given; Iraqi Arabic → Habibi Specialized IRQ (the Iraqi
  *  production engine, producer decision 2026-10-07); English → the configured English engine (`VOICE_ENGINE_EN`,
- *  MOSS-TTS v1.5); other Arabic → IndexTTS 2.5 (not yet re-decided). */
+ *  MOSS-TTS v1.5); other Arabic → IndexTTS 2.5 (not yet re-decided). A "pinned" name that is not a production engine
+ *  (an evaluation engine such as fish-s2-pro, src/server/providers/voice-eval-engines.ts) is never honoured. */
 export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine, english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine {
-  if (preferred && preferred !== 'auto') return preferred;
+  if (preferred && preferred !== 'auto' && isLocalTtsEngine(preferred)) return preferred;
   if (language === 'AR' && dialect === 'IRAQI_BAGHDADI') return 'habibi';
   if (language === 'EN') return englishEngine(english);
   return 'indextts';

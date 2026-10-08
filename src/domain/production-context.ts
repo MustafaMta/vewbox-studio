@@ -395,7 +395,21 @@ export function poseWithoutSpeech(text: string, speaks: boolean): string {
 /** The context as prompt sentences about the people and the place, with people named by `who` (a bound subject or
  *  a description — never a name). Only what the shot's own continuity sentence does not already say: the persistent
  *  condition, emotion, interaction, start → end pose, motion, the place's persistent changes, the constraints. */
-export function contextLines(c: ProductionContext, who: (characterId: string) => string | undefined): string {
+export interface ContextLineOptions {
+  /** the take starts from a drawn opening frame (or a tail): it shows where everyone stands and how — the start pose
+   *  and the blocking are left to it */
+  fromFrame?: boolean;
+  /** an INSERT shows hands and an object: only the people's condition is said; their feelings, moves, poses, company
+   *  and the room's state would describe a wider shot ("The Relief" 1.6, 2026-10-08: the start pose, the blocking —
+   *  "left, facing right", the lens "center room", the stair door "right edge" — and a constraint naming the woman
+   *  who hands over the thermos made H3 cut from the insert to a wide of the room, twice, with and without pictures) */
+  insert?: boolean;
+  /** the name forms of the production's people who are NOT in this shot: a constraint naming one of them is about
+   *  another shot (the dependency contract, src/domain/shot-dependencies.ts) and is never written into this one */
+  absentNames?: string[];
+}
+
+export function contextLines(c: ProductionContext, who: (characterId: string) => string | undefined, opts: ContextLineOptions = {}): string {
   const out: string[] = [];
   for (const x of c.characters) {
     const w = who(x.characterId);
@@ -404,22 +418,23 @@ export function contextLines(c: ProductionContext, who: (characterId: string) =>
     const condition = x.condition.filter((k) => typeof k.text === 'string' && k.text.trim());
     const bits = [
       condition.length && `is ${condition.map((k) => k.text.replace(/\.$/, '')).join(' and ')}`,
-      x.wardrobeChange?.text && `has changed clothes since the reference: ${x.wardrobeChange.text.replace(/\.$/, '')}`,
-      x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
-      x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
-      x.startPose && poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks) && `starts ${poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks)}`,
-      x.endPose && poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks) && `ends ${poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks)}`,
-      x.motion?.direction && x.motion.direction !== 'STILL' && `moves ${x.motion.direction.toLowerCase().replace(/_/g, ' ')}${x.motion.path ? ` (${x.motion.path.replace(/\.$/, '')})` : ''}`,
+      !opts.insert && x.wardrobeChange?.text && `has changed clothes since the reference: ${x.wardrobeChange.text.replace(/\.$/, '')}`,
+      !opts.insert && x.emotion && `feels ${x.emotion.replace(/\.$/, '')}`,
+      !opts.insert && x.interactingWith.length && `is with ${x.interactingWith.map((id) => who(id) ?? 'the other person').join(' and ')}`,
+      !opts.insert && !opts.fromFrame && x.startPose && poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks) && `starts ${poseWithoutSpeech(x.startPose.text.replace(/\.$/, ''), x.speaks)}`,
+      !opts.insert && x.endPose && poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks) && `ends ${poseWithoutSpeech(x.endPose.replace(/\.$/, ''), x.speaks)}`,
+      !opts.insert && x.motion?.direction && x.motion.direction !== 'STILL' && `moves ${x.motion.direction.toLowerCase().replace(/_/g, ' ')}${x.motion.path ? ` (${x.motion.path.replace(/\.$/, '')})` : ''}`,
     ].filter(Boolean);
     if (bits.length) out.push(`${w} ${bits.join(', ')}.`);
   }
-  const staging = c.blocking ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
+  const staging = c.blocking && !opts.fromFrame && !opts.insert ? blockingLine(c.blocking, who, { relation: c.shot.relation }) : '';
   if (staging) out.push(staging);
   // the place's own light for the time of day, when the scene states none (the scene state line says a stated one)
   if (c.location?.lightingFrom === 'LOCATION_RULE' && c.location.lighting) out.push(`Light, as this place always has it${c.location.timeOfDay ? ` at ${c.location.timeOfDay.toLowerCase().replace(/_/g, ' ')}` : ''}: ${c.location.lighting.replace(/\.$/, '')}.`);
-  const placeChanges = (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
+  const placeChanges = opts.insert ? [] : (c.location?.changes ?? []).filter((k) => typeof k.text === 'string' && k.text.trim());
   if (placeChanges.length) out.push(`The place as the story left it: ${placeChanges.map((k) => k.text.replace(/\.$/, '')).join('; ')}.`);
-  const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)));
+  const names = (opts.absentNames ?? []).filter((n) => n.trim().length > 1).map((n) => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^\\p{L}])`, 'iu'));
+  const own = c.shot.constraints.filter((k) => !c.characters.some((x) => k.startsWith(x.name)) && !names.some((re) => re.test(k)));
   if (own.length) out.push(`Must hold: ${own.map((k) => k.replace(/\.$/, '')).join('; ')}.`);
   return out.join(' ');
 }
