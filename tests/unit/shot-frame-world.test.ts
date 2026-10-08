@@ -178,3 +178,15 @@ describe('the previous end only when its people are all in this shot ("The Relie
     expect(previousEndUsable({ characterIds: ['marcus'] }, { characterIds: ['marcus', 'elena'] })).toBe(true); // 1.5 → the insert
   });
 });
+describe('one person of several: the previous end cut to that person (personBand)', () => {
+  it('maps faces left to right onto the screen order, only when every person shows one face', async () => {
+    const { personBand } = await import('@/worker/handlers/images');
+    const frame = { width: 1344, height: 768 };
+    const faces: Array<[number, number, number, number]> = [[900, 200, 90, 110], [300, 210, 95, 115]];
+    // screen order: index 0 is the left person (face at x 300), index 1 the right (x 900)
+    expect(personBand(faces, 0, 2, frame)).toEqual({ x: 12, y: 0, width: 672, height: 768 });
+    expect(personBand(faces, 1, 2, frame)).toEqual({ x: 609, y: 0, width: 672, height: 768 });
+    expect(personBand([faces[0]], 0, 2, frame)).toBeUndefined(); // one face for two people: not told apart
+    expect(personBand(faces, -1, 2, frame)).toBeUndefined();
+  });
+});

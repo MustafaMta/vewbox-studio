@@ -616,9 +616,11 @@ async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: 
 async function previousEndFrame(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ asset: Asset; end: PreviousEnd } | undefined> {
   const { relation, previous } = effectiveRelation(p, sh);
   if (relation !== 'CUT' || !previous || previous.sceneId !== sh.sceneId) return undefined;
-  // only when everyone the previous end shows is in this shot too: "The Relief" 1.2 (Elena alone at the stair door)
-  // was drawn with 1.1's end (Marcus at the lens) and the edit model drew Marcus beside her — the people check refused it
-  if (!previousEndUsable(previous, sh)) return undefined;
+  // only when everyone the previous end shows is in this shot too ("The Relief" 1.2, Elena alone at the stair door, was
+  // drawn with 1.1's end and the edit model drew Marcus beside her) — or, for ONE person of a shot of several (a
+  // close-up after the two-shot), the previous end cut to that person (`personBand`)
+  const alone = previousEndUsable(previous, sh) ? undefined : sh.characterIds.length === 1 && previous.characterIds.includes(sh.characterIds[0]) ? sh.characterIds[0] : null;
+  if (alone === null) return undefined;
   // the chosen take; before anyone chose (a production run films the scene in order), the latest accepted one — the
   // frame records which, and the preflight calls it stale if another take is chosen later
   const usable = (t: (typeof previous.takes)[number]) => t.status === 'READY' && t.rating !== 'REJECTED' && t.provider !== 'SAMPLE';
@@ -629,16 +631,36 @@ async function previousEndFrame(ctx: HandlerContext, state: State, p: Production
   if (!video || video.kind !== 'VIDEO' || video.unavailable || video.sample) return undefined;
   const sourceFrame = Math.max(0, windowEndSourceFrame(p, previous, take, video) - 1);
   const end: PreviousEnd = { shotId: previous.id, takeId: take.id, assetId: '', sourceFrame };
-  const known = state.assets.find((a) => a.provenance?.endOfTake === take.id && a.provenance?.sourceFrame === sourceFrame && usableImage(a));
-  if (known) return { asset: known, end: { ...end, assetId: known.id } };
+  const scene = p.scenes.find((sc) => sc.id === previous.sceneId);
   const dir = await tmpDir('take-end');
   try {
-    const png = await frameAt(assetFile(video), path.join(dir, 'end.png'), sourceFrame);
-    const key = `take-end:${take.id}:${sourceFrame}`;
-    const { id, stored } = await jobOutputs(ctx.job).adopt(`image:${key}`, png, { expectKind: 'IMAGE' });
-    const scene = p.scenes.find((sc) => sc.id === previous.sceneId);
-    await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${previous.number} ${take.label}: its last frame in the cut`, tags: ['take-end', 'continuity'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { endOfTake: take.id, shotId: previous.id, productionId: p.id, sourceFrame, from: video.id } })], 'worker');
-    await ctx.event('info', `shot ${sh.number}: the previous shot's actual end (${take.label}, frame ${sourceFrame}) is a reference of this frame`, { shotId: sh.id, assetId: id, takeId: take.id, sourceFrame });
+    let full = state.assets.find((a) => a.provenance?.endOfTake === take.id && a.provenance?.sourceFrame === sourceFrame && !a.provenance?.personBand && usableImage(a));
+    if (!full) {
+      const png = await frameAt(assetFile(video), path.join(dir, 'end.png'), sourceFrame);
+      const { id, stored } = await jobOutputs(ctx.job).adopt(`image:take-end:${take.id}:${sourceFrame}`, png, { expectKind: 'IMAGE' });
+      await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${previous.number} ${take.label}: its last frame in the cut`, tags: ['take-end', 'continuity'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { endOfTake: take.id, shotId: previous.id, productionId: p.id, sourceFrame, from: video.id } })], 'worker');
+      full = (await readState()).state.assets.find((a) => a.id === id);
+      if (!full) return undefined;
+    }
+    if (!alone) {
+      await ctx.event('info', `shot ${sh.number}: the previous shot's actual end (${take.label}, frame ${sourceFrame}) is a reference of this frame`, { shotId: sh.id, assetId: full.id, takeId: take.id, sourceFrame });
+      return { asset: full, end: { ...end, assetId: full.id } };
+    }
+    // ONE PERSON OF SEVERAL: the people stand in cast order across the frame (D29); with one confident face per person,
+    // the faces map left to right onto that order, and the band around this person's face is the reference
+    const known = state.assets.find((a) => a.provenance?.endOfTake === take.id && a.provenance?.sourceFrame === sourceFrame && (a.provenance?.personBand as { characterId?: string } | undefined)?.characterId === alone && usableImage(a));
+    if (known) return { asset: known, end: { ...end, assetId: known.id } };
+    const r = await detectFaces(assetFile(full)).catch(() => undefined);
+    if (!r || isQaUnavailable(r)) return undefined;
+    const order = previous.characterIds.slice().sort((a, b) => { const ia = p.castIds.indexOf(a), ib = p.castIds.indexOf(b); return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib); });
+    const band = personBand(r.faces.filter((f) => f.score >= FACE_SCORE).map((f) => f.box), order.indexOf(alone), order.length, { width: r.width, height: r.height });
+    if (!band) { await ctx.event('info', `shot ${sh.number}: the previous shot's end shows the people in a way that cannot be told apart; the frame is drawn from the plan`, { shotId: sh.id }); return undefined; }
+    const out = path.join(dir, 'band.png');
+    await ffmpeg(['-y', '-v', 'error', '-i', assetFile(full), '-vf', `crop=${band.width}:${band.height}:${band.x}:${band.y}`, '-frames:v', '1', out]);
+    const { id, stored } = await jobOutputs(ctx.job).adopt(`image:take-end:${take.id}:${sourceFrame}:${alone}`, out, { expectKind: 'IMAGE' });
+    const who = state.characters.find((c) => c.id === alone)?.name ?? 'the person';
+    await command('addAsset', [assetFromStored(id, stored, { label: `${p.title} — shot ${scene?.number ?? '?'}.${previous.number} ${take.label}: ${who} at its end`, tags: ['take-end', 'continuity'], origin: 'DERIVED', jobId: ctx.job.id, provenance: { endOfTake: take.id, shotId: previous.id, productionId: p.id, sourceFrame, from: full.id, personBand: { characterId: alone, ...band } } })], 'worker');
+    await ctx.event('info', `shot ${sh.number}: ${who} as the previous shot ended (${take.label}, frame ${sourceFrame}, cut to the person) is a reference of this frame`, { shotId: sh.id, assetId: id, band });
     const asset = (await readState()).state.assets.find((a) => a.id === id);
     return asset ? { asset, end: { ...end, assetId: id } } : undefined;
   } catch (e) {
@@ -647,6 +669,17 @@ async function previousEndFrame(ctx: HandlerContext, state: State, p: Production
   } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
 }
 
+/** The band of a frame that holds the person at `index` of `count` people standing in screen order: only when exactly
+ *  `count` faces are found (each person tells apart); the face's column, as wide as the frame divided among the people
+ *  (at least four face widths), full height. Pure (tested). */
+export function personBand(faces: Array<[number, number, number, number]>, index: number, count: number, frame: { width: number; height: number }): CropPx | undefined {
+  if (index < 0 || count < 2 || faces.length !== count) return undefined;
+  const f = [...faces].sort((a, b) => a[0] - b[0])[index];
+  const width = Math.round(Math.min(frame.width, Math.max(frame.width / count, f[2] * 4)) / 2) * 2;
+  const cx = f[0] + f[2] / 2;
+  const x = Math.round(Math.min(frame.width - width, Math.max(0, cx - width / 2)));
+  return { x, y: 0, width, height: Math.round(frame.height / 2) * 2 };
+}
 /** Whether the previous shot's end may be a reference of this shot's frame: everyone in the previous shot is in this
  *  one (a person only in the previous end is drawn into this frame). Pure (tested). */
 export function previousEndUsable(previous: Pick<Shot, 'characterIds'>, sh: Pick<Shot, 'characterIds'>): boolean {
