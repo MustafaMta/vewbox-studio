@@ -3,6 +3,27 @@
 One record per phase of the master plan (producer directive 2026-10-07). Evidence files live under
 `docs/evidence/<phase>/` (git-ignored, kept on this machine).
 
+## Producer human review — 2026-10-08 (supersedes any conflicting acceptance below)
+
+- **Iraqi voice: human acceptance FAILED.** The synthesized Iraqi speech sounds artificial and robotic, less natural
+  than the upstream reference recording itself. It is not promoted, whatever its ASR, phoneme or intelligibility
+  numbers. Robotic but intelligible speech is a FAIL.
+- **Video continuity: NEEDS IMPROVEMENT / NOT FINAL.** The videos are generally good but not professional:
+  - identity drift;
+  - wrong continuity between shots;
+  - physical state that changes;
+  - composition jumps;
+  - drifting character and location details;
+  - adjacent shots that feel independently generated.
+
+  Music Video, Shorts, Episodes and long-form are not accepted until a 6–8 shot continuity validation scene passes by
+  viewing.
+- **Acceptance rule (permanent):** automated QA is necessary; human perceptual QA is authoritative. A job that
+  finished, a passing test or a passing ASR score is never acceptance.
+- **Recovery gate before later film phases:**
+  - (A) video consistency and continuity;
+  - (B) Iraqi speech naturalness (upstream Habibi parity first, root cause before any engine change).
+
 ## Phase 0 — Qwen3.8 production brain — DONE (2026-10-07)
 
 - **Commit:** branch `phase1/qwen3.8-planner`, merged to `main` (see the merge commit after `Phase 0:` commits).
@@ -294,6 +315,59 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     lyrics.
   - Gates: listening `WAITING_FOR_USER_ACCEPTANCE`; training-data provenance (legal review) `WAITING_FOR_USER`.
     NOT production-approved until both are passed.
+
+### Phase 3 — robotic Iraqi speech: root-cause investigation (2026-10-08, after the producer's FAIL)
+
+- **Phase 3 split:**
+
+  | Part | Status |
+  | --- | --- |
+  | Iraqi pipeline engineering | continuing |
+  | Iraqi lab engine quality | FAILED by listening |
+  | Iraqi commercial character | `WAITING_FOR_USER_PRODUCTION_REFERENCE` |
+  | Iraqi song planning | continuing |
+  | Iraqi production song | not promoted |
+
+- **Parity with upstream: established. Vewbox's Habibi inference is upstream's inference.**
+  - **Code path:** the service calls the same functions as upstream's `habibi-tts_infer-cli`: f5_tts
+    `preprocess_ref_audio_text`, then habibi_tts `infer_process`, F5TTS_v1_Base config, vocos, fp16, no dialect token
+    for Specialized. Packages: habibi-tts 0.1.1, f5-tts 1.1.22, vocos 0.1.0, torch 2.8.0+cu128. The paper's eval
+    path (`eval/1_infer_habibi.py`) differs only in skipping the edge-silence trim.
+  - **Parameters:** nfe 32, cfg 2.0, sway −1, speed 1, target_rms 0.1, cross-fade 0.15 s — upstream's defaults.
+  - **Reference:** the upstream demo clip, byte-identical, with upstream's own transcript
+    («يعني ااا ما نقدر ناخذ وقت أكثر، ااا لأنه شروط كلش يحتاجلها وقت.»). F5's preprocessing cuts only pauses over
+    1 s (this clip has none) and the edges.
+  - **Text:** every character of the reference and of the 13 lines is in the IRQ vocabulary (2,711 symbols). Nothing
+    maps to the unknown index.
+  - **Measured outputs:** the 3 upstream-CLI lines and the Vewbox lines on the same text have identical durations
+    (the same F5 length formula) and matching pitch, voicing and spectral features.
+- **Post-processing: not the cause.**
+  - The service's peak limiter took 0.0 dB off every line.
+  - Lines are only resampled 24 → 48 kHz when joined.
+  - There is no time-stretch, denoise, compressor, loudness normalisation or silence removal on a dialogue line.
+  - The raw engine output is what is stored.
+- **Where the robotic delivery comes from (the model and its prompt, not the integration):**
+  - **Fixed-rate timing.** F5 sets a line's length as characters × the reference's average rate. Habibi's lines
+    come out with almost no phrase pauses: 0 in 12 of 13 lines. The reference has 5 pauses in 5.3 s, and MOSS
+    paused 1–5 times on the same lines.
+  - **The prompt is a hesitant 5.5 s clip.** It has two «ااا» fillers and 1.46 s of pauses, and F5 copies the
+    prompt's delivery. The fluent part between the fillers (~1.7 s) is too short to test as a prompt, so this
+    hypothesis is tested with the consented reference: a fluent 8–12 s Baghdadi recording.
+  - **Pitch:** Habibi's median pitch drifts above the speaker's (236–272 Hz vs 225 Hz), with wide pitch spreads on
+    short lines. These are glides, not breaks: no pitch breaks were found in any set.
+  - Machine numbers do not capture "robotic". The producer's ear decides.
+- **Controlled MOSS diagnostic (§21).** This is the 2026-10-07 run: the same reference, the same 13 sentences, one
+  take each.
+  - MOSS phrases with pauses and its pitch stays steadier.
+  - It garbles «الحچاية … لباچر» and turns گ into ق in several lines. The phoneme gate scored MOSS 6/10 and Habibi
+    1/10.
+  - Nothing was switched.
+- **Listening pack** (`var/eval/LAB-TEST-iraqi-parity-20261008/`, LAB TEST). It has three sentences, each playing
+  reference → Habibi (Vewbox) → Habibi (upstream CLI) → MOSS. Every file is a first attempt from 2026-10-07; nothing
+  was generated again.
+  - Listening: `WAITING_FOR_USER_ACCEPTANCE`.
+  - Iraqi engine decision: `WAITING_FOR_USER`.
+  - Consented reference: `WAITING_FOR_USER_PRODUCTION_REFERENCE`.
 
 ## Phase 5 — Shows / Seasons / Episodes — IN PROGRESS (2026-10-07)
 
