@@ -70,7 +70,7 @@ export function CastDirectory() {
     <div className="pc-page">
       <PageHead title="Characters" count={all.length || undefined}
         description={all.length ? `One canonical figure and one voice each, across every production.${waitingCount ? ` ${waitingCount === 1 ? 'One waits' : `${waitingCount} wait`} for your approval.` : ''}` : 'Your studio’s cast: one canonical figure and one voice each.'}
-        actions={<NewCharacterSplit />} />
+        actions={<><Link className="btn btn-secondary" href="/characters/voices">Voice Studio</Link><NewCharacterSplit /></>} />
       {all.length === 0 ? (
         <CastSection id="pc-first" title="Cast someone new" description="Three ways in. The studio drafts; you approve the figure.">
           <ul className="pc-calls" role="list">
