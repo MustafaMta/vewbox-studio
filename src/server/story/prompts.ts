@@ -140,6 +140,9 @@ export function withoutStaticCamera(text: string): string {
   return text.split(/(?<=[.!?])\s+/).filter((s) => !(/\bcamera\b/i.test(s) && /\b(static|still|locked[- ]off|tripod|fixed|holds? the framing)\b/i.test(s))).join(' ').trim();
 }
 
+/** Two framings at the same distance from the people (a medium and a two-shot). Pure. */
+export const sameDistance = (a: Framing, b: Framing): boolean => a === b || (CLOSENESS[a] ?? -1) === (CLOSENESS[b] ?? -2);
+
 /** The move that takes a continuous shot from the previous shot's framing to its own. Pure (tested). */
 export const continuousMoveBetween = (from: Framing, to: Framing): 'PUSH_IN' | 'PULL_BACK' => ((CLOSENESS[to] ?? 3) > (CLOSENESS[from] ?? 3) ? 'PUSH_IN' : 'PULL_BACK');
 
@@ -150,7 +153,8 @@ export const continuousMoveBetween = (from: Framing, to: Framing): 'PUSH_IN' | '
 export function continuationCamera(sh: Pick<Shot, 'framing' | 'cameraMove'>, fromFraming?: Framing): string {
   const framing = sh.framing.toLowerCase().replace(/_/g, ' ');
   const start = 'Camera: it carries on exactly where the previous shot ended (the first frames), from the same camera position, with no cut and no jump';
-  if (!fromFraming || fromFraming === sh.framing) return `${start}; ${sh.cameraMove === 'STATIC' ? 'the framing then holds' : `then one smooth ${sh.cameraMove.toLowerCase().replace(/_/g, ' ')}`}.`;
+  // the same distance (a measured "medium" and a planned "two shot") is the same framing: the camera holds
+  if (!fromFraming || sameDistance(fromFraming, sh.framing)) return `${start}; ${sh.cameraMove === 'STATIC' ? 'the framing then holds' : `then one smooth ${sh.cameraMove.toLowerCase().replace(/_/g, ' ')}`}.`;
   const closer = (CLOSENESS[sh.framing] ?? 3) > (CLOSENESS[fromFraming] ?? 3);
   return `${start}, then ${closer ? 'pushes in' : 'pulls back'} slowly and smoothly until it frames a ${framing}: one continuous camera move, never a cut.`;
 }
@@ -426,7 +430,7 @@ export function h3ReferencePrompt(p: Production, sh: Shot, cast: Character[], lo
     : opts.relation === 'STORY_TRANSITION' ? `It opens a new scene${placeNo ? ` in <Subject ${placeNo}>` : ''}${scene?.timeOfDay ? ` at ${scene.timeOfDay.toLowerCase().replace('_', ' ')}` : ''}; nothing continues from the previous shot.${storyState}` : '';
   const pace = sh.staging?.pace === 'DWELL' ? ' One continuous moment held in one framing, no cuts.' : sh.staging?.pace === 'MONTAGE' ? ' A run of distinct actions, each one complete before the next.' : '';
   const continuing = opts.relation === 'CONTINUATION' && b.opening?.kind === 'TAIL';
-  const still = continuing ? (opts.previousFraming && opts.previousFraming !== sh.framing ? ` The camera then moves, without a cut, to a ${sh.framing.toLowerCase().replace(/_/g, ' ')}.` : '') : sh.cameraMove === 'STATIC' && shotCount <= 1 ? ' The camera is locked off: the framing never changes.' : '';
+  const still = continuing ? (opts.previousFraming && !sameDistance(opts.previousFraming, sh.framing) ?` The camera then moves, without a cut, to a ${sh.framing.toLowerCase().replace(/_/g, ' ')}.` : '') : sh.cameraMove === 'STATIC' && shotCount <= 1 ? ' The camera is locked off: the framing never changes.' : '';
   const hardCuts = shotCount > 1 ? ` The take holds ${shotCount} shots; every shot change is a hard cut: no dissolve, no fade, no on-screen text.` : '';
   const summary = `[${tasks.join(' + ')}] The target video shows ${cast2.length ? cast2.join(' and ') : 'the scene'}${where}: ${action}. ${relationLine}${pace}${still}${hardCuts}`.trim();
   // retention_analysis (every subject appears in every shot of the take)

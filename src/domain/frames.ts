@@ -38,6 +38,13 @@ export interface FrameFraming { planned: Framing; measured: LadderStep | 'NO_FAC
  *  a close-up; an insert has no face step). */
 const plannedStep = (f: Framing): LadderStep | undefined => (f === 'EXTREME_WIDE' ? 'WIDE' : f === 'TWO_SHOT' || f === 'OVER_THE_SHOULDER' ? 'MEDIUM' : f === 'EXTREME_CLOSE_UP' ? 'CLOSE_UP' : f === 'INSERT' ? undefined : (f as LadderStep));
 
+/** The framing a picture actually shows, from its largest face (no face: undefined). Pure. */
+export function framingStepOfFace(faceHeight: number | undefined, frameHeight: number): LadderStep | undefined {
+  if (!faceHeight || frameHeight <= 0) return undefined;
+  const share = faceHeight / frameHeight;
+  return FACE_SHARE_STEPS.find((s) => share >= s.min)!.step;
+}
+
 /** The verdict on a drawn frame's framing from its largest face (`faceHeight` and `frameHeight` in pixels; no face:
  *  undefined). Pure (tested). */
 export function judgeFrameFraming(planned: Framing, faceHeight: number | undefined, frameHeight: number): FrameFraming {

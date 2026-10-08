@@ -221,7 +221,9 @@ describe('GENERATE_TAKE by relation', () => {
     // hosted: the first frame is the last frame the cut shows, not the take's own last frame
     fake.backend = 'api'; fake.commands = [];
     await generateTake(ctx(p.id, 's12'));
-    expect(fake.frames[0]).toEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/last-frame\.png$/), 99]);
+    expect(fake.frames).toContainEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/last-frame\.png$/), 99]);
+    // the guide's last frame (where the cut ends) is also the frame whose framing is measured ("The Relief" 1.8)
+    expect(fake.frames).toContainEqual(['/lib/vid/vid-a.mp4', expect.stringMatching(/tail-end\.png$/), 99]);
     expect(fake.closing).toEqual([]);
   });
 

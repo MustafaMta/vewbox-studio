@@ -5,7 +5,8 @@ import { step } from './step';
 import { canCountPeople, countPeopleOverTime, peopleExpected, peopleVerdict, showsPictureOfPeople } from './people';
 import { StudioError } from '@/domain/errors';
 import type { Asset, QaCheck, ShotDialogue, Take, TakeReference } from '@/domain/types';
-import { ASPECT_INFO } from '@/domain/vocabulary';
+import { ASPECT_INFO, type Framing } from '@/domain/vocabulary';
+import { framingStepOfFace } from '@/domain/frames';
 import { facingAway } from '@/domain/blocking';
 import { capabilityFor, type VideoQualityTier } from '@/domain/video-capability';
 import { commands, readState } from '@/server/studio/engine';
@@ -34,7 +35,7 @@ import { contextRecord } from '@/domain/production-context';
 import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/media/continuity-qa';
 import { takeVerdict } from '@/domain/take-checks';
 import { withFaceReferences } from './face-reference';
-import { alignScript, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
+import { alignScript, detectFaces, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
 import { MOUTH_LAG_CALIBRATION, MOUTH_SEARCH_MS } from '@/domain/lip-sync-calibration';
 import { shotPerformers } from '@/domain/music-performance';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
@@ -279,11 +280,26 @@ export const generateTake: Handler = async (ctx) => {
     const a = prev?.sameScene && prev.takeId && prev.assetId && rel !== 'STORY_TRANSITION' ? byId(prev.assetId) : undefined;
     return a && a.kind === 'VIDEO' && !a.unavailable && !a.sample ? { previousFile: assetFile(a), previousEndFrame: prevEnd({ shotId: prev!.shotId, takeId: prev!.takeId!, assetId: a.id })?.endFrame, relation: rel === 'CONTINUATION' ? 'CONTINUATION' as const : 'CUT' as const } : undefined;
   };
+  let measuredPreviousFraming: Framing | undefined;
   if (pack.opening.kind === 'TAIL') {
     const prevAsset = byId(pack.opening.assetId)!;
     const end = prevEnd(pack.opening);
     const cutShort = end && end.totalFrames && end.endFrame < end.totalFrames ? end.endFrame : undefined;
     const tail = await tailClip(assetFile(prevAsset), path.join(work, 'tail.mp4'), pack.opening.frames, ...(cutShort ? [CLOCK_FPS, cutShort] as const : []));
+    // THE FRAMING THE PREVIOUS TAKE ACTUALLY ENDS ON (planned vs actual, 2026-10-09, "The Relief" 1.8): 1.7 was planned
+    // WIDE but its take ended on a medium two-shot; told "push in from the wide to a medium", H3 cut back out to a wide
+    // to have something to push in from. The guide's last frame is measured (its largest face on the framing ladder)
+    // and the continuation's camera is written from it; the plan is the fallback when no face is found
+    try {
+      const endPng = cutShort ? await frameAt(assetFile(prevAsset), path.join(work, 'tail-end.png'), cutShort - 1) : await closingFrame(assetFile(prevAsset), path.join(work, 'tail-end.png'));
+      const faces = await detectFaces(endPng);
+      if (!isQaUnavailable(faces)) {
+        const largest = faces.faces.filter((f) => f.score >= 0.6).reduce<number | undefined>((m, f) => Math.max(m ?? 0, f.box[3]), undefined);
+        measuredPreviousFraming = framingStepOfFace(largest, faces.height);
+        const planned = effectiveRelation(p, sh).previous?.framing;
+        await ctx.event('info', `the previous take ends on ${measuredPreviousFraming ? `about a ${measuredPreviousFraming.toLowerCase().replace(/_/g, ' ')}` : 'no measurable face'}${planned ? ` (planned ${planned.toLowerCase().replace(/_/g, ' ')})` : ''}: the continuation's camera starts from ${measuredPreviousFraming ? 'what the take shows' : 'the plan'}`, { measuredPreviousFraming, planned, faceHeight: largest, frameHeight: faces.height });
+      }
+    } catch (e) { await ctx.event('warn', `the previous take's end framing could not be measured (${(e as Error).message.split('\n')[0]}): the plan's framing is used`); }
     const songTail = soundtrack?.kind === 'SONG' && songAsset && window ? await trimAudio(assetFile(songAsset), path.join(work, 'tail-song.wav'), Math.max(0, window.from - pack.opening.frames / H3_FPS), window.from) : undefined;
     // THE GUIDE IS VALIDATED BEFORE THE ENGINE IS TOUCHED (gap V1): the clip is counted, and a count the node would
     // silently floor (a short tail → 5 frames while the cut still dropped 22) is a WRONG_PARAMETERS refusal, not a take
@@ -391,7 +407,7 @@ export const generateTake: Handler = async (ctx) => {
   const tailAnchored = relation === 'CONTINUATION' && pack.opening.kind === 'TAIL';
   const binding = { ...bindingOf(pack, audioRefs), ...(tailAnchored ? {} : pack.opening.kind === 'TAIL' ? { opening: undefined } : {}) };
   const draftPrompt = refsGraph
-    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, previousFraming: effectiveRelation(p, sh).previous?.framing, ...(soundtrack?.kind === 'DIALOGUE' && soundtrack.lines.length ? { lineTimes: soundtrack.lines.map((l) => ({ from: trimStartFrames / H3_FPS + l.from, to: trimStartFrames / H3_FPS + l.to })) } : {}), ...(custom ? { body: custom, includeDialogue: false } : {}) }))
+    ? (custom && /<Picture \d+>|\bImage \d+\b/.test(custom) ? custom : h3ReferencePrompt(p, sh, cast, loc, scene, binding, { relation, locations: places, sceneState: pack.sceneState, context: pack.context, previousFraming: measuredPreviousFraming ?? effectiveRelation(p, sh).previous?.framing, ...(soundtrack?.kind === 'DIALOGUE' && soundtrack.lines.length ? { lineTimes: soundtrack.lines.map((l) => ({ from: trimStartFrames / H3_FPS + l.from, to: trimStartFrames / H3_FPS + l.to })) } : {}), ...(custom ? { body: custom, includeDialogue: false } : {}) }))
     : (custom || [tailAnchored ? `The shot continues the previous shot without a cut: its first ${(trimStartFrames / H3_FPS).toFixed(1)} seconds are the end of the previous shot, then the action carries on.` : '', takePrompt(p, sh, cast, loc, scene, { sceneState: pack.sceneState, context: pack.context, fromFrame: pack.opening.kind === 'FRAME' || tailAnchored })].filter(Boolean).join(' '));
   // the last name pass: nobody is named outside the spoken lines (bound subject on a reference graph, else described)
   // an insert filmed from its frame names its person by the hands the frame shows: a description ("the 41-year-old

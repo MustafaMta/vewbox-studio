@@ -200,6 +200,13 @@ describe('a continuous shot reaches a new framing by a move ("The Relief" 1.3)',
     expect(continuationCamera({ framing: 'TWO_SHOT', cameraMove: 'STATIC' }, 'MEDIUM_WIDE')).toBe('Camera: it carries on exactly where the previous shot ended (the first frames), from the same camera position, with no cut and no jump, then pushes in slowly and smoothly until it frames a two shot: one continuous camera move, never a cut.');
     expect(continuationCamera({ framing: 'WIDE', cameraMove: 'STATIC' }, 'WIDE')).toMatch(/no cut and no jump; the framing then holds\.$/);
     expect(continuationCamera({ framing: 'WIDE', cameraMove: 'STATIC' }, 'INSERT')).toMatch(/then pulls back slowly/);
+    // "The Relief" 1.8: the previous take ENDED on a medium (measured), so a medium continuation holds — no invented move
+    expect(continuationCamera({ framing: 'MEDIUM', cameraMove: 'STATIC' }, 'MEDIUM')).toMatch(/the framing then holds\.$/);
+    expect(continuationCamera({ framing: 'TWO_SHOT', cameraMove: 'STATIC' }, 'MEDIUM')).toMatch(/the framing then holds\.$/); // same distance
+    const { framingStepOfFace } = await import('@/domain/frames');
+    expect(framingStepOfFace(130, 768)).toBe('MEDIUM'); // a face 17 % of the height
+    expect(framingStepOfFace(40, 768)).toBe('WIDE');
+    expect(framingStepOfFace(undefined, 768)).toBeUndefined();
     const { withoutStaticCamera } = await import('@/server/story/prompts');
     expect(withoutStaticCamera('She stops before him. Camera: 50mm lens, eye-level, static two-shot. The mood is intimate.')).toBe('She stops before him. The mood is intimate.');
     expect(withoutStaticCamera('The camera drifts closer. He turns.')).toBe('The camera drifts closer. He turns.');
