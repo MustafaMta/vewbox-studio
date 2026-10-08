@@ -44,6 +44,16 @@ export const CONTINUITY_QA = {
   cutStructure: 0.35,
   /** a planned cut matches a measured one within this many seconds */
   cutTolerance: 0.5,
+  /** DISSOLVES (measuredDissolves): the window lengths tried (frames), the least luma change between its ends, the blend
+   *  weight range that counts as a mix, and how close the middle must be to the best blend (fraction of the ends'
+   *  difference). START values, calibrated on "The Relief" takes 2026-10-08 (scripts/dissolve-calibration.ts) */
+  dissolveWindows: [6, 10, 14] as readonly number[],
+  dissolveMinDiff: 8,
+  /** 1 − the correlation of the ends' edge maps: a new picture over this (the 1.6 dissolve 0.47; a dimming lamp 0.27,
+   *  ordinary motion over 14 frames 0.17) */
+  dissolveEdgeChange: 0.4,
+  dissolveAlpha: [0.2, 0.8] as readonly [number, number],
+  dissolveFit: 0.35,
   /** a line is heard on time when its start is within this many seconds of where the take placed it, and its heard
    *  length within this fraction of its recording */
   lineStartTolerance: 0.6,
@@ -138,6 +148,56 @@ export function measuredCuts(s: FrameSeries, head = 0): number[] {
     const restructured = !structure || structure[i] > CONTINUITY_QA.cutStructure;
     if (x > floor && restructured && (!out.length || (i + head + 1) / s.fps - out[out.length - 1] > 0.25)) out.push((i + head + 1) / s.fps);
   });
+  return out;
+}
+
+/** THE DISSOLVES — RESEARCH MEASURE, NOT A TAKE CHECK (QA gap found 2026-10-08, "The Relief" 1.6 attempt 5: H3
+ *  cross-faded from the insert to another insert angle over ~0.3 s; the cut check saw no hard change and the fade check
+ *  looks only for black). Calibrated over the studio's 18 takes (scripts/dissolve-calibration.ts): it finds the known
+ *  dissolve and passes a dimming lamp, but also fires on a man turning a knob ("The Last Crossing" 4 take 2) and a
+ *  camera drift ("The Relief" 1.2), and neither step coherence nor edge ghosting (at 64×36 and 256×144) separated them.
+ *  So it is NOT wired into `continuityChecks`: an unplanned dissolve is caught by a person watching the take, until a
+ *  measure separates it on real media. A window of `w` frames
+ *  whose ends are different pictures (structure changed over the cut threshold), crossed with no hard cut inside, and
+ *  whose middle frame is a genuine MIX of the two ends (the best blend α·a + (1−α)·b fits it within `dissolveFit` of the
+ *  ends' difference, with α well inside 0–1). A camera move or a person moving gives no such blend (the middle is a
+ *  shifted picture, not a superimposed one). Seconds of each dissolve's middle from the take's start. Pure. */
+export function measuredDissolves(frames: Uint8Array[], fps: number, head = 0, width = 64): number[] {
+  const out: number[] = [];
+  const step = frames.map((f, i) => (i ? 1 - frameCorrelation(frames[i - 1], f) : 0));
+  const edges = frames.map((f) => edgeMap(f, width));
+  for (const w of CONTINUITY_QA.dissolveWindows) {
+    for (let i = head; i + w < frames.length; i++) {
+      const a = frames[i], b = frames[i + w], m = frames[i + (w >> 1)];
+      const ends = meanAbsDiff(a, b);
+      // a NEW PICTURE moves the edges; a light that fades (a lamp dimming, "The Last Crossing" 1.3) keeps every edge
+      // where it was while mixing like a dissolve: the ends must differ in geometry, not only in light
+      if (ends < CONTINUITY_QA.dissolveMinDiff || 1 - frameCorrelation(edges[i], edges[i + w]) < CONTINUITY_QA.dissolveEdgeChange) continue;
+      if (step.slice(i + 1, i + w + 1).some((x) => x > CONTINUITY_QA.cutStructure)) continue; // a hard cut inside: the cut check's
+      let num = 0, den = 0;
+      for (let k = 0; k < m.length; k++) { const d = a[k] - b[k]; num += (m[k] - b[k]) * d; den += d * d; }
+      const alpha = den ? num / den : 0;
+      if (alpha < CONTINUITY_QA.dissolveAlpha[0] || alpha > CONTINUITY_QA.dissolveAlpha[1]) continue;
+      let resid = 0;
+      for (let k = 0; k < m.length; k++) resid += Math.abs(m[k] - (alpha * a[k] + (1 - alpha) * b[k]));
+      if (resid / m.length / ends > CONTINUITY_QA.dissolveFit) continue;
+      const t = (i + (w >> 1)) / fps;
+      if (!out.some((x) => Math.abs(x - t) < 0.75)) out.push(t);
+    }
+  }
+  return out.sort((x, y) => x - y);
+}
+
+/** The picture's edges (gradient magnitude) after its own contrast is normalised: geometry, blind to the light level. */
+export function edgeMap(f: Uint8Array, width: number): Uint8Array {
+  const n = f.length; const h = Math.floor(n / width);
+  let s = 0; for (let i = 0; i < n; i++) s += f[i];
+  const m = n ? s / n : 0;
+  let v = 0; for (let i = 0; i < n; i++) v += (f[i] - m) ** 2;
+  const sd = Math.sqrt(v / Math.max(1, n)) || 1;
+  const z = (i: number) => (f[i] - m) / sd;
+  const out = new Uint8Array(n);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < width - 1; x++) { const i = y * width + x; out[i] = Math.min(255, Math.round(40 * Math.hypot(z(i + 1) - z(i - 1), z(i + width) - z(i - width)))); }
   return out;
 }
 

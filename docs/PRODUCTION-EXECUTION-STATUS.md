@@ -678,7 +678,8 @@ the opening frames and the location plate, inspected side by side.
       | 2 | job-6aa4232fd6 | 548794079 | 0 | REJECT: one person too many, cuts |
       | 3 | job-14c81a8e03 | 548794079 (same) | 1 (Start-menu shutdown, 18:54 local) | REVIEW: no stranger, hands match Marcus; 2 unplanned cuts |
       | — | job-df2e9c4245, job-6dc96a880f | 548794079 | 0 | refused before the engine by the location rule (my change; the second because the worker still ran the old code) |
-      | 4 | job-0a6be64d20 | 548794079 (same) | — | after the insert rule — in progress |
+      | 4 | job-0a6be64d20 | 548794079 (same) | 0 | REVIEW: filmed from the frame alone, no pictures — still insert → wide → insert (2.04 s, 4.42 s) |
+      | 5 | job-29d45317d5 | 548794079 (same) | 0 | REVIEW: stays on the hands the whole shot; one unplanned cross-dissolve at ~3.9–4.1 s to a second insert angle |
 
     - **Attempt 3, read from the media:** no stranger, and the hands now match Marcus's skin. But H3 cut insert → a
       wide of the whole man by the lamp (2.04–4.38 s) → insert. The wide reproduces the location plate's composition.
@@ -688,8 +689,24 @@ the opening frames and the location plate, inspected side by side.
       sleeves, a crop of the place).
     - **Fixed (8fae0e3), the insert rule:** a local INSERT with a drawn opening frame is filmed from that frame alone
       (FL2VA). The identity and location rules waive the bound pictures by name and still require the plate the frame
-      was drawn against. The FL2VA prompt describes hands and sleeves and stays on the detail. Attempt 4 is the
-      controlled same-seed rerun.
+      was drawn against. The FL2VA prompt describes hands and sleeves and stays on the detail.
+    - **Attempt 4 (same seed) disproved the pictures as the cause:** with no pictures bound, H3 cut to a wide at the
+      same times, this time of an invented room. The cause was in the words. The prompt's context lines described the
+      whole staging: "left, facing right", the lens "center room", the stair door "right edge", "starts standing
+      still", and a constraint "thermos moves from Elena to Marcus". Both names were replaced by whole-person
+      descriptions, so a woman and a man were written into an insert.
+    - **Fixed (15a0229):** context lines say only what the shot can show. From a drawn frame or an anchored tail, the
+      start pose and the blocking are left to the picture. An INSERT keeps only its people's condition. A constraint
+      naming someone outside the shot is never written. An insert names its person "the person whose hands are in the
+      frame".
+    - **Attempt 5 (same seed):** no wide, no face, no second person; the hands match Marcus. One defect remains: an
+      unplanned cross-dissolve at about 3.9–4.1 s to a second insert angle (a lamp appears behind, and the cloth moves
+      to the lower hand). The clean part is the first ~3.8 s. Human viewing: `WAITING_FOR_USER_ACCEPTANCE`.
+    - **QA gap found:** the cut check missed the dissolve (no hard change) and the fade check looks only for black. A
+      dissolve measure was built and calibrated over all 18 takes (`scripts/dissolve-calibration.ts`). It finds this
+      dissolve and passes a dimming lamp. But it also fires on a man turning a knob and on a camera drift, and neither
+      step coherence nor edge ghosting (at 64×36 and 256×144) separated them. It is **not wired into take QA**: an
+      unplanned dissolve is caught by a person watching, until a measure separates it on real media.
 
 ### Shot-edit dependency contract (2026-10-08, a42f507)
 
