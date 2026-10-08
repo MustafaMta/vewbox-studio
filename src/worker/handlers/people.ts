@@ -12,7 +12,9 @@ import { frameAt, tmpDir } from '@/server/media/ffmpeg';
  *  sampled every half second, because a duplicated character can live for half a second only (shot 2.3: a second
  *  Najm walked in while the first faded out). */
 
-export const PEOPLE_COUNT_PROMPT = 'How many people are physically present in this picture? Count every person, child or figure standing or sitting in the room, even when partly hidden. Do not count people who only appear in a photograph, portrait, poster or painting on the wall. Answer with the number only.';
+// "one person, partly in frame": an insert of one man's legs and shoe on a stair was counted as 2 people (2026-10-08,
+// "The Last Crossing" 1.1 at 3.1 s)
+export const PEOPLE_COUNT_PROMPT = 'How many people are physically present in this picture? Count every person, child or figure standing or sitting in the room, even when partly hidden. Body parts of the same person (two legs, two hands, an arm and a shoulder) are ONE person; a person only partly in frame counts once. Do not count people who only appear in a photograph, portrait, poster or painting on the wall. Answer with the number only.';
 
 /** How many people a picture of the shot should hold: the shot's people, less the one whose eyes the camera is (a
  *  point-of-view shot) — unless its staging declares extras or its action brings in others (a crowd, customers,
