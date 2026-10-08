@@ -399,7 +399,21 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - Frames are consistent (suit, tie, beard, room, night light) and the actions are right.
     - 2.3 is in profile (SFace 0.26): the preflight refused it. A profile now reads FAIL as REVIEW (8c27158); 2.3 is
       redrawn.
-    - Five takes are filming; 2.3 follows its new frame.
+    - **Takes (local H3, first attempts):**
+      - 2.6 has no flag: the first clean take.
+      - 2.2 plays the moment (wipes his brow, looks up at the lens).
+      - 2.1, 2.4 and 2.5 cut inside the take: 4 of the 7 takes so far. The 2.4 prompt carried contradictions (a start
+        pose with "speaking" in a silent shot, the previous shot's props with alternatives); the speech part is fixed
+        (5839e25). The carried state is the hypothesis for the cuts, still to test with controlled H3 runs.
+      - 2.3 says its line twice in the take's own sound; QA catches it and the cut keeps one window.
+    - **Lip-sync −4 frames in both speaking takes (1.2, 2.3):** systematic. The cut compensates; root cause open.
+    - **Deadline fix (d247966):** the 2.3 frame job was stopped by its deadline while only waiting for the GPU behind
+      the H3 renders. Deadlines now count work time, not lease-wait time.
+  - **Phoneme gate, formal run** (scripts/phoneme-gate.ts, f96e6b6) over existing lab recordings:
+    - Habibi IRQ: 1 PASS, 9 FAIL (چ never /tʃ/; گ mostly lost).
+    - MOSS-TTS Arabic, same reference: 6 PASS, 4 FAIL (گ passes; چ in about half the words).
+    - SVC song, source and converted: گ PASS, «باچر» heard /t/ in both (singing; the conversion does not change it).
+    - This is measured evidence for the Iraqi engine decision (`WAITING_FOR_USER`).
   - **Phase 3 unblocked:**
     - All downloads are in (phoneme model, Habibi verified, SoulX-Singer and whisper-base).
     - The SoulX-Singer SVC evaluation container is building (586b309, e961101).
