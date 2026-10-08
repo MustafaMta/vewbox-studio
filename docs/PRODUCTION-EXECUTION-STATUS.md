@@ -616,4 +616,17 @@ the opening frames and the location plate, inspected side by side.
   - **1.4, attempt 1: REJECT.** H3 said the line twice ("Radio's dead. Had to row. Had to row."), so the
     script-spoken gate failed. Fixed (457ec7a): every speaking prompt says each line once, with closed mouths around
     it. Explicit rerun of 1.4.
-  - The machine restarted at about 10:43 (containers recreated). No work was lost; the worker resumed on its own.
+  - The machine restarted at about 10:43 (containers recreated). No work was lost; the worker resumed on its own.  - **1.4, attempts 2–4.** Each exposed one system defect, which was fixed before the next explicit rerun of this shot
+    only:
+    - **Attempt 2:** the line was said once (the fix held), but H3 cut at 0.46 s. The prompt re-placed her ("is
+      center, faces screen left") against a frame with her on the right. Fixed (06295c4): from a frame or a tail, the
+      people's start pose, position and facing are not repeated in words.
+    - **Attempt 3:** still cut at 0.21 s. The planner's scene prose said "the door behind her" while the frame (from
+      1.3's actual end) has the lens behind her. Fixed (0a1d041): from a drawn frame the H3 description is the action
+      alone, and the frame's background is retained explicitly. Also checked and ruled out: the dialogue's audio guide
+      at frame 0 stays a separate conditioning row in the model and does not cancel the frame.
+    - **Attempt 4:** no cut, starts from the frame (lens and stair behind her), continuous, identity consistent.
+      REJECTED only because "Had to row." was heard as "Hat to Roe." (CER 0.09, but word coverage 0.60 < 0.7). The
+      measure was wrong. Fixed (c02b810): an English word heard one letter away counts (never Arabic).
+    - **Attempt 5:** the same request (seed 1402196310 reused, same prompt), scored by the corrected check, with
+      select on pass.
