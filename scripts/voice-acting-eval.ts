@@ -227,15 +227,19 @@ async function pitch() {
 }
 
 async function report() {
-  const { tests, arms } = await set();
+  const { tests, arms, scales: setScales } = await set();
+  const scales = setScales?.length ? setScales : ['natural', 'baghdadi', 'emotion', 'pronunciation', 'same_voice'];
   const store = await readJson<{ takes: Take[] }>(takesFile, { takes: [] });
   const { refs: rs } = await readJson<{ refs: Ref[] }>(refsFile, { refs: [] });
   const prev = await readJson<{ grades?: unknown }>(path.join(RUN, 'report.json'), {});
-  // the blind order: per test, the arms' takes under letters, shuffled by a key kept out of the page
+  const prevKey = await readJson<Record<string, Record<string, string>>>(path.join(RUN, 'blind-key.json'), {});
+  // the blind order: per test, the arms' takes under letters, shuffled by a key kept out of the page. A test whose set
+  // of engines has not changed keeps its letters (a listener may be part-way through it)
   const key: Record<string, Record<string, string>> = {};
   const items = tests.map((t) => {
     const takes = store.takes.filter((x) => x.test === t.id && x.ok && x.file);
-    const order = takes.map((x) => ({ x, r: crypto.randomInt(1_000_000) })).sort((a, b) => a.r - b.r).map((o) => o.x);
+    const kept = prevKey[t.id] && Object.values(prevKey[t.id]).sort().join() === takes.map((x) => x.arm).sort().join() ? prevKey[t.id] : undefined;
+    const order = kept ? Object.keys(kept).sort().map((l) => takes.find((x) => x.arm === kept[l])!) : takes.map((x) => ({ x, r: crypto.randomInt(1_000_000) })).sort((a, b) => a.r - b.r).map((o) => o.x);
     key[t.id] = Object.fromEntries(order.map((x, i) => [String.fromCharCode(65 + i), x.arm]));
     return { test: t, clips: order.map((x, i) => ({ letter: String.fromCharCode(65 + i), file: x.file! })) };
   });
@@ -252,7 +256,7 @@ button{background:var(--acc);color:#000;border:0;border-radius:8px;padding:10px 
 <h1>Voice listening test</h1><p>Blind: each line's versions are labelled A, B, C in a random order. Rate what you hear (1 = poor, 5 = natural, as a native speaker would say it). Leave a field empty when it does not apply. Nothing is scored until you rate it. <strong>Lab test: the Arabic voice is the upstream demo speaker, not for production.</strong></p>
 ${items.map(({ test: t, clips }) => `<section data-test="${t.id}"><div class="line" dir="${t.language === 'AR' ? 'rtl' : 'ltr'}" lang="${t.language === 'AR' ? 'ar-IQ' : 'en'}">${esc(t.text)}</div><div class="intent">Intended delivery: ${esc(t.intent)}</div>${refAudio(t.language)}
 ${clips.map((c) => `<div class="clip" data-letter="${c.letter}"><strong>${c.letter}</strong><audio controls preload="none" src="${esc(c.file)}"></audio>
-<div>${['natural', t.language === 'AR' ? 'baghdadi' : '', 'emotion', 'pronunciation', 'same_voice'].filter(Boolean).map((k) => `<label>${({ natural: 'Natural', baghdadi: 'Baghdadi', emotion: 'Emotion fits', pronunciation: 'Pronunciation', same_voice: 'Same voice as reference' } as Record<string, string>)[k]} <select data-k="${k}"><option value=""></option>${[1, 2, 3, 4, 5].map((n) => `<option>${n}</option>`).join('')}</select></label>`).join('')}</div>
+<div>${scales.filter((k) => k !== 'baghdadi' || t.language === 'AR').map((k) => `<label>${({ natural: 'Naturalness', baghdadi: 'Iraqi / Baghdadi', emotion: 'Emotional performance', pronunciation: 'Pronunciation', same_voice: 'Same speaker as the reference', cinematic: 'Cinematic / acting quality' } as Record<string, string>)[k] ?? k} <select data-k="${k}"><option value=""></option>${[1, 2, 3, 4, 5].map((n) => `<option>${n}</option>`).join('')}</select></label>`).join('')}</div>
 <textarea data-k="note" placeholder="Words said wrong, robotic parts, anything you heard"></textarea></div>`).join('')}</section>`).join('')}
 <p><label>Your name <input id="who" style="background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px"></label> <button id="dl">Download my ratings</button></p>
 <script>document.getElementById('dl').onclick=()=>{const out={by:document.getElementById('who').value.trim(),at:new Date().toISOString(),ratings:[]};document.querySelectorAll('section').forEach(s=>s.querySelectorAll('.clip').forEach(c=>{const r={test:s.dataset.test,letter:c.dataset.letter};c.querySelectorAll('[data-k]').forEach(e=>{if(e.value!=='')r[e.dataset.k]=e.dataset.k==='note'?e.value:Number(e.value)});out.ratings.push(r)}));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));a.download='ratings.json';a.click()};</script></body></html>`;
