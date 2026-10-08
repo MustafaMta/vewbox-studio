@@ -38,6 +38,21 @@ describe('storyboard frames read the World Bible', () => {
     expect(wide.refs[0].id).toBe('plate-dusk');
     expect(wide.crops.every((c) => c === undefined)).toBe(true);
   });
+  it('a WIDE frame of two people is drawn from the plate alone, the people in words, each once ("The Relief" 1.7)', async () => {
+    const { state, p } = fixture();
+    const [a, b] = p.castIds;
+    const two = frameReferences(state, p, { ...shotOf(p, 's13'), framing: 'WIDE', characterIds: [a, b] });
+    expect(two.composition).toBe('PLATE');
+    expect(two.refs.map((x) => x.id)).toEqual(['plate-dusk']);
+    expect(two.imageOf.size).toBe(0); // nobody is bound to a picture: the canonical images carry identity in the video
+    expect(two.notes.join(' ')).toMatch(/the 2 people are small in the room.*on the left, .*; on the right, .*exactly 2 people and nobody else, each one once/);
+    // a medium-wide two-shot keeps the people's pictures (their faces are large enough to matter)
+    expect(frameReferences(state, p, { ...shotOf(p, 's13'), framing: 'MEDIUM_WIDE', characterIds: [a, b] }).imageOf.size).toBe(2);
+    const { healedLine } = await import('@/server/workflows/canonical-image');
+    const line = 'Tall, broad; A small, healed scar on his left eyebrow';
+    expect(healedLine(line)).toMatch(/left eyebrow \(an old, fully healed scar: .*no cut\)$/);
+    expect(healedLine(healedLine(line))).toBe(healedLine(line));
+  });
   it('from the bible: the drawn plate for the time of day; an established frame at that time comes first; one of another time does not beat the drawn plate', () => {
     const { state, p } = fixture();
     const bible = deriveWorld(state, worldScopeOf(p), undefined, NOW);
@@ -64,7 +79,11 @@ describe('storyboard frames read the World Bible', () => {
     const alone = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!] });
     expect(alone.notes.join(' ')).toContain('exactly one person is in the picture, the person of image 1, and nobody else');
     const wideTwo = frameReferences(withImages, p, { ...shotOf(p, 's11'), characterIds: [a!, b!], framing: 'WIDE' });
-    expect(wideTwo.notes.at(-1)).toBe('exactly two people are in the picture: the person of image 2 on the left and the person of image 3 on the right, and nobody else');
+    // a WIDE two-shot names them in words, in the same screen order (cast order: a left, b right) — "The Relief" 1.7
+    const names = withImages.characters.filter((c) => [a, b].includes(c.id));
+    expect(wideTwo.notes.at(-1)).toMatch(/exactly 2 people and nobody else, each one once$/);
+    expect(wideTwo.notes.at(-1)!.indexOf('on the left')).toBeLessThan(wideTwo.notes.at(-1)!.indexOf('on the right'));
+    expect(names.length).toBe(2);
   });
   it('D30: a frame is counted against the shot’s people unless its action brings in others', () => {
     expect(peopleExpected({ action: 'Najm steps into frame and gestures toward the photo.' }, ['a', 'b'])).toBe(2);

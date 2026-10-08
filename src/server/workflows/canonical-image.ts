@@ -245,9 +245,13 @@ export function woundNegative(c: Pick<Character, 'distinguishing' | 'face'>): st
  *  same words drew Elena Ward a bleeding gash — 2 of 2): a distinguishing detail naming a scar says what a healed one
  *  looks like, unless it says the wound is fresh. Pure (tested). */
 export function healedMark(d: string): string {
-  if (!/\bscar(s|red)?\b/i.test(d) || /\b(fresh|new|bleeding|open|raw|recent)\b/i.test(d)) return d;
+  if (!/\bscar(s|red)?\b/i.test(d) || /\b(fresh|new|bleeding|open|raw|recent)\b/i.test(d) || /fully healed scar/i.test(d)) return d;
   return `${d.replace(/[.;]+$/, '')} (an old, fully healed scar: a thin pale flat line, the skin closed, no redness, no blood, no cut)`;
 }
+
+/** A whole identity line with every scar clause drawn healed: a line stored before `healedMark` existed (Marcus Bell's
+ *  "A small, healed scar on his left eyebrow") drew a fresh cut on both faces of "The Relief" 1.7's first frame. Pure. */
+export const healedLine = (line: string): string => line.split(/(;\s*)/).map((part) => (/^;\s*$/.test(part) ? part : healedMark(part))).join('');
 
 // ------------------------------------------------------------------------------------------ the canonical image
 

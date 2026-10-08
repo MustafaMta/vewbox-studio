@@ -22,7 +22,7 @@ import * as comfy from '@/server/providers/comfy';
 import {
   CANONICAL_FRAME, CANONICAL_OUTPUT, MODELS, REFERENCE_DESCRIBE_KEY, REFERENCE_FACE_OUTPUTS, SECONDARY_MATERIAL, portraitCrop,
   canonicalIdentityLine, canonicalPrompt, faceCropRect, hasNonLatinLetters, identityLineFromDescription, identitySeedFor, isSecondaryMaterialKind,
-  negativeFor, woundNegative, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
+  negativeFor, woundNegative, healedLine, parseCharacterDescription, parseFaceBoxes, qwenCanonicalImage, qwenEdit, qwenReferenceCanonical, qwenSecondary, qwenTextToImage,
   referenceCanonicalPrompt, referenceReadGraph, secondaryPrompt, vlmOutput, type CharacterDescription, type FaceBoxPx, type PxRect, type SecondaryMaterialKind,
   type CropPx, faceCheck, FACE_CHECK_OUTPUTS,
 } from '@/server/workflows';
@@ -538,7 +538,7 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   const refs: Asset[] = []; const crops: Array<CropPx | undefined> = []; const notes: string[] = [];
   const shown: number[] = [];
   const imageOf = new Map<string, number>();
-  const who = (c: Character) => drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '') || 'described in the action';
+  const who = (c: Character) => healedLine(drawnLineOf(c).replace(/^Identity:\s*/, '').replace(/\.$/, '')) || 'described in the action';
   const end = usableImage(previousEnd) ? previousEnd : undefined;
   let usedPreviousEnd = false;
   const addPreviousEnd = (note: string) => {
@@ -566,6 +566,19 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
     notes.push('only the hand or object detail fills the picture: no face and no whole person');
     return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) ? plate : undefined, composition: 'DETAIL', usedPreviousEnd };
   }
+  // A WIDE FRAME OF SEVERAL PEOPLE IS DRAWN FROM THE PLACE (continuity validation 2026-10-08, "The Relief" 1.7: the plate
+  // and two full-figure canonical images gave a posed group portrait in a medium close-up, the man twice, scars drawn as
+  // fresh cuts — the only plate+two-people frame ever drawn). At a wide distance the people are small: the frame takes
+  // the room and the camera from the plate and the people from words (their clothes, build, where they stand); who they
+  // are is carried into the video by their canonical images, which the take still binds (canonical identity ≠ the
+  // moment's appearance)
+  const ensembleWide = !close && pictured.length >= 2 && (sh.framing === 'WIDE' || sh.framing === 'EXTREME_WIDE') && usableImage(plateAsset);
+  if (ensembleWide) {
+    refs.push(plateAsset!); crops.push(undefined);
+    notes.push(`image 1 is the exact place and camera: keep its architecture, layout, props, light and the camera's position and lens — a wide view of the whole room`);
+    notes.push(`the ${people.length} people are small in the room, seen head to toe, described in words: ${people.map((c, i) => `${i === 0 ? 'on the left' : i === 1 ? 'on the right' : 'further back'}, ${appearanceInWords(c)}`).join('; ')} — exactly ${people.length} people and nobody else, each one once`);
+    return { refs, crops, notes, people, imageOf, plate, composition: 'PLATE', usedPreviousEnd };
+  }
   const addPlate = () => {
     if (!usableImage(plateAsset)) return;
     refs.push(plateAsset);
@@ -592,6 +605,14 @@ export function frameReferences(state: State, p: Production, sh: Shot, read?: Wo
   if (shown.length === 2) notes.push(`exactly two people are in the picture: the person of image ${shown[0]} on the left and the person of image ${shown[1]} on the right, and nobody else`);
   else if (shown.length === 1 && people.length === 1) notes.push(`exactly one person is in the picture, the person of image ${shown[0]}, and nobody else`);
   return { refs, crops, notes, people, imageOf, plate: usableImage(plateAsset) && refs.includes(plateAsset) ? plate : undefined, composition: close ? 'PEOPLE' : 'PLATE', usedPreviousEnd };
+}
+
+/** A person in words for a wide frame: sex and age, build, hair and skin in a few words, and the clothes — no face detail
+ *  a small figure cannot carry, and the scar left to the close shots. Pure. */
+export function appearanceInWords(c: Character): string {
+  const first = (s?: string) => (s ?? '').split(/[,;.]/)[0].trim().toLowerCase();
+  const who = [c.sex === 'FEMALE' ? 'a woman' : c.sex === 'MALE' ? 'a man' : 'a person', c.ageYears ? `of about ${c.ageYears}` : ''].filter(Boolean).join(' ');
+  return [who, first(c.build), first(c.hair) && `${first(c.hair)} hair`.replace(/ hair hair$/, ' hair'), first(c.skin), c.wardrobe ? `wearing ${first(c.wardrobe).replace(/^(a|an)\s+/, 'a ')}` : ''].filter(Boolean).join(', ');
 }
 
 /** The lower half of a frame (the hands and what they hold, below the faces of a medium or closer shot). Pure. */
@@ -742,7 +763,7 @@ export async function drawShotFrame(ctx: HandlerContext, studio: State, p: Produ
   let counted: number | undefined;
   // an insert is drawn from words (detailFramePrompt): every picture of a person pulled it back to a face close-up
   const byWords = composition === 'DETAIL';
-  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt: byWords ? detailFramePrompt(p, sh, cast, loc, scene) : prompt, negative: byWords ? `${NEG}, face, head, portrait` : NEG, references: byWords ? [] : refs, crops: byWords ? [] : crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops: byWords ? [] : crops, drawnFrom: byWords ? 'WORDS' : 'REFERENCES', creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
+  let kept: Drawn | undefined = await draw(ctx, { key: `frame:${sh.id}:${which}:0`, prompt: byWords ? detailFramePrompt(p, sh, cast, loc, scene) : prompt, negative: byWords ? `${NEG}, face, head, portrait` : `${NEG}${[...new Set(people.map((c) => woundNegative(c)).filter(Boolean))].join('')}`, references: byWords ? [] : refs, crops: byWords ? [] : crops, width: info.width, height: info.height, label, tags: ['frame', which], provenance: { productionId: p.id, shotId: sh.id, frame: which, people: people.slice(0, 2).map((c) => c.id), composition, crops: byWords ? [] : crops, drawnFrom: byWords ? 'WORDS' : 'REFERENCES', creativeAttempt: 1, ...(usedPreviousEnd && prevEnd ? { previousEnd: prevEnd.end } : {}), ...(plate ? { plate: plate.assetId, plateWhy: plate.why } : {}), ...(world.read ? { worldRevision: world.read.revisionNumber, worldPinned: world.read.pinned, worldConflicts: world.read.conflicts } : {}) } });
   let faces: number | undefined;
   if (expected !== undefined) { counted = await countPeople(ctx, kept.id, label); faces = await countFaces(kept.id); }
   await ctx.checkpoint();
