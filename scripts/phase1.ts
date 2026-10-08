@@ -67,7 +67,8 @@ async function main() {
   const created = async (key: Key): Promise<string | undefined> => {
     // the latest creation that made the character (attempt 1, or an explicit regeneration after a root-cause fix)
     const r = await db().execute(sql`select result->>'characterId' as id from jobs where (idempotency_key = ${`phase1:create:${key}`} or idempotency_key like ${`phase1:create:${key}:%`}) and result->>'characterId' is not null order by created_at desc limit 1`);
-    return ((r as unknown as { rows: Array<{ id: string | null }> }).rows?.[0]?.id) ?? undefined;
+    const rows = (r as unknown as { rows?: Array<{ id: string | null }> }).rows ?? (r as unknown as Array<{ id: string | null }>);
+    return rows?.[0]?.id ?? undefined;
   };
   if (cmd === 'create') {
     const key = k as Key;

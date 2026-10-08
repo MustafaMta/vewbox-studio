@@ -84,12 +84,14 @@ export function PerformerVoice({ c, detail = false }: { c: Character; detail?: b
 }
 
 function Line({ s, a, rtl }: { s: VoiceSample; a?: Asset; rtl: boolean }) {
-  const check = (a?.provenance as { check?: Check | null } | undefined)?.check;
+  const prov = a?.provenance as { check?: Check | null; engine?: string } | undefined;
+  const check = prov?.check;
+  const engine = s.engine ?? prov?.engine;
   const tone: Tone = check?.status === 'PASS' ? 'ok' : check?.status === 'FAIL' ? 'bad' : 'warn';
   return (
     <li className="well card-pad" style={{ display: 'grid', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Badge tone={s.role === 'COMPARISON' ? 'gold' : 'neutral'}>{engineLabel(s.engine)}{s.role === 'COMPARISON' ? ' · comparison' : ''}</Badge>
+        <Badge tone={s.role === 'COMPARISON' ? 'gold' : 'neutral'}>{engineLabel(engine)}{s.role === 'COMPARISON' ? ' · comparison' : ''}</Badge>
         {s.label.startsWith('Proof') && <Badge>Proof line</Badge>}
         <span className="t-body" dir={rtl ? 'rtl' : 'ltr'} lang={rtl ? 'ar' : 'en'} style={{ unicodeBidi: 'isolate' }}>{s.text}</span>
       </div>

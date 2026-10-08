@@ -5,7 +5,7 @@ import { useStudio } from '@/studio/store';
 import { PageHead, nameLang } from '@/components/character/parts';
 import { TabBar, TabPanel } from '@/components/ui/kit/Tabs';
 import { Field, Input, Select, Textarea, Checkbox } from '@/components/ui/kit/Field';
-import { Button } from '@/components/ui/kit/Button';
+import { Button, LinkButton } from '@/components/ui/kit/Button';
 import { Badge, StateWord, type StateTone } from '@/components/ui/kit/Status';
 import { Notice, SectionEmpty } from '@/components/ui/kit/States';
 import { useToast } from '@/components/ui/toast';
@@ -55,7 +55,12 @@ function CharacterVoices() {
   const cs = state.characters;
   if (!cs.length) return <SectionEmpty>No characters yet. A character's voice is made on its page.</SectionEmpty>;
   // one card per performer: its figure, what it performs, its languages, its one voice and each language's lines
-  return <div style={{ display: 'grid', gap: 16 }}>{cs.map((c) => <PerformerVoice key={c.id} c={c} />)}</div>;
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <p className="t-meta"><LinkButton href="/characters/review" size="sm">Open the Phase 1 review package</LinkButton></p>
+      {cs.map((c) => <PerformerVoice key={c.id} c={c} />)}
+    </div>
+  );
 }
 // ------------------------------------------------------------------------------------------------ dialogue editor
 

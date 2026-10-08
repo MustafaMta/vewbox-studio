@@ -27,7 +27,7 @@ async function main() {
   const { embedVoice, cosine } = await import('@/server/providers/voice-design');
   const { dialectPhonemes, isQaUnavailable } = await import('@/server/providers/qa-service');
   const { judgeLine } = await import('@/server/media/iraqi-phonology');
-  const rows = async <T>(q: ReturnType<typeof sql>) => ((await db().execute(q)) as unknown as { rows: T[] }).rows;
+  const rows = async <T>(q: ReturnType<typeof sql>) => { const r = (await db().execute(q)) as unknown as { rows?: T[] }; return r.rows ?? (r as unknown as T[]); };
   const [created] = await rows<{ id: string; result: { characterId?: string } }>(sql`select id, result from jobs where (idempotency_key = ${`phase1:create:${key}`} or idempotency_key like ${`phase1:create:${key}:%`}) and result->>'characterId' is not null order by created_at desc limit 1`);
   const characterId = created?.result?.characterId;
   if (!characterId) throw new Error(`character ${key} is not created yet`);
@@ -75,6 +75,19 @@ async function main() {
   for (const s of spoken) s.pitch = pitchOf(s.file);
   const medianOf = (xs: typeof spoken) => { const v = xs.map((s) => pitchOf(s.file)?.median_hz).filter((x): x is number => typeof x === 'number').sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : undefined; };
   const semis = (a?: number, b?: number) => (a && b ? r3(12 * Math.log2(b / a)) : undefined);
+
+  // Qwen3-ASR is the primary transcriber: a line its job heard with Whisper alone (character A's proof, before the
+  // inspector's permission was fixed) is heard by Qwen3-ASR here — supporting evidence, nothing re-spoken
+  const { transcribeQwen } = await import('@/server/providers/qa-service');
+  const { heardMetrics } = await import('@/worker/handlers/voice-measure');
+  for (const s of spoken) {
+    const asr = s.asr as { model?: string } | null;
+    if (asr?.model === 'qwen3-asr' || !s.text) continue;
+    const q = await transcribeQwen(s.file);
+    if (isQaUnavailable(q)) { s.qwenAsr = { unavailable: q.reason }; continue; }
+    const m = heardMetrics(s.text, q.text, s.language === 'AR' ? 'AR' : 'EN');
+    s.qwenAsr = { heard: q.text, detectedLanguage: q.detectedLanguage, cer: r3(m.cer), coverage: r3(m.coverage), note: 'heard after the job (its own check used Whisper alone)' };
+  }
 
   // the Iraqi phoneme gate (pronunciation flags, supporting only)
   for (const s of spoken.filter((x) => x.language === 'AR' && x.text)) {

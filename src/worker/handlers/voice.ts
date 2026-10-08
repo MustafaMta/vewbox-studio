@@ -513,7 +513,7 @@ export const voiceBuild: Handler = async (ctx) => {
   try {
     await commands([
       { name: 'addAsset', args: [assetFromStored(assetId, stored, { label: `${c.name} — voice proof`, tags: ['voice', 'generated', 'proof'], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref?.asset.id, origin, designId: ref?.design?.designId, window: ref?.window, params, check, measured } })] },
-      { name: 'addVoiceSample', args: [c.id, { id: sampleId, label: `Proof line (${line.engine})`, assetId, source: 'GENERATED', text, language: line.language, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
+      { name: 'addVoiceSample', args: [c.id, { id: sampleId, label: `Proof line (${line.engine})`, assetId, source: 'GENERATED', text, language: line.language, ...(line.language === 'AR' && c.dialect ? { dialect: c.dialect } : {}), engine: line.engine, role: 'PRODUCTION', durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
       { name: 'setVoiceIdentity', args: [c.id, identity] },
     ], 'worker');
   } catch (e) { await removeFile(stored.relPath); throw e; }
