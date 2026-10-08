@@ -616,6 +616,9 @@ async function frameWorld(ctx: HandlerContext, state: State, p: Production, sh: 
 async function previousEndFrame(ctx: HandlerContext, state: State, p: Production, sh: Shot): Promise<{ asset: Asset; end: PreviousEnd } | undefined> {
   const { relation, previous } = effectiveRelation(p, sh);
   if (relation !== 'CUT' || !previous || previous.sceneId !== sh.sceneId) return undefined;
+  // only when everyone the previous end shows is in this shot too: "The Relief" 1.2 (Elena alone at the stair door)
+  // was drawn with 1.1's end (Marcus at the lens) and the edit model drew Marcus beside her — the people check refused it
+  if (!previousEndUsable(previous, sh)) return undefined;
   // the chosen take; before anyone chose (a production run films the scene in order), the latest accepted one — the
   // frame records which, and the preflight calls it stale if another take is chosen later
   const usable = (t: (typeof previous.takes)[number]) => t.status === 'READY' && t.rating !== 'REJECTED' && t.provider !== 'SAMPLE';
@@ -642,6 +645,12 @@ async function previousEndFrame(ctx: HandlerContext, state: State, p: Production
     await ctx.event('warn', `shot ${sh.number}: the previous shot's last frame could not be taken (${(e as Error).message}); the frame is drawn from the plan alone`, { shotId: sh.id });
     return undefined;
   } finally { await fsp.rm(dir, { recursive: true, force: true }).catch(() => {}); }
+}
+
+/** Whether the previous shot's end may be a reference of this shot's frame: everyone in the previous shot is in this
+ *  one (a person only in the previous end is drawn into this frame). Pure (tested). */
+export function previousEndUsable(previous: Pick<Shot, 'characterIds'>, sh: Pick<Shot, 'characterIds'>): boolean {
+  return previous.characterIds.every((id) => sh.characterIds.includes(id));
 }
 
 /** The framing of the frame that will be filmed, measured by its largest confident face and recorded on it

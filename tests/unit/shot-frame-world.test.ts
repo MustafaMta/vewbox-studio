@@ -169,3 +169,12 @@ describe('the frame realises its framing (judgeFrameFraming)', () => {
     expect(src).toMatch(/name: 'opening-frame-stale'/);
   });
 });
+describe('the previous end only when its people are all in this shot ("The Relief" 1.2)', () => {
+  it('previousEndUsable: a person only in the previous end would be drawn into this frame', async () => {
+    const { previousEndUsable } = await import('@/worker/handlers/images');
+    expect(previousEndUsable({ characterIds: ['marcus'] }, { characterIds: ['elena'] })).toBe(false); // 1.1 → 1.2
+    expect(previousEndUsable({ characterIds: ['elena'] }, { characterIds: ['marcus', 'elena'] })).toBe(true); // 1.2 → 1.3
+    expect(previousEndUsable({ characterIds: ['marcus', 'elena'] }, { characterIds: ['elena'] })).toBe(false); // two-shot → her close-up
+    expect(previousEndUsable({ characterIds: ['marcus'] }, { characterIds: ['marcus', 'elena'] })).toBe(true); // 1.5 → the insert
+  });
+});
