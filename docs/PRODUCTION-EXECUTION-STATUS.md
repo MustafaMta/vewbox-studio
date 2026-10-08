@@ -732,7 +732,7 @@ the opening frames and the location plate, inspected side by side.
   - A planned Windows Update (TrustedInstaller) restart followed the 13:40 boot. 18:54 was a Start-menu shutdown.
     Sleep and hibernate are set to never.
   - **Reading:** the evidence fits an external power loss or the PSU, not a software crash. It is not proven.
-    `WAITING_FOR_USER`: the power supply / wall power should be checked.
+    `WAITING_FOR_USER_HARDWARE_CHECK`: the power supply / wall power should be checked. Not a Vewbox software blocker.
 - **Recovery failure found:** after the 18:17 local (15:17 UTC) boot, the logon watchdog ran in a console and was killed by a Ctrl+C
   (0xC000013A). The worker and web stayed down and a take stayed GENERATING for two hours.
 - **Fixed (afa0e83):**
@@ -747,3 +747,5 @@ the opening frames and the location plate, inspected side by side.
   - The 18:54 shutdown was recovered unattended at the next boot. The watchdog brought the worker back and the lease
     takeover reclaimed job-14c81a8e03 (WORKER_LOST → job attempt 2): one result, no duplicate creative job.
   - Worker kills on 2026-10-08 21:26 and 21:32 were replaced by the watcher within a minute.
+  - Web kill (22:25, every next process stopped while an H3 take ran in the worker): the web answered again in 10 s;
+    the take was not disturbed.

@@ -140,7 +140,7 @@ export interface TakeEndStateRecord {
   note?: string;
   at: string;
 }
-export interface TakeEndState { observed?: TakeEndStateRecord; approved?: TakeEndStateRecord }
+export interface TakeEndState { /** what the shot planned the take to end with, recorded when the take was made (or first chosen) */ planned?: TakeEndStateRecord; observed?: TakeEndStateRecord; approved?: TakeEndStateRecord }
 
 export interface Take {
   id: string;

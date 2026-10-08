@@ -40,6 +40,22 @@ describe('the approved actual end state', () => {
     expect(take.endState?.approved?.source).toBe('PRODUCER');
   });
 
+  it('the plan is persisted beside the actual: recorded on a new take, backfilled on a legacy take when it is chosen', async () => {
+    const { addTake, selectTake } = await import('@/domain/actions');
+    const { state, p, a } = setup();
+    // a legacy take (no plan recorded) chosen again
+    const legacy = selectTake(selectTake(state, p.id, 's11', undefined), p.id, 's11', 'take-a');
+    expect(shotOf(prod(legacy), 's11').takes[0].endState?.planned).toMatchObject({ source: 'PLANNED', characters: expect.arrayContaining([expect.objectContaining({ characterId: a, pose: 'standing behind the counter' })]) });
+    // a new take carries the plan it was made against
+    const made = addTake(state, p.id, 's11', { assetId: 'vid-a', status: 'READY' } as never);
+    expect(made.take.endState?.planned?.characters.find((c) => c.characterId === a)?.pose).toBe('standing behind the counter');
+    // and the approved actual is kept apart from it
+    const approved = recordTakeEndState(made.state, p.id, 's11', made.take.id, { characters: [{ characterId: a, pose: 'kneeling by the till' }] }, { approve: true });
+    const t = shotOf(prod(approved), 's11').takes.find((x) => x.id === made.take.id)!;
+    expect(t.endState?.planned?.characters.find((c) => c.characterId === a)?.pose).toBe('standing behind the counter');
+    expect(t.endState?.approved?.characters[0].pose).toBe('kneeling by the till');
+  });
+
   it('refuses a person outside the shot and an unknown take', () => {
     const { state, p } = setup();
     expect(() => recordTakeEndState(state, p.id, 's13', 'take-a', { characters: [] })).toThrow(/Take take-a was not found/);

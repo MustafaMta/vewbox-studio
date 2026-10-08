@@ -443,6 +443,17 @@ export function setShotContinuity(s: S, productionId: string, shotId: string, co
   return withProduction(s, productionId, (p) => ({ ...p, shots: p.shots.map((sh) => (sh.id === shotId ? { ...sh, continuity: { ...continuity, version: (sh.continuity?.version ?? 0) + 1 } } : sh)) }));
 }
 
+/** THE PLANNED END STATE of a shot (planned vs actual, types.ts TakeEndState): each cast member's planned end pose,
+ *  holdings and condition, the props' planned states — what a take of it was meant to end with. */
+export function plannedEndOf(sh: Shot, at: string): TakeEndStateRecord {
+  const c = sh.continuity;
+  return {
+    characters: sh.characterIds.map((id) => { const x = c?.characters.find((k) => k.characterId === id); return { characterId: id, ...(x?.endPose?.trim() ? { pose: x.endPose.trim() } : {}), ...(x?.holding?.length ? { holding: [...x.holding] } : {}), ...(x?.condition?.trim() ? { condition: x.condition.trim() } : {}) }; }),
+    ...(c?.props?.length ? { props: c.props.map((x) => ({ name: x.name, ...(x.state ? { state: x.state } : {}), ...(x.ownerCharacterId && sh.characterIds.includes(x.ownerCharacterId) ? { ownerCharacterId: x.ownerCharacterId } : {}) })) } : {}),
+    source: 'PLANNED', at,
+  };
+}
+
 export function selectTake(s: S, productionId: string, shotId: string, takeId: string | undefined): S {
   return withProduction(s, productionId, (p) => {
     const sh = mustFind(p.shots, shotId, 'Shot');
@@ -452,7 +463,9 @@ export function selectTake(s: S, productionId: string, shotId: string, takeId: s
       if (t.status === 'REJECTED') throw new StudioError('INVALID', 'A rejected take cannot be chosen for the cut.', { takeId, by: 'status' });
       if (t.rating === 'REJECTED') throw new StudioError('INVALID', `This take was rejected${t.ratingReason ? ` (${t.ratingReason})` : ''}; a rejected take cannot be chosen for the cut.`, { takeId, by: 'rating' });
     }
-    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId } : x)) });
+    // a take made before plans were recorded on takes gets the shot's current plan when it is chosen
+    const withPlan = (t: Take): Take => (t.id === takeId && !t.endState?.planned ? { ...t, endState: { ...(t.endState ?? {}), planned: plannedEndOf(sh, now()) } } : t);
+    return markCutStale({ ...p, shots: p.shots.map((x) => (x.id === shotId ? { ...x, selectedTakeId: takeId, takes: x.takes.map(withPlan) } : x)) });
   });
 }
 
@@ -537,7 +550,9 @@ export function addTake(s: S, productionId: string, shotId: string, input: NewTa
   const nextNumber = Math.max(sh.takes.length, ...sh.takes.map((t) => Number(/\bTake (\d+)/i.exec(t.label)?.[1] ?? 0))) + 1;
   const numbered = input.label && /^Take \d+$/.test(input.label);
   const label = !input.label || (numbered && sh.takes.some((t) => t.label === input.label)) ? `Take ${nextNumber}` : input.label;
-  const take: Take = { ...fields, id: givenId ?? nid('take'), label, assetId: input.assetId, createdAt: now(), status: input.status ?? 'READY' };
+  const created = now();
+  // what this take was planned to end with, as the shot stood when it was made (planned vs actual end state)
+  const take: Take = { ...fields, id: givenId ?? nid('take'), label, assetId: input.assetId, createdAt: created, status: input.status ?? 'READY', endState: { ...(fields as { endState?: Take['endState'] }).endState, planned: plannedEndOf(sh, created) } };
   const current = sh.takes.find((t) => t.id === sh.selectedTakeId);
   const choose = take.status === 'READY' && take.rating !== 'REJECTED' && (select === 'ALWAYS' || (select === 'IF_UNCHOSEN' && (!current || current.provider === 'SAMPLE')));
   const next = withProduction(s, productionId, (x) => ({ ...x, shots: x.shots.map((y) => (y.id === shotId ? { ...y, takes: [...y.takes, take], ...(choose ? { selectedTakeId: take.id } : {}) } : y)) }));
