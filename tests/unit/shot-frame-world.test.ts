@@ -195,3 +195,14 @@ describe('one person of several: the previous end cut to that person (personBand
     expect(personBand(faces, -1, 2, frame)).toBeUndefined();
   });
 });
+describe('an insert describes people by their hands (The Relief 1.6)', () => {
+  it('framePrompt names the hands and sleeves, never the face, of a person in an insert', async () => {
+    const { framePrompt } = await import('@/server/story/prompts');
+    const { state, p } = fixture();
+    const cast = state.characters.filter((c) => p.castIds.includes(c.id));
+    const sh = { ...shotOf(p, 's13'), characterIds: [cast[0].id], framing: 'INSERT' as const };
+    const prompt = framePrompt(p, sh, cast, undefined, undefined, { pictured: new Set() });
+    expect(prompt).toMatch(/The hands and sleeves of a person wearing/);
+    if (cast[0].face) expect(prompt).not.toContain(cast[0].face.slice(0, 20));
+  });
+});

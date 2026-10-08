@@ -637,7 +637,10 @@ export function framePrompt(p: Production, sh: Shot, cast: Character[], loc: Loc
   // a person who is not in the shot is never drawn: the moment loses the phrases that place them (stillFrameAction)
   const absent = cast.filter((c) => !sh.characterIds.includes(c.id)).map((c) => c.name);
   const moment = stillFrameAction(sh.action, absent).replace(/[.;]\s*$/, '');
-  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...people.map((c) => `A ${describeCharacter(c)}.`), moment ? `Moment: ${moment}.` : '', sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
+  // an insert shows hands, never a face: a person described in full ("a 41-year-old man… square jawline") was drawn
+  // face and all into "The Relief" 1.6 — in an insert a person is their hands and sleeves
+  const described = sh.framing === 'INSERT' ? people.map((c) => `The hands and sleeves of a person wearing ${clean(c.wardrobe ?? 'their clothes').replace(/\.$/, '')}.`) : people.map((c) => `A ${describeCharacter(c)}.`);
+  const body = [loc ? `Setting: ${describeLocation(loc, scene?.timeOfDay)}.` : '', ...described, moment ? `Moment: ${moment}.` : '', sh.continuity?.environment.lighting ? `Light: ${sh.continuity.environment.lighting}.` : ''].filter(Boolean).join(' ');
   return `${d.visual}. ${camera} ${body} Single still frame, sharp, no text, no watermark. ${d.avoid}`.replace(/\s+/g, ' ');
 }
 
