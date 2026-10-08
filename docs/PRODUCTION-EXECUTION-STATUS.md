@@ -368,6 +368,17 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
   - Listening: `WAITING_FOR_USER_ACCEPTANCE`.
   - Iraqi engine decision: `WAITING_FOR_USER`.
   - Consented reference: `WAITING_FOR_USER_PRODUCTION_REFERENCE`.
+- **Raw audio parity test (2026-10-08, LAB TEST, `var/eval/LAB-TEST-iraqi-raw-parity-20261008/`).** One line
+  («هاي الحچاية طويلة، خليها لباچر.») went through:
+  - (A) upstream's own CLI (`habibi_tts.infer.infer_cli`, Specialized IRQ, dialect_id None as upstream does), and
+  - (B) the Vewbox service `/synthesize`.
+
+  Both used the same checkpoint, reference, reference text, settings and seed (20261008), under one GPU lease.
+  Scripts: `scripts/habibi-parity*.{py,ps1}`.
+  - **A and B are bit-identical:** 63,744 samples at 24 kHz, 0 samples differ, correlation 1.0.
+  - Raw B against B as the mix receives it (resampled to 48 kHz): residual −56 dB below the signal; peak unchanged.
+  - **Conclusion:** the robotic delivery is produced by the model with this prompt. Vewbox's service and
+    post-processing change nothing audible. No engine was switched on this evidence.
 
 ## Phase 5 — Shows / Seasons / Episodes — IN PROGRESS (2026-10-07)
 
@@ -629,7 +640,8 @@ the opening frames and the location plate, inspected side by side.
       REJECTED only because "Had to row." was heard as "Hat to Roe." (CER 0.09, but word coverage 0.60 < 0.7). The
       measure was wrong. Fixed (c02b810): an English word heard one letter away counts (never Arabic).
     - **Attempt 5:** the same request (seed 1402196310 reused, same prompt), scored by the corrected check, with
-      select on pass.  - **1.5 (Marcus's reverse, "Duty calls.")**:
+      select on pass.
+  - **1.5 (Marcus's reverse, "Duty calls.")**:
     - **Attempt 1: REJECT.** H3 said the 1 s line at 0.05 s and again at 1.8 s (the clip cannot be shorter than
       ~5 s), inside the cut's window.
     - Fixed in the prompt (2f43843): the recorded line's window and the silence after it are stated in timed-beat
@@ -654,5 +666,67 @@ the opening frames and the location plate, inspected side by side.
       hands alone, unscrewing the cap of the dented brass thermos.
     - **Frame 6:** correct. Charcoal suit sleeve and white cuff, the dented brass thermos with steam, the polishing
       cloth from 1.5. His hands are a little lighter than his face (for viewing).
-    - The take was interrupted by a machine restart at about 13:05; the worker reclaimed it (job attempt 2, an
+    - The take was interrupted by a power loss at about 13:03 UTC; the worker reclaimed it (job attempt 2, an
       infrastructure retry).
+    - **Attempt accounting for 1.6** (creative attempts are engine runs; job refusals before the engine and restarts
+      are not):
+
+      | Creative attempt | Job | Seed | Infrastructure retries | Result |
+      | --- | --- | --- | --- | --- |
+      | — | job-6bd7c0fc66 | — | 0 | refused before the engine (INVALID) |
+      | 1 | job-8c22c300cc | drawn | 1 (power loss, 16:03 local) | REJECT: a stranger (Elena's stale continuity entry) |
+      | 2 | job-6aa4232fd6 | 548794079 | 0 | REJECT: one person too many, cuts |
+      | 3 | job-14c81a8e03 | 548794079 (same) | 1 (Start-menu shutdown, 18:54 local) | REVIEW: no stranger, hands match Marcus; 2 unplanned cuts |
+      | — | job-df2e9c4245, job-6dc96a880f | 548794079 | 0 | refused before the engine by the location rule (my change; the second because the worker still ran the old code) |
+      | 4 | job-0a6be64d20 | 548794079 (same) | — | after the insert rule — in progress |
+
+    - **Attempt 3, read from the media:** no stranger, and the hands now match Marcus's skin. But H3 cut insert → a
+      wide of the whole man by the lamp (2.04–4.38 s) → insert. The wide reproduces the location plate's composition.
+      The QA flagged both cuts.
+    - **Root cause:** the insert still bound Marcus's full-body canonical image and the wide plate as pictures, and H3
+      showed what it was given. The drawn opening frame already carries the identity an insert needs (hands, skin,
+      sleeves, a crop of the place).
+    - **Fixed (8fae0e3), the insert rule:** a local INSERT with a drawn opening frame is filmed from that frame alone
+      (FL2VA). The identity and location rules waive the bound pictures by name and still require the plate the frame
+      was drawn against. The FL2VA prompt describes hands and sleeves and stays on the detail. Attempt 4 is the
+      controlled same-seed rerun.
+
+### Shot-edit dependency contract (2026-10-08, a42f507)
+
+- `src/domain/shot-dependencies.ts` `reconcileShot(before, after)` runs on every `updateShot`. Both the full-form
+  editor and a partial update go through it, so they give the same shot (tested).
+- It compares by value and never looks at which keys the request carried:
+  - A person out of the cast leaves continuity, prop ownership and point of view. Their lines become off-screen
+    audio.
+  - A changed cast or action makes the planner's prose and timed beats stale, unless the edit itself set new ones.
+  - A changed cast, action, framing, camera, boundary or continuity makes the drawn opening and ending frames stale,
+    unless the edit set a new frame.
+  - Every invalidation is reported (`stale` items).
+- `scripts/repair-shot-state.ts` applied it to the one shot stored before it ("The Relief" 1.6).
+
+### Machine restarts and job recovery (2026-10-08)
+
+- **Evidence (Windows event logs), with no speculation beyond it:**
+  - Kernel-Power 41 (the previous shutdown was unexpected) was logged at the 13:40 and 18:17 local boots (local =
+    UTC+3). The last records before them are at 10:52 and about 16:03. BugcheckCode 0, no power-button press, no
+    WHEA, no minidump, no driver error. The machine stayed off for 2.5–3 h each time.
+  - The first loss (about 10:52) happened with no Vewbox GPU job running. The second (about 16:03) came seconds after
+    an H3 take started (job-8c22c300cc, last heartbeat 13:03:20 UTC).
+  - A planned Windows Update (TrustedInstaller) restart followed the 13:40 boot. 18:54 was a Start-menu shutdown.
+    Sleep and hibernate are set to never.
+  - **Reading:** the evidence fits an external power loss or the PSU, not a software crash. It is not proven.
+    `WAITING_FOR_USER`: the power supply / wall power should be checked.
+- **Recovery failure found:** after the 18:17 local (15:17 UTC) boot, the logon watchdog ran in a console and was killed by a Ctrl+C
+  (0xC000013A). The worker and web stayed down and a take stayed GENERATING for two hours.
+- **Fixed (afa0e83):**
+  - The watchdog starts its watcher detached and hidden.
+  - One watcher at a time (`var/watchdog.lock`).
+  - The scheduled task "Vewbox watchdog" repeats every 10 min (IgnoreNew), so a dead watcher is replaced.
+  - The launcher logs separately (`var/watchdog-launcher.log`), and detached logs are UTF-8.
+  - The task points at `D:\vewbox`.
+- **Verified:**
+  - The worker recovery harness passes 11/11: kill takeover, orphan cleanup, lost-every-attempt fails, graceful
+    handback, cancel while dead.
+  - The 18:54 shutdown was recovered unattended at the next boot. The watchdog brought the worker back and the lease
+    takeover reclaimed job-14c81a8e03 (WORKER_LOST → job attempt 2): one result, no duplicate creative job.
+  - Worker kills on 2026-10-08 21:26 and 21:32 were replaced by the watcher within a minute.

@@ -295,6 +295,25 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8024/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
+  # Fish Audio S2 Pro — EVALUATION ONLY, NOT COMMERCIAL-SAFE (Fish Audio Research License; docs/VOICE-ENGINE.md). Built
+  # from the pinned official repository (docker/tts-fish); upstream's ModelManager and /v1/tts inference path behind the
+  # studio's /synthesize contract. Weights: group eval-tts-fish-s2-pro (11 GB), read-only. GPU family TTS: start and
+  # call it under scripts/gpu-hold.ts; idle it holds nothing (lazy load), /unload stops upstream's model thread.
+  # Profile `fish` only — never started by `up`.
+  tts-fish:
+    logging: *logging
+    build: { context: ., dockerfile: docker/tts-fish/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/tts-fish:${CODE_VERSION:-dev}
+    profiles: ["fish"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/fish-speech/vewbox_tts_shared.py:ro", "./docker/tts-fish/app.py:/opt/fish-speech/vewbox_fish_app.py:ro" ]
+    ports: [ "127.0.0.1:${TTS_FISH_PORT:-8025}:8025" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8025/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+    stop_grace_period: 30s
+
   # SoulX-Singer SVC — EVALUATION ONLY, not production-approved (Phase 3 singer identity; docker/svc-eval). One-off:
   #   docker compose -p vewbox --profile eval run --rm svc-eval --source /work/<vocal.wav> --reference /work/<voice.wav> --out /work/<dir>
   # var/eval is its workspace; the weights (group eval-svc-soulx-singer) are read-only; run it under the GPU lease.
