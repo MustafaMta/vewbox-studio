@@ -404,7 +404,14 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
       - 2.2 plays the moment (wipes his brow, looks up at the lens).
       - 2.1, 2.4 and 2.5 cut inside the take: 4 of the 7 takes so far. The 2.4 prompt carried contradictions (a start
         pose with "speaking" in a silent shot, the previous shot's props with alternatives); the speech part is fixed
-        (5839e25). The carried state is the hypothesis for the cuts, still to test with controlled H3 runs.
+        (5839e25). The carried state is the hypothesis for the cuts.
+      - **Controlled test (e3cef94):** a take that starts from an opening frame now carries only the environment of the
+        scene state in words (time, weather, light, place); the frame already shows the people and props.
+        - 2.4 re-take, same seed (1942397004), only the prompt changed: one continuous push-in on the keeper at the
+          lens. The original jumped to a wide of the lantern room at about 40% of the take.
+        - Supports the hypothesis (n=1, not yet proven). The next takes in new scenes check it.
+        - The re-take is REVIEW for identity: SFace median 0.41, drift 0.22 as his face turns down to the knob. This is
+          the same drift as 1.2 (the edited frame's face moving under H3). `WAITING_FOR_USER_ACCEPTANCE`.
       - 2.3 says its line twice in the take's own sound; QA catches it and the cut keeps one window.
     - **Lip-sync −4 frames in both speaking takes (1.2, 2.3):** systematic. The cut compensates; root cause open.
     - **Deadline fix (d247966):** the 2.3 frame job was stopped by its deadline while only waiting for the GPU behind
@@ -416,5 +423,5 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
     - This is measured evidence for the Iraqi engine decision (`WAITING_FOR_USER`).
   - **Phase 3 unblocked:**
     - All downloads are in (phoneme model, Habibi verified, SoulX-Singer and whisper-base).
-    - The SoulX-Singer SVC evaluation container is building (586b309, e961101).
-    - The phoneme gate formal run waits for the GPU.
+    - The SoulX-Singer SVC evaluation ran (b5d19d3): not production-approved (listening and provenance gates).
+    - The phoneme gate formal run is done (above).
