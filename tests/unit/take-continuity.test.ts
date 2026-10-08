@@ -391,10 +391,10 @@ describe('GENERATE_TAKE by relation', () => {
     expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'lip-sync')).toMatchObject({ ok: true, detail: expect.stringMatching(/not measured: offline \(test\)/) });
     expect(t.params).toMatchObject({ lipSync: { verdict: 'NOT_MEASURED', against: 'RECORDED' } });
     fake.commands = [];
-    fake.mouth = { available: true, fps: 24, frames: 136, duration: 5.67, size: [1280, 736], audioSource: 'upload', audioOffset: 0.92, windowsSource: 'windows', speechFrames: 43, facesPerFrameMax: 1, maxLagFrames: 5, mode: 'speech', tracks: [{ id: 0, frames: 130, firstFrame: 0, lastFrame: 129, meanBox: [0, 0, 1, 1], faceHeightPx: 300, scored: true, activityInside: 0.8, activityOutside: 0.2, activityRatio: 4, insideFrames: 43, outsideFrames: 87, corrLag0: 0.2, corrBest: 0.55, bestLagFrames: 3, bestLagMs: 125, isSpeaker: true, flags: [] }], speakerTracks: [0], thresholds: {}, syncnet: { available: false }, model: 'mediapipe', ms: 10 };
+    fake.mouth = { available: true, fps: 24, frames: 136, duration: 5.67, size: [1280, 736], audioSource: 'upload', audioOffset: 0.92, windowsSource: 'windows', speechFrames: 43, facesPerFrameMax: 1, maxLagFrames: 5, mode: 'speech', tracks: [{ id: 0, frames: 130, firstFrame: 0, lastFrame: 129, meanBox: [0, 0, 1, 1], faceHeightPx: 300, scored: true, activityInside: 0.8, activityOutside: 0.2, activityRatio: 4, insideFrames: 43, outsideFrames: 87, corrLag0: 0.2, corrBest: 0.55, bestLagFrames: -1, bestLagMs: -41.7, isSpeaker: true, flags: [] }], speakerTracks: [0], thresholds: {}, syncnet: { available: false }, model: 'mediapipe', ms: 10 };
     await generateTake(ctx(p.id, 's12'));
     t = addTake();
-    expect(t.params).toMatchObject({ lipSync: { verdict: 'REVIEW', against: 'RECORDED', lagFrames: 3, offsetRepair: true } });
+    expect(t.params).toMatchObject({ lipSync: { verdict: 'REVIEW', against: 'RECORDED', lagFrames: 3, rawLagFrames: -1, calibration: 'mouth-lead-167ms', offsetRepair: true } });
     expect((t.qa as { checks: Array<{ name: string; ok: boolean; detail?: string }> }).checks.find((c) => c.name === 'lip-sync')).toMatchObject({ ok: false, detail: expect.stringMatching(/the cut moves the line onto the mouths/) });
     fake.mouth = undefined;
   });

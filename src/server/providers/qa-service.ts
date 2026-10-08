@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { StudioError } from '@/domain/errors';
+import { calibratedLag } from '@/domain/lip-sync-calibration';
 import { env } from '../env';
 import { guardedEngineUrl } from '../gpu/lease-db';
 import { followJobSignal, stopReasonOf } from '../jobs/context';
@@ -224,7 +225,8 @@ export const LIPSYNC_THRESHOLDS_START = {
 export type LipSyncThresholds = { [K in keyof typeof LIPSYNC_THRESHOLDS_START]: number };
 
 export interface LipSyncJudgement {
-  ok: boolean; verdict: QaVerdict; lagFrames: number | null; lagMs: number | null; speakerTrack: number | null;
+  /** `lagFrames`/`lagMs`: the offset from sync (calibrated); `rawLagFrames`: the measure's best lag as found. */
+  ok: boolean; verdict: QaVerdict; lagFrames: number | null; lagMs: number | null; rawLagFrames?: number | null; speakerTrack: number | null;
   /** True when the only problem is an offset an audio shift of `lagFrames` would repair (research §C.2 step 4). */
   offsetRepair: boolean; flags: Array<{ track: number; flag: MouthFlag }>; detail: string[];
 }
@@ -241,8 +243,10 @@ export function judgeLipSync(result: QaAnswer<MouthResult>, thresholds: LipSyncT
   const sp = result.tracks.find((t) => t.id === id);
   if (id === undefined || !sp) return out('NOT_MEASURED', [`not measured: ${id === undefined ? 'no scored face track (all tracks too short)' : `track ${id} is not in the answer`}`], { flags });
   if (!sp.scored) return out('NOT_MEASURED', [`not measured: speaker track ${sp.id} ${sp.reason ?? 'was not scored'}`], { flags, speakerTrack: sp.id });
-  const lag = sp.bestLagFrames ?? null;
-  const lagMs = sp.bestLagMs ?? null;
+  // the raw best lag carries the measure's own lead (src/domain/lip-sync-calibration.ts): judged from sync
+  const rawLag = sp.bestLagFrames ?? null;
+  const lag = rawLag === null ? null : calibratedLag(rawLag, result.fps);
+  const lagMs = lag === null ? null : Math.round((lag * 10000) / result.fps) / 10;
   const fail: string[] = []; const review: string[] = [];
   let offsetRepair = false;
   const r = sp.corrBest ?? null; const ratio = sp.activityRatio ?? null;
@@ -263,7 +267,7 @@ export function judgeLipSync(result: QaAnswer<MouthResult>, thresholds: LipSyncT
     for (const f of t.flags) if (f === 'NON_SPEAKER_TALKING' || f === 'EXTRA_SINGER') review.push(`track ${t.id}: ${f === 'EXTRA_SINGER' ? 'an extra singer — the mouth moves with the vocals' : 'a non-speaker whose mouth moves with the speech'} (r ${fmt(t.corrBest)})`);
   }
   const verdict: QaVerdict = fail.length ? 'FAIL' : review.length ? 'REVIEW' : 'PASS';
-  return { ok: verdict === 'PASS', verdict, lagFrames: lag, lagMs, speakerTrack: sp.id, offsetRepair: offsetRepair && !fail.length, flags, detail: [...fail, ...review] };
+  return { ok: verdict === 'PASS', verdict, lagFrames: lag, lagMs, rawLagFrames: rawLag, speakerTrack: sp.id, offsetRepair: offsetRepair && !fail.length, flags, detail: [...fail, ...review] };
 }
 
 /** START (research §D): fail < 0.363 (OpenCV's SFace same-identity cosine), review 0.363–0.50, pass ≥ 0.50; facial

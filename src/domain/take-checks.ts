@@ -1,4 +1,6 @@
 import type { QaCheck, Shot, Take } from './types';
+import { calibratedLagOf } from './lip-sync-calibration';
+import { lipSyncShiftSamples } from './timeline';
 
 /** A TAKE'S CHECKS, AS THE PRODUCER READS THEM (cloud directive §10, final directive §19: quality failures stay
  *  visible; nothing regenerates silently). The worker writes every check on `take.qa.checks` (src/worker/handlers/take.ts):
@@ -93,8 +95,10 @@ export function takeChecksOf(t: Pick<Take, 'qa' | 'params' | 'status'>): TakeChe
   });
   const by = (o: CheckOutcome) => checks.filter((c) => c.outcome === o);
   const failed = by('FAILED'); const review = by('REVIEW'); const notMeasured = by('NOT_MEASURED'); const passed = by('PASSED');
-  const ls = (t.params as { lipSync?: { verdict?: string; against?: string; lagFrames?: number | null; offsetRepair?: boolean } } | undefined)?.lipSync;
-  const lipSync: LipSyncState | undefined = ls && typeof ls.verdict === 'string' ? { verdict: ls.verdict as LipSyncState['verdict'], against: ls.against as LipSyncState['against'], lagFrames: ls.lagFrames ?? null, repaired: Boolean(ls.offsetRepair) && ls.against === 'RECORDED' } : undefined;
+  const ls = (t.params as { lipSync?: { verdict?: string; against?: string; lagFrames?: number | null; calibration?: string; offsetRepair?: boolean } } | undefined)?.lipSync;
+  // the offset from sync (an older record holds the measure's raw lag); "repaired" only when the cut really shifts
+  const lag = calibratedLagOf(ls);
+  const lipSync: LipSyncState | undefined = ls && typeof ls.verdict === 'string' ? { verdict: ls.verdict as LipSyncState['verdict'], against: ls.against as LipSyncState['against'], lagFrames: lag, repaired: lipSyncShiftSamples(t) !== 0 } : undefined;
   const list = (xs: TakeCheck[]) => xs.slice(0, 3).map(short).join(', ') + (xs.length > 3 ? ` and ${xs.length - 3} more` : '');
   let summary: string; let tone: TakeChecks['tone'];
   if (failed.length) { summary = `${failed.length === 1 ? 'Failed' : `${failed.length} checks failed`}: ${list(failed)}`; tone = 'failed'; }

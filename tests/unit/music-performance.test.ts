@@ -62,7 +62,8 @@ describe('one copy of the music', () => {
 describe('lip-sync repair by the sound', () => {
   it('a recorded line shifts by a measured lag of 2–6 frames; in sync or too far is left alone', async () => {
     const { lipSyncShiftSamples, SAMPLES_PER_FRAME } = await import('@/domain/timeline');
-    const t = (lagFrames: number, against = 'RECORDED') => ({ params: { lipSync: { lagFrames, against } } });
+    const { MOUTH_LAG_CALIBRATION: calibration } = await import('@/domain/lip-sync-calibration');
+    const t = (lagFrames: number, against = 'RECORDED') => ({ params: { lipSync: { lagFrames, against, calibration } } });
     expect(lipSyncShiftSamples(t(1))).toBe(0);
     expect(lipSyncShiftSamples(t(3))).toBe(3 * SAMPLES_PER_FRAME);
     expect(lipSyncShiftSamples(t(-4))).toBe(-4 * SAMPLES_PER_FRAME);
@@ -70,7 +71,12 @@ describe('lip-sync repair by the sound', () => {
     expect(lipSyncShiftSamples(t(3, 'TAKE_AUDIO'))).toBe(0);
     expect(lipSyncShiftSamples({ params: {} })).toBe(0);
     // a FAIL's lag (the mouth did not follow the audio) is no offset: nothing is moved
-    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -2, against: 'RECORDED', verdict: 'FAIL', offsetRepair: false } } })).toBe(0);
-    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -3, against: 'RECORDED', verdict: 'REVIEW', offsetRepair: true } } })).toBe(-3 * SAMPLES_PER_FRAME);
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -2, against: 'RECORDED', verdict: 'FAIL', offsetRepair: false, calibration } } })).toBe(0);
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -3, against: 'RECORDED', verdict: 'REVIEW', offsetRepair: true, calibration } } })).toBe(-3 * SAMPLES_PER_FRAME);
+  });
+  it('an older record holds the raw lag: its −4 is the measure’s own lead, in sync, and nothing is moved (1.2, 2.3)', async () => {
+    const { lipSyncShiftSamples, SAMPLES_PER_FRAME } = await import('@/domain/timeline');
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -4, against: 'RECORDED', verdict: 'REVIEW', offsetRepair: true } } })).toBe(0);
+    expect(lipSyncShiftSamples({ params: { lipSync: { lagFrames: -1, against: 'RECORDED', verdict: 'REVIEW', offsetRepair: true } } })).toBe(3 * SAMPLES_PER_FRAME);
   });
 });

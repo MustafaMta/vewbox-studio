@@ -413,7 +413,16 @@ One record per phase of the master plan (producer directive 2026-10-07). Evidenc
         - The re-take is REVIEW for identity: SFace median 0.41, drift 0.22 as his face turns down to the knob. This is
           the same drift as 1.2 (the edited frame's face moving under H3). `WAITING_FOR_USER_ACCEPTANCE`.
       - 2.3 says its line twice in the take's own sound; QA catches it and the cut keeps one window.
-    - **Lip-sync −4 frames in both speaking takes (1.2, 2.3):** systematic. The cut compensates; root cause open.
+    - **Lip-sync −4 frames in both speaking takes (1.2, 2.3): the measure's own lead, not H3.**
+      - Calibration: LatentSync 1.6 redrew 2.3's mouth to the take's own sound. It is trained to be in sync, and it
+        measures −5/−4 (r 0.78), the same as the H3 take (−4, r 0.77).
+      - Cause: the check correlates mouth opening with loudness, and the mouth opens before its sound (the /h/ of
+        "Hold" is under the noise floor).
+      - The cut had been moving the line 4 frames earlier, so the sound led the picture by about 170 ms.
+      - Fixed (src/domain/lip-sync-calibration.ts): lags are judged from the measured −167 ms lead, the search
+        widened to ±367 ms, and older records are read through the calibration, so 1.2 and 2.3 are no longer shifted.
+      - Take 1.2 cannot be calibrated (r ≤ 0.22: he pants with his mouth open). The calibration rests on one clip;
+        recalibrate with a real in-sync recording or SyncNet.
     - **Deadline fix (d247966):** the 2.3 frame job was stopped by its deadline while only waiting for the GPU behind
       the H3 renders. Deadlines now count work time, not lease-wait time.
   - **Phoneme gate, formal run** (scripts/phoneme-gate.ts, f96e6b6) over existing lab recordings:

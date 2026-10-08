@@ -35,6 +35,7 @@ import { continuityChecks, judgeContainer, judgeLineTiming } from '@/server/medi
 import { takeVerdict } from '@/domain/take-checks';
 import { withFaceReferences } from './face-reference';
 import { alignScript, faceIdentity, isQaUnavailable, judgeAlignment, judgeIdentity, judgeLipSync, mouthActivity } from '@/server/providers/qa-service';
+import { MOUTH_LAG_CALIBRATION, MOUTH_SEARCH_MS } from '@/domain/lip-sync-calibration';
 import { shotPerformers } from '@/domain/music-performance';
 import { frameBudget, validateGuideClip, type GuideRecord } from '@/server/production/guide';
 import { assertIdentityConditioning } from '@/server/production/identity-rule';
@@ -580,9 +581,9 @@ export const generateTake: Handler = async (ctx) => {
         // word windows of the recorded lines, on the clip's clock (the soundtrack guide sits at the first new frame)
         const windows = against === 'RECORDED' && plannedLines.length ? plannedLines.flatMap((l) => { const ws = alignedLines.get(l.lineId); return ws?.length ? ws.map((w) => ({ start: l.expectedFrom + w.start, end: l.expectedFrom + w.end })) : [{ start: l.expectedFrom, end: l.expectedFrom + l.recordedSeconds }]; }) : undefined;
         const onScreen = singing && p.song ? shotPerformers(p.song, { from: songWindowFrames(p).windows.get(sh.id)!.fromFrame / CLOCK_FPS, to: songWindowFrames(p).windows.get(sh.id)!.toFrame / CLOCK_FPS }, sh.characterIds).lead.length : speakers.length;
-        const measured = await step(ctx, 'audio-sync-inspector', `lip-sync-check: shot ${sh.number}`, () => mouthActivity(result.file, { ...(against !== 'TAKE_AUDIO' ? { audio: soundtrackFile!, audioOffset: headSeconds } : {}), windows, fps: H3_FPS, mode: singing ? 'singing' : 'speech', speakers: Math.max(1, onScreen) }));
+        const measured = await step(ctx, 'audio-sync-inspector', `lip-sync-check: shot ${sh.number}`, () => mouthActivity(result.file, { ...(against !== 'TAKE_AUDIO' ? { audio: soundtrackFile!, audioOffset: headSeconds } : {}), windows, fps: H3_FPS, mode: singing ? 'singing' : 'speech', speakers: Math.max(1, onScreen), maxLagMs: MOUTH_SEARCH_MS }));
         const j = judgeLipSync(measured);
-        lipSyncRecord = { verdict: j.verdict, against, lagFrames: j.lagFrames, lagMs: j.lagMs, offsetRepair: j.offsetRepair, speakerTrack: j.speakerTrack, flags: j.flags, thresholds: 'START' };
+        lipSyncRecord = { verdict: j.verdict, against, lagFrames: j.lagFrames, lagMs: j.lagMs, rawLagFrames: j.rawLagFrames, calibration: MOUTH_LAG_CALIBRATION, offsetRepair: j.offsetRepair, speakerTrack: j.speakerTrack, flags: j.flags, thresholds: 'START' };
         driftChecks.push({ name: singing ? 'singing-sync' : 'lip-sync', ok: j.verdict === 'PASS' || j.verdict === 'NOT_MEASURED', value: j.lagFrames ?? undefined, threshold: '|lag| ≤ 1 frame; 2–6 repaired by moving the sound', detail: `${j.verdict === 'NOT_MEASURED' ? '' : `${j.verdict.toLowerCase()} against the ${against === 'RECORDED' ? 'recorded lines' : against === 'SONG' ? 'song' : 'take’s own sound'}: `}${j.detail.join('; ') || 'in sync'}${j.offsetRepair && against === 'RECORDED' ? ' — the cut moves the line onto the mouths' : ''}` });
       } catch (e) {
         driftChecks.push({ name: singing ? 'singing-sync' : 'lip-sync', ok: true, detail: `not measured (${(e as Error).message.split('\n')[0]})` });

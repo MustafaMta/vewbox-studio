@@ -34,7 +34,7 @@ const alignBody = {
 };
 
 function track(id: number, o: Record<string, unknown> = {}) {
-  return { id, frames: 100, first_frame: 0, last_frame: 99, mean_box: [10, 10, 60, 70], face_height_px: 60, scored: true, activity_inside: 1.2, activity_outside: 0.3, activity_ratio: 4, inside_frames: 50, outside_frames: 49, corr_lag0: 0.6, corr_best: 0.62, best_lag_frames: 0, best_lag_ms: 0, lag_at_search_edge: false, is_speaker: false, flags: [], ...o };
+  return { id, frames: 100, first_frame: 0, last_frame: 99, mean_box: [10, 10, 60, 70], face_height_px: 60, scored: true, activity_inside: 1.2, activity_outside: 0.3, activity_ratio: 4, inside_frames: 50, outside_frames: 49, corr_lag0: 0.6, corr_best: 0.62, best_lag_frames: -4, best_lag_ms: -166.7, lag_at_search_edge: false, is_speaker: false, flags: [], ...o };
 }
 function mouthBody(tracks: unknown[], o: Record<string, unknown> = {}) {
   return { fps: 24, frames: 100, duration: 4.17, size: [960, 552], audio_source: 'upload', audio_offset: 0, windows_source: 'windows', speech_frames: 50, faces_per_frame_max: 2, max_lag_frames: 5, mode: 'speech', tracks, speaker_tracks: [0], thresholds: {}, syncnet: { available: false, reason: 'disabled' }, model: 'MediaPipe Face Landmarker', ms: 900, ...o };
@@ -100,7 +100,7 @@ describe('mouthActivity and faceIdentity requests', () => {
     expect((fd.get('video') as File).name).toBe('take.mp4'); expect((fd.get('audio') as File).name).toBe('line.wav');
     expect(JSON.parse(fd.get('windows') as string)).toEqual([{ start: 0.1, end: 0.6 }]);
     expect(fd.get('audio_offset')).toBe('0.5'); expect(fd.get('fps')).toBe('24'); expect(fd.get('mode')).toBe('singing'); expect(fd.get('speakers')).toBe('2'); expect(fd.get('max_lag_ms')).toBe('200');
-    expect(r).toMatchObject({ available: true, speakerTracks: [0], audioSource: 'upload', tracks: [{ id: 0, isSpeaker: true, corrBest: 0.62, bestLagFrames: 0 }] });
+    expect(r).toMatchObject({ available: true, speakerTracks: [0], audioSource: 'upload', tracks: [{ id: 0, isSpeaker: true, corrBest: 0.62, bestLagFrames: -4 }] });
     await expect(qa.mouthActivity(mp4, { windows: [{ start: 2, end: 1 }] })).rejects.toMatchObject({ code: 'INVALID' });
     await expect(qa.mouthActivity(mp4, { fps: 0 })).rejects.toMatchObject({ code: 'INVALID' });
     await expect(qa.mouthActivity(mp4, { audioOffset: 1 })).rejects.toMatchObject({ code: 'INVALID' }); // an offset without the audio it places
@@ -128,11 +128,18 @@ describe('judgeLipSync', () => {
     const j = qa.judgeLipSync(mouth([track(0, { is_speaker: true }), track(1, { corr_best: 0.05, activity_inside: 0.1 })]));
     expect(j).toMatchObject({ ok: true, verdict: 'PASS', lagFrames: 0, speakerTrack: 0, offsetRepair: false, detail: [] });
   });
-  it('a 3-frame offset is REVIEW with an offset repair; beyond 6 frames FAIL', () => {
-    const j = qa.judgeLipSync(mouth([track(0, { best_lag_frames: 3, best_lag_ms: 125 })]));
-    expect(j).toMatchObject({ verdict: 'REVIEW', lagFrames: 3, offsetRepair: true });
+  it('a 3-frame offset is REVIEW with an offset repair; beyond 6 frames FAIL (offsets from the measure’s own −4 lead)', () => {
+    const j = qa.judgeLipSync(mouth([track(0, { best_lag_frames: -1, best_lag_ms: -41.7 })]));
+    expect(j).toMatchObject({ verdict: 'REVIEW', lagFrames: 3, lagMs: 125, rawLagFrames: -1, offsetRepair: true });
     expect(j.detail[0]).toMatch(/shift the audio by 3 frames/);
-    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: -8 })]))).toMatchObject({ verdict: 'FAIL', offsetRepair: false });
+    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: 3 })]))).toMatchObject({ verdict: 'FAIL', lagFrames: 7, offsetRepair: false });
+    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: -11 })]))).toMatchObject({ verdict: 'FAIL', lagFrames: -7 });
+  });
+  it('the measure’s −4 frames at 24 fps is sync (2.3: the H3 take −4, LatentSync’s in-sync redraw −5/−4)', () => {
+    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: -4 })]))).toMatchObject({ verdict: 'PASS', lagFrames: 0, rawLagFrames: -4, offsetRepair: false });
+    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: -5 })]))).toMatchObject({ verdict: 'PASS', lagFrames: -1 });
+    // the lead is in time, not frames: −5 frames at 30 fps
+    expect(qa.judgeLipSync(mouth([track(0, { best_lag_frames: -5 })], { fps: 30 }))).toMatchObject({ verdict: 'PASS', lagFrames: 0 });
   });
   it('a still mouth or no following FAILs', () => {
     expect(qa.judgeLipSync(mouth([track(0, { flags: ['MOUTH_STILL_WHILE_SPEAKING'], activity_inside: 0.1 })])).verdict).toBe('FAIL');

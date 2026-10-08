@@ -55,7 +55,7 @@ describe('a take’s checks, as the producer reads them (flags are never hidden)
   });
 
   it('lip-sync in words, from params.lipSync', () => {
-    const ch = takeChecksOf(take([{ name: 'lip-sync', ok: false }], { params: { lipSync: { verdict: 'REVIEW', against: 'RECORDED', lagFrames: 3, offsetRepair: true } } }))!;
+    const ch = takeChecksOf(take([{ name: 'lip-sync', ok: false }], { params: { lipSync: { verdict: 'REVIEW', against: 'RECORDED', lagFrames: 3, calibration: 'mouth-lead-167ms', offsetRepair: true } } }))!;
     expect(lipSyncWords(ch.lipSync!)).toBe('Review with the recorded lines, mouths 3 frames late — the cut moves the line onto the mouths');
     expect(lipSyncWords({ verdict: 'NOT_MEASURED', repaired: false })).toBe('Lip-sync not measured');
   });

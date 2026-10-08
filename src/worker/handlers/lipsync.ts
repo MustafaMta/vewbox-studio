@@ -15,6 +15,7 @@ import { correctLipSync, lipsyncHealth } from '@/server/providers/lipsync';
 import { faceIdentity, isQaUnavailable, judgeLipSync, mouthActivity, type IdentityResult, type MouthResult, type QaAnswer } from '@/server/providers/qa-service';
 import { judgeContainer } from '@/server/media/continuity-qa';
 import { H3_FPS } from '@/server/workflows/minimax-h3';
+import { MOUTH_SEARCH_MS } from '@/domain/lip-sync-calibration';
 import { env } from '@/server/env';
 
 /** CORRECT THE LIP-SYNC OF ONE TAKE (src/domain/lipsync-correction.ts; directive 2026-10-06 §16). Runs only for a take
@@ -71,7 +72,7 @@ export const correctLipsync: Handler = async (ctx) => {
 
   // BEFORE: the original take, measured the same way the corrected one will be
   const measure = async (file: string, label: string, selfRef?: string): Promise<Measured> => {
-    const mouth = await step(ctx, 'audio-sync-inspector', `lip-sync-check: ${label}`, () => mouthActivity(file, { audio: audioFile, audioOffset: plan.audioOffset, fps: H3_FPS, mode: 'speech', speakers: 1 }));
+    const mouth = await step(ctx, 'audio-sync-inspector', `lip-sync-check: ${label}`, () => mouthActivity(file, { audio: audioFile, audioOffset: plan.audioOffset, fps: H3_FPS, mode: 'speech', speakers: 1, maxLagMs: MOUTH_SEARCH_MS }));
     const identity = await step(ctx, 'visual-quality-inspector', `identity-check: ${label}`, () => faceIdentity(file, refs, { sampleFps: 4 }));
     const self = selfRef ? await step(ctx, 'visual-quality-inspector', `identity-check: ${label} against the original take`, () => faceIdentity(file, [{ characterId: 'original-take', image: selfRef }], { sampleFps: 4 })) : null;
     return { mouth, identity, self };
