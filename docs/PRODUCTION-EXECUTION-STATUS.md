@@ -585,4 +585,20 @@ the opening frames and the location plate, inspected side by side.
     still there. **The healed wording did not fix it.** The open fix is a negative prompt against fresh wounds for
     the canonical model (cfg 4 honours negatives). No further redraw.
   - **Figure version 2 was approved by the engineering session** for the continuity validation, as in Phase 1. It is
-    not the producer's casting decision: the producer may redraw or re-cast. `WAITING_FOR_USER_ACCEPTANCE`.
+    not the producer's casting decision: the producer may redraw or re-cast. `WAITING_FOR_USER_ACCEPTANCE`.- **Plan (shot planner, first attempt; two framings changed in the UI like a producer would):**
+  - Shots: 1.1 WIDE (Marcus at the lens) → 1.2 MEDIUM WIDE cut (Elena enters with the thermos) → 1.3 TWO-SHOT
+    continuous ("You made it.") → 1.4 MEDIUM CLOSE-UP Elena, cut ("Radio's dead. Had to row.") → 1.5 MEDIUM CLOSE-UP
+    Marcus, the reverse ("Duty calls.") → 1.6 INSERT, the thermos handed over → 1.7 WIDE continuous (to the windows)
+    → 1.8 MEDIUM continuous. 60 s.
+  - 1.1 and 1.7 were medium and medium-wide in the plan; they were set to WIDE so the scene opens on and returns to
+    a wide.
+- **Filming, one generation per shot, in order:**
+  - **1.1:** ACCEPT, no flags (14.5 min). One continuous shot, the lens and cloth consistent. **Defect:** planned
+    WIDE, filmed as a medium. A wide shot got no opening frame, so H3 chose its own framing. Fixed (bd0cc66): every
+    shot is anchored by a frame, wide ones too.
+  - **1.2, first frame:** drawn with 1.1's end as a reference, which copied Marcus in beside Elena. The people check
+    refused it before filming. Fixed (bc8a362): the previous end is used only when everyone in it is in this shot.
+    For one person of several it is cut to that person (a685c25).
+  - **1.2, frame redrawn** (creative attempt 2 of the frame, after the fix, recorded): one person, framing PASS, the
+    plate's exact layout. Take ACCEPT, no flags (12 min). Elena keeps her wardrobe, wet hair and the brass thermos
+    throughout; the handheld camera follows her forward.
