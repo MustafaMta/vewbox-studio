@@ -100,7 +100,8 @@ describe('a close shot without its opening frame (acceptance 2026-10-06, G13)', 
     expect(off.warnings.find((w) => w.name === 'opening-frame-missing')?.detail).toMatch(/draw the shot's frames first/);
     expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' })).toBe(true);
     expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' }, { generation: { autoOpeningFrame: false } })).toBe(false);
-    expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'WIDE' })).toBe(false);
+    // every shot is anchored, wide ones too (2026-10-08, "The Relief" 1.1: a WIDE without a frame was filmed as a medium)
+    expect(needsOpeningFrame({ backend: 'local', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'WIDE' })).toBe(true);
     expect(needsOpeningFrame({ backend: 'api', location: { assetId: 'x' } as never, opening: { kind: 'NONE' } }, { framing: 'CLOSE_UP' })).toBe(false);
     expect(preflightTake(state, p, { ...sh, framing: 'WIDE' as const }, { backend: 'local', customPrompt: true }).warnings.some((w) => w.name === 'opening-frame-missing')).toBe(false);
     expect(preflightTake(state, p, { ...shotOf(p, 's13'), framing: 'MEDIUM_CLOSE_UP' as const }, { backend: 'local', customPrompt: true }).warnings.some((w) => w.name === 'opening-frame-missing')).toBe(false);

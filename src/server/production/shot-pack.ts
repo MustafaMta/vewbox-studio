@@ -5,7 +5,7 @@ import { isCanonicalApproved, primaryImageOf, primaryImageSourceOf } from '@/dom
 import { locationIdentity } from '@/domain/location';
 import { castOf, worldOf } from '@/studio/selectors';
 import { H3_FPS, H3_GUIDE_FRAMES, h3FrameCount, h3GuideClipFrames, h3GuideFits } from '@/server/workflows/minimax-h3';
-import { PLATE_WIDE_FRAMINGS, type H3Binding } from '@/server/story/prompts';
+import type { H3Binding } from '@/server/story/prompts';
 import { capabilityFor, resolveContinuation, type ContinuationSettings } from '@/domain/video-capability';
 import { productionContextFor, type ProductionContext } from '@/domain/production-context';
 import { canvasFor, derivedFaceReference, faceReferenceFor, faceReferenceMode, type FaceReferenceDecision } from '@/domain/face-reference';
@@ -330,8 +330,13 @@ export function guideProblems(guides: PlannedGuide[], frames: number): string[] 
  *  opened on the plate's wide view and pushed in for 2-3 s to reach its framing). True when the take should draw the
  *  shot's opening frame before the engine runs: the local engine, a place to frame against, a framing closer than the
  *  plate's (medium and closer), nothing the clip starts from (no drawn frame, no continuation tail), the producer's own
- *  prompt absent, and the setting not off (settings.generation.autoOpeningFrame, default on). */
-export function needsOpeningFrame(pack: Pick<ShotPack, 'backend' | 'location' | 'opening'>, sh: Pick<Shot, 'framing'>, settings?: { generation?: { autoOpeningFrame?: boolean } }, opts: { customPrompt?: boolean } = {}): boolean {
+ *  prompt absent, and the setting not off (settings.generation.autoOpeningFrame, default on).
+ *
+ *  EVERY SHOT IS ANCHORED, WIDE ONES TOO (continuity recovery 2026-10-08, "The Relief" 1.1): a WIDE shot without a
+ *  frame was filmed by H3 as a medium shot of the man (it chose its own framing from the plate), and a wide CUT inside
+ *  a scene could not carry the previous shot's actual end. The wide frame is composed on the plate (the place's exact
+ *  layout), with the people and, on a cut, the previous end. */
+export function needsOpeningFrame(pack: Pick<ShotPack, 'backend' | 'location' | 'opening'>, _sh: Pick<Shot, 'framing'>, settings?: { generation?: { autoOpeningFrame?: boolean } }, opts: { customPrompt?: boolean } = {}): boolean {
   if (settings?.generation?.autoOpeningFrame === false || opts.customPrompt) return false;
-  return pack.backend === 'local' && Boolean(pack.location) && pack.opening.kind === 'NONE' && !PLATE_WIDE_FRAMINGS.includes(sh.framing);
+  return pack.backend === 'local' && Boolean(pack.location) && pack.opening.kind === 'NONE';
 }
