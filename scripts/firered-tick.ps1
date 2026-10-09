@@ -35,6 +35,7 @@ try {
   if (Test-Path var/locks/download.lock) { Say 'a download-queue run holds var/locks/download.lock; next tick'; exit 0 }
 
   function Inventory { powershell -NoProfile -File scripts/model-inventory.ps1 2>&1 | Where-Object { $_ -match '^(eval-tts-fireredtts3-base|video-minimax-h3-bf16)\s' } }
+  function Inventory2($group) { (powershell -NoProfile -File scripts/model-inventory.ps1 2>&1 | Where-Object { $_ -match "^$group\s" }) -join '' }
   function Fetch($group) {
     Say "FETCH $group"
     docker compose -p vewbox --profile models run --rm models --manifest manifest.json --root /models --groups $group 2>&1 | Out-File -FilePath $flog -Append -Encoding utf8
@@ -69,8 +70,19 @@ try {
     exit 0
   }
   if (-not (Test-Path var/state/firered-service-healthy)) { Say "SERVICE HEALTHY $($h | ConvertTo-Json -Compress)"; (Get-Date).ToUniversalTime().ToString('s') | Out-File var/state/firered-service-healthy }
-  # 4. the H3 tier, only once the FireRed phase is complete (the listening pack rebuilt with FireRed)
-  if (-not (Test-Path var/state/phase1-pack-ready)) { exit 0 }
+  # 3b. THE VEWBOX-IQ ASSETS (the master directive 2026-10-10, download priority): Chatterbox Multilingual V3 → the licensed
+  #     Iraqi data → (training deps, built by hand) → only then the H3 BF16 tier (var/state/h3-resume-ok set by hand)
+  $cb = (Inventory2 'voice-chatterbox-mtl-v3')
+  if ($cb -notmatch 'VERIFIED\s+6/ 6') { Fetch 'voice-chatterbox-mtl-v3'; $after = Inventory2 'voice-chatterbox-mtl-v3'; Say "after: $after"; if ($after -match 'VERIFIED\s+6/ 6') { Say 'CHATTERBOX V3 VERIFIED' }; exit 0 }
+  if (-not (Test-Path var/state/iraqi-data-ready)) {
+    Say 'FETCH iraqi data'
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-iraqi-data.ps1
+    Say "FETCH iraqi data exit $LASTEXITCODE"
+    if (Test-Path var/state/iraqi-data-ready) { Say 'IRAQI DATA READY' }
+    exit 0
+  }
+  # 4. the H3 tier, only when the Iraqi voice assets are secured and the producer's order allows it
+  if (-not (Test-Path var/state/h3-resume-ok)) { exit 0 }
   if ($h3 -notmatch 'VERIFIED\s+3/ 3') { Fetch 'video-minimax-h3-bf16'; $after = (Inventory | Where-Object { $_ -match '^video-minimax-h3-bf16' }) -join ''; Say "after: $after"; if ($after -match 'VERIFIED\s+3/ 3') { Say 'H3 BF16 VERIFIED' }; exit 0 }
   # 5. nothing left
   if (-not (Test-Path var/state/firered-tick-done)) { Say 'DONE: weights, image, service and the H3 BF16 tier are all in place'; 'done' | Out-File var/state/firered-tick-done }
