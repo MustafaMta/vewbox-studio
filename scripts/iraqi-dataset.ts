@@ -73,7 +73,7 @@ async function prepare(source: string) {
     n++;
     const originalSha256 = await sha256File(u.audio);
     const id = `${source}-${originalSha256.slice(0, 16)}`;
-    const flags: string[] = [];
+    const flags: string[] = [...(u.flags ?? [])];
     let rejectedWhy: string | undefined;
     if (seen.has(originalSha256)) rejectedWhy = 'duplicate audio';
     seen.add(originalSha256);
@@ -122,7 +122,8 @@ async function report(source: string) {
   const { phonemeCoverage } = await import('@/server/training/iraqi-phonemes');
   const cov = phonemeCoverage(acc.map((r) => r.normalised));
   const hours = (xs: PreparedUtterance[]) => Number((xs.reduce((s, r) => s + r.durationSeconds, 0) / 3600).toFixed(2));
-  const md = `# Iraqi dataset report — ${source}\n\nGenerated ${new Date().toISOString()}\n\n| | |\n|---|---|\n| Licence | ${acc[0]?.licence ?? '—'} |\n| Attribution | ${acc[0]?.attribution ?? '—'} |\n| Utterances | ${rs.length} (accepted ${acc.length}) |\n| Hours (accepted) | ${hours(acc)} |\n| Speakers | ${new Set(acc.map((r) => r.speaker)).size} |\n| Sample rate (source) | ${[...new Set(rs.map((r) => r.sampleRate))].join(', ')} |\n| Duration (s) min / median / max | ${min(acc.map((r) => r.durationSeconds))} / ${median(acc.map((r) => r.durationSeconds))} / ${max(acc.map((r) => r.durationSeconds))} |\n| Loudness (LUFS) median | ${median(acc.map((r) => r.lufs ?? NaN).filter(Number.isFinite))} |\n| SNR (dB) median | ${median(acc.map((r) => r.snrDb ?? NaN).filter(Number.isFinite))} |\n\n## Rejections\n\n${Object.entries(countBy(rs.filter((r) => !r.accepted).map((r) => r.rejectedWhy!.replace(/\(.*\)/, '').trim()))).map(([k, n]) => `- ${k}: ${n}`).join('\n') || '- none'}\n\n## Dialect letters and Iraqi phoneme coverage (accepted transcripts)\n\n| Unit | Utterances | Occurrences |\n|---|---|---|\n${cov.map((c) => `| ${c.unit} | ${c.utterances} | ${c.occurrences} |`).join('\n')}\n\nRare units (< 50 utterances) need deliberately collected natural sentences (§10).\n`;
+  const drills = acc.filter((r) => r.flags.includes('phoneme-drill'));
+  const md = `# Iraqi dataset report — ${source}\n\nGenerated ${new Date().toISOString()}\n\n| | |\n|---|---|\n| Licence | ${acc[0]?.licence ?? '—'} |\n| Attribution | ${acc[0]?.attribution ?? '—'} |\n| Utterances | ${rs.length} (accepted ${acc.length}) |\n| Hours (accepted) | ${hours(acc)} |\n| Natural speech vs phoneme drills (accepted) | ${hours(acc.filter((r) => !r.flags.includes('phoneme-drill')))} h natural · ${hours(drills)} h drills (${drills.length} utterances) |\n| Speakers | ${new Set(acc.map((r) => r.speaker)).size} |\n| Sample rate (source) | ${[...new Set(rs.map((r) => r.sampleRate))].join(', ')} |\n| Duration (s) min / median / max | ${min(acc.map((r) => r.durationSeconds))} / ${median(acc.map((r) => r.durationSeconds))} / ${max(acc.map((r) => r.durationSeconds))} |\n| Loudness (LUFS) median | ${median(acc.map((r) => r.lufs ?? NaN).filter(Number.isFinite))} |\n| SNR (dB) median | ${median(acc.map((r) => r.snrDb ?? NaN).filter(Number.isFinite))} |\n\n## Rejections\n\n${Object.entries(countBy(rs.filter((r) => !r.accepted).map((r) => r.rejectedWhy!.replace(/\(.*\)/, '').trim()))).map(([k, n]) => `- ${k}: ${n}`).join('\n') || '- none'}\n\n## Dialect letters and Iraqi phoneme coverage (accepted transcripts)\n\n| Unit | Utterances | Occurrences |\n|---|---|---|\n${cov.map((c) => `| ${c.unit} | ${c.utterances} | ${c.occurrences} |`).join('\n')}\n\nRare units (< 50 utterances) need deliberately collected natural sentences (§10).\n`;
   await fs.mkdir(dir('reports'), { recursive: true });
   await fs.writeFile(dir('reports', `${source}.md`), md, 'utf8');
   await fs.writeFile(dir('phonemes', `${source}.json`), JSON.stringify(cov, null, 2), 'utf8');

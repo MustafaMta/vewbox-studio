@@ -13,6 +13,23 @@ describe('normaliseIraqi', () => {
   });
 });
 
+describe('the Kharrufa corpus adapter', () => {
+  it('reads metadata.txt (file|transcript|count), one speaker, and flags the phoneme-drill sentences', async () => {
+    const os = await import('node:os'); const fs = await import('node:fs/promises'); const path = await import('node:path');
+    const { sourceAdapter } = await import('@/server/training/iraqi-sources');
+    const raw = await fs.mkdtemp(path.join(os.tmpdir(), 'kharrufa-'));
+    const base = path.join(raw, 'extracted', 'ar-IQ_hayder');
+    await fs.mkdir(path.join(base, 'audio_files'), { recursive: true });
+    await fs.writeFile(path.join(base, 'metadata.txt'), '﻿a.wav|تَڤَّڤَچَ وَتَڤِّڤَچِ|12\nb.wav|شلونك؟ صارلي هواية ما شايفك|26\n', 'utf8');
+    await fs.writeFile(path.join(base, 'generated_metadata.txt'), 'a.wav|تَڤَّڤَچَ وَتَڤِّڤَچِ|12\n', 'utf8');
+    const out = []; for await (const u of sourceAdapter('iraqi-dialect-tts-corpus').utterances(raw)) out.push(u);
+    expect(out).toEqual([
+      { audio: path.join(base, 'audio_files', 'a.wav'), transcript: 'تَڤَّڤَچَ وَتَڤِّڤَچِ', speaker: 'hayder', flags: ['phoneme-drill'] },
+      { audio: path.join(base, 'audio_files', 'b.wav'), transcript: 'شلونك؟ صارلي هواية ما شايفك', speaker: 'hayder', flags: [] },
+    ]);
+  });
+});
+
 describe('phonemeCoverage', () => {
   it('counts utterances and occurrences per dialect unit and per regression word', () => {
     const rows = phonemeCoverage(['گلتلك باچر نكعد نحچي ونشرب چاي.', 'شلونك؟ صارلي هواية ما شايفك.', 'چاي چاي']);
