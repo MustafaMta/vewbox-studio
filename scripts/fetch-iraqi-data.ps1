@@ -44,7 +44,7 @@ foreach ($f in $omni) {
 # the Kharrufa corpus zip from Google Drive (large-file confirm form bypassed by the usercontent endpoint)
 $zip = Join-Path $root 'iraqi-dialect-tts-corpus\iraqi-dialect-tts-corpus.zip'
 if (-not (Fetch 'https://drive.usercontent.google.com/download?id=1iQ-ueye2pLFavy-2HWDEOhscD_wn_7ie&export=download&confirm=t' $zip $null 0)) { Say 'STOPPED: the corpus zip'; exit 1 }
-$head = [IO.File]::ReadAllBytes($zip)[0..3] -join ','
+$fs = [IO.File]::OpenRead($zip); $hb = New-Object byte[] 4; $fs.Read($hb, 0, 4) | Out-Null; $fs.Close(); $head = $hb -join ','
 if ($head -ne '80,75,3,4') { Say "STOPPED: the corpus download is not a zip (first bytes $head) - Google Drive returned a page; download it by hand into $zip"; Remove-Item "$zip.sha256" -Force -ErrorAction SilentlyContinue; exit 1 }
 $out = Join-Path $root 'iraqi-dialect-tts-corpus\extracted'
 if (-not (Test-Path $out)) { Expand-Archive -Path $zip -DestinationPath $out -Force; Say "expanded to $out" }
