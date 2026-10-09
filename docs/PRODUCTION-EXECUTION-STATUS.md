@@ -47,7 +47,21 @@ episode.
 | B — Tariq Al-Rawi | Anime | Actor + Singer (tenor; pop, Iraqi maqam) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
 | C — Karim Al-Dawoud | Cartoon | Actor + Singer (baritone; Iraqi chalghi, wedding songs) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
 
-**`PHASE_1 = WAITING_FOR_USER_ACCEPTANCE`** (2026-10-09). All three characters exist with one canonical image, one voice
+**`PHASE_1 = NOT ACCEPTED` for voice identity (the producer, 2026-10-09)** — the three canonical images and the
+character records are KEPT; only the voice layer is being recovered:
+
+| Recovery step | State |
+| --- | --- |
+| H3 BF16 download paused safely (partials kept: FL2VA 57.0 %, Ref2VA 9.2 %, VAE 57.8 % = 27.6 of 79.8 GiB) | DONE — resumes after the voice tests |
+| FireRedTTS3-Base (official, Apache-2.0, revision dcf1bdcd, 8 files, hashes pinned) → `voice/fireredtts3-base` | DOWNLOADING (`var/download-fireredtts3.log`) |
+| FireRedTTS3 as an evaluation engine (`docker/tts-firered`, same `/synthesize` contract, never production, never pinnable) | building |
+| One voice identity per character with language profiles; creation offers English / Iraqi Arabic / Both | DONE |
+| Controlled comparison: the same three characters, their existing references, one result per engine per line (English: MOSS vs FireRed; Iraqi: Habibi vs MOSS vs FireRed; the original Iraqi spelling, never rewritten) | after the weights verify |
+| Blind listening pack of the three characters (`scripts/phase1-blind.ts` → Voice Studio → LAB comparisons → "Phase 1"): naturalness, Iraqi authenticity, pronunciation, emotion, same person, cinematic; engines revealed only after rating; the reference of an Iraqi line is the same character's English line | READY with MOSS + Habibi (FireRed arms added when spoken) |
+| Same-person measures per engine (ECAPA against the same-language baseline, median pitch, pitch shift) in the review evidence | DONE for the current engines |
+| Audar-TTS | not downloaded (capped licence) unless all three fail |
+
+Earlier that day the gate read `WAITING_FOR_USER_ACCEPTANCE`; the producer's verdict on the voices came back NOT ACCEPTED. All three characters exist with one canonical image, one voice
 identity and 15 lines each. Nothing after Phase 1 — singing, locations, story, storyboard, video — starts until the
 producer has looked at the three images and listened to the English and Iraqi lines (`/characters/review`), and
 recorded, per character and language, naturalness, dialect authenticity and whether the Iraqi voice is the same
