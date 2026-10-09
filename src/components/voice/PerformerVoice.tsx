@@ -54,6 +54,7 @@ export function PerformerVoice({ c, detail = false }: { c: Character; detail?: b
               <dt>Reference</dt><dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{id.designId ? `design ${id.designId}` : id.referenceSampleId ?? '—'}{id.seedSha256 ? ` · sha256 ${id.seedSha256.slice(0, 16)}…` : ''}</dd>
               <dt>Speaks with</dt><dd style={{ margin: 0 }}>{(id.languageProfiles ?? [{ language: id.language, dialect: id.dialect, engine: id.model, status: 'PRIMARY' as const }]).map((p) => `${languageLabel(p)}: ${engineLabel(p.engine)}${p.comparisonEngines?.length ? ` (compared once with ${p.comparisonEngines.map(engineLabel).join(', ')})` : ''}`).join(' · ')}</dd>
               {id.engineVersion && <><dt>Checkpoint</dt><dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{id.engineVersion}</dd></>}
+              <dt>Reference pack</dt><dd style={{ margin: 0 }}>{id.canonicalReferencePack?.length ? `${id.canonicalReferencePack.length} ${id.canonicalReferencePack.length === 1 ? 'clip' : 'clips'} of the same performer: ${id.canonicalReferencePack.map((r) => r.role.toLowerCase()).join(', ')}` : 'the primary reference only'}{id.speakerFingerprint ? ` · fingerprint ${id.speakerFingerprint.model.split(' ')[0]}` : ''}</dd>
             </dl>
           ) : <p className="t-meta">No voice yet.</p>}
         </div>
