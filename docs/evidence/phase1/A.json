@@ -1,0 +1,1363 @@
+{
+  "phase": "PHASE_1",
+  "character": "A",
+  "generatedAt": "2026-10-09T21:49:00.894Z",
+  "verdict": "WAITING_FOR_USER_ACCEPTANCE",
+  "identity": {
+    "id": "char-20674af023",
+    "name": "Layla Haddad",
+    "nameAr": "ليلى حديد",
+    "role": "Stage actor and singer",
+    "style": "REALISTIC",
+    "kind": "ACTOR_SINGER",
+    "singing": {
+      "styles": [
+        "Iraqi folk",
+        "acoustic ballad"
+      ],
+      "languages": [
+        "EN",
+        "AR"
+      ],
+      "voiceType": "MEZZO_SOPRANO"
+    },
+    "languages": [
+      {
+        "language": "EN"
+      },
+      {
+        "dialect": "IRAQI_BAGHDADI",
+        "language": "AR"
+      }
+    ],
+    "sex": "FEMALE",
+    "ageYears": 33,
+    "build": "Slender frame with a soft, rounded lower body and a slight forward lean when standing relaxed.",
+    "face": "Oval face with high cheekbones, a straight nose, full lips, and faint lines at the outer corners of the eyes.",
+    "hair": "Dark brown hair cut to chin length in blunt ends, worn down and parted on the left side.",
+    "skin": "Olive skin tone with a matte finish and visible pores on the cheeks and nose",
+    "eyes": "Deep brown eyes with long lashes and a calm, steady gaze that holds contact without blinking quickly.",
+    "wardrobe": "A charcoal grey oversized wool coat over a rust-orange turtleneck sweater and dark indigo straight-leg jeans, paired with black leather ankle boots.",
+    "distinguishing": [],
+    "personality": "Private and observant, she speaks sparingly but with sharp wit; her humour is dry and delivered without smiling, revealing character through pauses rather than statements.; Warm"
+  },
+  "canonicalImage": {
+    "assetId": "gen-2293bffbe1ffde3ab7c8",
+    "version": 1,
+    "status": "DRAFT",
+    "engine": "Qwen-Image-2512 (30 steps, cfg 4)",
+    "seed": 877849611,
+    "check": {
+      "ok": true,
+      "notes": [
+        "full body in frame: head and feet inside the picture with margin"
+      ]
+    },
+    "jobId": "job-161dd107d7",
+    "file": "D:\\vewbox-data\\library\\image\\2026\\10\\gen-2293bffbe1ffde3ab7c8.a1.png"
+  },
+  "voice": {
+    "origin": "DESIGNED",
+    "label": "Studio-designed synthetic voice — not a real person",
+    "designId": "vd-ce8f84df14",
+    "description": "A smooth and slightly husky, mid-pitched female voice, about 33, speaking English at a slow, unhurried pace, close-microphone studio recording",
+    "designEngine": "voxcpm 2.0.3; model openbmb/VoxCPM2@32279ef sha256:f7f964cfa9da; torch 2.8.0+cu128",
+    "designModel": "openbmb/VoxCPM2",
+    "designSeed": 1478899842,
+    "referenceAssetId": "gen-dea88651da",
+    "referenceSha256": "ea72f1c1c3a8f330f4dc4fbeea3655f41506b0ba1e1d2586273ffc03e9a660e5",
+    "referenceText": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+    "englishEngine": "moss",
+    "englishCheckpoint": "OpenMOSS-Team/MOSS-TTS-v1.5",
+    "params": {
+      "seed": 1478899842,
+      "speed": 0.9,
+      "emotionAlpha": 1
+    },
+    "revision": 1,
+    "status": "ACTIVE",
+    "proof": {
+      "cer": 0.02,
+      "wer": 0.09090909090909091,
+      "text": "Hello. My name is Layla Haddad, and this is my voice.",
+      "heard": "Hello, my name is Laila Haddad, and this is my voice.",
+      "assetId": "gen-58e28e9648",
+      "coverage": 1,
+      "sampleId": "voice-4a8eccc4d2"
+    },
+    "languageProfiles": [
+      {
+        "engine": "moss",
+        "status": "PRIMARY",
+        "language": "EN"
+      },
+      {
+        "notes": [
+          "Iraqi dialect not yet verified by a native listener",
+          "designed synthetic seed speaking Iraqi: validation only — an Iraqi production voice waits for a consented Baghdadi recording",
+          "same person across languages not yet judged by a listener"
+        ],
+        "engine": "habibi",
+        "status": "REVIEW",
+        "dialect": "IRAQI_BAGHDADI",
+        "language": "AR",
+        "comparisonEngines": [
+          "moss"
+        ]
+      }
+    ],
+    "buildJob": "job-abab64437f"
+  },
+  "creativeAttempts": [
+    {
+      "type": "CREATE_CHARACTER",
+      "job": "job-64e4e669fd",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:create:A:2"
+    },
+    {
+      "type": "DESIGN_CHARACTER",
+      "job": "job-95fed61694",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "create:job-64e4e669fd:design"
+    },
+    {
+      "type": "CHARACTER_APPEARANCE",
+      "job": "job-161dd107d7",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "create:job-64e4e669fd:appearance"
+    },
+    {
+      "type": "VOICE_BUILD",
+      "job": "job-abab64437f",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "create:job-64e4e669fd:voice"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-51be7f97c6",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:en-1:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-c98956256b",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:en-2:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-6ed507591a",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:en-3:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-7f2d37f138",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:en-4:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-04d8624953",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:en-5:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-ef267dbd82",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-1:habibi"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-4fa5a5bc7b",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-1:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-d26b615624",
+      "status": "AWAITING_REVIEW",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-2:habibi"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-101c75e537",
+      "status": "AWAITING_REVIEW",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-2:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-8d069a9622",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-3:habibi"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-419ae6ebf4",
+      "status": "AWAITING_REVIEW",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-3:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-fc4e453753",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-4:habibi"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-df380e44c7",
+      "status": "COMPLETED",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-4:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-c6c43b81fa",
+      "status": "AWAITING_REVIEW",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-5:habibi"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-eb4fcb1ea4",
+      "status": "AWAITING_REVIEW",
+      "attempts": 1,
+      "key": "phase1:line:A:iq-5:moss"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-c4de5b3027",
+      "status": "COMPLETED",
+      "attempts": 2,
+      "key": "phase1:line:A:en-1:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-dad7fd7e06",
+      "status": "COMPLETED",
+      "attempts": 2,
+      "key": "phase1:line:A:en-2:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-6f5e288393",
+      "status": "COMPLETED",
+      "attempts": 2,
+      "key": "phase1:line:A:en-3:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-cea224876b",
+      "status": "COMPLETED",
+      "attempts": 2,
+      "key": "phase1:line:A:en-4:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-732afd4c45",
+      "status": "COMPLETED",
+      "attempts": 2,
+      "key": "phase1:line:A:en-5:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-29c5f12302",
+      "status": "AWAITING_REVIEW",
+      "attempts": 2,
+      "key": "phase1:line:A:iq-1:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-619df3f1b2",
+      "status": "AWAITING_REVIEW",
+      "attempts": 2,
+      "key": "phase1:line:A:iq-2:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-2c2b08087d",
+      "status": "AWAITING_REVIEW",
+      "attempts": 2,
+      "key": "phase1:line:A:iq-3:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-e1e270df7b",
+      "status": "AWAITING_REVIEW",
+      "attempts": 2,
+      "key": "phase1:line:A:iq-4:fireredtts3"
+    },
+    {
+      "type": "VOICE_PREVIEW",
+      "job": "job-9440264593",
+      "status": "AWAITING_REVIEW",
+      "attempts": 2,
+      "key": "phase1:line:A:iq-5:fireredtts3"
+    }
+  ],
+  "lines": [
+    {
+      "sampleId": "voice-4a8eccc4d2",
+      "assetId": "gen-58e28e9648",
+      "line": "proof",
+      "text": "Hello. My name is Layla Haddad, and this is my voice.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 4.48,
+      "jobId": "job-abab64437f",
+      "asr": {
+        "model": "whisper",
+        "heard": "Hello, my name is Laila Haddad, and this is my voice.",
+        "cer": 0.02,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": [
+          "heard by Whisper alone (Qwen3-ASR unavailable)"
+        ]
+      },
+      "level": {
+        "lufs": -20.44,
+        "truePeakDbtp": -5.07,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.7405,
+      "pitch": {
+        "median_hz": 222.5,
+        "p10_hz": 197,
+        "p90_hz": 255.5,
+        "range_semitones": 4.5,
+        "voiced_ratio": 0.779,
+        "breaks": 0
+      },
+      "qwenAsr": {
+        "heard": "Hello, my name is Layla Haddad, and this is my voice.",
+        "detectedLanguage": "English",
+        "cer": 0,
+        "coverage": 1,
+        "note": "heard after the job (its own check used Whisper alone)"
+      }
+    },
+    {
+      "sampleId": "voice-87ec65b686",
+      "assetId": "gen-579a0fc7d0",
+      "line": "en-1",
+      "text": "It's good to finally meet you.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 2.8,
+      "jobId": "job-51be7f97c6",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "It's good to finally meet you.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -21.45,
+        "truePeakDbtp": -4.59,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6377,
+      "pitch": {
+        "median_hz": 184.9,
+        "p10_hz": 169.6,
+        "p90_hz": 237.6,
+        "range_semitones": 5.84,
+        "voiced_ratio": 0.722,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-984874e49b",
+      "assetId": "gen-3787c577e3",
+      "line": "en-2",
+      "text": "Come in. You must be tired after that journey.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 3.6,
+      "jobId": "job-c98956256b",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "Come in. You must be tired after that journey.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.28,
+        "truePeakDbtp": -5.7,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6854,
+      "pitch": {
+        "median_hz": 217.4,
+        "p10_hz": 201.1,
+        "p90_hz": 245.4,
+        "range_semitones": 3.45,
+        "voiced_ratio": 0.69,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-c3a09522c2",
+      "assetId": "gen-af268aff6f",
+      "line": "en-3",
+      "text": "We need to leave before the storm reaches us.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 2.96,
+      "jobId": "job-6ed507591a",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "We need to leave before the storm reaches us.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.79,
+        "truePeakDbtp": -5.7,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.7535,
+      "pitch": {
+        "median_hz": 242.6,
+        "p10_hz": 198.4,
+        "p90_hz": 303.5,
+        "range_semitones": 7.36,
+        "voiced_ratio": 0.737,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-908728098d",
+      "assetId": "gen-3f29df4113",
+      "line": "en-4",
+      "text": "I kept every letter you sent me. Every single one.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 4.32,
+      "jobId": "job-7f2d37f138",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "I kept every letter you sent me, every single one.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.34,
+        "truePeakDbtp": -3.63,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8437,
+      "pitch": {
+        "median_hz": 208.8,
+        "p10_hz": 100.2,
+        "p90_hz": 229,
+        "range_semitones": 14.3,
+        "voiced_ratio": 0.808,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-69aad24268",
+      "assetId": "gen-163453396a",
+      "line": "en-5",
+      "text": "You know, the first time I sang on a real stage, my hands were shaking so badly I nearly dropped the microphone, but the moment the music started, all of that just disappeared.",
+      "language": "EN",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "PRODUCTION",
+      "durationSeconds": 12,
+      "jobId": "job-04d8624953",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "You know, the first time I sang on a real stage, my hands were shaking so badly I nearly dropped the microphone. But the moment the music started, all of that just disappeared.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.6,
+        "truePeakDbtp": -4.11,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8856,
+      "pitch": {
+        "median_hz": 234.3,
+        "p10_hz": 199.3,
+        "p90_hz": 295.2,
+        "range_semitones": 6.8,
+        "voiced_ratio": 0.674,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-d16978e5ce",
+      "assetId": "gen-c4de144d96",
+      "line": "iq-1",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "habibi",
+      "model": "Habibi-TTS Specialized IRQ (F5-TTS v1)",
+      "role": "PRODUCTION",
+      "durationSeconds": 3.979,
+      "jobId": "job-ef267dbd82",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "شلونك صار لي هواي ما شايفك.",
+        "cer": 0.04,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -18.1,
+        "truePeakDbtp": -2.55,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6258,
+      "pitch": {
+        "median_hz": 211.2,
+        "p10_hz": 93.5,
+        "p90_hz": 235.7,
+        "range_semitones": 16,
+        "voiced_ratio": 0.755,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-c3277fbbc4",
+      "assetId": "gen-10ce933f22",
+      "line": "iq-1",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "COMPARISON",
+      "durationSeconds": 3.84,
+      "jobId": "job-4fa5a5bc7b",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "شلونك صار لي هواية ما شايفك؟",
+        "cer": 0.04,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.03,
+        "truePeakDbtp": -3,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.609,
+      "pitch": {
+        "median_hz": 235.7,
+        "p10_hz": 193.7,
+        "p90_hz": 318.3,
+        "range_semitones": 8.6,
+        "voiced_ratio": 0.718,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-dbaa6bb3dc",
+      "assetId": "gen-c7b42b2b1a",
+      "line": "iq-2",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "habibi",
+      "model": "Habibi-TTS Specialized IRQ (F5-TTS v1)",
+      "role": "PRODUCTION",
+      "durationSeconds": 4.373,
+      "jobId": "job-d26b615624",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "قلت لك باصر نكعد نحفي ونشرب هاي.",
+        "cer": 0.133,
+        "coverage": 0.5,
+        "status": "REVIEW",
+        "reasons": [
+          "چ not confirmable by ASR: «باچر» heard «باصر», «نحچي» heard «نحفي», «چاي» heard «هاي» — a listener decides"
+        ]
+      },
+      "level": {
+        "lufs": -18.87,
+        "truePeakDbtp": -1,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.5705,
+      "pitch": {
+        "median_hz": 205.2,
+        "p10_hz": 93.5,
+        "p90_hz": 234.3,
+        "range_semitones": 15.9,
+        "voiced_ratio": 0.774,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "باچر: چ /tʃ/ not heard (heard: b aː s ɪ r)",
+          "نحچي: چ /tʃ/ not heard (heard: n a f iː)",
+          "چاي.: چ /tʃ/ not heard (heard: h aː)"
+        ]
+      }
+    },
+    {
+      "sampleId": "voice-d6f4d7dbd7",
+      "assetId": "gen-febb61e975",
+      "line": "iq-2",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "COMPARISON",
+      "durationSeconds": 3.68,
+      "jobId": "job-101c75e537",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "گلات لک بچنکاد نهچی و نشرب چای.",
+        "cer": 0.233,
+        "coverage": 0.333,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.33 < 0.85 (line)",
+          "CER 0.23 > 0.15",
+          "Qwen3-ASR detected Persian, not Arabic"
+        ]
+      },
+      "level": {
+        "lufs": -20.37,
+        "truePeakDbtp": -4.2,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.5895,
+      "pitch": {
+        "median_hz": 225,
+        "p10_hz": 179.6,
+        "p90_hz": 282.1,
+        "range_semitones": 7.81,
+        "voiced_ratio": 0.693,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "چاي.: چ /tʃ/ not heard (heard: s. ɑ5)"
+        ]
+      }
+    },
+    {
+      "sampleId": "voice-3049ff6f31",
+      "assetId": "gen-ee369d151e",
+      "line": "iq-3",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "habibi",
+      "model": "Habibi-TTS Specialized IRQ (F5-TTS v1)",
+      "role": "PRODUCTION",
+      "durationSeconds": 4.459,
+      "jobId": "job-8d069a9622",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "يمعود لا تشيل هم كل شيء يصير زين.",
+        "cer": 0.036,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -19.56,
+        "truePeakDbtp": -3.09,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6109,
+      "pitch": {
+        "median_hz": 216.1,
+        "p10_hz": 93.5,
+        "p90_hz": 245.5,
+        "range_semitones": 16.71,
+        "voiced_ratio": 0.753,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-6de76f126c",
+      "assetId": "gen-427cb2cb48",
+      "line": "iq-3",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "COMPARISON",
+      "durationSeconds": 3.6,
+      "jobId": "job-419ae6ebf4",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "يا معود لا تشيلهم كل شيء سير زين.",
+        "cer": 0.179,
+        "coverage": 0.714,
+        "status": "REVIEW",
+        "reasons": [
+          "coverage 0.71 < 0.85 (line)",
+          "CER 0.18 > 0.15"
+        ]
+      },
+      "level": {
+        "lufs": -21.51,
+        "truePeakDbtp": -4.34,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6115,
+      "pitch": {
+        "median_hz": 222.5,
+        "p10_hz": 192.5,
+        "p90_hz": 305.6,
+        "range_semitones": 8,
+        "voiced_ratio": 0.748,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-b040b16fb1",
+      "assetId": "gen-37f0d2e044",
+      "line": "iq-4",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "habibi",
+      "model": "Habibi-TTS Specialized IRQ (F5-TTS v1)",
+      "role": "PRODUCTION",
+      "durationSeconds": 4.608,
+      "jobId": "job-fc4e453753",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "هسا لازم نروح قبل لا يتغير الجو.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -19.47,
+        "truePeakDbtp": -3.81,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.5412,
+      "pitch": {
+        "median_hz": 208.8,
+        "p10_hz": 93.5,
+        "p90_hz": 234.3,
+        "range_semitones": 15.9,
+        "voiced_ratio": 0.806,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-6d6bffc76e",
+      "assetId": "gen-309c3141f8",
+      "line": "iq-4",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "COMPARISON",
+      "durationSeconds": 3.36,
+      "jobId": "job-df380e44c7",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "هسا لازم نروح قبل لا يتغير الجو.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.02,
+        "truePeakDbtp": -2.49,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6051,
+      "pitch": {
+        "median_hz": 213.6,
+        "p10_hz": 188.1,
+        "p90_hz": 263.6,
+        "range_semitones": 5.84,
+        "voiced_ratio": 0.735,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-e1fce548e4",
+      "assetId": "gen-b3cebf5224",
+      "line": "iq-5",
+      "text": "أول مرة غنيت گدام ناس، چانت إيدي ترجف، بس من بدت الموسيقى نسيت كلشي وصرت بس أغني.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "habibi",
+      "model": "Habibi-TTS Specialized IRQ (F5-TTS v1)",
+      "role": "PRODUCTION",
+      "durationSeconds": 11.349,
+      "jobId": "job-c6c43b81fa",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "هاقة أول مرة غنيت إدا مناس شانت إيدي ترتجف بس من بدت الموسيقى نسيت كل شيء وصرت بس أغني.",
+        "cer": 0.141,
+        "coverage": 0.765,
+        "status": "REVIEW",
+        "reasons": [
+          "coverage 0.76 < 0.85 (line)"
+        ]
+      },
+      "level": {
+        "lufs": -20.82,
+        "truePeakDbtp": -3.26,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.612,
+      "pitch": {
+        "median_hz": 217.4,
+        "p10_hz": 93.5,
+        "p90_hz": 259.7,
+        "range_semitones": 17.68,
+        "voiced_ratio": 0.68,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "گدام: گ /ɡ/ not heard (heard: i d a m)",
+          "چانت: چ /tʃ/ not heard (heard: ʃ aː n ɛ t)"
+        ]
+      }
+    },
+    {
+      "sampleId": "voice-64ec3e6365",
+      "assetId": "gen-9d3860b641",
+      "line": "iq-5",
+      "text": "أول مرة غنيت گدام ناس، چانت إيدي ترجف، بس من بدت الموسيقى نسيت كلشي وصرت بس أغني.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "moss",
+      "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+      "role": "COMPARISON",
+      "durationSeconds": 7.92,
+      "jobId": "job-eb4fcb1ea4",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "أول مرة غنيت كدام ناس كانت إيري ترجف بس من بدأت الموسيقى نسيت كل شيء وصرت بس أغنية.",
+        "cer": 0.064,
+        "coverage": 0.765,
+        "status": "REVIEW",
+        "reasons": [
+          "coverage 0.76 < 0.85 (line)"
+        ]
+      },
+      "level": {
+        "lufs": -21.52,
+        "truePeakDbtp": -3.05,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.6239,
+      "pitch": {
+        "median_hz": 283.5,
+        "p10_hz": 218.6,
+        "p90_hz": 353.1,
+        "range_semitones": 8.3,
+        "voiced_ratio": 0.788,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "گدام: گ /ɡ/ not heard (heard: s k a d a m)",
+          "چانت: چ /tʃ/ not heard (heard: ʃ aː n a d)"
+        ]
+      }
+    },
+    {
+      "sampleId": "voice-a517e73aa4",
+      "assetId": "gen-c7356f0508",
+      "line": "en-1",
+      "text": "It's good to finally meet you.",
+      "language": "EN",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 2.24,
+      "jobId": "job-c4de5b3027",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "It's good to finally meet you.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.28,
+        "truePeakDbtp": -3.68,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8236,
+      "pitch": {
+        "median_hz": 235.7,
+        "p10_hz": 204.1,
+        "p90_hz": 259.7,
+        "range_semitones": 4.17,
+        "voiced_ratio": 0.582,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-1d3dcb0420",
+      "assetId": "gen-62fb8299bf",
+      "line": "en-2",
+      "text": "Come in. You must be tired after that journey.",
+      "language": "EN",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 3.68,
+      "jobId": "job-dad7fd7e06",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "Come in. You must be tired after that journey.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -19.78,
+        "truePeakDbtp": -3.73,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8627,
+      "pitch": {
+        "median_hz": 210,
+        "p10_hz": 190.8,
+        "p90_hz": 238.4,
+        "range_semitones": 3.86,
+        "voiced_ratio": 0.619,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-7a5dc32d77",
+      "assetId": "gen-dedeb3147a",
+      "line": "en-3",
+      "text": "We need to leave before the storm reaches us.",
+      "language": "EN",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 3.04,
+      "jobId": "job-6f5e288393",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "We need to leave before the storm reaches us.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -19.75,
+        "truePeakDbtp": -6.32,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8093,
+      "pitch": {
+        "median_hz": 240.5,
+        "p10_hz": 207.7,
+        "p90_hz": 257.9,
+        "range_semitones": 3.75,
+        "voiced_ratio": 0.723,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-bce6b5a3bd",
+      "assetId": "gen-4c110766c0",
+      "line": "en-4",
+      "text": "I kept every letter you sent me. Every single one.",
+      "language": "EN",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 4,
+      "jobId": "job-cea224876b",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "I kept every letter you sent me, every single one.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -20.47,
+        "truePeakDbtp": -2.9,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8817,
+      "pitch": {
+        "median_hz": 231.6,
+        "p10_hz": 184.9,
+        "p90_hz": 265.3,
+        "range_semitones": 6.25,
+        "voiced_ratio": 0.741,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-0f63789412",
+      "assetId": "gen-5577999633",
+      "line": "en-5",
+      "text": "You know, the first time I sang on a real stage, my hands were shaking so badly I nearly dropped the microphone, but the moment the music started, all of that just disappeared.",
+      "language": "EN",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 11.36,
+      "jobId": "job-732afd4c45",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "You know, the first time I sang on a real stage, my hands were shaking so badly I nearly dropped the microphone. But the moment the music started, all of that just disappeared.",
+        "cer": 0,
+        "coverage": 1,
+        "status": "PASS",
+        "reasons": []
+      },
+      "level": {
+        "lufs": -19.92,
+        "truePeakDbtp": -1.57,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8434,
+      "pitch": {
+        "median_hz": 234.3,
+        "p10_hz": 198.2,
+        "p90_hz": 261.5,
+        "range_semitones": 4.8,
+        "voiced_ratio": 0.702,
+        "breaks": 0
+      }
+    },
+    {
+      "sampleId": "voice-9c5ca1d89f",
+      "assetId": "gen-35a8f71ab7",
+      "line": "iq-1",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 3.52,
+      "jobId": "job-29c5f12302",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "Schlönck sagde, han var tændt af skyfuk.",
+        "cer": 1.4,
+        "coverage": 0,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.00 < 0.85 (line)",
+          "CER 1.40 > 0.15",
+          "Qwen3-ASR detected Danish, not Arabic"
+        ]
+      },
+      "level": {
+        "lufs": -20.12,
+        "truePeakDbtp": -5.4,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8269,
+      "pitch": {
+        "median_hz": 234.3,
+        "p10_hz": 196,
+        "p90_hz": 278,
+        "range_semitones": 6.05,
+        "voiced_ratio": 0.579,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-6e9c36bb6f",
+      "assetId": "gen-355e51ce1d",
+      "line": "iq-2",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 4,
+      "jobId": "job-619df3f1b2",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "Gultalk bajar nak ad natchi and natcharub jai.",
+        "cer": 1.333,
+        "coverage": 0,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.00 < 0.85 (line)",
+          "CER 1.33 > 0.15",
+          "Qwen3-ASR detected English, not Arabic"
+        ]
+      },
+      "level": {
+        "lufs": -19.33,
+        "truePeakDbtp": -1.42,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8097,
+      "pitch": {
+        "median_hz": 237,
+        "p10_hz": 193.7,
+        "p90_hz": 261.5,
+        "range_semitones": 5.2,
+        "voiced_ratio": 0.681,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "باچر: چ /tʃ/ not heard (heard: b aː dʒ ə n)",
+          "نحچي: چ /tʃ/ not heard (heard: n a iː)",
+          "چاي.: چ /tʃ/ not heard (heard: ts. ɑ5)"
+        ]
+      }
+    },
+    {
+      "sampleId": "voice-5145b28752",
+      "assetId": "gen-111075ca77",
+      "line": "iq-3",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 3.68,
+      "jobId": "job-2c2b08087d",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "لمزود لا تشيلهم كل شيء سينزين.",
+        "cer": 0.286,
+        "coverage": 0.571,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.57 < 0.85 (line)",
+          "CER 0.29 > 0.15"
+        ]
+      },
+      "level": {
+        "lufs": -19.84,
+        "truePeakDbtp": -4.28,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8602,
+      "pitch": {
+        "median_hz": 224.4,
+        "p10_hz": 194,
+        "p90_hz": 264.1,
+        "range_semitones": 5.34,
+        "voiced_ratio": 0.667,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-64e8c04467",
+      "assetId": "gen-6c8a1403bb",
+      "line": "iq-4",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 3.68,
+      "jobId": "job-e1e270df7b",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "Hassah lands to right. I and Monty come out again.",
+        "cer": 1.433,
+        "coverage": 0,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.00 < 0.85 (line)",
+          "CER 1.43 > 0.15",
+          "Qwen3-ASR detected English, not Arabic"
+        ]
+      },
+      "level": {
+        "lufs": -19.11,
+        "truePeakDbtp": -3.57,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.7617,
+      "pitch": {
+        "median_hz": 231.6,
+        "p10_hz": 199.1,
+        "p90_hz": 261.8,
+        "range_semitones": 4.74,
+        "voiced_ratio": 0.688,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "NOT_APPLICABLE",
+        "flags": []
+      }
+    },
+    {
+      "sampleId": "voice-f0585cc2ef",
+      "assetId": "gen-efb2c3f941",
+      "line": "iq-5",
+      "text": "أول مرة غنيت گدام ناس، چانت إيدي ترجف، بس من بدت الموسيقى نسيت كلشي وصرت بس أغني.",
+      "language": "AR",
+      "dialect": "IRAQI_BAGHDADI",
+      "engine": "fireredtts3",
+      "model": "FireRedTTS3-Base",
+      "role": "COMPARISON",
+      "durationSeconds": 9.12,
+      "jobId": "job-9440264593",
+      "asr": {
+        "model": "qwen3-asr",
+        "heard": "اول تاج گنات کدام ناس چاند ادی تجروفا بسبن بهت اموزی کار انسیت ه کولشی انسورت بس امی",
+        "cer": 0.359,
+        "coverage": 0.235,
+        "status": "FAIL",
+        "reasons": [
+          "coverage 0.24 < 0.85 (line)",
+          "CER 0.36 > 0.15",
+          "Qwen3-ASR detected Persian, not Arabic"
+        ]
+      },
+      "level": {
+        "lufs": -19.82,
+        "truePeakDbtp": -2,
+        "clippedSamples": 0
+      },
+      "referenceSimilarity": 0.8385,
+      "pitch": {
+        "median_hz": 225,
+        "p10_hz": 201.6,
+        "p90_hz": 244,
+        "range_semitones": 3.3,
+        "voiced_ratio": 0.606,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "گدام: گ /ɡ/ not heard (heard: k d aː m)"
+        ]
+      }
+    }
+  ],
+  "crossLanguage": {
+    "note": "Supporting evidence only. ECAPA is VoxCeleb-trained and language-sensitive: compare each cross-language number with the same-language baseline, never with a fixed threshold. Perceived age, gender, vocal weight and \"same person\" are the listener’s.",
+    "ecapa": {
+      "English (moss) ↔ English (moss) — same-language baseline": 0.721,
+      "English (fireredtts3) ↔ English (fireredtts3) — same-language baseline": 0.809,
+      "English (moss) ↔ Iraqi (moss)": 0.558,
+      "English (moss) ↔ Iraqi (habibi)": 0.552,
+      "English (moss) ↔ Iraqi (fireredtts3)": 0.712,
+      "English (fireredtts3) ↔ Iraqi (fireredtts3) — one engine, both languages": 0.803,
+      "Iraqi (moss) ↔ Iraqi (habibi)": 0.67,
+      "Iraqi (moss) ↔ Iraqi (fireredtts3)": 0.603,
+      "Iraqi (habibi) ↔ Iraqi (fireredtts3)": 0.584
+    },
+    "medianPitchHz": {
+      "reference": 234.3,
+      "English (moss)": 217.4,
+      "English (fireredtts3)": 234.3,
+      "Iraqi (moss)": 225,
+      "Iraqi (habibi)": 211.2,
+      "Iraqi (fireredtts3)": 231.6
+    },
+    "pitchShiftSemitones": {
+      "English (moss) → Iraqi (moss)": 0.595,
+      "English (moss) → Iraqi (habibi)": -0.501,
+      "English (moss) → Iraqi (fireredtts3)": 1.095
+    }
+  }
+}

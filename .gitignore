@@ -33,6 +33,13 @@ docs/evidence/**
 !docs/evidence/acceptance-v1/resume.json
 !docs/evidence/model-eval-2026-10/llm/*/design-run*.json
 !docs/evidence/model-eval-2026-10/voice-en/one-word/results.json
+# the Phase 1 / Character A voice records (text only: metrics, readmes, the long line) — the clips stay local
+!docs/evidence/phase1/*.json
+!docs/evidence/character-a-voice/*.json
+!docs/evidence/character-a-voice/**/*.json
+!docs/evidence/character-a-voice/**/*.md
+!docs/evidence/model-eval-2026-10/images-2512-bf16-phase1/*.json
+!docs/evidence/model-eval-2026-10/images-2512-bf16-phase1/*.md
 
 # --- generated media under docs/ is never committed (producer's rule, 2026-10-05); the reports beside it are.
 # App samples (public/sample) and test fixtures (tests/fixtures) are tracked on purpose.

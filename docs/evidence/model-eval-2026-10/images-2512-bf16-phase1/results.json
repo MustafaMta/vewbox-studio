@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-09",
+  "task": "Qwen-Image-2512 fp8_e4m3fn (shipping) vs bf16 (candidate) on the Phase 1 characters and one location plate - LARGE-IMAGE-MODELS-2026-10.md section 8 rows 1-3 and 7; one generation per test per arm, no best-of-N, no seed search",
+  "status": "NOT_RUN - the bf16 weight is absent from the model store (see REPORT.md); no GPU work was started, nothing written to the studio database or library",
+  "bf16Weight": {
+    "file": "diffusion_models/qwen_image_2512_bf16.safetensors",
+    "manifestGroup": "eval-qwen-image-2512-bf16",
+    "expectedBytes": 40861031488,
+    "expectedSha256": "cbf55390fff27dbc785046d7007b04e0c5dd7421e7ef128f2831eacb53a8e075",
+    "checked": {
+      "comfyui /models/diffusion_models (GET :8188/models/diffusion_models)": ["qwen_image_2.1_int8_convrot.safetensors", "qwen_image_2512_fp8_e4m3fn.safetensors", "qwen_image_edit_2511_fp8mixed.safetensors"],
+      "store /models/comfyui/diffusion_models (ls inside vewbox-comfyui-1)": "no qwen_image_2512_bf16.safetensors; only the HF cache stubs .hf/.cache/huggingface/download/split_files/diffusion_models/qwen_image_2512_bf16.safetensors.metadata and .lock remain",
+      "store /models/.manifest-state.json": "no entry for qwen_image_2512_bf16 and no eval-qwen-* group",
+      "store .incomplete blobs": "two (22.9 GB, 3.7 GB) = the paused H3 BF16 tier, not this file",
+      "retired volumes": "vewbox_models mounts /run/desktop/mnt/host/wsl/models/.retired-volume-DO-NOT-USE (no such directory); volexar-studio_models 0 B; vewbox_models_store absent from docker system df"
+    },
+    "lastKnownRun": "docs/research/MODEL-EVAL-2026-10.md section 10.3 (2026-10-06): 'can be deleted from the store' - it was"
+  },
+  "harness": {
+    "recovered": "scripts/model-eval-images.ts restored byte-exact from commit c24ef3a (blob f6ed2a198c94fbd7c8323e461ef90d17155bb76e), untracked, read-only use; its 2512bf arm swaps node 1 unet_name to qwen_image_2512_bf16.safetensors on the studio's own qwenCanonicalImage graph",
+    "note": "the harness draws its own C1-C3 sheets; for rows 1-3 the Phase 1 characters' stored prompt, negative and seed (below) must be fed to the same graph (qwenCanonicalImage({prompt, negative, seed, quality: true}) -> bf16()) - the prompts are copied verbatim from the assets' provenance so no rebuild can drift"
+  },
+  "rows": {
+    "1": {
+      "test": "Realistic canonical character", "character": "A Layla Haddad", "characterId": "char-20674af023", "style": "REALISTIC",
+      "fp8": { "arm": "fp8_e4m3fn (shipping) = the existing canonical image, not regenerated", "assetId": "gen-2293bffbe1ffde3ab7c8", "libraryPath": "D:/vewbox-data/library/image/2026/10/gen-2293bffbe1ffde3ab7c8.a1.png", "sha256": "63d85fdc46b1b4cb69d3178d44e5fe4f30b06e94b14b383485e367c29b714272", "seed": 877849611, "size": "928x1664", "steps": 30, "cfg": 4, "engineMs": 53935, "workflowVersion": "5ab9b1fdab562470", "framing": "ok", "proxy": "fp8-canonical-proxies/A-layla-haddad-fp8-gen-2293bffbe1ffde3ab7c8.jpg" },
+      "bf16": { "status": "NOT_RUN", "reason": "weight absent" }
+    },
+    "2": {
+      "test": "Anime canonical character", "character": "B Tariq Al-Rawi", "characterId": "char-14aca40511", "style": "ANIME",
+      "fp8": { "arm": "fp8_e4m3fn (shipping) = the existing canonical image, not regenerated", "assetId": "gen-11a8d4266df3d30c4830", "libraryPath": "D:/vewbox-data/library/image/2026/10/gen-11a8d4266df3d30c4830.a1.png", "sha256": "cafd07e3df0fe5a08b92ad5631d11c09467c9094cb157db771aab0c476000b4d", "seed": 1276583457, "size": "928x1664", "steps": 30, "cfg": 4, "engineMs": 53077, "workflowVersion": "5ab9b1fdab562470", "framing": "ok", "proxy": "fp8-canonical-proxies/B-tariq-al-rawi-fp8-gen-11a8d4266df3d30c4830.jpg" },
+      "bf16": { "status": "NOT_RUN", "reason": "weight absent" }
+    },
+    "3": {
+      "test": "Cartoon canonical character", "character": "C Karim Al-Dawoud", "characterId": "char-e911157bea", "style": "CARTOON",
+      "fp8": { "arm": "fp8_e4m3fn (shipping) = the existing canonical image, not regenerated", "assetId": "gen-42db79d32a4c0d32602a", "libraryPath": "D:/vewbox-data/library/image/2026/10/gen-42db79d32a4c0d32602a.a1.png", "sha256": "b2b43677362912ede246554b747f9ff17b04a51879aac6c676a05f950f155c57", "seed": 443696157, "size": "928x1664", "steps": 30, "cfg": 4, "engineMs": 56339, "workflowVersion": "5ab9b1fdab562470", "framing": "ok", "proxy": "fp8-canonical-proxies/C-karim-al-dawoud-fp8-gen-42db79d32a4c0d32602a.jpg" },
+      "bf16": { "status": "NOT_RUN", "reason": "weight absent" }
+    },
+    "4": { "test": "Same-character edit", "status": "NOT_APPLICABLE", "reason": "Qwen-Image-Edit-2511 test; the 2512 DiT precision does not touch it" },
+    "5": { "test": "Wardrobe edit", "status": "NOT_APPLICABLE", "reason": "Qwen-Image-Edit-2511 test; the 2512 DiT precision does not touch it" },
+    "6": { "test": "Expression edit", "status": "NOT_APPLICABLE", "reason": "Qwen-Image-Edit-2511 test; the 2512 DiT precision does not touch it" },
+    "7": {
+      "test": "Recurring location plate (the generator's part)", "status": "NOT_RUN",
+      "reason": "both arms would be drawn at one seed through the studio's plate path (locationPrompt(l, 'MASTER', tod) + qwenTextToImage 1344x768, NEG + ', people, person'); without the bf16 arm an fp8-only plate is half a test and was not drawn (no GPU work outside the comparison)",
+      "plannedPrompt": "a Baghdad tea house interior, late afternoon, wide establishing master plate, through locationPrompt of a Location {kind: INTERIOR, style: REALISTIC, lighting: [AFTERNOON]}; same seed both arms"
+    },
+    "8": { "test": "Multi-reference composition", "status": "NOT_APPLICABLE", "reason": "Qwen-Image-Edit-2511 test; the 2512 DiT precision does not touch it" }
+  },
+  "measurementsPlanned": ["engine ms (ComfyUI) and wall ms, cold first load and warm", "nvidia-smi memory.used peak (250 ms samples)", "docker stats vewbox-comfyui-1 MemUsage peak", "SFace cosine bf16 vs fp8 canonical through asr POST /qa/identity (1-s still clip, one reference per call, as scripts/identity-drift.ts and the harness's sface())", "full-size side-by-side and 500x560 face crops as PNG"],
+  "standingVerdict": "docs/research/MODEL-EVAL-2026-10.md section 10.3 (2026-10-06, C1-C3, seeds 970007/970008): same picture for the same seed, no visible face/skin/hair/line gain at 500x560, warm 43-44 s vs 42-43 s, cold 98 s, card 31.5-31.7 GB vs 28.9-30.3 GB, comfyui RAM 48.7-48.8 GiB vs 29.1-29.9 GiB - NOT PROMOTED"
+}

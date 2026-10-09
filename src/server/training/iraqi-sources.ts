@@ -54,7 +54,8 @@ const exists = (f: string) => fs.stat(f).then(() => true, () => false);
  *  report shows how much of the hour is natural speech (the directive §10). */
 function kharrufa(subdir: string): SourceAdapter['utterances'] {
   return async function* (rawDir: string) {
-    const base = path.join(rawDir, 'extracted', subdir);
+    // both sources read the one expanded zip under raw/iraqi-dialect-tts-corpus (the MSA source has no raw folder of its own)
+    const base = path.join(path.dirname(rawDir), 'iraqi-dialect-tts-corpus', 'extracted', subdir);
     const meta = path.join(base, 'metadata.txt');
     const drills = new Set<string>();
     try { for (const line of (await fs.readFile(path.join(base, 'generated_metadata.txt'), 'utf8')).split('\n')) { const t = line.split('|')[1]?.trim(); if (t) drills.add(t.replace(/^﻿/, '')); } } catch { /* no drill list */ }

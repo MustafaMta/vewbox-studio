@@ -1,0 +1,160 @@
+{
+  "identity": {
+    "revision": 1,
+    "origin": "DESIGNED",
+    "designId": "vd-ce8f84df14",
+    "seedSha256": "ea72f1c1c3a8f330f4dc4fbeea3655f41506b0ba1e1d2586273ffc03e9a660e5",
+    "profiles": [
+      {
+        "engine": "moss",
+        "status": "PRIMARY",
+        "language": "EN"
+      },
+      {
+        "notes": [
+          "Iraqi dialect not yet verified by a native listener",
+          "designed synthetic seed speaking Iraqi: validation only — an Iraqi production voice waits for a consented Baghdadi recording",
+          "same person across languages not yet judged by a listener"
+        ],
+        "engine": "habibi",
+        "status": "REVIEW",
+        "dialect": "IRAQI_BAGHDADI",
+        "language": "AR",
+        "comparisonEngines": [
+          "moss"
+        ]
+      }
+    ]
+  },
+  "1-iraqi-natural": {
+    "engine": "vewbox-iq",
+    "model": "Chatterbox Multilingual V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.08,
+      "wer": 0.6,
+      "heard": "شلونك صار لي هواية ما شيفك؟",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.80 < 0.85 (line)"
+      ],
+      "coverage": 0.8,
+      "heardReference": "شلونك؟ صار لي هواية ما شايفك.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.97,
+      "clipped": 0,
+      "truePeakDbtp": -3.13,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.5943
+    },
+    "durationSeconds": 4.04
+  },
+  "2-iraqi-hard": {
+    "engine": "vewbox-iq",
+    "model": "Chatterbox Multilingual V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.23333333333333334,
+      "wer": 0.6666666666666666,
+      "heard": "لثل كبائر نكعد نحى ونشرب ساي.",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.33 < 0.85 (line)",
+        "CER 0.23 > 0.15",
+        "چ not confirmable by ASR: «نحچي» heard «نحى», «چاي» heard «ساي» — a listener decides"
+      ],
+      "coverage": 0.3333333333333333,
+      "heardReference": "لتلكفاير نقعد نحي ونشرب وصاي.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.98,
+      "clipped": 0,
+      "truePeakDbtp": -3.09,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.5563
+    },
+    "durationSeconds": 3.16
+  },
+  "3-iraqi-emotional": {
+    "engine": "vewbox-iq",
+    "model": "Chatterbox Multilingual V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.12195121951219512,
+      "wer": 0.7,
+      "heard": "يا معود لا تشيرهم، أني يمكن وكل شيء راح يصير زين.",
+      "status": "FAIL",
+      "reasons": [
+        "coverage 0.50 < 0.85 (line)"
+      ],
+      "coverage": 0.5,
+      "heardReference": "يا معود لا تشيل هم. آني يمكي وكل شي، راح يصير زين.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.91,
+      "clipped": 0,
+      "truePeakDbtp": -0.99,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.6
+    },
+    "durationSeconds": 5.52
+  },
+  "4-iraqi-long": {
+    "engine": "vewbox-iq",
+    "model": "Chatterbox Multilingual V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.12790697674418605,
+      "wer": 0.5,
+      "heard": "ياك، شلونك؟ جايتي عندنا باق. هسه هو كل شيء ما ذنزين، بس ماكو وقت. لتلي أمي إنه لازم تجيبين الشاي.",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.67 < 0.85 (line)",
+        "چ not confirmable by ASR: «باچر» heard «باق» — a listener decides"
+      ],
+      "coverage": 0.6666666666666666,
+      "heardReference": "ياك، شو لونك؟ جيتي عندنا بائر؟ هسه هو كان شي ماضي زين، بس ماكو وقت، لتلي أمي إنه لازم تجيبين الشاي.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.49,
+      "clipped": 0,
+      "truePeakDbtp": -1.45,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.5943
+    },
+    "durationSeconds": 10.08
+  },
+  "5-english-identity": {
+    "engine": "vewbox-iq",
+    "model": "Chatterbox Multilingual V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": true,
+      "asr": "qwen3-asr",
+      "cer": 0,
+      "wer": 0,
+      "heard": "I told you we'd make it. Sit down and let me explain.",
+      "status": "PASS",
+      "reasons": [],
+      "coverage": 1,
+      "heardReference": "I told you we'd make it. Sit down and let me explain.",
+      "detectedLanguage": "English"
+    },
+    "measured": {
+      "lufs": -19.64,
+      "clipped": 0,
+      "truePeakDbtp": -0.99,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.8043
+    },
+    "durationSeconds": 4.04
+  }
+}
