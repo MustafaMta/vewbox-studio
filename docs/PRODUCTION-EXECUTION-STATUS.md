@@ -134,6 +134,16 @@ Review package: `/characters/review` (and Voice Studio → Character voices); ma
   comparison is language-sensitive, so this neither proves nor disproves "same person" — it is why the listening
   comparison exists.
 
+## Model inventory — the source of truth (2026-10-09)
+
+Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as
+PRESENT_VERIFIED only when it physically exists in the store with the manifest's byte size and a verified sha256 equal
+to the manifest's; otherwise PRESENT_UNVERIFIED (`-Hash` verifies it), PARTIAL (the resumable blob's bytes), QUEUED,
+MISSING or HISTORICAL_STALE (a state record whose file is gone — pruned with `-PruneStale`). Nothing is downloaded by
+it. First run: the Qwen-Image-2512 bf16 record was stale (pruned); H3 BF16 tier PARTIAL 27.59 / 79.78 GiB (34.6 %);
+FireRedTTS3-Base PARTIAL; orphans ≈ 10.4 GiB of IndexTTS 2.5 (the English engine MOSS replaced) and ≈ 1 GiB of unlisted
+LoRAs — deletion candidates for the producer. Output: `var/model-inventory.json`.
+
 ## Large-model policy (the producer's directive, 2026-10-09) — research done, downloads in progress
 
 | Role | Research | Outcome |
