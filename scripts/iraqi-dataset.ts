@@ -37,7 +37,9 @@ export interface PreparedUtterance {
   accepted: boolean; rejectedWhy?: string;
 }
 
-export const LIMITS = { minSeconds: 0.6, maxSeconds: 20, maxTruePeakDbtp: -0.1, minLufs: -35, maxLufs: -8, minSnrDb: 15 } as const;
+// maxSeconds: Chatterbox generates at most 40 s (max_new_tokens 1000); the Omnilingual rows run 15–40 s and lost 1,829 of
+// 2,096 to a 20 s cap on the first pass (2026-10-10)
+export const LIMITS = { minSeconds: 0.6, maxSeconds: 40, maxTruePeakDbtp: -0.1, minLufs: -35, maxLufs: -8, minSnrDb: 15 } as const;
 
 const dir = (d: (typeof DIRS)[number], ...rest: string[]) => path.join(TRAINING_ROOT, d, ...rest);
 const arg = (name: string, fallback?: string) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
@@ -61,6 +63,7 @@ async function prepare(source: string) {
   const { sourceAdapter } = await import('@/server/training/iraqi-sources');
   const { measureUtterance, toTraining } = await import('@/server/training/iraqi-audio');
   const { normaliseIraqi } = await import('@/server/training/iraqi-text-normalise');
+  const { pronouncedSpelling } = await import('@/server/providers/iraqi-g2p');
   const adapter = sourceAdapter(source);
   const limit = Number(arg('limit', '0')) || 0;
   const out = dir('prepared', source);
@@ -87,7 +90,11 @@ async function prepare(source: string) {
     if (!rejectedWhy && !m.speech) rejectedWhy = 'no speech found';
     if (m.music) flags.push('music-suspected');
     if (!u.transcript.trim()) rejectedWhy = rejectedWhy ?? 'no transcript';
-    const normalised = normaliseIraqi(u.transcript);
+    // the engine-facing training transcript: normalised, then in PRONOUNCED Iraqi spelling (گ چ پ ڤ where the lexicon
+    // knows the word is sounded that way) — one spelling per sound across sources; the original transcript stays on the record
+    const spelled = pronouncedSpelling(normaliseIraqi(u.transcript));
+    const normalised = spelled.text;
+    if (spelled.changes.length) flags.push(`respelled:${spelled.changes.length}`);
     const file = path.join(out, `${id}.wav`);
     let sha256 = '', sampleRate = m.sampleRate, channels = m.channels;
     if (!rejectedWhy) { await toTraining(u.audio, file); sha256 = await sha256File(file); sampleRate = 24000; channels = 1; }

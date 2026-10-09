@@ -17,7 +17,8 @@ describe('the Kharrufa corpus adapter', () => {
   it('reads metadata.txt (file|transcript|count), one speaker, and flags the phoneme-drill sentences', async () => {
     const os = await import('node:os'); const fs = await import('node:fs/promises'); const path = await import('node:path');
     const { sourceAdapter } = await import('@/server/training/iraqi-sources');
-    const raw = await fs.mkdtemp(path.join(os.tmpdir(), 'kharrufa-'));
+    // both Kharrufa sources read the one expanded zip under raw/iraqi-dialect-tts-corpus
+    const raw = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'kharrufa-')), 'iraqi-dialect-tts-corpus');
     const base = path.join(raw, 'extracted', 'ar-IQ_hayder');
     await fs.mkdir(path.join(base, 'audio_files'), { recursive: true });
     await fs.writeFile(path.join(base, 'metadata.txt'), '﻿a.wav|تَڤَّڤَچَ وَتَڤِّڤَچِ|12\nb.wav|شلونك؟ صارلي هواية ما شايفك|26\n', 'utf8');

@@ -109,6 +109,48 @@ export function pronounce(text: string): Pronunciation {
   return { original: text, engineText: engine, words, ipa: parts.join(' ').replace(/\s+\|/g, ' |').trim() };
 }
 
+/** PRONOUNCED IRAQI SPELLING for the ENGINE-FACING training transcript (the research decision: grapheme input, one letter
+ *  per sound — گ چ پ ڤ as sounded). A corpus written in standard orthography (the Omnilingual rows: قلت، كان، باكر) is
+ *  respelled WORD BY WORD only where the lexicon knows the Baghdadi word (قلت → گلت, كان → چان, باكر → باچر, شاي → چاي), with
+ *  the article and the common clitics around it; every other word is left as written (a ق that may be /q/ stays). The
+ *  dialogue a producer writes is NEVER respelled (engineText): this is for training data only. Pure. */
+const STANDARD_OF: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const w of Object.keys(IRAQI_LEXICON)) {
+    if (!/[گچپڤ]/.test(w)) continue;
+    const std = w.replace(/گ/g, 'ق').replace(/چ/g, 'ك').replace(/پ/g, 'ب').replace(/ڤ/g, 'ف');
+    if (std !== w && !(std in m)) m[std] = w;
+  }
+  // a few words the standard orthography spells with another letter again
+  m['باكر'] = 'باچر'; m['قدام'] = 'گدام'; m['قعد'] = 'گعد'; m['يقعد'] = 'يگعد'; m['نقعد'] = 'نگعد'; m['شاي'] = 'چاي';
+  return m;
+})();
+export function pronouncedSpelling(text: string): { text: string; changes: Array<{ from: string; to: string }> } {
+  const changes: Array<{ from: string; to: string }> = [];
+  const out = text.split(/(\s+)/).map((tok) => {
+    if (!/[\p{L}]/u.test(tok)) return tok;
+    const m = /^([^\p{L}\p{M}]*)([\p{L}\p{M}]+)([^\p{L}\p{M}]*)$/u.exec(tok);
+    if (!m) return tok;
+    const bare = letters(m[2]);
+    const spelled = respellWord(bare);
+    if (spelled === bare) return tok;
+    changes.push({ from: bare, to: spelled });
+    return `${m[1]}${spelled}${m[3]}`;
+  }).join('');
+  return { text: out, changes };
+}
+function respellWord(bare: string): string {
+  if (STANDARD_OF[bare]) return STANDARD_OF[bare];
+  for (const p of PREFIXES) {
+    if (!bare.startsWith(p) || bare.length <= p.length + 1) continue;
+    const rest = bare.slice(p.length);
+    if (STANDARD_OF[rest]) return p + STANDARD_OF[rest];
+    for (const s of SUFFIXES) { if (rest.endsWith(s) && rest.length > s.length + 1) { const stem = rest.slice(0, -s.length); if (STANDARD_OF[stem]) return p + STANDARD_OF[stem] + s; } }
+  }
+  for (const s of SUFFIXES) { if (bare.endsWith(s) && bare.length > s.length + 1) { const stem = bare.slice(0, -s.length); if (STANDARD_OF[stem]) return STANDARD_OF[stem] + s; } }
+  return bare;
+}
+
 /** The words of a line whose Iraqi realisation the regression must confirm (چ گ پ ڤ, and ق by its list). */
 export function dialectWords(text: string): Array<{ word: string; must: string[] }> {
   return pronounce(text).words.filter((w) => /[چگپڤق]/.test(w.word)).map((w) => ({ word: w.word, must: [...new Set([...(w.word.includes('چ') ? ['tʃ'] : []), ...(w.word.includes('گ') ? ['ɡ'] : []), ...(w.word.includes('پ') ? ['p'] : []), ...(w.word.includes('ڤ') ? ['v'] : []), ...(w.word.includes('ق') ? [w.ipa.includes('q') ? 'q' : w.ipa.includes('k') && !w.ipa.includes('ɡ') ? 'k' : 'ɡ'] : [])])] }));

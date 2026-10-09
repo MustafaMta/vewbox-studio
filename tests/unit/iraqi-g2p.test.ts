@@ -44,6 +44,17 @@ describe('Iraqi G2P', () => {
     expect(engineText('گلتلك‏ باچر  نكعد')).toBe('گلتلك باچر نكعد');
     expect(pronounce('كلشي يصير زين').engineText).toBe('كلشي يصير زين');
   });
+  it('pronounced spelling for TRAINING transcripts only: standard-orthography Iraqi words the lexicon knows are respelled; the rest, and ambiguous ق, stay', async () => {
+    const { pronouncedSpelling } = await import('@/server/providers/iraqi-g2p');
+    const r = pronouncedSpelling('قلت لك باكر نقعد نحكي ونشرب شاي، وقت الحقيقة قريب');
+    expect(r.text).toBe('گلت لك باچر نگعد نحچي ونشرب چاي، وقت الحقيقة قريب');
+    expect(r.changes.map((c) => c.to)).toEqual(['گلت', 'باچر', 'نگعد', 'نحچي', 'چاي']);
+    // a word already in pronounced spelling is untouched; clitics around a known stem are kept
+    expect(pronouncedSpelling('گلتلك باچر').changes).toEqual([]);
+    expect(pronouncedSpelling('والشاي').text).toBe('والچاي');
+    // the producer's dialogue path never respells
+    expect(engineText('قلت لك باكر')).toBe('قلت لك باكر');
+  });
   it('every regression word of the coverage table has a pronunciation the lexicon or the rules give with the right dialect sound', () => {
     for (const w of REGRESSION_WORDS) {
       const { ipa } = pronounce(w).words[0];
