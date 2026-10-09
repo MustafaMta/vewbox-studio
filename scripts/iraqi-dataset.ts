@@ -104,7 +104,10 @@ async function prepare(source: string) {
 async function split() {
   await ensureLayout();
   const seed = arg('seed', '7')!; const v = Number(arg('validation', '0.05')); const t = Number(arg('test', '0.05'));
-  const sources = await fs.readdir(dir('prepared')).catch(() => [] as string[]);
+  // the IRAQI sources only (--sources a,b to name them); a replay source (…-msa, English) is never part of the Iraqi split
+  const all0 = await fs.readdir(dir('prepared')).catch(() => [] as string[]);
+  const named = arg('sources');
+  const sources = named ? named.split(',') : all0.filter((s) => !/-msa$|-en$|english/i.test(s));
   const all: PreparedUtterance[] = [];
   for (const s of sources) { const f = dir('prepared', s, 'manifest.jsonl'); try { for (const line of (await fs.readFile(f, 'utf8')).split('\n')) if (line.trim()) { const r = JSON.parse(line) as PreparedUtterance; if (r.accepted) all.push(r); } } catch { /* no manifest */ } }
   const bucket = (r: PreparedUtterance) => parseInt(crypto.createHash('sha256').update(`${seed}:${r.sha256}`).digest('hex').slice(0, 8), 16) / 0xffffffff;
