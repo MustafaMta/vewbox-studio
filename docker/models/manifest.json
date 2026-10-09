@@ -106,6 +106,15 @@
       ]
     },
     {
+      "name": "video-minimax-h3-bf16",
+      "purpose": "THE FULL-QUALITY H3 TIER (the producer's large-model policy, 2026-10-09; docs/research/MINIMAX-H3-FULL-QUALITY-2026-10.md): the released BF16 weights of MiniMax-H3 Base Ref2VA and Base FL2VA in Comfy-Org's inference-only pruned form (the AdaLN parameters folded into a timestep table; no quantization), and the fp16 video VAE — 85.7 GB, streamed through DynamicVRAM on the 32 GB card with ~66-68 GiB RAM. Pinned to revision e5eb578a. The int8 files of video-minimax-h3 / -reference stay as the fallback until this tier is measured and promoted; the int8 text encoder (27 GB) is a later, separate decision.",
+      "files": [
+        { "repo": "Comfy-Org/MiniMax-H3", "revision": "e5eb578a89295337b8ff433a035929ce0279e0b6", "file": "diffusion_models/minimax_h3_ref2va_pruned_bf16.safetensors", "folder": "diffusion_models", "bytes": 40225724176, "sha256": "37c0da793e20ca735272ec2be655f08a2e10f97a3ec8fdfb40f5b39a736ed6fe", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "revision": "e5eb578a89295337b8ff433a035929ce0279e0b6", "file": "diffusion_models/minimax_h3_fl2va_pruned_bf16.safetensors", "folder": "diffusion_models", "bytes": 40225724176, "sha256": "a32572fb90b5508b201ec7c2eddcc184b13ddfd3c6f6d2cf06a0b46535d541b4", "license": "MiniMax H3 Community License" },
+        { "repo": "Comfy-Org/MiniMax-H3", "revision": "e5eb578a89295337b8ff433a035929ce0279e0b6", "file": "vae/minimax_h3_video_vae_fp16.safetensors", "folder": "vae", "bytes": 5207808496, "sha256": "7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522", "license": "MiniMax H3 Community License" }
+      ]
+    },
+    {
       "name": "voice-design",
       "purpose": "The tts-design service (:8022): VoxCPM2 (OpenBMB, 2 B, Apache-2.0) designs a synthetic voice from a text description (EN, AR-MSA; 48 kHz), and the ECAPA-TDNN speaker encoder (SpeechBrain, VoxCeleb, Apache-2.0) gives 192-d embeddings for similarity and cast distinctness. Pinned to the repo revisions below. audiovae.pth and the ECAPA .ckpt files are PyTorch pickles: they are loaded only inside the tts-design container (torch.load weights_only). Fetch once: docs/MODELS.md.",
       "files": [

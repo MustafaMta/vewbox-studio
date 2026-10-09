@@ -44,7 +44,7 @@ episode.
 | Character | Style | Performs | Languages | Canonical image | Voice | English samples | Iraqi samples | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A — Layla Haddad | Realistic | Actor + Singer (mezzo-soprano; Iraqi folk, acoustic ballad) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
-| B | Anime | Actor + Singer | English, Iraqi Arabic | — | — | — | — | in progress |
+| B — Tariq Al-Rawi | Anime | Actor + Singer (tenor; pop, Iraqi maqam) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
 | C | Cartoon | Actor + Singer | English, Iraqi Arabic | — | — | — | — | after B |
 
 `PHASE_1` ends at `WAITING_FOR_USER_ACCEPTANCE` with a review package; nothing proceeds without the producer.
@@ -74,6 +74,19 @@ Review package: `/characters/review` (and Voice Studio → Character voices); ma
    (heard in Persian-style letters), lines 3 and 5 REVIEW. ECAPA English↔English 0.72; English↔Iraqi 0.55 (Habibi) /
    0.56 (MOSS); median pitch shift −0.5 st (Habibi) / +0.6 st (MOSS). Naturalness, dialect and "same person" are the
    producer's.
+
+### Character B — what happened (first-attempt record)
+
+1. **Every artifact is a first attempt**: sheet, canonical image (anime line work, no photorealism; the star earring on
+   the left ear as designed), voice identity (one, revision 1, English + Iraqi profiles from the creation — the
+   languages persisted after fix 2 above), 15 lines. No regeneration.
+2. **Sheet vs image**: the neutral-identity step had moved "expressive dark brown eyes" whole to the personality, leaving
+   the eyes field without a colour. The image shows large dark brown eyes; the sheet was corrected to the image and the
+   step fixed (an adjective leaves, the noun stays). A doubled "and" in the wardrobe tidied.
+3. **Machine evidence (supporting only)**: English 5/5 heard exactly. Iraqi Habibi: line 1 exact; line 2 **FAIL** (CER
+   0.27, median pitch 93 Hz against ~200 Hz elsewhere — a voice break for the listener to hear); lines 3–5 REVIEW; چ
+   not heard in «باچر», «نحچي», «چان». MOSS Iraqi: lines 1, 3, 4 heard; 2 and 5 REVIEW. ECAPA English↔English 0.68;
+   English↔Iraqi 0.46 (Habibi) / 0.56 (MOSS); pitch shift −1.2 st (Habibi) / −1.5 st (MOSS). The producer's ears decide.
 
 ## Open producer items
 

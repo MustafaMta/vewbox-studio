@@ -35,6 +35,8 @@ describe('an expressive adjective leaves, the physical noun stays (Phase 1 chara
     const { design, report } = neutralLook({ eyes: 'Large, expressive dark brown eyes with defined upper lashes' });
     expect(design.eyes).toBe('Large, dark brown eyes with defined upper lashes');
     expect(report.movedToPersonality).toEqual(['expressive']);
+    // "laugh lines" are wrinkles too (character C's "deep laugh lines" went to the personality)
+    expect(neutralLook({ face: 'Full round face with deep laugh lines' }).design.face).toBe('Full round face with deep laugh lines');
     // an adjective alone is still a mood, and an expression noun still goes whole
     expect(neutralLook({ face: 'Round and friendly with apple-cheeks' }).design.face).toBe('Round with apple-cheeks');
     expect(neutralLook({ face: 'Narrow face with a warm, approachable smile' }).design.face).toBe('Narrow face');
