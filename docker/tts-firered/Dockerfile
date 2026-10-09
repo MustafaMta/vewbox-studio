@@ -15,7 +15,7 @@ RUN printf 'Acquire::Retries "10";\nAcquire::http::Timeout "300";\nAcquire::http
  && apt-get install -y --no-install-recommends curl ca-certificates git ffmpeg libsndfile1 \
  && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=secret,id=extra_ca,required=false if [ -s /run/secrets/extra_ca ]; then cp /run/secrets/extra_ca /usr/local/share/ca-certificates/extra-ca.crt && update-ca-certificates; fi
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1 UV_NO_CACHE=1
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt UV_NATIVE_TLS=1 UV_CACHE_DIR=/root/.cache/uv
 # this link stalls mid-file: wait a stall out, retry a dropped wheel, two at a time (docker/sfx)
 ENV UV_HTTP_TIMEOUT=600 UV_HTTP_RETRIES=10 UV_CONCURRENT_DOWNLOADS=2
 RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
@@ -30,8 +30,11 @@ RUN git init -q /opt/fireredtts3 && cd /opt/fireredtts3 \
  && rm -f /opt/fireredtts3/.env.example
 WORKDIR /opt/fireredtts3
 # upstream's pins (requirements.txt @ FIRERED_COMMIT) without flash-attn and the optional front-ends; then the service's
-# own small stack; the import check fails the build if a module needs something that is not installed or torch moved
-RUN uv pip install --python /opt/venv/bin/python "torch==2.8.0" "torchaudio==2.8.0" "torchcodec==0.7.0" --index-url https://download.pytorch.org/whl/cu128 \
+# own small stack; the import check fails the build if a module needs something that is not installed or torch moved.
+# The wheel cache is a BuildKit cache mount: on this ~1 MB/s link a build stopped or dropped mid-way (2026-10-09, the
+# producer's strictly serial network queue) resumes with every wheel already fetched instead of the 3 GB again
+RUN --mount=type=cache,id=uv-tts-firered,target=/root/.cache/uv \
+    uv pip install --python /opt/venv/bin/python "torch==2.8.0" "torchaudio==2.8.0" "torchcodec==0.7.0" --index-url https://download.pytorch.org/whl/cu128 \
  && uv pip install --python /opt/venv/bin/python "transformers==5.6.2" "einops==0.8.2" "regex==2026.4.4" "python-dotenv==1.1.1" "numpy<3" "soundfile==0.13.1" \
     "fastapi==0.118.0" "uvicorn[standard]==0.37.0" "python-multipart==0.0.20" "pynvml==12.0.0" \
  && python -c "import sys; sys.path.insert(0, '/opt/fireredtts3'); import torch, torchaudio, transformers, einops, fireredtts3.core; assert torch.__version__.startswith('2.8.0'), torch.__version__; print('torch', torch.__version__, 'cuda', torch.version.cuda, 'transformers', transformers.__version__)"

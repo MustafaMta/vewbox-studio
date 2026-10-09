@@ -60,6 +60,15 @@ character records are KEPT; only the voice layer is being recovered:
 | Blind listening pack of the three characters (`scripts/phase1-blind.ts` → Voice Studio → LAB comparisons → "Phase 1"): naturalness, Iraqi authenticity, pronunciation, emotion, same person, cinematic; engines revealed only after rating; the reference of an Iraqi line is the same character's English line | READY with MOSS + Habibi (FireRed arms added when spoken) |
 | Same-person measures per engine (ECAPA against the same-language baseline, median pitch, pitch shift) in the review evidence | DONE for the current engines |
 | Audar-TTS | not downloaded (capped licence) unless all three fail |
+| Network queue strictly serial (the producer, 2026-10-09): weights → verify → image build → service → tests → pack → THEN the H3 BF16 resume | the H3 resume was un-queued and the image build stopped while the weights download; the build's wheel step now uses a BuildKit cache mount so a stopped build resumes its wheels |
+
+**IndexTTS 2.5 orphans (≈ 10.4 GiB, not in the manifest): NOT deleted.** They are still referenced: the `tts` service in
+`compose.yaml` (docker/tts, IndexTTS 2.5, :8020), `VOICE_ENGINES.indextts` in `src/server/providers/voice-engines.ts`,
+`pickEngine` (the engine for non-Iraqi Arabic dialects) and `latinFallbackOf` (the English engine when `VOICE_ENGINE_EN`
+is not MOSS), `docker/tts/app.py`, the registry and licence tables. The service is not running and no Phase 1 line uses
+it, but the producer's rule is clear: delete only when nothing references them. Proposal for after the voice decision:
+remove IndexTTS from the code and compose (MOSS or FireRed for English; Habibi/FireRed for Arabic; other dialects
+out of scope) in one simplification commit, then delete the files and record the reclaimed space.
 
 Earlier that day the gate read `WAITING_FOR_USER_ACCEPTANCE`; the producer's verdict on the voices came back NOT ACCEPTED. All three characters exist with one canonical image, one voice
 identity and 15 lines each. Nothing after Phase 1 — singing, locations, story, storyboard, video — starts until the
