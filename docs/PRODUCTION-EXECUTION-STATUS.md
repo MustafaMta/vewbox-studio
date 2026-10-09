@@ -61,6 +61,7 @@ character records are KEPT; only the voice layer is being recovered:
 | Same-person measures per engine (ECAPA against the same-language baseline, median pitch, pitch shift) in the review evidence | DONE for the current engines |
 | Audar-TTS | not downloaded (capped licence) unless all three fail |
 | Network queue strictly serial (the producer, 2026-10-09): weights → verify → image build → service → tests → pack → THEN the H3 BF16 resume | the H3 resume was un-queued and the image build stopped while the weights download; the build's wheel step now uses a BuildKit cache mount so a stopped build resumes its wheels |
+| **Persistent mechanism: the FireRed tick** (`scripts/firered-tick.ps1`, Task Scheduler "Vewbox firered tick" every 5 min; no battery stop, no time limit, one instance, missed starts run) — locks, waits for Docker, reads the physical inventory, resumes exactly ONE step (fetch weights → build image → start + health-check service → after `var/state/phase1-pack-ready`, fetch the H3 BF16 tier from its partials), logs every transition to `var/firered-tick.log` | RUNNING. Why the previous chain died: the machine slept at 12:53Z (Kernel-Power 42, "Application API"), resumed 16:23Z, WSL/Docker restarted and the single task process was terminated (0x40010004); the partial was never touched |
 
 **IndexTTS 2.5 orphans (≈ 10.4 GiB, not in the manifest): NOT deleted.** They are still referenced: the `tts` service in
 `compose.yaml` (docker/tts, IndexTTS 2.5, :8020), `VOICE_ENGINES.indextts` in `src/server/providers/voice-engines.ts`,
