@@ -144,6 +144,28 @@ Review package: `/characters/review` (and Voice Studio → Character voices); ma
   comparison is language-sensitive, so this neither proves nor disproves "same person" — it is why the listening
   comparison exists.
 
+## 2026-10-10 — PROFESSIONAL IRAQI VOICE master directive (supersedes the Phase 1 voice path)
+
+**Human verdicts (the producer, after listening):** Habibi Specialized IRQ = `EVALUATED — HUMAN FAIL`;
+FireRedTTS3-Base = `EVALUATED — HUMAN FAIL`; MOSS Iraqi = `BASELINE / NOT ACCEPTED`. Synthetic, robotic cadence,
+wrong چ/گ, identity not stable across English and Iraqi. Evidence preserved (`docs/evidence/phase1/*.json`, the blind
+pack `var/eval/phase1-voices-2026-10`, 75 clips); no further comparison batches for these engines.
+
+**The last FireRed finding before the verdict (for the record):** with the identity's English design seed as the prompt,
+every FireRed Iraqi line was unintelligible to Qwen3-ASR (CER 1.1–1.4, heard as Danish/English/Persian-like); with the
+SAME character's own Iraqi line as the prompt, the same lines were intelligible (CER 0.07–0.14, «گلتلك باچر…» heard
+«قلت لك باجر نكعد نحتى ونشرب جاي»). Upstream's own guidance: "use a prompt in the desired language". Cross-lingual
+prompting from an English seed is the model's limit, not a service bug — and irrelevant now: the engine failed the ear.
+
+**The programme now (one capability, one identity):** `Vewbox-IQ` = Chatterbox Multilingual V3 (official, MIT, pinned)
++ Iraqi/Baghdadi dialect adaptation trained ONCE on licensed data (LoRA first, then strategic partial fine-tuning if the
+dialect is not learned), reference-conditioned per character; one `CharacterVoiceIdentity` per character with a
+canonical reference pack and English / Iraqi profiles; Character A only until the architecture passes a decisive
+five-line pack on its first attempt; gate `CHARACTER_A_VOICE = WAITING_FOR_USER_ACCEPTANCE`. Download priority:
+Chatterbox V3 → Iraqi corpus → training data → training deps → H3 BF16 (its partials kept: FL2VA 57 %, Ref2VA 12 %,
+VAE 58 %; the resume that had started at 21:50Z was stopped) → others. Research (current, from original sources) first:
+`docs/research/iraqi-voice-production.md`, `docs/research/iraqi-speech-and-singing-brief.md`.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as
