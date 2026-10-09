@@ -75,6 +75,23 @@ describe('one voice identity, a profile per language', () => {
     expect(codeOf(() => addVoiceLanguageProfiles(after, 'nour', [{ ...IRAQI, engine: 'habibi', status: 'REVIEW' }]))).toBe('CONFLICT');
     expect(codeOf(() => addVoiceLanguageProfiles(built, 'nour', [{ ...IRAQI, engine: 'habibi', status: 'REVIEW' }]))).toBe('INVALID');
   });
+  it('the canonical reference pack: one identity, several clips of the same performer; a generated line only as this identity’s own render', async () => {
+    const { addVoiceReferenceClip, addAsset } = await import('@/domain/actions');
+    let s = setVoiceIdentity(english(), 'nour', identity());
+    const rev = ch(s, 'nour').voice.identity!.revision;
+    s = addAsset(s, { id: 'up-2', kind: 'AUDIO', src: '/api/media/up-2', label: 'expressive take', tags: [], sample: false, origin: 'UPLOAD' }).state;
+    s = addAsset(s, { id: 'gen-iq', kind: 'AUDIO', src: '/api/media/gen-iq', label: 'iraqi render', tags: [], sample: false, origin: 'GENERATED', provenance: { voiceRevision: rev } }).state;
+    s = addAsset(s, { id: 'gen-old', kind: 'AUDIO', src: '/api/media/gen-old', label: 'old render', tags: [], sample: false, origin: 'GENERATED', provenance: { voiceRevision: rev + 1 } }).state;
+    s = addVoiceReferenceClip(s, 'nour', { role: 'EXPRESSIVE', assetId: 'up-2', language: 'EN', source: 'CONSENTED_RECORDING' });
+    s = addVoiceReferenceClip(s, 'nour', { role: 'IRAQI', assetId: 'gen-iq', language: 'AR', dialect: 'IRAQI_BAGHDADI', source: 'STUDIO_RENDER', similarity: 0.8 });
+    expect(ch(s, 'nour').voice.identity!.canonicalReferencePack!.map((x) => `${x.role}:${x.assetId}`)).toEqual(['EXPRESSIVE:up-2', 'IRAQI:gen-iq']);
+    expect(ch(s, 'nour').voice.identity!.revision).toBe(rev);
+    // the same clip twice is a no-op; a render of another revision, or a generated line called a recording, is refused
+    expect(addVoiceReferenceClip(s, 'nour', { role: 'EXPRESSIVE', assetId: 'up-2', language: 'EN', source: 'CONSENTED_RECORDING' })).toBe(s);
+    expect(codeOf(() => addVoiceReferenceClip(s, 'nour', { role: 'IRAQI', assetId: 'gen-old', language: 'AR', dialect: 'IRAQI_BAGHDADI', source: 'STUDIO_RENDER' }))).toBe('INVALID');
+    expect(codeOf(() => addVoiceReferenceClip(s, 'nour', { role: 'NEUTRAL', assetId: 'gen-iq', language: 'AR', source: 'CONSENTED_RECORDING' }))).toBe('INVALID');
+    expect(codeOf(() => addVoiceReferenceClip(english(), 'nour', { role: 'NEUTRAL', assetId: 'up-1', language: 'EN', source: 'CONSENTED_RECORDING' }))).toBe('INVALID');
+  });
   it('a designed seed speaking Iraqi says what no measurement can claim', () => {
     expect(languageProfileNotes('DESIGNED', IRAQI).join(' | ')).toMatch(/native listener.*validation only.*consented Baghdadi recording.*same person/);
   });

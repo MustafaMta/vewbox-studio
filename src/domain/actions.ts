@@ -1,4 +1,4 @@
-import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, SpokenLanguage, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceProfileInput, VoiceSample } from './types';
+import type { Asset, AssetTier, CanonicalImage, Character, CharacterProfileInput, CharacterRef, ContinuityState, ExportRecord, IdeaPreferences, IdeaProposal, Location, LocationAmbience, LocationRef, PendingReference, Production, QaReport, Scene, Season, Settings, Shot, Show, SingingProfile, Song, SongListeningRecord, SpokenLanguage, StudioState, Take, TakeEndStateRecord, TakeRating, TakeReference, Voice, VoiceDesignCandidate, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceProfileInput, VoiceReferenceClip, VoiceSample } from './types';
 import { sings, type Aspect, type Dialect, type Kind, type Language, type PerformerKind, type Stage, type Style } from './vocabulary';
 import { STATE_VERSION } from './version';
 import { reconcileShot } from './shot-dependencies';
@@ -913,6 +913,26 @@ export function recordVoiceListening(s: S, id: string, rec: { natural: number; d
   if (rec.samePerson !== undefined) throw new StudioError('INVALID', 'Same-person is judged for another language of the voice, against its own language.', { characterId: id });
   if (rec.dialectAuthentic !== undefined && identity.language !== 'AR') throw new StudioError('INVALID', 'Accent and dialect are judged for Arabic voices.', { characterId: id });
   return writeCharacter(s, id, { voice: { ...c.voice, identity: withListening(identity, rec, now()) } });
+}
+
+/** A clip joins the identity's canonical reference pack (the master directive §18): one identity, several clean clips of
+ *  the SAME performer. The asset must be stored audio; a generated line may join only as a STUDIO_RENDER of this very
+ *  identity (its provenance names the identity's revision); the worker measures the similarity to the fingerprint and
+ *  refuses a clip of another speaker before this is called. Never on a locked voice except a STUDIO_RENDER. */
+export function addVoiceReferenceClip(s: S, id: string, clip: Omit<VoiceReferenceClip, 'addedAt'>): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const identity = c.voice.identity;
+  if (!identity) throw new StudioError('INVALID', `${c.name} has no voice identity yet; build it first.`, { characterId: id });
+  const a = mustFind(s.assets, clip.assetId, 'Asset');
+  if (a.kind !== 'AUDIO' || a.sample || a.unavailable) throw new StudioError('INVALID', 'A reference clip is a stored audio file.', { characterId: id, assetId: clip.assetId });
+  if (clip.source === 'STUDIO_RENDER') {
+    const rev = (a.provenance as { voiceRevision?: unknown } | undefined)?.voiceRevision;
+    if (a.origin !== 'GENERATED' || rev !== identity.revision) throw new StudioError('INVALID', 'A studio render joins the pack only when this identity (its current revision) rendered it.', { characterId: id, assetId: clip.assetId });
+  } else if (a.origin === 'GENERATED' && clip.source === 'CONSENTED_RECORDING') throw new StudioError('INVALID', 'A generated line is not a consented recording.', { characterId: id, assetId: clip.assetId });
+  if (clip.source !== 'STUDIO_RENDER') guardVoiceChange(c, 'reference pack');
+  if (identity.canonicalReferencePack?.some((x) => x.assetId === clip.assetId)) return s;
+  const next: VoiceReferenceClip = { ...clip, ...(clip.language === 'AR' ? {} : { dialect: undefined }), addedAt: now() };
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, canonicalReferencePack: [...(identity.canonicalReferencePack ?? []), next] } } });
 }
 
 /** A language the character speaks that its pinned voice has no profile for (added — or lost on read, Phase 1

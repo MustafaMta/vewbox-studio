@@ -28,7 +28,7 @@ import { designChoiceProblem } from '@/server/org/preflight';
 import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
 import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, languageLabel, languageProfileNotes, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, speakingAs, spokenLanguages, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
 import type { VoiceIdentityInput } from '@/domain/actions';
-import { assetFile, heardMetrics, measureVoiceLine, speedForPace } from './voice-measure';
+import { assetFile, heardMetrics, measureVoiceLine, speakerEmbedding, speedForPace } from './voice-measure';
 import { designAndMeasure, designSummary } from './voice-design';
 
 /** The seed a voice build pins: the character's and the next identity revision's (FNV-1a), so a retried build makes
@@ -512,10 +512,17 @@ export const voiceBuild: Handler = async (ctx) => {
   const source = ref?.origin === 'DESIGNED'
     ? { referenceAssetId: ref.asset.id, designId: ref.design!.designId, seedSha256: ref.design!.sha256 }
     : { referenceSampleId: ref?.sample?.id, referenceAssetId: ref?.asset.id, referenceWindow: ref?.window?.assetId ? { from: ref.window.from, to: ref.window.to, assetId: ref.window.assetId } : undefined, ...(ref?.consent ? { consent: ref.consent } : {}) };
+  // the canonical reference pack opens with the primary reference (the seed or the consented recording) and the speaker
+  // fingerprint is that reference's ECAPA embedding (the master directive §16, §18): every later clip and rendering is
+  // compared to it
+  const fingerprint = ref ? await speakerEmbedding(ctx, ref.file) : null;
+  const pack: VoiceIdentityInput['canonicalReferencePack'] = ref ? [{ role: 'NEUTRAL', assetId: ref.asset.id, sha256: ref.design?.sha256 ?? ref.asset.sha256, text: ref.text, language: c.language, ...(c.language === 'AR' && c.dialect ? { dialect: c.dialect } : {}), source: ref.origin === 'DESIGNED' ? 'DESIGN_SEED' : 'CONSENTED_RECORDING', addedAt: new Date().toISOString() }] : undefined;
   const identity: VoiceIdentityInput = {
     ...head, mode, origin, ...source, referenceText: ref?.text,
     language: c.language, dialect: c.dialect, params, proof: { sampleId, assetId, text, wer: check?.wer, cer: check?.cer, coverage: check?.coverage, heard: check?.heard }, status, engineVersion: line.model, jobId: ctx.job.id,
     dialectStatus, evaluation, languageProfiles,
+    ...(pack ? { canonicalReferencePack: pack } : {}),
+    ...(fingerprint ? { speakerFingerprint: { model: fingerprint.model, vector: fingerprint.embedding.map((v) => Number(v.toFixed(5))), measuredAt: new Date().toISOString() } } : {}),
   };
   try {
     await commands([

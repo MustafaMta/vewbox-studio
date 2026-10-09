@@ -681,6 +681,29 @@ export interface VoiceIdentity {
    *  parameters — speaks each language the character speaks, the identity's own language first. Written by the
    *  build (`setVoiceIdentity`); a listener's record moves a profile's status. Absent on identities pinned before it. */
   languageProfiles?: VoiceLanguageProfile[];
+  /** THE CANONICAL REFERENCE PACK (the master directive, 2026-10-10 §18): the clean clips of the SAME performer the
+   *  renderers condition on — the neutral seed, an expressive clip, an English clip, an Iraqi clip — one identity however
+   *  many clips. Written by the build (the seed) and `addVoiceReferenceClip`; a clip of another speaker is refused by
+   *  the fingerprint check at the clone boundary. */
+  canonicalReferencePack?: VoiceReferenceClip[];
+  /** The speaker fingerprint (ECAPA embedding of the primary reference) the pack and every rendering are compared to. */
+  speakerFingerprint?: { model: string; vector: number[]; measuredAt: string };
+}
+
+/** One clip of the canonical reference pack: what it is for, where it comes from, what it says. */
+export interface VoiceReferenceClip {
+  role: 'NEUTRAL' | 'EXPRESSIVE' | 'ENGLISH' | 'IRAQI';
+  assetId: string;
+  sha256?: string;
+  text?: string;
+  language: Language;
+  dialect?: Dialect;
+  /** DESIGN_SEED: the studio-designed synthetic seed; CONSENTED_RECORDING: an upload with consent; STUDIO_RENDER: a line
+   *  this identity rendered and the producer kept as a reference (same performer by construction) */
+  source: 'DESIGN_SEED' | 'CONSENTED_RECORDING' | 'STUDIO_RENDER';
+  /** ECAPA cosine to the speaker fingerprint when it was added (supporting evidence) */
+  similarity?: number;
+  addedAt: string;
 }
 
 /** A language a character speaks (an Arabic one with its dialect). */

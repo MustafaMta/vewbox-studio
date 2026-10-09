@@ -87,6 +87,7 @@ function corpus(): Command[] {
     c('recordVoiceListening', 'nour', { natural: 4 }),
     c('setSpokenLanguages', 'nour', [{ language: 'EN' }, { language: 'AR', dialect: 'IRAQI_BAGHDADI' }]),
     c('addVoiceLanguageProfiles', 'nour', [{ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'habibi', comparisonEngines: ['moss'], status: 'REVIEW' }]),
+    c('addVoiceReferenceClip', 'nour', { role: 'EXPRESSIVE', assetId: 'up-ref', language: 'EN', source: 'CONSENTED_RECORDING' }),
     c('selectVoiceSample', 'um-hassan', undefined), c('removeVoiceSample', 'um-hassan', 'v-warm'),
     c('setCanonicalImage', 'nour', { assetId: 'img-1', jobId: 'job-c1', seed: 1, check: { ok: true } }), c('approveCanonicalImage', 'nour', 1),
     c('setCanonicalImage', 'um-hassan', { assetId: 'img-1' }), // another character's canonical image: INVALID

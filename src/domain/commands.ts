@@ -20,7 +20,7 @@ export const COMMANDS = {
   setSong: A.setSong, updateSong: A.updateSong, recordSongListening: A.recordSongListening,
   addCharacter: A.addCharacter, updateCharacter: A.updateCharacter, setPendingReference: A.setPendingReference,
   addVoiceSample: A.addVoiceSample, addVoiceRecording: A.addVoiceRecording, updateVoiceSample: A.updateVoiceSample, removeVoiceSample: A.removeVoiceSample, setVoiceIdentity: A.setVoiceIdentity, deleteCharacter: A.deleteCharacter, selectVoiceSample: A.selectVoiceSample,
-  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent, setSpokenLanguages: A.setSpokenLanguages, addVoiceLanguageProfiles: A.addVoiceLanguageProfiles,
+  addVoiceDesign: A.addVoiceDesign, updateVoiceDesign: A.updateVoiceDesign, recordVoiceListening: A.recordVoiceListening, confirmVoiceConsent: A.confirmVoiceConsent, setSpokenLanguages: A.setSpokenLanguages, addVoiceLanguageProfiles: A.addVoiceLanguageProfiles, addVoiceReferenceClip: A.addVoiceReferenceClip,
   setCanonicalImage: A.setCanonicalImage, approveCanonicalImage: A.approveCanonicalImage,
   addLocation: A.addLocation, updateLocation: A.updateLocation, addLocationRefs: A.addLocationRefs, setLocationAmbience: A.setLocationAmbience, duplicateLocationInStyle: A.duplicateLocationInStyle, deleteLocation: A.deleteLocation,
   addAsset: A.addAsset, updateAsset: A.updateAsset, deleteAsset: A.deleteAsset, setAssetTier: A.setAssetTier,
@@ -96,6 +96,7 @@ const consentStatement = z.enum(['MY_VOICE', 'SPEAKER_PERMISSION']);
 const consent = z.object({ statement: consentStatement, by: z.literal('PRODUCER'), at: z.string().min(1).max(40) });
 const VoiceSampleInputSchema = z.object({ id: id.optional(), label: short(200), assetId: id.optional(), source: voiceSource, jobId: id.optional(), consent: consent.optional(), engine: short(40).optional(), role: z.enum(['PRODUCTION', 'COMPARISON']).optional(), ...sampleExtra });
 const spokenLanguage = z.object({ language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional() }).strict();
+const referenceClip = z.object({ role: z.enum(['NEUTRAL', 'EXPRESSIVE', 'ENGLISH', 'IRAQI']), assetId: id, sha256: z.string().regex(/^[0-9a-f]{64}$/).optional(), text: short(4000).optional(), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), source: z.enum(['DESIGN_SEED', 'CONSENTED_RECORDING', 'STUDIO_RENDER']), similarity: z.number().min(-1).max(1).optional(), addedAt: z.string().min(1).max(40).optional() }).strict();
 const languageProfile = spokenLanguage.extend({ engine: short(40).min(1), comparisonEngines: z.array(short(40)).max(3).optional(), status: z.enum(['PRIMARY', 'REVIEW', 'LISTENER_APPROVED', 'LISTENER_REJECTED']), notes: z.array(short(400)).max(8).optional() }).strict();
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/);
 const measure = z.object({ cer: z.number().min(0).optional(), coverage: z.number().min(0).max(1).optional(), lufs: z.number().optional(), truePeakDbtp: z.number().optional() });
@@ -112,6 +113,8 @@ const VoiceIdentitySchema = z.object({
   dialectStatus: z.enum(['NOT_APPLICABLE', 'UNVERIFIED', 'LISTENER_APPROVED', 'LISTENER_REJECTED']).optional(),
   evaluation: measure.extend({ clipped: z.number().int().nonnegative().optional(), seedToLineSimilarity: z.number().min(-1).max(1).optional(), measuredAt: z.string().min(1).max(40), asrModel: short(120).optional(), similarityModel: short(200).optional() }).optional(),
   languageProfiles: z.array(languageProfile).min(1).max(4).optional(),
+  canonicalReferencePack: z.array(referenceClip).max(8).optional(),
+  speakerFingerprint: z.object({ model: short(200), vector: z.array(z.number()).min(16).max(1024), measuredAt: z.string().min(1).max(40) }).strict().optional(),
 });
 
 const designMeasure = measure.extend({ durationSeconds: z.number().nonnegative(), heard: short(4000).optional(), asrModel: short(120).optional(), clippedSamples: z.number().int().nonnegative().optional() });
@@ -163,6 +166,7 @@ export const COMMAND_ARG_SCHEMAS: Partial<Record<CommandName, z.ZodType<unknown[
   recordVoiceListening: z.tuple([id, ListeningSchema]),
   setSpokenLanguages: z.tuple([id, z.array(spokenLanguage).min(1).max(4)]),
   addVoiceLanguageProfiles: z.tuple([id, z.array(languageProfile).min(1).max(3)]),
+  addVoiceReferenceClip: z.tuple([id, referenceClip]),
   recordSongListening: z.tuple([id, z.object({ verdict: z.enum(['ACCEPTED', 'NOT_YET']), note: short(2000).optional() }).strict()]),
   confirmVoiceConsent: z.tuple([id, id, consentStatement]),
   proposePronunciation: z.tuple([z.object({ word: z.string().min(1).max(120), say: z.string().min(1).max(200), language: z.enum(LANGUAGES), dialect: z.enum(DIALECTS).optional(), engines: z.array(short(40)).max(10).optional(), note: short(1000).optional(), proposedBy: short(80) }).strict()]),
@@ -193,7 +197,7 @@ export function validateCommandArgs(name: CommandName, args: unknown): void {
  *  runs. The browser keeps running every command locally (runCommand) — the split is about who may SEND one. */
 export const SYSTEM_COMMANDS = [
   'recordExport', 'setCut', 'replaceScript', 'replaceSceneShots', 'setShotFrames', 'setDialogueAudio',
-  'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign', 'addVoiceLanguageProfiles',
+  'addVoiceSample', 'updateVoiceSample', 'setVoiceIdentity', 'addVoiceDesign', 'updateVoiceDesign', 'addVoiceLanguageProfiles', 'addVoiceReferenceClip',
   'setCanonicalImage', 'addLocationRefs', 'setLocationAmbience', 'addAsset', 'updateAsset',
   // the workers' intent commands (step 11): what a worker means, applied to the state as it is when it runs
   'addCastMember', 'addLocationMember', 'updateShowBible', 'finishEpisode', 'fillProductionFields',
