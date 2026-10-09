@@ -59,8 +59,11 @@ async function main() {
   // ECAPA of every line (and the reference), once
   const emb = new Map<string, number[]>();
   for (const f of [...spoken.map((s) => s.file), ...(ref ? [assetFile(ref)] : [])]) emb.set(f, (await embedVoice(f)).embedding);
-  const en = spoken.filter((s) => s.language === 'EN' && s.line.startsWith('en-'));
+  // every engine that spoke a line, in both languages: the production engines and the evaluation candidates
+  const en = (engine: string) => spoken.filter((s) => s.language === 'EN' && s.engine === engine && s.line.startsWith('en-'));
   const iq = (engine: string) => spoken.filter((s) => s.language === 'AR' && s.engine === engine && s.line.startsWith('iq-'));
+  const engines = [...new Set(spoken.map((s) => s.engine).filter((x): x is string => Boolean(x)))];
+  const enEngines = engines.filter((e) => en(e).length), iqEngines = engines.filter((e) => iq(e).length);
   const pairs = (xs: typeof spoken, ys: typeof spoken, same = false) => { const out: number[] = []; xs.forEach((x, i) => ys.forEach((y, j) => { if (!same || i < j) out.push(cosine(emb.get(x.file)!, emb.get(y.file)!)); })); return out; };
 
   // pYIN pitch in the tts-habibi container (it has librosa)
@@ -98,12 +101,22 @@ async function main() {
     } catch (e) { s.phonology = { verdict: 'NOT_MEASURED', why: (e as Error).message.slice(0, 200) }; }
   }
 
-  const enMedian = medianOf(en);
+  // per engine: the same-language baseline, English (MOSS, the production English) against each engine's Iraqi, the
+  // same engine's English against its own Iraqi (one model, both languages?), and the median pitch per language
+  const ecapa: Record<string, number | undefined> = {};
+  const medianPitchHz: Record<string, number | undefined> = { reference: ref ? pitchOf(assetFile(ref))?.median_hz ?? undefined : undefined };
+  const pitchShiftSemitones: Record<string, number | undefined> = {};
+  for (const e of enEngines) { ecapa[`English (${e}) ↔ English (${e}) — same-language baseline`] = r3(mean(pairs(en(e), en(e), true))); medianPitchHz[`English (${e})`] = medianOf(en(e)); }
+  for (const e of iqEngines) {
+    ecapa[`English (moss) ↔ Iraqi (${e})`] = r3(mean(pairs(en('moss'), iq(e))));
+    if (e !== 'moss' && en(e).length) ecapa[`English (${e}) ↔ Iraqi (${e}) — one engine, both languages`] = r3(mean(pairs(en(e), iq(e))));
+    medianPitchHz[`Iraqi (${e})`] = medianOf(iq(e));
+    pitchShiftSemitones[`English (moss) → Iraqi (${e})`] = semis(medianOf(en('moss')), medianOf(iq(e)));
+  }
+  for (let i = 0; i < iqEngines.length; i++) for (let j = i + 1; j < iqEngines.length; j++) ecapa[`Iraqi (${iqEngines[i]}) ↔ Iraqi (${iqEngines[j]})`] = r3(mean(pairs(iq(iqEngines[i]), iq(iqEngines[j]))));
   const crossLanguage = {
-    note: 'Supporting evidence only. ECAPA is VoxCeleb-trained and language-sensitive: compare each cross-language number with the English↔English baseline, never with a fixed threshold. Perceived age, gender, vocal weight and "same person" are the listener’s.',
-    ecapa: { englishToEnglish: r3(mean(pairs(en, en, true))), englishToIraqiHabibi: r3(mean(pairs(en, iq('habibi')))), englishToIraqiMoss: r3(mean(pairs(en, iq('moss')))), iraqiHabibiToIraqiMoss: r3(mean(pairs(iq('habibi'), iq('moss')))) },
-    medianPitchHz: { english: enMedian, iraqiHabibi: medianOf(iq('habibi')), iraqiMoss: medianOf(iq('moss')), reference: ref ? pitchOf(assetFile(ref))?.median_hz ?? undefined : undefined },
-    pitchShiftSemitones: { iraqiHabibi: semis(enMedian, medianOf(iq('habibi'))), iraqiMoss: semis(enMedian, medianOf(iq('moss'))) },
+    note: 'Supporting evidence only. ECAPA is VoxCeleb-trained and language-sensitive: compare each cross-language number with the same-language baseline, never with a fixed threshold. Perceived age, gender, vocal weight and "same person" are the listener’s.',
+    ecapa, medianPitchHz, pitchShiftSemitones,
   };
 
   const canonical = c.canonicalImage;

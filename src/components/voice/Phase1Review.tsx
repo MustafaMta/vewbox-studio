@@ -60,9 +60,9 @@ export function Phase1Review() {
                       <div>
                         <div className="t-meta">{ev.crossLanguage.note}</div>
                         <table className="table t-meta"><tbody>
-                          {Object.entries(ev.crossLanguage.ecapa).map(([k, v]) => <tr key={k}><th scope="row">{ECAPA_LABEL[k] ?? k}</th><td>{v ?? '—'}</td></tr>)}
-                          <tr><th scope="row">Median pitch (Hz): English · Iraqi Habibi · Iraqi MOSS</th><td>{[ev.crossLanguage.medianPitchHz.english, ev.crossLanguage.medianPitchHz.iraqiHabibi, ev.crossLanguage.medianPitchHz.iraqiMoss].map((x) => x ?? '—').join(' · ')}</td></tr>
-                          <tr><th scope="row">Pitch shift English → Iraqi (semitones): Habibi · MOSS</th><td>{[ev.crossLanguage.pitchShiftSemitones.iraqiHabibi, ev.crossLanguage.pitchShiftSemitones.iraqiMoss].map((x) => x ?? '—').join(' · ')}</td></tr>
+                          {Object.entries(ev.crossLanguage.ecapa).map(([k, v]) => <tr key={k}><th scope="row">ECAPA {ECAPA_LABEL[k] ?? k}</th><td>{v ?? '—'}</td></tr>)}
+                          {Object.entries(ev.crossLanguage.medianPitchHz).map(([k, v]) => <tr key={`p-${k}`}><th scope="row">Median pitch {k} (Hz)</th><td>{v ?? '—'}</td></tr>)}
+                          {Object.entries(ev.crossLanguage.pitchShiftSemitones).map(([k, v]) => <tr key={`s-${k}`}><th scope="row">Pitch shift {k} (semitones)</th><td>{v ?? '—'}</td></tr>)}
                         </tbody></table>
                       </div>
                       {ev.lines.some((l) => l.phonology?.flags?.length) && (
