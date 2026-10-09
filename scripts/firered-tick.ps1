@@ -47,6 +47,9 @@ try {
 
   # 1. the weights
   if ($fire -notmatch 'VERIFIED\s+8/ 8') { Fetch 'eval-tts-fireredtts3-base'; $after = (Inventory | Where-Object { $_ -match '^eval-tts-fireredtts3-base' }) -join ''; Say "after: $after"; if ($after -match 'VERIFIED\s+8/ 8') { Say 'WEIGHTS VERIFIED' }; exit 0 }
+  # the producer's pause (2026-10-09: "after download complete pause"): the weights are fetched and verified above;
+  # nothing further (build, service, H3) runs while var/state/paused exists
+  if (Test-Path var/state/paused) { if (-not (Test-Path var/state/paused-logged)) { Say 'PAUSED after the verified weights (var/state/paused); remove the file to continue'; 'logged' | Out-File var/state/paused-logged }; exit 0 }
   # 2. the image
   if (-not (docker images -q vewbox/tts-firered:dev 2>$null)) {
     Say 'BUILD tts-firered'
