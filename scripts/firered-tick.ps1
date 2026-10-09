@@ -81,7 +81,19 @@ try {
     if (Test-Path var/state/iraqi-data-ready) { Say 'IRAQI DATA READY' }
     exit 0
   }
-  # 4. the H3 tier, only when the Iraqi voice assets are secured and the producer's order allows it
+  # 3c. the Vewbox-IQ images (the training dependencies, priority 4): the inference service, then the trainer
+  foreach ($svc in @(@{ image = 'vewbox/tts-iq:dev'; profile = 'iq'; name = 'tts-iq' }, @{ image = 'vewbox/train-iq:dev'; profile = 'train'; name = 'train-iq' })) {
+    if (-not (docker images -q $svc.image 2>$null)) {
+      Say "BUILD $($svc.name)"
+      docker compose -p vewbox --profile $svc.profile build $svc.name 2>&1 | Out-File -FilePath var/iq-build.log -Append -Encoding utf8
+      Say "BUILD $($svc.name) exit $LASTEXITCODE"
+      if (docker images -q $svc.image 2>$null) { Say "IMAGE BUILT $($svc.name)" }
+      exit 0
+    }
+  }
+  # the Iraqi voice assets are secured and the network is free: the H3 BF16 tier may resume (the producer's order)
+  if (-not (Test-Path var/state/h3-resume-ok)) { Say 'IRAQI ASSETS SECURED: the H3 BF16 resume is released'; (Get-Date).ToUniversalTime().ToString('s') | Out-File var/state/h3-resume-ok }
+  # 4. the H3 tier
   if (-not (Test-Path var/state/h3-resume-ok)) { exit 0 }
   if ($h3 -notmatch 'VERIFIED\s+3/ 3') { Fetch 'video-minimax-h3-bf16'; $after = (Inventory | Where-Object { $_ -match '^video-minimax-h3-bf16' }) -join ''; Say "after: $after"; if ($after -match 'VERIFIED\s+3/ 3') { Say 'H3 BF16 VERIFIED' }; exit 0 }
   # 5. nothing left

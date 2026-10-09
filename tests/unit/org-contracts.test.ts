@@ -93,6 +93,7 @@ describe('contracts accept the provider shapes of the GPU, hosted and service to
     accepts('speech.synthesize', 'input', { text: 'Hello', voiceId: 'vb_x', languageBoost: 'English', emotion: undefined });
     // an evaluation engine's comparison line passes the boundary (2026-10-10: thirty FireRed lines were refused here)
     accepts('speech.synthesize', 'input', { text: 'شلونك؟', language: 'AR', dialect: 'IRAQI_BAGHDADI', referenceWav: '/tmp/ref.wav', referenceText: 'هلا', emotionAlpha: 1, speed: 1, seed: 7, engine: 'fireredtts3', raw: true });
+    accepts('speech.synthesize', 'input', { text: 'گلتلك باچر نكعد نحچي ونشرب چاي.', language: 'AR', dialect: 'IRAQI_BAGHDADI', referenceWav: '/tmp/ref.wav', seed: 7, engine: 'vewbox-iq', raw: true });
     const h = new Headers({ 'x-sample-rate': '24000', 'x-duration': '2.5', 'x-engine': 'habibi', 'x-model': 'Habibi-TTS IRQ', 'x-engine-version': 'habibi-tts 0.1.1', 'x-seed': '7', 'x-params': JSON.stringify({ seed: 7, speed: 1 }), 'x-true-peak': '-1.00' });
     accepts('speech.synthesize', 'output', { file: '/tmp/line.wav', ...parseSynthesisHeaders(h, 'habibi'), ms: 900 });
     accepts('speech.synthesize', 'output', { file: '/tmp/line.wav', ...parseSynthesisHeaders(new Headers({ 'x-engine': 'indextts' }), 'indextts'), ms: 900 });

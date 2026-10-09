@@ -43,6 +43,9 @@ const Schema = z.object({
    *  `up`): listened to blind, never routed to by pickEngine. Host ports by default. */
   TTS_FISH_URL: z.string().default('http://127.0.0.1:8025'),
   TTS_FIREREDTTS3_URL: z.string().default('http://127.0.0.1:8026'),
+  /** Vewbox-IQ (Chatterbox Multilingual V3 + the Iraqi adaptation; compose service tts-iq, profile `iq`; docs/VEWBOX-IQ.md):
+   *  an evaluation engine until a native listener passes it. Host port by default. */
+  TTS_IQ_URL: z.string().default('http://127.0.0.1:8027'),
   /** The engine NEW English voices are built with (moss | indextts | voxcpm2 | dots). MOSS-TTS v1.5 since 2026-10-06
    *  (PRODUCTION-STACK-DIRECTIVE; docs/research/VOICE-BENCH-2026-10.md §3.2: ECAPA 0.67–0.86 vs IndexTTS 0.44–0.67 on
    *  the acceptance lines, every word heard, duration within 2 %); needs the `tts-moss` service (compose profile

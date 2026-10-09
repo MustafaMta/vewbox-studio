@@ -333,6 +333,48 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8026/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
+  # VEWBOX-IQ — Chatterbox Multilingual V3 (ResembleAI/chatterbox, MIT; docker/tts-iq) with the Vewbox-IQ Iraqi adaptation
+  # when IQ_ADAPTER_DIR names a checkpoint under /training (docs/VEWBOX-IQ.md). The library's own from_local(t3_model="v3")
+  # and generate behind the studio's /synthesize contract (exaggeration, cfg_weight, temperature; a Perth watermark on
+  # every output, applied by the library). Weights: group voice-chatterbox-mtl-v3 (4.3 GB), read-only; IQ_S3GEN picks
+  # s3gen.pt (default) or s3gen_v3.safetensors. GPU family TTS: start and call it under scripts/gpu-hold.ts; idle it holds
+  # nothing (lazy load), /unload drops the model. Profile `iq` only — never started by `up`; the registry entry is an
+  # evaluation engine (src/server/providers/voice-eval-engines.ts `vewbox-iq`) until a native listener passes it.
+  tts-iq:
+    logging: *logging
+    build: { context: ., dockerfile: docker/tts-iq/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/tts-iq:${CODE_VERSION:-dev}
+    profiles: ["iq"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, IQ_S3GEN: "${IQ_S3GEN:-s3gen.pt}", IQ_ADAPTER_DIR: "${IQ_ADAPTER_DIR:-}", IQ_ADAPTER_FORM: "${IQ_ADAPTER_FORM:-merged}" }
+    # the service app and the shared loader from the repo (a fix takes effect on restart); the dataset tree read-only for
+    # the checkpoints (IQ_ADAPTER_DIR=/training/checkpoints/<name>/step-NNNNNN)
+    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training:ro", "./docker/tts/app.py:/opt/iq/vewbox_tts_shared.py:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro", "./docker/tts-iq/app.py:/opt/iq/vewbox_iq_app.py:ro" ]
+    ports: [ "127.0.0.1:${TTS_IQ_PORT:-8027}:8027" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8027/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+    stop_grace_period: 30s
+
+  # VEWBOX-IQ TRAINER (docker/train-iq, built on the tts-iq image: build tts-iq first). One-off runs under the GPU lease
+  # (scripts/gpu-hold.ts TTS), the trainer package mounted from the repo, the store read-only, the dataset tree read-write:
+  #   docker compose --profile train run --rm train-iq /opt/train/extract_omnilingual.py
+  #   docker compose --profile train run --rm train-iq /opt/train/prepare_tokens.py --manifest /training/train/manifest.jsonl --out /training/tokens/train --language ar
+  #   docker compose --profile train run --rm train-iq /opt/train/train_lora.py --tokens /training/tokens/train --out /training/checkpoints --name stage-a-smoke --smoke --bf16
+  #   docker compose --profile train run --rm train-iq /opt/train/eval_checkpoint.py --checkpoint /training/checkpoints/stage-a-smoke/step-000200 --reference /training/eval/ref-ar.wav --out /training/eval/smoke-200
+  train-iq:
+    logging: *logging
+    build: { context: ., dockerfile: docker/train-iq/Dockerfile, args: { BASE_IMAGE: "vewbox/tts-iq:${CODE_VERSION:-dev}" }, secrets: [extra_ca] }
+    image: vewbox/train-iq:${CODE_VERSION:-dev}
+    profiles: ["train"]
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all, VEWBOX_TRAINING_ROOT: /training, VEWBOX_TRAINING_ROOT_HOST: "${VEWBOX_TRAINING_ROOT_HOST:-D:\\vewbox-data\\training\\iraqi}", VEWBOX_COMMIT: "${CODE_VERSION:-dev}", HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1", TQDM_DISABLE: "1" }
+    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training", "./docker/train-iq/train:/opt/train:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro" ]
+    working_dir: /opt/train
+    entrypoint: ["python"]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    shm_size: "4gb"
+
   # SoulX-Singer SVC — EVALUATION ONLY, not production-approved (Phase 3 singer identity; docker/svc-eval). One-off:
   #   docker compose -p vewbox --profile eval run --rm svc-eval --source /work/<vocal.wav> --reference /work/<voice.wav> --out /work/<dir>
   # var/eval is its workspace; the weights (group eval-svc-soulx-singer) are read-only; run it under the GPU lease.

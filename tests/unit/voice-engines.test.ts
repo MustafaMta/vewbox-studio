@@ -114,6 +114,28 @@ describe('voice engines', () => {
     expect(routeLine('هاي الحچاية طويلة.', 'AR', 'IRAQI_BAGHDADI', 'fireredtts3' as never, 'moss').engine).toBe('habibi');
   });
 
+  it('keeps Vewbox-IQ (Chatterbox MTL V3 + the Iraqi adaptation) an evaluation engine until a native listener passes it: never routed, never pinned, never the English default', async () => {
+    const { EVAL_VOICE_ENGINES, isEvalTtsEngine } = await import('@/server/providers/voice-eval-engines');
+    const { synthesisEngineOf, synthesisFields } = await import('@/server/providers/speech');
+    const { ttsVramFor } = await import('@/server/providers/voice-engines');
+    expect(isEvalTtsEngine('vewbox-iq')).toBe(true);
+    expect(EVAL_VOICE_ENGINES['vewbox-iq']).toMatchObject({ urlEnv: 'TTS_IQ_URL', defaultUrl: 'http://127.0.0.1:8027', languages: ['EN', 'AR'], acting: 'reference', usesReferenceText: false, commercialUse: true, vramMb: 8000, licence: 'MIT (Chatterbox Multilingual V3) + Vewbox-IQ adaptation' });
+    expect(EVAL_VOICE_ENGINES['vewbox-iq'].compose).toEqual({ service: 'tts-iq', profile: 'iq' });
+    expect(EVAL_VOICE_ENGINES['vewbox-iq'].pinned).toMatchObject({ manifestGroup: 'voice-chatterbox-mtl-v3', code: expect.stringMatching(/chatterbox@65b18437/), weights: expect.stringMatching(/t3_mtl23ls_v3/) });
+    expect(isLocalTtsEngine('vewbox-iq')).toBe(false);
+    expect(englishEngine('vewbox-iq')).toBe('indextts');
+    expect(pinnable('vewbox-iq', 'EN')).toBeUndefined();
+    expect(pinnable('vewbox-iq', 'AR')).toBeUndefined();
+    expect(pickEngine('AR', 'IRAQI_BAGHDADI', 'vewbox-iq', 'moss')).toBe('habibi');
+    expect(pickEngine('EN', undefined, 'vewbox-iq', 'moss')).toBe('moss');
+    expect(routeLine('گلتلك باچر نكعد نحچي ونشرب چاي.', 'AR', 'IRAQI_BAGHDADI', 'vewbox-iq' as never, 'moss').engine).toBe('habibi');
+    // named explicitly it is spoken verbatim; the reference transcript is never sent (it clones from audio alone)
+    expect(synthesisEngineOf({ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'vewbox-iq' })).toBe('vewbox-iq');
+    const line = { text: 'شلونك؟ صارلي هواية ما شايفك.', language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const, referenceText: 'the reference says this', seed: 7, raw: true };
+    expect(synthesisFields(line, 'vewbox-iq')).toEqual({ text: line.text, language: 'ar', engine: 'vewbox-iq', dialect: 'IRAQI_BAGHDADI', seed: '7', raw: '1' });
+    expect(ttsVramFor('vewbox-iq')).toBe(8000);
+  });
+
   it('speaks through an evaluation engine only when a request names it: the URL from its own registry, the lease from its own estimate', async () => {
     const { synthesisEngineOf, synthesisFields } = await import('@/server/providers/speech');
     const { ttsVramFor, TTS_VRAM_FLOOR_MB } = await import('@/server/providers/voice-engines');

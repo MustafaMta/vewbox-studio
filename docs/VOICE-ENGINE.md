@@ -17,6 +17,7 @@ Nothing in this document claims native Baghdadi quality. Quality is decided by a
 | MiniMax speech | Hosted voices (not replaced) | many | MiniMax terms | API |
 | **Fish Audio S2 Pro** | **Evaluation only** | EN (tier 1), AR (tier 2) | **Fish Audio Research License — non-commercial** | `tts-fish` :8025, profile `fish` |
 | **FireRedTTS3-Base** | **Evaluation only** (unheard) | EN, AR (no dialect) | Apache-2.0 (README: cloning "for academic research" — noted) | `tts-firered` :8026, profile `firered` |
+| **Vewbox-IQ** (Chatterbox MTL V3 + Iraqi adaptation) | **Evaluation only** until the native pass (docs/VEWBOX-IQ.md) | EN, AR (Baghdadi by adaptation) | MIT + Vewbox-IQ adaptation | `tts-iq` :8027, profile `iq` |
 
 - **Production registry.** `src/server/providers/voice-engines.ts` lists only commercial-safe engines. This is tested:
   no licence there may read non-commercial or research.
