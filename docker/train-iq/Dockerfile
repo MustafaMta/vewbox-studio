@@ -10,7 +10,7 @@ ARG BASE_IMAGE=vewbox/tts-iq:dev
 FROM ${BASE_IMAGE}
 USER root
 RUN --mount=type=cache,id=uv-tts-iq,target=/root/.cache/uv \
-    uv pip install --python /opt/venv/bin/python "peft==0.21.0" "pyarrow==26.0.0" \
+    uv pip install --python /opt/venv/bin/python "peft==0.21.0" "pyarrow==17.0.0" \
  && python -c "import peft, pyarrow, safetensors, soundfile, librosa, torch; assert torch.__version__.startswith('2.8.0'), torch.__version__; print('peft', peft.__version__, 'pyarrow', pyarrow.__version__, 'safetensors', safetensors.__version__, 'librosa', librosa.__version__)"
 COPY docker/train-iq/train /opt/train
 RUN chown -R iq /opt/train
