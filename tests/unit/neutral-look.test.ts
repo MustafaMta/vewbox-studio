@@ -30,6 +30,17 @@ describe('neutralLook', () => {
   });
 });
 
+describe('an expressive adjective leaves, the physical noun stays (Phase 1 character B, 2026-10-09)', () => {
+  it('“Large, expressive dark brown eyes with defined upper lashes” keeps the eye colour', () => {
+    const { design, report } = neutralLook({ eyes: 'Large, expressive dark brown eyes with defined upper lashes' });
+    expect(design.eyes).toBe('Large, dark brown eyes with defined upper lashes');
+    expect(report.movedToPersonality).toEqual(['expressive']);
+    // an adjective alone is still a mood, and an expression noun still goes whole
+    expect(neutralLook({ face: 'Round and friendly with apple-cheeks' }).design.face).toBe('Round with apple-cheeks');
+    expect(neutralLook({ face: 'Narrow face with a warm, approachable smile' }).design.face).toBe('Narrow face');
+  });
+});
+
 describe('a scar in the identity stays within the record’s limit (Phase 1 character A, job-5f1863dfdd)', () => {
   it('a 110-character scar detail is stored with the word healed, never with the drawing instruction', () => {
     const long = 'a thin, faded scar running from the outer corner of her left eyebrow toward the hairline, from a childhood fall';

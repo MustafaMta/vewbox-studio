@@ -104,20 +104,21 @@ describe('the creation stepper (contract v2: design → image → voice, then yo
   });
 });
 
-describe('the voice of a Describe start (finding 15)', () => {
-  it('offers only what can produce a voice: no voice yet, or a recording added now — never a "studio voice" with no bank behind it', () => {
-    expect(DESCRIBE_VOICE_MODES).toEqual(['NONE', 'RECORDING']);
+describe('the voice of a Describe start (the producer’s creation options, 2026-10-09)', () => {
+  it('offers an original fictional voice (the default: nobody cloned), a clone of an approved recording, or later', () => {
+    expect(DESCRIBE_VOICE_MODES).toEqual(['ORIGINAL', 'RECORDING', 'NONE']);
     expect(KEYS).not.toContain('char.create.voiceAuto');
-    // D9: the hint points to the profile's two real ways (designed from the description, or a permitted recording)
     const src = fs.readFileSync('src/components/character/create/Starts.tsx', 'utf8');
-    expect(src).toMatch(/the studio can design a voice from the description/);
-    expect(src).toMatch(/recording you have permission to use/);
+    expect(src).toMatch(/Create an original fictional voice/);
+    expect(src).toMatch(/Clone an approved reference recording/);
+    expect(src).toMatch(/permission to use/);
   });
-  it('asks CREATE_CHARACTER for an AUTOMATIC voice only when a recording travels with the request', () => {
+  it('asks CREATE_CHARACTER for an AUTOMATIC voice for an original voice, or when a recording travels with the request', () => {
+    expect(describeVoicePayload('ORIGINAL', false)).toEqual({ mode: 'AUTOMATIC' });
     expect(describeVoicePayload('RECORDING', true)).toEqual({ mode: 'AUTOMATIC' });
     expect(describeVoicePayload('RECORDING', false)).toEqual({ mode: 'NONE' });
     expect(describeVoicePayload('NONE', true)).toEqual({ mode: 'NONE' });
-    // a draft remembered from the old page ("Studio voice" = AUTOMATIC) comes back as no voice
-    expect(describeVoiceMode('AUTOMATIC')).toBe('NONE'); expect(describeVoiceMode('RECORDING')).toBe('RECORDING'); expect(describeVoiceMode(undefined)).toBe('NONE');
+    // a draft remembered from the old page ("Studio voice" = AUTOMATIC) is the original voice now
+    expect(describeVoiceMode('AUTOMATIC')).toBe('ORIGINAL'); expect(describeVoiceMode('RECORDING')).toBe('RECORDING'); expect(describeVoiceMode(undefined)).toBe('ORIGINAL'); expect(describeVoiceMode('NONE')).toBe('NONE');
   });
 });

@@ -15,7 +15,7 @@ import { Button, Notice, Segmented, StateWord } from '@/components/ui/kit';
 import { IconOpen, IconRetry } from '@/components/ui/icons';
 import { createResultOf, startCreateCharacter, startVoiceBuild, type CreateCharacterPayload, type CreateStepName } from '../contract';
 import { EMPTY_SHEET, sheetAge, sheetPayload, type SheetValues } from '../sheetModel';
-import { AutoStart, FigurePreview, ManualStart, PictureStart, performerProfile, type DescribeRecording, type DescribeValues, type HeaderValues, type PictureValues } from './Starts';
+import { AutoStart, FigurePreview, ManualStart, PictureStart, performerProfile, spokenLanguagesOf, type DescribeRecording, type DescribeValues, type HeaderValues, type PictureValues } from './Starts';
 import { PageHead } from '../parts';
 import { CreationProgress } from './CreationProgress';
 import { ReadyCard } from './ReadyCard';
@@ -55,7 +55,7 @@ export function CreateCharacter() {
   const asked = sp.get('start');
   const [start, setStart] = useState<Start>(STARTS.includes(asked as Start) ? (asked as Start) : 'describe');
   const [header, setHeader] = useState<HeaderValues>({ forId: sp.get('show') ? `show:${sp.get('show')}` : sp.get('production') ? `p:${sp.get('production')}` : '', style: def.style, language: def.language, dialect: def.dialect, kind: 'ACTOR' });
-  const [describe, setDescribe] = useState<DescribeValues>({ name: '', brief: '', voiceMode: 'NONE' });
+  const [describe, setDescribe] = useState<DescribeValues>({ name: '', brief: '', voiceMode: 'ORIGINAL' });
   const [picture, setPicture] = useState<PictureValues>({ name: '', role: '', keep: 'FACE', note: '' });
   const [sheet, setSheet] = useState<SheetValues>(EMPTY_SHEET);
   const [parentId, setParentId] = useState<string | null>(null);
@@ -142,7 +142,7 @@ export function CreateCharacter() {
   }, [voiceUpload, voiceOutcome, characterId, retries.voice, startJob]);
 
   // preflight: the engines this start needs, read live
-  const needsVoice = start === 'describe' && describe.voiceMode === 'RECORDING';
+  const needsVoice = start === 'describe' && describe.voiceMode !== 'NONE';
   const gate = engineGate(engines.status, needsVoice ? ['images', 'voice'] : ['images']);
   const gateReason = !gate.ok ? `${gate.blocked.map((b) => ENGINE[b.need]).join(' and ')} ${gate.blocked.length > 1 ? 'are' : 'is'} not reachable right now, so nothing can be drawn yet.` : null;
   const dialectReason = header.language === 'AR' && !header.dialect ? 'Choose a dialect for an Arabic character.' : null;
@@ -150,7 +150,8 @@ export function CreateCharacter() {
 
   useUnsavedGuard(!parentId && (describe.brief.trim().length > 0 || picture.note.trim().length > 0 || sheet.name.trim().length > 0), 'Leave without creating the character? The brief is lost.');
 
-  const basePayload = (): Pick<CreateCharacterPayload, 'style' | 'language' | 'dialect' | 'productionId' | 'showId'> => ({ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, showId: forShow?.id, productionId: forProduction?.id });
+  // every language the character speaks travels with the creation: one voice identity gets a profile per language
+  const basePayload = (): Pick<CreateCharacterPayload, 'style' | 'language' | 'dialect' | 'languages' | 'productionId' | 'showId'> => ({ style: header.style, language: header.language, dialect: header.language === 'AR' ? header.dialect : undefined, languages: spokenLanguagesOf(header), showId: forShow?.id, productionId: forProduction?.id });
   const say = (job: StartedJob) => { for (const w of job.warnings ?? []) toast.push({ tone: 'info', text: w.detail }); };
 
   const launch = useCallback(async (payload: CreateCharacterPayload, withRecording = false) => {
@@ -175,7 +176,7 @@ export function CreateCharacter() {
     if (describe.sex) profile.sex = describe.sex; if (ageYears) profile.ageYears = ageYears; if (describe.species) profile.species = describe.species;
     // a recording added here is uploaded once the character exists; the chain's voice step (AUTOMATIC) builds from it
     const voice = describeVoicePayload(describe.voiceMode, Boolean(recording));
-    void launch({ mode: 'AUTO', name: describe.name.trim() || undefined, brief: describe.brief.trim() || undefined, profile: Object.keys(profile).length ? profile : undefined, ...basePayload(), voice, draw: true }, voice.mode === 'AUTOMATIC');
+    void launch({ mode: 'AUTO', name: describe.name.trim() || undefined, brief: describe.brief.trim() || undefined, profile: Object.keys(profile).length ? profile : undefined, ...basePayload(), voice, draw: true }, describe.voiceMode === 'RECORDING' && voice.mode === 'AUTOMATIC');
   };
   const submitSheet = (draw: boolean) => {
     const { profile, brief } = sheetPayload(sheet, { style: header.style, language: header.language, dialect: header.dialect });
@@ -219,7 +220,7 @@ export function CreateCharacter() {
   const cancel = async () => { if (!parentId) return; setCancelling(true); try { await cancelJob(parentId); } catch (e) { toast.bad((e as Error).message); } finally { setCancelling(false); } };
   const reset = () => { setParentId(null); setFetched(null); setRetries({}); setVoiceUpload(null); draft.current = { ...draft.current, referenceAssetId: undefined }; writeDraft({ ...readDraft(), jobId: undefined, referenceAssetId: undefined }); };
   /** A new character from an empty form (the finished one stays in the studio; its profile has it). */
-  const startNew = () => { reset(); setDescribe({ name: '', brief: '', voiceMode: 'NONE' }); setPicture({ name: '', role: '', keep: 'FACE', note: '' }); setSheet(EMPTY_SHEET); setRecording(null); setLastPayload(null); writeDraft({ start, header }); window.scrollTo({ top: 0 }); };
+  const startNew = () => { reset(); setDescribe({ name: '', brief: '', voiceMode: 'ORIGINAL' }); setPicture({ name: '', role: '', keep: 'FACE', note: '' }); setSheet(EMPTY_SHEET); setRecording(null); setLastPayload(null); writeDraft({ start, header }); window.scrollTo({ top: 0 }); };
   const discard = () => { if (created) { try { act('deleteCharacter', created.id); toast.ok('Deleted.'); } catch (e) { toast.bad((e as Error).message); return; } } reset(); };
   const drawAgain = async () => { if (!characterId) return; try { const job = await startJob('CHARACTER_APPEARANCE', { characterId }); say(job); setRetries((r) => ({ ...r, image: job.id })); } catch (e) { toast.bad((e as Error).message); } };
 

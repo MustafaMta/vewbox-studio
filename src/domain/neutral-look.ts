@@ -13,9 +13,11 @@ import { healedMark } from './scars';
 // "laughter lines" and "smile lines" are wrinkles — physical, kept; "laughs", "smiling" are expressions
 const EXPRESSION = /\b(smil(e|es|ing)\b(?! lines)|grin\w*|laugh(s|ing)?\b|frown\w*|scowl\w*|express\w*|approachable|friendly|warm(ly)?|kind(ly)?|stern|angry|anger|sad(ly|ness)?|worried|anxious|cheerful|joyful|happy|serious look|mood|crinkl\w* when|when (he|she|they) (smiles|laughs|talks|speaks))\b/i;
 // a piece that IS an expression (a noun or verb of one), not merely a physical piece with a mood adjective on it
-const PIECE_EXPRESSION = /\b(smil(e|es|ing)\b(?! lines)|grin\w*|laugh(s|ing)?\b|frown\w*|scowl\w*|crinkl\w*|expression|expressive|approachable|friendly|mood|kind(ly)?$)|^\s*(often|usually|always)\b|^\s*(a |an )?(warm|kind|stern|cheerful|serious)\s*$/i;
+// (an adjective — expressive, friendly, kind — is not a piece of its own when it sits on a physical noun: "Large,
+// expressive dark brown eyes" keeps "dark brown eyes"; Phase 1 character B lost its eye colour to the personality)
+const PIECE_EXPRESSION = /\b(smil(e|es|ing)\b(?! lines)|grin\w*|laugh(s|ing)?\b|frown\w*|scowl\w*|crinkl\w*|expression|mood)\b|^\s*(often|usually|always)\b|^\s*(a |an )?(warm|kind|kindly|stern|cheerful|serious|friendly|approachable|expressive|gentle)\s*$/i;
 // a mood adjective in front of a physical noun
-const MOOD_WORD = /\b(warm|kind|friendly|stern|cheerful|gentle|sad|angry|worried)\b,?\s*/gi;
+const MOOD_WORD = /\b(warm|kind|friendly|stern|cheerful|gentle|sad|angry|worried|expressive|approachable)\b,?\s*/gi;
 const TEMPORARY =/\b(fresh|bleeding|blood(y|ied)?|bruis\w*|swollen|wet|soaked|drenched|bandag\w*|plaster|stitch\w*|scab\w*|open wound|cut lip|black eye|sweat\w*|tear-stained|muddy)\b/i;
 const LOOK_FIELDS = ['face', 'eyes', 'hair', 'skin', 'build'] as const;
 

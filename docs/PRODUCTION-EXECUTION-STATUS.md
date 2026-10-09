@@ -43,11 +43,37 @@ episode.
 
 | Character | Style | Performs | Languages | Canonical image | Voice | English samples | Iraqi samples | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | Realistic | Actor + Singer | English, Iraqi Arabic | — | — | — | — | starting |
-| B | Anime | Actor + Singer | English, Iraqi Arabic | — | — | — | — | after A |
+| A — Layla Haddad | Realistic | Actor + Singer (mezzo-soprano; Iraqi folk, acoustic ballad) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
+| B | Anime | Actor + Singer | English, Iraqi Arabic | — | — | — | — | in progress |
 | C | Cartoon | Actor + Singer | English, Iraqi Arabic | — | — | — | — | after B |
 
 `PHASE_1` ends at `WAITING_FOR_USER_ACCEPTANCE` with a review package; nothing proceeds without the producer.
+
+Review package: `/characters/review` (and Voice Studio → Character voices); machine evidence
+`docs/evidence/phase1/<A|B|C>.json` (`scripts/phase1-review.ts`); the run itself is `scripts/phase1.ts`.
+
+### Character A — what happened (first-attempt record)
+
+1. **Creation attempt 1 refused before anything was made** (job-5f1863dfdd): the neutral-identity step stored a scar with
+   its full drawing instruction (+~100 characters), so a distinguishing detail exceeded the record's 120. Root cause
+   fixed (the identity stores the word "healed"; the drawing instruction is added only in picture/video prompts),
+   regression test, then **one explicit regeneration** (attempt 2, `phase1:create:A:2`). Sheet, image and voice were
+   each made once.
+2. **Languages lost on read**: the state loader rebuilt the voice field by field and dropped the new `languages`
+   list, so the voice was built with an English profile only. Fixed; the SAME identity (revision 1, same reference)
+   was given its Iraqi profile (`addVoiceLanguageProfiles`, routing only — nothing re-spoken).
+3. **Proof line heard by Whisper alone**: the Audio Synchronization Inspector was not allowed Qwen3-ASR. Fixed
+   (ORG_VERSION 20; the org test's scan now follows functions a step calls). The proof was re-heard by Qwen3-ASR for
+   the evidence: exact.
+4. **Image vs sheet**: the sheet put a mole on the collarbone under a turtleneck; the image drew a small dark dot on
+   the sweater. The image is the authority: the mole was removed from the identity (note on the character). The design
+   prompt now asks for distinguishing details visible over the canonical wardrobe. The dot on the sweater is the
+   image's only visible defect; whether it needs a redraw is the producer's call.
+5. **Machine evidence (supporting only)**: English 5/5 heard exactly (Qwen3-ASR). Iraqi Habibi 3/5 exact; lines 2 and
+   5 flagged — the phoneme gate did not hear چ in «باچر», «نحچي», «چاي», «چانت» or گ in «گدام». MOSS Iraqi: line 2 FAIL
+   (heard in Persian-style letters), lines 3 and 5 REVIEW. ECAPA English↔English 0.72; English↔Iraqi 0.55 (Habibi) /
+   0.56 (MOSS); median pitch shift −0.5 st (Habibi) / +0.6 st (MOSS). Naturalness, dialect and "same person" are the
+   producer's.
 
 ## Open producer items
 

@@ -25,18 +25,34 @@ import { AUDIO_RULES, BRIEF_MAX, checkAudioDuration, checkAudioFile, checkBrief,
  *    ManualStart   a minimal brief: name, role, style, language; the look, personality and voice on demand
  *    PictureStart  a reference picture (checked in the browser, then by the server), what to keep, what changes */
 
-/** Who they are cast as (master plan §3): what they perform, and — for a singer — the singing range and styles. */
-export interface HeaderValues { forId: string; style: (typeof STYLES)[number]; language: Language; dialect: Dialect; kind: PerformerKind; voiceType?: VoiceType; singingStyles?: string }
+/** What the character speaks (the producer's creation options, 2026-10-09): English, Arabic (Iraqi by default), or
+ *  BOTH — one voice identity either way; for BOTH it carries an English and an Arabic profile of the same voice. */
+export type Speaks = 'EN' | 'AR' | 'BOTH';
+/** Who they are cast as (master plan §3): what they perform, and — for a singer — the singing range and styles.
+ *  `language` is the primary (English for BOTH); `speaks` says whether Arabic is spoken too. */
+export interface HeaderValues { forId: string; style: (typeof STYLES)[number]; language: Language; dialect: Dialect; speaks?: Speaks; kind: PerformerKind; voiceType?: VoiceType; singingStyles?: string }
 
 export const KIND_WORD: Record<PerformerKind, string> = { ACTOR: 'Actor', SINGER: 'Singer', ACTOR_SINGER: 'Actor + Singer' };
 export const VOICE_TYPE_WORD: Record<VoiceType, string> = { SOPRANO: 'Soprano', MEZZO_SOPRANO: 'Mezzo-soprano', ALTO: 'Alto', TENOR: 'Tenor', BARITONE: 'Baritone', BASS: 'Bass' };
 
+export const speaksOf = (h: Pick<HeaderValues, 'language' | 'speaks'>): Speaks => h.speaks ?? h.language;
+/** Every language the character speaks, the primary first — what CREATE_CHARACTER's `languages` carries. */
+export function spokenLanguagesOf(h: Pick<HeaderValues, 'language' | 'dialect' | 'speaks'>): Array<{ language: Language; dialect?: Dialect }> {
+  const s = speaksOf(h);
+  if (s === 'EN') return [{ language: 'EN' }];
+  if (s === 'AR') return [{ language: 'AR', dialect: h.dialect }];
+  return [{ language: 'EN' }, { language: 'AR', dialect: h.dialect }];
+}
+export const arabicWord = (dialect: Dialect) => (dialect === 'IRAQI_BAGHDADI' ? 'Iraqi Arabic' : `Arabic (${dialectLabel(dialect)})`);
+/** "English", "Iraqi Arabic" or "English + Iraqi Arabic". */
+export const speaksWord = (h: Pick<HeaderValues, 'language' | 'dialect' | 'speaks'>) => spokenLanguagesOf(h).map((l) => (l.language === 'EN' ? 'English' : arabicWord(l.dialect ?? h.dialect))).join(' + ');
+
 /** The performer fields of the profile a creation submits: the kind always; a singing profile for a kind that sings
- *  (its styles from the comma-separated line, the languages from the spoken one — the reducer keeps them in step). */
+ *  (its styles from the comma-separated line, the languages from the spoken ones — the reducer keeps them in step). */
 export function performerProfile(h: HeaderValues): { kind: PerformerKind; singing?: { voiceType?: VoiceType; styles: string[]; languages: Language[] } } {
   if (!sings(h.kind)) return { kind: h.kind };
   const styles = (h.singingStyles ?? '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 6).map((s) => s.slice(0, 40));
-  return { kind: h.kind, singing: { ...(h.voiceType ? { voiceType: h.voiceType } : {}), styles, languages: [h.language] } };
+  return { kind: h.kind, singing: { ...(h.voiceType ? { voiceType: h.voiceType } : {}), styles, languages: spokenLanguagesOf(h).map((l) => l.language) } };
 }
 /** Nothing is preselected: sex, age band and species stay unset ("Studio decides") until the producer chooses. */
 export interface DescribeValues { name: string; brief: string; sex?: Sex; band?: AgeBand; ageYears?: number; species?: string; voiceMode: DescribeVoiceMode }
@@ -64,7 +80,7 @@ export function Settings({ value, onChange }: { value: HeaderValues; onChange: (
   const homes = [...state.shows.map((s) => ({ value: `show:${s.id}`, label: s.title })), ...state.productions.filter((p) => !p.showId).map((p) => ({ value: `p:${p.id}`, label: p.title }))];
   const home = homes.find((h) => h.value === value.forId);
   return (
-    <SettingsSummary items={[home ? `For ${home.label}` : 'For the library', KIND_WORD[value.kind], STYLE_WORD[value.style], value.language === 'AR' ? `Arabic (${dialectLabel(value.dialect)})` : 'English']}>
+    <SettingsSummary items={[home ? `For ${home.label}` : 'For the library', KIND_WORD[value.kind], STYLE_WORD[value.style], speaksWord(value)]}>
       <div className="char-form char-voice">
         <Field label="Who it is for" optional><Select value={value.forId} onChange={(e) => set({ forId: e.target.value })} placeholder="The library (no show yet)" options={homes} /></Field>
         <StyleLanguage value={value} onChange={onChange} />
@@ -80,8 +96,9 @@ function StyleLanguage({ value, onChange }: { value: HeaderValues; onChange: (v:
     <div className="pc-choices">
       <div><p className="label">Performs</p><Segmented label="Performs" value={value.kind} onChange={(v) => set({ kind: v })} options={PERFORMER_KINDS.map((k) => ({ value: k, label: KIND_WORD[k] }))} /></div>
       <div><p className="label">Style</p><Segmented label="Style" value={value.style} onChange={(v) => set({ style: v })} options={STYLES.map((s) => ({ value: s, label: STYLE_WORD[s] }))} /></div>
-      <div><p className="label">Language</p><Segmented label="Language" value={value.language} onChange={(v) => set({ language: v })} options={[{ value: 'EN' as Language, label: 'English' }, { value: 'AR' as Language, label: 'Arabic' }]} /></div>
-      {value.language === 'AR' && <Field label="Dialect"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
+      {/* one voice identity either way; BOTH gives it an English and an Arabic profile of the same voice */}
+      <div><p className="label">Language</p><Segmented label="Language" value={speaksOf(value)} onChange={(v: Speaks) => set({ speaks: v, language: v === 'AR' ? 'AR' : 'EN' })} options={[{ value: 'EN' as Speaks, label: 'English' }, { value: 'AR' as Speaks, label: arabicWord(value.dialect) }, { value: 'BOTH' as Speaks, label: 'Both' }]} /></div>
+      {speaksOf(value) !== 'EN' && <Field label="Dialect"><Select value={value.dialect} onChange={(e) => set({ dialect: e.target.value as Dialect })} options={DIALECTS.map((d) => ({ value: d, label: dialectLabel(d) }))} /></Field>}
     </div>
     {/* a singer's own facts, on their own row (they belong to the singing voice, not to the look) */}
     {sings(value.kind) && (
@@ -118,7 +135,19 @@ export function AutoStart({ value, onChange, recording, onRecording, onSubmit, b
       </Field>
       <Field label="Name" optional help="Leave it empty and the studio names them."><Input value={value.name} onChange={(e) => set({ name: e.target.value })} maxLength={80} autoComplete="off" /></Field>
       <Settings value={header} onChange={onHeader} />
-      <details className="details creation-more" open={value.voiceMode === 'RECORDING' || Boolean(value.sex || value.band || value.species) || undefined}>
+      {/* ONE voice identity per character (the producer's options, 2026-10-09): an original fictional voice by default */}
+      <div>
+        <p className="label">Voice</p>
+        <Segmented label="Voice" value={value.voiceMode} onChange={(v) => set({ voiceMode: v })} options={[{ value: 'ORIGINAL' as DescribeVoiceMode, label: 'Create an original fictional voice' }, { value: 'RECORDING' as DescribeVoiceMode, label: 'Clone an approved reference recording' }, { value: 'NONE' as DescribeVoiceMode, label: 'Later' }]} />
+        <p className="help">{value.voiceMode === 'ORIGINAL' ? `One voice identity, designed by the studio — a synthetic voice, nobody cloned — speaking ${speaksWord(header)}.` : value.voiceMode === 'RECORDING' ? '3 to 30 seconds of a voice you have permission to use, in the character’s language. It is checked as soon as the character exists, and the one voice identity is cloned from it.' : 'No voice yet; make it later on the profile.'}</p>
+        {value.voiceMode === 'RECORDING' && (
+          <div className="char-voice">
+            <Dropzone label={recording ? recording.file.name : 'Upload a recording'} hint={`${AUDIO_RULES.minSeconds} to ${AUDIO_RULES.maxSeconds} seconds · checked once the character exists`} accept="audio/*" icon={<IconVoice />} onFile={(f) => void chooseRecording(f)} error={audioError ?? (touched && needsRecording ? 'Choose a recording, or create an original voice.' : null)} row />
+            {recording && !audioError && <p className="help" role="status">{recording.seconds === null ? 'The length could not be read here; the studio measures it.' : `${fmtSeconds(Math.round(recording.seconds * 10) / 10)} · ${checkAudioDuration(recording.seconds) === 'OK' ? 'length fine' : 'over 30 seconds; a window is used'}`}</p>}
+          </div>
+        )}
+      </div>
+      <details className="details creation-more" open={Boolean(value.sex || value.band || value.species) || undefined}>
         <summary>More control</summary>
         <div className="char-form char-voice">
           <div className="pc-choices">
@@ -126,20 +155,9 @@ export function AutoStart({ value, onChange, recording, onRecording, onSubmit, b
             <div><p className="label">Age</p><Segmented label="Age" value={value.band ?? 'ANY'} onChange={(v) => set({ band: v === 'ANY' ? undefined : (v as AgeBand), ageYears: undefined })} options={bandOptions} /></div>
           </div>
           <Field label="Species" optional help="Leave it empty for a person."><Input value={value.species ?? ''} onChange={(e) => set({ species: e.target.value || undefined })} /></Field>
-          <div>
-            <p className="label">Voice</p>
-            <Segmented label="Voice" value={value.voiceMode} onChange={(v) => set({ voiceMode: v })} options={[{ value: 'NONE' as DescribeVoiceMode, label: 'Later, on the profile' }, { value: 'RECORDING' as DescribeVoiceMode, label: 'From a recording now' }]} />
-            <p className="help">{value.voiceMode === 'RECORDING' ? '3 to 30 seconds of the character’s voice, in their language. It is checked as soon as the character exists, and the voice is built from it.' : 'Later, the studio can design a voice from the description, or build one from a recording you have permission to use.'}</p>
-            {value.voiceMode === 'RECORDING' && (
-              <div className="char-voice">
-                <Dropzone label={recording ? recording.file.name : 'Upload a recording'} hint={`${AUDIO_RULES.minSeconds} to ${AUDIO_RULES.maxSeconds} seconds · checked once the character exists`} accept="audio/*" icon={<IconVoice />} onFile={(f) => void chooseRecording(f)} error={audioError ?? (touched && needsRecording ? 'Choose a recording, or make the voice later.' : null)} row />
-                {recording && !audioError && <p className="help" role="status">{recording.seconds === null ? 'The length could not be read here; the studio measures it.' : `${fmtSeconds(Math.round(recording.seconds * 10) / 10)} · ${checkAudioDuration(recording.seconds) === 'OK' ? 'length fine' : 'over 30 seconds; a window is used'}`}</p>}
-              </div>
-            )}
-          </div>
         </div>
       </details>
-      <Foot note={disabledReason ?? 'About a minute: the sheet, then the figure.'} warn={Boolean(disabledReason)} onCancel={onCancel}
+      <Foot note={disabledReason ?? (value.voiceMode === 'NONE' ? 'About a minute: the sheet, then the figure.' : 'A few minutes: the sheet, the figure, then the voice.')} warn={Boolean(disabledReason)} onCancel={onCancel}
         primary={<Button type="submit" variant="primary" icon={<IconAuto />} loading={busy} disabled={Boolean(disabledReason)} aria-describedby={disabledReason ? undefined : undefined}>Draft the character</Button>} />
     </form>
   );
@@ -267,7 +285,7 @@ export function PictureStart({ value, onChange, onSubmit, busy, disabledReason, 
 export function FigurePreview({ name, role, header, sex, band, ageYears }: { name: string; role?: string; header: HeaderValues; sex?: Sex; band?: AgeBand; ageYears?: number }) {
   const n = name.trim();
   const age = sheetAge({ band, exactAge: ageYears });
-  const slate = [KIND_WORD[header.kind], STYLE_WORD[header.style], header.language === 'AR' ? `Arabic (${dialectLabel(header.dialect)})` : 'English', sex ? (sex === 'FEMALE' ? 'Woman' : 'Man') : null, age ? `${age}` : null].filter(Boolean).join(' · ');
+  const slate = [KIND_WORD[header.kind], STYLE_WORD[header.style], speaksWord(header), sex ? (sex === 'FEMALE' ? 'Woman' : 'Man') : null, age ? `${age}` : null].filter(Boolean).join(' · ');
   return (
     <div className="pc-preview">
       <Frame ratio="928/1664" alt="" title={n || 'Unnamed'} titleLang={nameLang(n)} titleState="notDrawn" className="pc-preview-frame" decorative />
