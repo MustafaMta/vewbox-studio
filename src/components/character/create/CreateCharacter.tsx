@@ -142,7 +142,9 @@ export function CreateCharacter() {
   }, [voiceUpload, voiceOutcome, characterId, retries.voice, startJob]);
 
   // preflight: the engines this start needs, read live
-  const needsVoice = start === 'describe' && describe.voiceMode !== 'NONE';
+  // an original voice is designed minutes later (after the sheet and the figure) and the chain's own preflight checks the
+  // engine then — a busy engine (one probe timed out while it spoke) must not block the start; a recording is checked now
+  const needsVoice = start === 'describe' && describe.voiceMode === 'RECORDING';
   const gate = engineGate(engines.status, needsVoice ? ['images', 'voice'] : ['images']);
   const gateReason = !gate.ok ? `${gate.blocked.map((b) => ENGINE[b.need]).join(' and ')} ${gate.blocked.length > 1 ? 'are' : 'is'} not reachable right now, so nothing can be drawn yet.` : null;
   const dialectReason = header.language === 'AR' && !header.dialect ? 'Choose a dialect for an Arabic character.' : null;
