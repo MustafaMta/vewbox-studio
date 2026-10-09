@@ -1,5 +1,6 @@
 import type { Language } from '@/domain/vocabulary';
 import { isOneWordLine } from '../media/lead-in';
+import { EVAL_VOICE_ENGINES, type EvalTtsEngine } from './voice-eval-engines';
 
 /** THE LOCAL VOICE ENGINES AND WHAT EACH CAN DO — capability data, not code paths (docs/research/VOICE-BENCH-2026-10.md).
  *  Every engine speaks the same `/synthesize` contract (docker/tts/app.py, docker/tts-bench/app.py): text + ONE
@@ -55,9 +56,10 @@ export function englishEngine(configured: string | undefined): LocalTtsEngine {
 }
 
 /** The GPU lease estimate for a line on `engine` (MB): the voice services' shared floor (voice-measure TTS_VRAM 8000)
- *  or the engine's own measured peak, whichever is larger. */
+ *  or the engine's own measured peak, whichever is larger. An evaluation engine (voice-eval-engines.ts) brings its own
+ *  estimate: a preview that names one leases the card for it the same way. */
 export const TTS_VRAM_FLOOR_MB = 8000;
-export const ttsVramFor = (engine: LocalTtsEngine): number => Math.max(TTS_VRAM_FLOOR_MB, VOICE_ENGINES[engine].vramMb);
+export const ttsVramFor = (engine: LocalTtsEngine | EvalTtsEngine): number => Math.max(TTS_VRAM_FLOOR_MB, isLocalTtsEngine(engine) ? VOICE_ENGINES[engine].vramMb : EVAL_VOICE_ENGINES[engine].vramMb);
 
 /** The length to ask of `engine` for `text`: the caller's target when it has one; else, for a one-word line on an
  *  engine that budgets by tokens, the engine's one-word budget; else nothing (the engine's own length). */

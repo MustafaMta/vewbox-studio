@@ -99,4 +99,31 @@ describe('voice engines', () => {
     expect(pinnable('fish-s2-pro', 'AR')).toBeUndefined();
     expect(pickEngine('AR', 'IRAQI_BAGHDADI', 'fish-s2-pro' as never, 'moss')).toBe('habibi');
   });
+
+  it('keeps FireRedTTS3-Base an evaluation engine too (Apache-2.0, but unheard): never routed, never pinned, never the English default', async () => {
+    const { EVAL_VOICE_ENGINES, isEvalTtsEngine } = await import('@/server/providers/voice-eval-engines');
+    expect(isEvalTtsEngine('fireredtts3')).toBe(true);
+    expect(EVAL_VOICE_ENGINES.fireredtts3).toMatchObject({ label: 'FireRedTTS3-Base', urlEnv: 'TTS_FIREREDTTS3_URL', languages: ['EN', 'AR'], usesReferenceText: true, commercialUse: true, vramMb: 16000, licence: expect.stringMatching(/Apache-2\.0/) });
+    expect(EVAL_VOICE_ENGINES.fireredtts3.compose).toEqual({ service: 'tts-firered', profile: 'firered' });
+    expect(isLocalTtsEngine('fireredtts3')).toBe(false);
+    expect(englishEngine('fireredtts3')).toBe('indextts');
+    expect(pinnable('fireredtts3', 'EN')).toBeUndefined();
+    expect(pinnable('fireredtts3', 'AR')).toBeUndefined();
+    expect(pickEngine('AR', 'IRAQI_BAGHDADI', 'fireredtts3', 'moss')).toBe('habibi');
+    expect(pickEngine('EN', undefined, 'fireredtts3', 'moss')).toBe('moss');
+    expect(routeLine('هاي الحچاية طويلة.', 'AR', 'IRAQI_BAGHDADI', 'fireredtts3' as never, 'moss').engine).toBe('habibi');
+  });
+
+  it('speaks through an evaluation engine only when a request names it: the URL from its own registry, the lease from its own estimate', async () => {
+    const { synthesisEngineOf, synthesisFields } = await import('@/server/providers/speech');
+    const { ttsVramFor, TTS_VRAM_FLOOR_MB } = await import('@/server/providers/voice-engines');
+    expect(synthesisEngineOf({ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'fireredtts3' })).toBe('fireredtts3');
+    expect(synthesisEngineOf({ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'auto' })).toBe('habibi');
+    expect(synthesisEngineOf({ language: 'AR', dialect: 'IRAQI_BAGHDADI' })).toBe('habibi');
+    const line = { text: 'شلونك اليوم؟', language: 'AR' as const, dialect: 'IRAQI_BAGHDADI' as const, referenceText: 'the reference says this', seed: 7, raw: true, durationSeconds: 2.5 };
+    expect(synthesisFields(line, 'fireredtts3')).toEqual({ text: line.text, language: 'ar', engine: 'fireredtts3', dialect: 'IRAQI_BAGHDADI', reference_text: line.referenceText, seed: '7', raw: '1' });
+    expect(synthesisFields({ ...line, raw: false }, 'fish-s2-pro').raw).toBeUndefined();
+    expect(ttsVramFor('fireredtts3')).toBe(16000);
+    expect(ttsVramFor('fish-s2-pro')).toBeGreaterThanOrEqual(TTS_VRAM_FLOOR_MB);
+  });
 });

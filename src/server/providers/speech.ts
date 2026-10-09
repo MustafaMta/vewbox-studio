@@ -7,6 +7,7 @@ import { guardedEngineUrl } from '../gpu/lease-db';
 import { log } from '../log';
 import { followJobSignal, jobSignal, stopReasonOf } from '../jobs/context';
 import { VOICE_ENGINES, englishEngine, isLocalTtsEngine, type LocalTtsEngine } from './voice-engines';
+import { EVAL_VOICE_ENGINES, isEvalTtsEngine, type EvalTtsEngine } from './voice-eval-engines';
 
 /** THE VOICE AND TRANSCRIPTION SERVICES — two small HTTP services on the local GPU (docker/tts, docker/asr). The
  *  contract is the studio's own: synthesize one line from a reference recording with an engine chosen by language
@@ -14,15 +15,24 @@ import { VOICE_ENGINES, englishEngine, isLocalTtsEngine, type LocalTtsEngine } f
 
 /** A local engine id (src/server/providers/voice-engines.ts: indextts, habibi and the benchmarked candidates), or auto. */
 export type TtsEngine = LocalTtsEngine | 'auto';
+/** An engine `synthesize` can speak through: a production engine, or an evaluation engine named explicitly by a
+ *  preview or the harness (voice-eval-engines.ts) — the router (`pickEngine`, `routeLine`) never produces the latter. */
+export type SynthesisEngine = LocalTtsEngine | EvalTtsEngine;
 
 /** The knobs an identity pins so a line can be spoken again identically. `seed` is honoured by both engines; `nfeStep`,
  *  `cfgStrength` and `swaySamplingCoef` by Habibi (F5) only; `emotionAlpha` by IndexTTS only. */
 export interface SynthesizeParams { seed?: number; speed?: number; nfeStep?: number; cfgStrength?: number; swaySamplingCoef?: number; emotionAlpha?: number }
 export interface SynthesizeInput extends SynthesizeParams {
-  text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string; engine?: TtsEngine;
+  text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string;
+  /** A production engine or `auto` (routed by `pickEngine`); an EVALUATION engine id is honoured only here, verbatim —
+   *  the caller names it on purpose (a listening preview), the router stays blind to it. */
+  engine?: TtsEngine | EvalTtsEngine;
   /** A target length in seconds, honoured by an engine with token-level duration control (voice-engines.ts
    *  `durationControl: 'tokens'`); others ignore it (IndexTTS's length follows `speed`). */
   durationSeconds?: number;
+  /** `raw=1`: the engine's samples exactly as produced — 32-bit float, no peak limiter (listening comparisons only;
+   *  a film line always goes through the limiter). */
+  raw?: boolean;
 }
 export interface SynthesizeResult {
   file: string; sampleRate: number; durationSeconds: number; engine: string; model: string; ms: number;
@@ -36,8 +46,10 @@ export interface SynthesizeResult {
   truePeakDbtp?: number; gainReductionDb?: number;
 }
 
+/** The capability record of a production or an evaluation engine (both registries share the fields read here). */
+const engineCaps = (engine: SynthesisEngine) => (isEvalTtsEngine(engine) ? EVAL_VOICE_ENGINES[engine] : VOICE_ENGINES[engine]);
 // one card, one lease: a process outside the live lease may not use the real engines (src/server/gpu/lease-db.ts)
-const tts = (engine: LocalTtsEngine) => guardedEngineUrl(String(env()[VOICE_ENGINES[engine].urlEnv] || VOICE_ENGINES[engine].defaultUrl).replace(/\/$/, ''), 'the voice service');
+const tts = (engine: SynthesisEngine) => { const c = engineCaps(engine); return guardedEngineUrl(String(env()[c.urlEnv] || c.defaultUrl).replace(/\/$/, ''), 'the voice service'); };
 const asr = () => guardedEngineUrl(env().ASR_URL.replace(/\/$/, ''), 'the transcription service');
 
 /** POST and read the WHOLE answer under the same timeout and job signal. The body is read inside: a service that
@@ -105,7 +117,7 @@ export function wavProblem(buf: Buffer): string | null {
  *  production engine, producer decision 2026-10-07); English → the configured English engine (`VOICE_ENGINE_EN`,
  *  MOSS-TTS v1.5); other Arabic → IndexTTS 2.5 (not yet re-decided). A "pinned" name that is not a production engine
  *  (an evaluation engine such as fish-s2-pro, src/server/providers/voice-eval-engines.ts) is never honoured. */
-export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine, english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine {
+export function pickEngine(language: Language, dialect?: Dialect, preferred?: TtsEngine | EvalTtsEngine, english: string | undefined = env().VOICE_ENGINE_EN): LocalTtsEngine {
   if (preferred && preferred !== 'auto' && isLocalTtsEngine(preferred)) return preferred;
   if (language === 'AR' && dialect === 'IRAQI_BAGHDADI') return 'habibi';
   if (language === 'EN') return englishEngine(english);
@@ -168,9 +180,10 @@ export function routeLine(text: string, language: Language, dialect?: Dialect, p
 /** The text fields of one /synthesize request (pure, tested): what every engine gets, plus what only an engine with
  *  the capability gets — the reference transcript (Habibi, dots), the target length as `duration` (MOSS's token
  *  budget), the emotion (IndexTTS vector / VoxCPM2 style; the others accept it and condition on the reference). */
-export function synthesisFields(i: Omit<SynthesizeInput, 'referenceWav'>, engine: LocalTtsEngine): Record<string, string> {
-  const caps = VOICE_ENGINES[engine];
+export function synthesisFields(i: Omit<SynthesizeInput, 'referenceWav'>, engine: SynthesisEngine): Record<string, string> {
+  const caps = engineCaps(engine);
   const f: Record<string, string> = { text: i.text, language: i.language === 'AR' ? 'ar' : 'en', engine };
+  if (i.raw) f.raw = '1';
   if (i.dialect) f.dialect = i.dialect;
   if (i.referenceText && caps.usesReferenceText) f.reference_text = i.referenceText;
   if (i.emotion) f.emotion = i.emotion;
@@ -180,12 +193,16 @@ export function synthesisFields(i: Omit<SynthesizeInput, 'referenceWav'>, engine
   if (i.nfeStep !== undefined) f.nfe_step = String(Math.trunc(i.nfeStep));
   if (i.cfgStrength !== undefined) f.cfg_strength = String(i.cfgStrength);
   if (i.swaySamplingCoef !== undefined) f.sway_sampling_coef = String(i.swaySamplingCoef);
-  if (i.durationSeconds !== undefined && caps.durationControl === 'tokens') f.duration = String(Math.round(i.durationSeconds * 1000) / 1000);
+  if (i.durationSeconds !== undefined && 'durationControl' in caps && caps.durationControl === 'tokens') f.duration = String(Math.round(i.durationSeconds * 1000) / 1000);
   return f;
 }
 
+/** The engine a request is spoken by: an evaluation engine named explicitly is taken verbatim (never routed to, never
+ *  substituted); anything else goes through `pickEngine`. */
+export const synthesisEngineOf = (i: Pick<SynthesizeInput, 'language' | 'dialect' | 'engine'>): SynthesisEngine => (isEvalTtsEngine(i.engine) ? i.engine : pickEngine(i.language, i.dialect, i.engine));
+
 export async function synthesize(i: SynthesizeInput, outDir: string): Promise<SynthesizeResult> {
-  const engine = pickEngine(i.language, i.dialect, i.engine);
+  const engine = synthesisEngineOf(i);
   const fd = new FormData();
   for (const [k, v] of Object.entries(synthesisFields(i, engine))) fd.set(k, v);
   fd.set('reference', new Blob([await fsp.readFile(i.referenceWav)]), path.basename(i.referenceWav));

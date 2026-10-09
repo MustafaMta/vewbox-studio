@@ -16,6 +16,7 @@ Nothing in this document claims native Baghdadi quality. Quality is decided by a
 | VoxCPM2, dots.tts | Bench engines | EN | Apache-2.0 | profile `bench` |
 | MiniMax speech | Hosted voices (not replaced) | many | MiniMax terms | API |
 | **Fish Audio S2 Pro** | **Evaluation only** | EN (tier 1), AR (tier 2) | **Fish Audio Research License — non-commercial** | `tts-fish` :8025, profile `fish` |
+| **FireRedTTS3-Base** | **Evaluation only** (unheard) | EN, AR (no dialect) | Apache-2.0 (README: cloning "for academic research" — noted) | `tts-firered` :8026, profile `firered` |
 
 - **Production registry.** `src/server/providers/voice-engines.ts` lists only commercial-safe engines. This is tested:
   no licence there may read non-commercial or research.
@@ -91,6 +92,20 @@ word: a Baghdadi spelling, a name spelled out, or a loanword.
 - **GPU:** run it under `scripts/gpu-hold.ts TTS`. It loads lazily, and `/unload` stops upstream's model thread.
 - **Licence:** research and non-commercial use only. Commercial use needs a separate licence from Fish Audio, so it can
   never be a production engine until (a) that licence is on file and (b) a native listener passes it.
+
+## 5b. FireRedTTS3-Base (evaluation)
+
+- **Weights:** manifest group `eval-tts-fireredtts3-base` (FireRedTeam/FireRedTTS3 @ dcf1bdcd, 12.3 GB: Base backbone,
+  RedAE, CAM++, text tokenizer), read-only at `/models/voice/fireredtts3-base`.
+- **Code:** `docker/tts-firered/Dockerfile` builds the official repository at a pinned commit (7a1f3a7) with upstream's
+  pins (torch 2.8.0+cu128, transformers 5.6.2) — minus flash-attn: the Qwen3 modules run on PyTorch SDPA (no sm_120
+  wheel), and minus the optional text front-ends (the studio prepares the line). docs/research/FIREREDTTS3-INTEGRATION-2026-10.md.
+- **Inference path:** `docker/tts-firered/app.py` calls upstream's `FireRedTTS3.generate` with `language` Arabic|English,
+  the reference and its transcript (required: the model continues the transcript into the line), a fixed seed.
+- **Contract:** the studio's `/synthesize`, plus `n_timesteps`, `inference_cfg`, `stop_threshold`, `do_split`,
+  `cross_fade_ms`. Base has no acting control: delivery follows the reference.
+- **Reaching it:** `synthesize({ engine: 'fireredtts3', raw: true, … })` (src/server/providers/speech.ts) speaks through
+  it when a preview names it; `ttsVramFor('fireredtts3')` sizes its lease (16 000 MB estimate). The router never picks it.
 
 ## 6. The evaluation harness
 

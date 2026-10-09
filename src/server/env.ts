@@ -39,6 +39,10 @@ const Schema = z.object({
   TTS_DOTS_URL: z.string().default('http://127.0.0.1:8041'),
   /** MOSS-TTS v1.5 (compose service tts-moss, profile `moss`); host port by default like TTS_DESIGN_URL. */
   TTS_MOSS_URL: z.string().default('http://127.0.0.1:8023'),
+  /** EVALUATION engines (src/server/providers/voice-eval-engines.ts; compose profiles `fish` and `firered`, never part of
+   *  `up`): listened to blind, never routed to by pickEngine. Host ports by default. */
+  TTS_FISH_URL: z.string().default('http://127.0.0.1:8025'),
+  TTS_FIREREDTTS3_URL: z.string().default('http://127.0.0.1:8026'),
   /** The engine NEW English voices are built with (moss | indextts | voxcpm2 | dots). MOSS-TTS v1.5 since 2026-10-06
    *  (PRODUCTION-STACK-DIRECTIVE; docs/research/VOICE-BENCH-2026-10.md §3.2: ECAPA 0.67–0.86 vs IndexTTS 0.44–0.67 on
    *  the acceptance lines, every word heard, duration within 2 %); needs the `tts-moss` service (compose profile

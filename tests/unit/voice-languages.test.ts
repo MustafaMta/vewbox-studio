@@ -102,6 +102,7 @@ describe('speaking a line as the character in one of its languages', () => {
   });
   it('an engine the profile does not name, or a language the character does not speak, is refused', () => {
     expect(codeOf(() => speakingAs(c(), { ...IRAQI, engine: 'fish-s2-pro' }))).toBe('INVALID');
+    expect(codeOf(() => speakingAs(c(), { ...IRAQI, engine: 'fireredtts3' }))).toBe('INVALID');
     expect(codeOf(() => speakingAs(c(), { language: 'AR', dialect: 'EGYPTIAN' }))).toBe('INVALID');
   });
 });

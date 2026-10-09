@@ -18,6 +18,7 @@ import { isQaUnavailable, transcribeQwen } from '@/server/providers/qa-service';
 import { VOICE_GATES, latinFallbackOf, lineScript, pickEngine, routeLine as routeLineByScript, synthesize, transcribe, verdict, type LineScript, type TtsEngine, type VoiceVerdict } from '@/server/providers/speech';
 import { prepareLineText } from '@/server/providers/iraqi-text';
 import { VOICE_ENGINES, durationFor, isLocalTtsEngine, pinnable, ttsVramFor, type LocalTtsEngine } from '@/server/providers/voice-engines';
+import { EVAL_VOICE_ENGINES, isEvalTtsEngine, type EvalTtsEngine } from '@/server/providers/voice-eval-engines';
 import { cutWavStart, leadInCutPoint, quietestPoint, readPcm16 } from '@/server/media/lead-in';
 import * as minimax from '@/server/providers/minimax';
 import { env } from '@/server/env';
@@ -194,11 +195,15 @@ export interface SpokenLine { file: string; engine: string; model: string; ms: n
 
 /** Speak one line as the character: the engine and language follow the line's script (routeLine); the speech
  *  parameters are the identity's (speed from the pace, the seed), so every line of a voice sounds like its proof. */
-export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string; /** a target length (s), honoured by an engine with token-level duration control (MOSS) */ targetSeconds?: number; /** a language profile's engine (production or comparison) instead of the routed one */ engine?: LocalTtsEngine } = {}): Promise<SpokenLine> {
+export async function speakLine(ctx: HandlerContext, c: Character, text: string, ref: Reference | null, dir: string, opts: { emotion?: string; delivery?: string; /** a target length (s), honoured by an engine with token-level duration control (MOSS) */ targetSeconds?: number; /** a language profile's engine (production or comparison) instead of the routed one, or an EVALUATION engine (never production): spoken from the same reference, the same prepared text, as a comparison */ engine?: LocalTtsEngine | EvalTtsEngine } = {}): Promise<SpokenLine> {
   const identity = c.voice.identity;
+  // an evaluation engine speaks the line the production engine of that language would get: the same prepared text,
+  // the same reference and transcript, the same seed — only the engine differs (the controlled comparison)
+  const evalEngine = isEvalTtsEngine(opts.engine) ? opts.engine : undefined;
+  const preferred = evalEngine ? undefined : (opts.engine as LocalTtsEngine | undefined);
   // LINE PREPARATION (the Iraqi Arabic Language Specialist's step, for an Iraqi character): the engine and the
   // verification language follow the line's script (a fallback off the Iraqi engine is named below)
-  const route = c.dialect === 'IRAQI_BAGHDADI' ? await step(ctx, 'iraqi-specialist', `line-preparation: ${c.name} — “${text.slice(0, 40)}”`, async () => routeLine(c, text, opts.engine)) : routeLine(c, text, opts.engine);
+  const route = c.dialect === 'IRAQI_BAGHDADI' ? await step(ctx, 'iraqi-specialist', `line-preparation: ${c.name} — “${text.slice(0, 40)}”`, async () => routeLine(c, text, preferred)) : routeLine(c, text, preferred);
   const provider = (identity?.provider ?? (env().MINIMAX_API_KEY && (await readState()).state.settings.generation?.voiceProvider === 'MINIMAX' ? 'MINIMAX' : 'LOCAL_TTS')) as 'LOCAL_TTS' | 'MINIMAX';
   if (provider === 'MINIMAX') {
     const voiceId = identity?.providerVoiceId;
@@ -212,7 +217,7 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   if (!ref) throw missingReference(`${c.name} has no uploaded recording to speak with.`, { characterId: c.id });
   if (route.fallback) await ctx.event('info', `engine fallback for “${text.slice(0, 40)}”: ${route.fallback}`, { characterId: c.id, engine: route.engine, pinned: identity?.model, script: route.script });
   // engines that condition on the reference transcript (Habibi; dots.tts) get it, stored once on the sample
-  const refText = VOICE_ENGINES[route.engine].usesReferenceText ? await referenceText(ctx, c, ref) : undefined;
+  const refText = (evalEngine ? EVAL_VOICE_ENGINES[evalEngine].usesReferenceText : VOICE_ENGINES[route.engine].usesReferenceText) ? await referenceText(ctx, c, ref) : undefined;
   const params = identity?.params ?? { speed: speedForPace(c.voice.pace), emotionAlpha: 1 };
   // what the engine hears (src/server/providers/iraqi-text.ts): digits as Baghdadi (or MSA) number words, no tatweel
   // or invisible marks, line breaks as sentence ends — the script stays as written and is what the line is verified
@@ -221,11 +226,13 @@ export async function speakLine(ctx: HandlerContext, c: Character, text: string,
   const pronunciations = (await readState()).state.settings.voice?.pronunciations;
   const prepared = prepareLineText(text, { engine: route.engine, language: route.language, dialect: c.dialect, pronunciations });
   if (prepared.changes.length) await ctx.event('info', `line prepared for ${route.engine}: ${prepared.changes.join('; ')}`, { characterId: c.id, spoken: prepared.text });
-  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine: route.engine, ...(durationFor(route.engine, text, opts.targetSeconds) ? { durationSeconds: durationFor(route.engine, text, opts.targetSeconds) } : {}) };
+  const engine = evalEngine ?? route.engine;
+  const local = { text: prepared.text, language: route.language, dialect: c.dialect, referenceWav: ref.file, referenceText: refText, emotion: opts.emotion ?? opts.delivery, emotionAlpha: params.emotionAlpha, speed: params.speed, seed: params.seed, engine, ...(!evalEngine && durationFor(route.engine, text, opts.targetSeconds) ? { durationSeconds: durationFor(route.engine, text, opts.targetSeconds) } : {}) };
   if (local.durationSeconds && !opts.targetSeconds) await ctx.event('info', `one-word line: ${route.engine} is asked for ${local.durationSeconds} s (its token budget) so it stops after the word`, { characterId: c.id });
+  if (evalEngine) await ctx.event('info', `evaluation engine ${evalEngine} speaks the line as a comparison (never production): same reference, same prepared text, same seed`, { characterId: c.id, engine: evalEngine });
   // the lease estimate follows the engine (MOSS-TTS 8B needs far more of the card than IndexTTS)
-  const vram = ttsVramFor(route.engine);
-  const r = await ctx.gpu('TTS', vram, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: route.engine, input: local }), { jobId: ctx.job.id });
+  const vram = ttsVramFor(engine);
+  const r = await ctx.gpu('TTS', vram, () => ctx.tool('speech.synthesize', () => synthesize(local, dir), { label: engine, input: local }), { jobId: ctx.job.id });
   if (prepared.leadIn) {
     // a one-word line was spoken after a lead-in sentence (lead-in.ts): cut at the silence before the word, found by
     // the transcript's word timings; a take whose word cannot be located is spoken again without the lead-in (and
@@ -548,7 +555,7 @@ export const voicePreview: Handler = async (ctx) => {
   if (!found) throw new StudioError('NOT_FOUND', 'Character not found');
   // ANOTHER LANGUAGE OF THE SAME VOICE: the line is spoken as the character speaking that language — the same
   // reference and parameters, that language's profile's engine (or one of its comparison engines, once)
-  const speaking = speakingAs(found, { language, dialect, engine });
+  const speaking = speakingAs(found, { language, dialect, engine }, { evalEngines: Object.keys(EVAL_VOICE_ENGINES) });
   const c = speaking.character;
   const dir = await tmpDir('voice');
   const ref = await referenceWav(found, state.assets, dir);
@@ -558,7 +565,7 @@ export const voicePreview: Handler = async (ctx) => {
     throw missingReference(`${c.name} has no voice to speak with yet: build the voice (from a consented recording, or a studio-designed voice) first.`, { characterId });
   }
   await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}${speaking.profile ? ` (${languageLabel(speaking.profile)}, ${speaking.engine ?? speaking.profile.engine})` : ''}` });
-  const line = await speakLine(ctx, c, text, ref, dir, { emotion, engine: speaking.engine && isLocalTtsEngine(speaking.engine) ? speaking.engine : undefined });
+  const line = await speakLine(ctx, c, text, ref, dir, { emotion, engine: isLocalTtsEngine(speaking.engine) || isEvalTtsEngine(speaking.engine) ? speaking.engine : undefined });
   const check = await verifyLine(ctx, line.file, text, line.language);
   const measured = await measureVoiceLine(ctx, line.file, ref.file);
   const id = nid('gen');
