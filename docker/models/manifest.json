@@ -115,6 +115,20 @@
       ]
     },
     {
+      "name": "eval-tts-fireredtts3-base",
+      "purpose": "EVALUATION ONLY (the producer's Iraqi voice research pass, docs/research/IRAQI-ARABIC-TTS-2026-10.md): FireRedTTS3-Base (FireRed, Aug 2026, Apache-2.0 LICENSE; the README's 'cloning intended for academic research' disclaimer noted), the strongest commercial-licensed Arabic intelligibility figures found (self-reported MLS Arabic CER 1.75 / SIM 78.9), no Iraqi evidence - to be heard ONCE per line blind against Habibi IRQ and MOSS from the same designed reference before any decision. Base only (Instruct is another 8.5 GB, not fetched until Base has been heard). Not a production engine; never returned by pickEngine. Pinned to revision dcf1bdcd.",
+      "files": [
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "fireredtts3_base/model.safetensors", "folder": "eval/fireredtts3/fireredtts3_base", "bytes": 8482608484, "sha256": "d6ceed109a04207ef48bc669fb68248d3a44d990fcf2b9641990a6134d2ebb8a", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "fireredtts3_base/config.json", "folder": "eval/fireredtts3/fireredtts3_base", "bytes": 420, "sha256": "ebb26c3e8d8105916f66cc9d71433eeef47eb9cdf0c4acfa1fb871658ad45385", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "redae/model.safetensors", "folder": "eval/fireredtts3/redae", "bytes": 3775160672, "sha256": "0723e87fdaf46d377f01aa32ce56b43f43f9b249415bc8b8f81040eaa8b14abe", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "redae/config.json", "folder": "eval/fireredtts3/redae", "bytes": 853, "sha256": "45156fe59707544c66d6a6f855840c39fbf3675420d3ee1bc385c2120722213c", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "campp/campplus_voxceleb.bin", "folder": "eval/fireredtts3/campp", "bytes": 29357703, "sha256": "5b1a88b6f8d85826fabef804779c3372b42f3af21457fa48bd5c097c0686b2de", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "text_tokenizer/tokenizer.json", "folder": "eval/fireredtts3/text_tokenizer", "bytes": 11422654, "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "text_tokenizer/tokenizer_config.json", "folder": "eval/fireredtts3/text_tokenizer", "bytes": 9732, "sha256": "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101", "license": "Apache-2.0" },
+        { "repo": "FireRedTeam/FireRedTTS3", "revision": "dcf1bdcd1b8b25b382fa84c3e34eb82e3054a610", "file": "text_tokenizer/vocab.json", "folder": "eval/fireredtts3/text_tokenizer", "bytes": 2776833, "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910", "license": "Apache-2.0" }
+      ]
+    },
+    {
       "name": "voice-design",
       "purpose": "The tts-design service (:8022): VoxCPM2 (OpenBMB, 2 B, Apache-2.0) designs a synthetic voice from a text description (EN, AR-MSA; 48 kHz), and the ECAPA-TDNN speaker encoder (SpeechBrain, VoxCeleb, Apache-2.0) gives 192-d embeddings for similarity and cast distinctness. Pinned to the repo revisions below. audiovae.pth and the ECAPA .ckpt files are PyTorch pickles: they are loaded only inside the tts-design container (torch.load weights_only). Fetch once: docs/MODELS.md.",
       "files": [

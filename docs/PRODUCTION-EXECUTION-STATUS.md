@@ -45,9 +45,14 @@ episode.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A — Layla Haddad | Realistic | Actor + Singer (mezzo-soprano; Iraqi folk, acoustic ballad) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
 | B — Tariq Al-Rawi | Anime | Actor + Singer (tenor; pop, Iraqi maqam) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
-| C | Cartoon | Actor + Singer | English, Iraqi Arabic | — | — | — | — | after B |
+| C — Karim Al-Dawoud | Cartoon | Actor + Singer (baritone; Iraqi chalghi, wedding songs) | English, Iraqi Arabic | v1 DRAFT, first image request | designed synthetic (VoxCPM2), revision 1 | 5 / 5 MOSS, all heard as written | 5 Habibi + 5 MOSS (comparison) | waiting for the producer |
 
-`PHASE_1` ends at `WAITING_FOR_USER_ACCEPTANCE` with a review package; nothing proceeds without the producer.
+**`PHASE_1 = WAITING_FOR_USER_ACCEPTANCE`** (2026-10-09). All three characters exist with one canonical image, one voice
+identity and 15 lines each. Nothing after Phase 1 — singing, locations, story, storyboard, video — starts until the
+producer has looked at the three images and listened to the English and Iraqi lines (`/characters/review`), and
+recorded, per character and language, naturalness, dialect authenticity and whether the Iraqi voice is the same
+person as the English one. The machine evidence below never decides; a voice that sounds like a different person in
+Iraqi is a FAIL whatever the numbers say.
 
 Review package: `/characters/review` (and Voice Studio → Character voices); machine evidence
 `docs/evidence/phase1/<A|B|C>.json` (`scripts/phase1-review.ts`); the run itself is `scripts/phase1.ts`.
@@ -87,6 +92,43 @@ Review package: `/characters/review` (and Voice Studio → Character voices); ma
    0.27, median pitch 93 Hz against ~200 Hz elsewhere — a voice break for the listener to hear); lines 3–5 REVIEW; چ
    not heard in «باچر», «نحچي», «چان». MOSS Iraqi: lines 1, 3, 4 heard; 2 and 5 REVIEW. ECAPA English↔English 0.68;
    English↔Iraqi 0.46 (Habibi) / 0.56 (MOSS); pitch shift −1.2 st (Habibi) / −1.5 st (MOSS). The producer's ears decide.
+
+### Character C — what happened (first-attempt record)
+
+1. **Every artifact is a first attempt**: sheet, canonical image (stylised cartoon proportions, an original design —
+   not a studio character; turban, dusty-blue dishdasha, burgundy vest, brown shoes, age spots on the hands as
+   designed), voice identity (one, revision 1, English + Iraqi profiles), 15 lines. No regeneration.
+2. **Sheet vs image**: the image shows a short grey-flecked beard and moustache the sheet never named — added to the
+   face (the image is the authority). The design gave him a gold star earring in the left ear, the same motif as B's
+   silver one although the prompt forbids a detail another cast member has; kept because it is in the image, noted as
+   a cast-distinctness defect of the design model. "deep laugh lines" returned to the face (rule fixed: wrinkles are
+   physical).
+3. **Machine evidence (supporting only)**: English 5/5 heard (one CER 0.09 on "Come in…"). Iraqi Habibi: lines 1, 3, 4
+   exact; line 2 REVIEW (گ in «گلتلك» and چ in «باچر», «نحچي», «چاي» not heard); line 5 REVIEW (چ in «چنت»). MOSS Iraqi:
+   line 2 FAIL, 1 and 5 REVIEW. ECAPA English↔English 0.68; English↔Iraqi 0.45 (Habibi) / 0.54 (MOSS); median pitch
+   ~119 Hz in both languages (shift +1.5 st Habibi, +0.1 st MOSS).
+
+### Across the three — what the machine can say before the producer listens
+
+- The chain is reliable now: after A's refused first attempt (a code defect, fixed), B and C were made end to end on
+  the first request with no regeneration — sheet, image, identity, 30 lines each.
+- Every English line of every character was heard back as written by Qwen3-ASR (15/15).
+- Iraqi line 2 («گلتلك باچر نكعد نحچي ونشرب چاي») is the hard one for both engines and all three voices: the Iraqi
+  letters چ and گ are not heard as /tʃ/ and /ɡ/. This is consistent with the earlier LAB finding (چ never confirmed by
+  ASR in 36 tries); whether the engines SAY them right is for a native ear.
+- Cross-language ECAPA sits at ≈ 0.45–0.56 against a ≈ 0.68–0.72 same-language baseline for all three; the
+  comparison is language-sensitive, so this neither proves nor disproves "same person" — it is why the listening
+  comparison exists.
+
+## Large-model policy (the producer's directive, 2026-10-09) — research done, downloads in progress
+
+| Role | Research | Outcome |
+| --- | --- | --- |
+| Brain | — | Qwen3.8-27B-NVFP4 kept (no change) |
+| Video | [docs/research/MINIMAX-H3-FULL-QUALITY-2026-10.md](research/MINIMAX-H3-FULL-QUALITY-2026-10.md) | The official highest-quality local path: Comfy-Org pruned **BF16** Ref2VA + FL2VA (the released BF16 weights, AdaLN folded, no quantization) + fp16 video VAE, 79.8 GiB; feasible on the 5090 through DynamicVRAM with ~66–68 GiB RAM (96 GB installed). **Downloading** (manifest group `video-minimax-h3-bf16`, revision-pinned, sha256-verified, resumable; `var/download-h3-bf16.log`). Measured link while downloading: ≈ 1 MB/s on the Wi-Fi adapter (not the 5 MB/s assumed) → ≈ 22 h for the tier at that rate; a wired link would cut it to ≈ 5 h. FireRedTTS3-Base (11.5 GB, `eval-tts-fireredtts3-base`) is queued behind it (`var/download-fireredtts3.log`). The int8 text encoder (27 GB) is a later RAM decision; int8 DiTs stay the fallback until the BF16 tier is measured with the §8.4 harness. Turbo LoRAs remain draft-only. |
+| Image | [docs/research/LARGE-IMAGE-MODELS-2026-10.md](research/LARGE-IMAGE-MODELS-2026-10.md) | **Keep Qwen-Image-2512 + Qwen-Image-Edit-2511; nothing downloaded.** FLUX.2 [dev] (32B): non-commercial licence forbids production use (evaluation only; commercial licence by quote). HunyuanImage-3.0/Instruct (80B MoE): 168.5 GB official, ≥ 3×80 GB official requirement, community NF4 needs ≥ 48 GB VRAM, territory-bound licence, CC-BY-NC ComfyUI nodes. GLM-Image (16B, MIT, unified gen+edit) is the licence-clean model to re-check later. |
+| Voice | [docs/research/IRAQI-ARABIC-TTS-2026-10.md](research/IRAQI-ARABIC-TTS-2026-10.md) | Habibi Specialized IRQ remains the only model with Iraqi evidence (paper: 70.7 h Iraqi speech; its UTMOS 2.63 explains the "robotic" verdict). Shortlist for a blind single-output listening against Habibi and MOSS: **FireRedTTS3-Base** (Apache-2.0, Arabic CER 1.75 / SIM 78.9 self-reported, no dialect evidence, 12.3 GB — queued behind H3) and Audar-TTS-V1-Turbo (Arabic-first, Gulf-strongest, capped community licence — **the producer decides** whether a capped licence is acceptable before it is downloaded). MOSS 8B stays the English engine. Qwen3-TTS has no Arabic; Fish S2 Pro non-commercial; Lahgtna lost to an XTTS baseline in NADI 2026. |
+| Filmmaking | [docs/research/AI-FILMMAKING-PIPELINES-2026-10.md](research/AI-FILMMAKING-PIPELINES-2026-10.md) | Eleven real failures mapped to causes; a system-design extract (one identity pack with state sheets, voice as the shot's clock, one image path, one edit path, one video path with I2VA / R2V-continuation / FL2VA entries, one music path, a PLANNED-vs-ACTUAL continuity ledger, one job system) and an 11-stage music-video direction specification with a coverage matrix. H3's official grammar (`<Subject N>` / `<Picture N>` / `<Video N>` / `<Audio N>` with retention and `fully_copy`) replaces the hand-built prose. To be applied after Phase 1 is accepted. |
 
 ## Open producer items
 
