@@ -92,8 +92,16 @@ async function main() {
       const r = await enqueue({ type: 'VOICE_PREVIEW', payload: { characterId: id, text: line.text, ...extra }, idempotencyKey: `phase1:line:${key}:${line.id}:${engine}`, maxAttempts: 2 });
       jobs.push({ line: line.id, engine, job: r.job.id, created: r.created });
     };
-    for (const l of english) await add(l, {}, 'moss');
-    for (const l of iraqi) { await add(l, { ...IRAQI }, 'habibi'); await add(l, { ...IRAQI, engine: 'moss' }, 'moss'); }
+    // --engine <id>: ONE more engine's result per line (an evaluation candidate such as fireredtts3, spoken from the
+    // same reference as a COMPARISON); without it, the production engines and the MOSS Iraqi comparison
+    const only = process.argv.includes('--engine') ? process.argv[process.argv.indexOf('--engine') + 1] : undefined;
+    if (only) {
+      for (const l of english) await add(l, { engine: only }, only);
+      for (const l of iraqi) await add(l, { ...IRAQI, engine: only }, only);
+    } else {
+      for (const l of english) await add(l, {}, 'moss');
+      for (const l of iraqi) { await add(l, { ...IRAQI }, 'habibi'); await add(l, { ...IRAQI, engine: 'moss' }, 'moss'); }
+    }
     console.log(JSON.stringify({ character: key, characterId: id, jobs }, null, 1));
     return;
   }

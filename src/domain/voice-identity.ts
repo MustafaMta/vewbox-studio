@@ -388,7 +388,8 @@ export function speakingVoices(p: { shots: Array<{ dialogue: Array<{ characterId
  *  character and voice speaking that language, through that language profile's production engine, or — asked for by
  *  name — one of its comparison engines. A language the character does not speak, or an engine the profile does not
  *  name, is refused (nothing is spoken by an engine nobody chose). Pure but for the error. */
-export function speakingAs(c: Character, ask: { language?: Language; dialect?: Dialect; engine?: string }): { character: Character; profile?: VoiceLanguageProfile; engine?: string; role: 'PRODUCTION' | 'COMPARISON' } {
+export function speakingAs(c: Character, ask: { language?: Language; dialect?: Dialect; engine?: string }, opts: { /** evaluation engines (src/server/providers/voice-eval-engines.ts): any of them may speak a line of any language the character speaks from the same reference, always as a COMPARISON, never production */ evalEngines?: readonly string[] } = {}): { character: Character; profile?: VoiceLanguageProfile; engine?: string; role: 'PRODUCTION' | 'COMPARISON' } {
+  const evalEngine = Boolean(ask.engine && opts.evalEngines?.includes(ask.engine));
   const own = { language: c.language, dialect: c.dialect };
   const want = ask.language ? { language: ask.language, ...(ask.language === 'AR' ? { dialect: ask.dialect ?? (c.language === 'AR' ? c.dialect : undefined) } : {}) } : own;
   const identity = c.voice.identity;
@@ -397,9 +398,9 @@ export function speakingAs(c: Character, ask: { language?: Language; dialect?: D
     const speaks = spokenLanguages(c).some((l) => sameLanguage(l, want));
     throw new StudioError('INVALID', speaks ? `${c.name}'s voice has no ${languageLabel(want)} profile yet: build the voice again so it covers every language ${c.name} speaks.` : `${c.name} does not speak ${languageLabel(want)}.`, { characterId: c.id, language: want.language, dialect: want.dialect });
   }
-  if (ask.engine && ask.engine !== (profile?.engine ?? identity?.model) && !profile?.comparisonEngines?.includes(ask.engine)) throw new StudioError('INVALID', `${ask.engine} is not an engine of ${c.name}'s ${languageLabel(want)} voice (${[profile?.engine ?? identity?.model, ...(profile?.comparisonEngines ?? [])].filter(Boolean).join(', ')}).`, { characterId: c.id, engine: ask.engine });
+  if (ask.engine && !evalEngine && ask.engine !== (profile?.engine ?? identity?.model) && !profile?.comparisonEngines?.includes(ask.engine)) throw new StudioError('INVALID', `${ask.engine} is not an engine of ${c.name}'s ${languageLabel(want)} voice (${[profile?.engine ?? identity?.model, ...(profile?.comparisonEngines ?? [])].filter(Boolean).join(', ')}).`, { characterId: c.id, engine: ask.engine });
   const engine = ask.engine ?? (profile && !sameLanguage(want, own) ? profile.engine : undefined);
-  const role = ask.engine && profile?.comparisonEngines?.includes(ask.engine) ? 'COMPARISON' : 'PRODUCTION';
+  const role = evalEngine || (ask.engine && profile?.comparisonEngines?.includes(ask.engine)) ? 'COMPARISON' : 'PRODUCTION';
   const character = sameLanguage(want, own) ? c : { ...c, language: want.language, dialect: want.dialect };
   return { character, profile, engine, role };
 }

@@ -162,12 +162,12 @@ function Pronunciations() {
 
 interface CompareView {
   ready: boolean; why?: string; labOnly?: boolean; run?: string; runs?: Array<{ id: string; label: string }>; scales?: string[];
-  tests?: Array<{ id: string; language: 'AR' | 'EN'; intent: string; text: string; clips: Array<{ letter: string; src: string }>; reference?: string; failed: number }>;
+  tests?: Array<{ id: string; language: 'AR' | 'EN'; intent: string; text: string; character?: string; characterName?: string; clips: Array<{ letter: string; src: string }>; reference?: string; referenceLabel?: string; failed: number }>;
   graded?: Array<{ by: string; native: boolean; at: string; ratings: number }>;
   results?: Array<{ arm: string; engine: string; acting: string; ratings: number; listeners: Record<string, number | null>; nativeListeners: Record<string, number | null>; machine: { attempted: number; failed: Array<{ test: string; error?: string }>; rtf: number | null; cer: number | null; peakVramMb: number | null }; licence: string | null }> | null;
 }
 type Reveal = Record<string, Record<string, { arm: string; engine: string; acting: string }>>;
-const SCALE_LABELS: Record<string, string> = { natural: 'Naturalness', baghdadi: 'Iraqi / Baghdadi', pronunciation: 'Pronunciation', emotion: 'Emotional performance', same_voice: 'Same speaker as the reference', cinematic: 'Cinematic / acting quality' };
+const SCALE_LABELS: Record<string, string> = { natural: 'Naturalness', baghdadi: 'Iraqi / Baghdadi', pronunciation: 'Pronunciation', emotion: 'Emotional performance', same_voice: 'Same speaker as the reference', same_person: 'Same person as the reference', cinematic: 'Professional / cinematic quality' };
 const scaleLabel = (k: string) => SCALE_LABELS[k] ?? k;
 
 function VoiceComparison() {
@@ -205,9 +205,10 @@ function VoiceComparison() {
       <p className="t-body">Blind: each line's versions are labelled in a random order, and which engine made a letter is shown only after you store your ratings. Every clip is each engine's first and only result for the line, at the same loudness and otherwise untouched. Rate what you hear from 1 (poor) to 5 (as a native speaker would say it); leave a scale empty when it does not apply.</p>
       {view.tests!.map((t) => (
         <section key={t.id} className="paper card-pad" style={{ display: 'grid', gap: 10 }} aria-labelledby={`vc-${t.id}`}>
+          {t.characterName && <p className="t-label" style={{ margin: 0 }}>{t.characterName}</p>}
           <p id={`vc-${t.id}`} className="t-lead" dir={t.language === 'AR' ? 'rtl' : 'ltr'} lang={t.language === 'AR' ? 'ar' : 'en'} style={{ unicodeBidi: 'isolate' }}>{t.text}</p>
           <p className="t-meta">Intended delivery: {t.intent}{t.failed ? ` · ${t.failed} engine ${t.failed === 1 ? 'attempt' : 'attempts'} failed and ${t.failed === 1 ? 'is' : 'are'} not shown` : ''}</p>
-          {t.reference && <div className="t-meta">Reference <audio controls preload="none" src={t.reference} style={{ verticalAlign: 'middle', maxInlineSize: '100%' }} /></div>}
+          {t.reference && <div className="t-meta">{t.referenceLabel ?? 'Reference'} <audio controls preload="none" src={t.reference} style={{ verticalAlign: 'middle', maxInlineSize: '100%' }} /></div>}
           {t.clips.map((c) => {
             const key = `${t.id}:${c.letter}`;
             const shown = reveal?.[t.id]?.[c.letter];

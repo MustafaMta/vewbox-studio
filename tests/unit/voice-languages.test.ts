@@ -95,6 +95,11 @@ describe('speaking a line as the character in one of its languages', () => {
     expect(r.character.voice).toBe(one.voice);
     expect(speakingAs(c(), { ...IRAQI, engine: 'moss' })).toMatchObject({ engine: 'moss', role: 'COMPARISON' });
   });
+  it('an evaluation engine may speak any language of the voice — always a COMPARISON, never production', () => {
+    expect(speakingAs(c(), { engine: 'fireredtts3' }, { evalEngines: ['fireredtts3'] })).toMatchObject({ engine: 'fireredtts3', role: 'COMPARISON' });
+    expect(speakingAs(c(), { ...IRAQI, engine: 'fireredtts3' }, { evalEngines: ['fireredtts3'] })).toMatchObject({ engine: 'fireredtts3', role: 'COMPARISON' });
+    expect(codeOf(() => speakingAs(c(), { engine: 'fireredtts3' }))).toBe('INVALID');
+  });
   it('an engine the profile does not name, or a language the character does not speak, is refused', () => {
     expect(codeOf(() => speakingAs(c(), { ...IRAQI, engine: 'fish-s2-pro' }))).toBe('INVALID');
     expect(codeOf(() => speakingAs(c(), { language: 'AR', dialect: 'EGYPTIAN' }))).toBe('INVALID');

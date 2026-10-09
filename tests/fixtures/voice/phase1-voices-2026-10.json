@@ -1,0 +1,253 @@
+{
+  "name": "Phase 1 — the three characters",
+  "tests": [
+    {
+      "id": "A-en-1",
+      "language": "EN",
+      "intent": "neutral greeting",
+      "text": "It's good to finally meet you.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-en-2",
+      "language": "EN",
+      "intent": "warm welcome",
+      "text": "Come in. You must be tired after that journey.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-en-3",
+      "language": "EN",
+      "intent": "serious, urgent",
+      "text": "We need to leave before the storm reaches us.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-en-4",
+      "language": "EN",
+      "intent": "emotional",
+      "text": "I kept every letter you sent me. Every single one.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-en-5",
+      "language": "EN",
+      "intent": "long conversational line",
+      "text": "You know, the first time I sang on a real stage, my hands were shaking so badly I nearly dropped the microphone, but the moment the music started, all of that just disappeared.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-iq-1",
+      "language": "AR",
+      "intent": "neutral greeting",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-iq-2",
+      "language": "AR",
+      "intent": "the hard line: چ and گ",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-iq-3",
+      "language": "AR",
+      "intent": "reassuring, warm",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-iq-4",
+      "language": "AR",
+      "intent": "urgent",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "A-iq-5",
+      "language": "AR",
+      "intent": "long natural Baghdadi line",
+      "text": "أول مرة غنيت گدام ناس، چانت إيدي ترجف، بس من بدت الموسيقى نسيت كلشي وصرت بس أغني.",
+      "character": "A",
+      "characterName": "Layla Haddad"
+    },
+    {
+      "id": "B-en-1",
+      "language": "EN",
+      "intent": "neutral greeting",
+      "text": "It's good to finally meet you.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-en-2",
+      "language": "EN",
+      "intent": "warm welcome",
+      "text": "Come in. You must be tired after that journey.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-en-3",
+      "language": "EN",
+      "intent": "serious, urgent",
+      "text": "We need to leave before the storm reaches us.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-en-4",
+      "language": "EN",
+      "intent": "emotional",
+      "text": "I'm not running away this time. Not ever again.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-en-5",
+      "language": "EN",
+      "intent": "long conversational line",
+      "text": "Every morning I take the long way past the river, because that's where my grandfather used to practise his songs, and I swear sometimes I can still hear him humming along with the water.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-iq-1",
+      "language": "AR",
+      "intent": "neutral greeting",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-iq-2",
+      "language": "AR",
+      "intent": "the hard line: چ and گ",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-iq-3",
+      "language": "AR",
+      "intent": "reassuring, warm",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-iq-4",
+      "language": "AR",
+      "intent": "urgent",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "B-iq-5",
+      "language": "AR",
+      "intent": "long natural Baghdadi line",
+      "text": "كل يوم الصبح أمشي من صوب الشط، لأن جدي چان يغني هناك، وأحس بعدني أسمع صوته وياي.",
+      "character": "B",
+      "characterName": "Tariq Al-Rawi"
+    },
+    {
+      "id": "C-en-1",
+      "language": "EN",
+      "intent": "neutral greeting",
+      "text": "It's good to finally meet you.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-en-2",
+      "language": "EN",
+      "intent": "warm welcome",
+      "text": "Come in. You must be tired after that journey.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-en-3",
+      "language": "EN",
+      "intent": "serious, urgent",
+      "text": "We need to leave before the storm reaches us.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-en-4",
+      "language": "EN",
+      "intent": "emotional",
+      "text": "Oh, don't cry, little one. Everything's going to be alright, I promise.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-en-5",
+      "language": "EN",
+      "intent": "long conversational line",
+      "text": "Gather round, everybody, because tonight I'm going to play you the song my mother taught me when I was smaller than this guitar, and if you know the chorus, you'd better sing it loud!",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-iq-1",
+      "language": "AR",
+      "intent": "neutral greeting",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-iq-2",
+      "language": "AR",
+      "intent": "the hard line: چ and گ",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-iq-3",
+      "language": "AR",
+      "intent": "reassuring, warm",
+      "text": "يمعود لا تشيل هم، كلشي يصير زين.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-iq-4",
+      "language": "AR",
+      "intent": "urgent",
+      "text": "هسه لازم نروح، قبل لا يتغير الجو.",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    },
+    {
+      "id": "C-iq-5",
+      "language": "AR",
+      "intent": "long natural Baghdadi line",
+      "text": "تعالوا يا جماعة، هسه راح أغنيلكم الأغنية اللي علمتني ياها أمي من چنت زغيرون، واللي يعرف الكورس خل يغني وياي!",
+      "character": "C",
+      "characterName": "Karim Al-Dawoud"
+    }
+  ],
+  "scales": [
+    "natural",
+    "baghdadi",
+    "pronunciation",
+    "emotion",
+    "same_person",
+    "cinematic"
+  ]
+}

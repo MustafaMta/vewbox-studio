@@ -10,7 +10,10 @@ import { StudioError } from '@/domain/errors';
 
 /** The runs the page may show, newest first: the id is what a request names, never a path. */
 export const EVAL_RUNS = [
-  { id: 'iraqi-listening-2026-10', label: 'Iraqi listening pack', dir: 'var/eval/iraqi-listening-2026-10' },
+  // PHASE 1 (2026-10-09): the three clean characters' own lines, each engine's one result per line, blind
+  // (scripts/phase1-blind.ts); the reference of an Iraqi line is the SAME character's English line (same person?)
+  { id: 'phase1-voices-2026-10', label: 'Phase 1 — the three characters (English and Iraqi)', dir: 'var/eval/phase1-voices-2026-10' },
+  { id: 'iraqi-listening-2026-10', label: 'LAB: Iraqi listening pack', dir: 'var/eval/iraqi-listening-2026-10' },
   { id: 'voice-acting-2026-10', label: 'Acting evaluation', dir: 'var/eval/voice-acting-2026-10' },
 ] as const;
 export type EvalRunId = (typeof EVAL_RUNS)[number]['id'];
@@ -19,10 +22,15 @@ const runOf = (id?: string) => EVAL_RUNS.find((r) => r.id === id) ?? EVAL_RUNS[0
 export const DEFAULT_SCALES = ['natural', 'baghdadi', 'emotion', 'pronunciation', 'same_voice'];
 
 interface Take { arm: string; test: string; engine: string; ok: boolean; error?: string; file?: string; seconds?: number; ms?: number; rtf?: number; peakVramMb?: number; licence?: string; engineVersion?: string; seed?: number; score?: Record<string, unknown> }
-interface Report { set?: string; arms: Array<{ id: string; engine: string; acting: string }>; refs: Array<{ language: string; file: string; source: string; licence: string; labOnly: boolean }>; takes: Take[]; grades: Grade[] | null }
+/** A reference clip: for a language (the LAB packs), or for one CHARACTER's language (Phase 1: an Iraqi line's reference
+ *  is that character's own English line, so "same person" can be heard). */
+interface Ref { language: string; file: string; source: string; licence: string; labOnly: boolean; character?: string; label?: string }
+interface Report { set?: string; arms: Array<{ id: string; engine: string; acting: string }>; refs: Ref[]; takes: Take[]; grades: Grade[] | null }
 export interface Rating { test: string; letter: string; note?: string; [scale: string]: number | string | undefined }
 interface Grade { by: string; native: boolean; dialect?: string; at: string; ratings: Array<Rating & { arm?: string }> }
-interface SetFile { tests: Array<{ id: string; language: 'AR' | 'EN'; intent: string; text: string }>; scales?: string[] }
+interface SetFile { tests: Array<{ id: string; language: 'AR' | 'EN'; intent: string; text: string; character?: string; characterName?: string }>; scales?: string[] }
+
+const refFor = (refs: Ref[], t: SetFile['tests'][number]): Ref | undefined => (t.character ? refs.find((r) => r.character === t.character && r.language === t.language) : undefined) ?? refs.find((r) => !r.character && r.language === t.language);
 
 const readJson = async <T>(f: string): Promise<T | null> => { try { return JSON.parse(await fsp.readFile(f, 'utf8')) as T; } catch { return null; } };
 const mean = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 100) / 100 : null);
@@ -52,9 +60,9 @@ export async function comparisonView(id?: string) {
   if (!report || !key || !set) return { ready: false as const, run: run.id, runs: await comparisonRuns(), why: 'This listening pack is still being prepared (scripts/voice-acting-eval.ts report).' };
   const q = (test: string, clip: string) => `/api/voice-eval/clip?run=${encodeURIComponent(run.id)}&test=${encodeURIComponent(test)}&clip=${encodeURIComponent(clip)}`;
   const tests = set.tests.map((t) => ({
-    id: t.id, language: t.language, intent: t.intent, text: t.text,
+    id: t.id, language: t.language, intent: t.intent, text: t.text, character: t.character, characterName: t.characterName,
     clips: Object.keys(key[t.id] ?? {}).sort().map((letter) => ({ letter, src: q(t.id, letter) })),
-    reference: report.refs.some((r) => r.language === t.language) ? q(t.id, 'ref') : undefined,
+    reference: refFor(report.refs, t) ? q(t.id, 'ref') : undefined, referenceLabel: refFor(report.refs, t)?.label,
     failed: report.takes.filter((x) => x.test === t.id && !x.ok).length,
   }));
   const grades = report.grades ?? [];
@@ -87,7 +95,7 @@ export async function clipFile(test: string, clip: string, id?: string): Promise
   const t = set.tests.find((x) => x.id === test);
   if (!t) throw new StudioError('NOT_FOUND', `No test ${test}.`);
   let rel: string | undefined;
-  if (clip === 'ref') rel = report.refs.find((r) => r.language === t.language)?.file;
+  if (clip === 'ref') rel = refFor(report.refs, t)?.file;
   else { const arm = key[test]?.[clip]; rel = arm ? report.takes.find((x) => x.test === test && x.arm === arm && x.ok)?.file : undefined; }
   if (!rel) throw new StudioError('NOT_FOUND', `No clip ${clip} for ${test}.`);
   const file = path.resolve(dir, rel);
