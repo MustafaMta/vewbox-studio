@@ -111,6 +111,8 @@ export function singingTags(p: Production, sh: Shot, cast: Character[], speaker:
   const backing = plan.backing.filter((id) => !away.has(id)).map(who).filter(Boolean);
   const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
   const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !plan.backing.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
+  // an INSERT shows hands and the instrument, never a face: a sung line there would make the engine cut to the mouth
+  if (sh.framing === 'INSERT' && onScreen.length) return 'The song plays over the shot. Only the hands and the instrument are in frame — no face is shown, so nobody sings on camera; the playing follows the music.';
   const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : fromBehind.length ? `The song plays over the shot. ${fromBehind.join(' and ')} ${fromBehind.length === 1 ? 'is' : 'are'} seen from behind the whole time and never turn${fromBehind.length === 1 ? 's' : ''} to the camera; the singing is heard, not seen.` : 'The song continues off camera: nobody on screen sings or mouths words.';
   return [performing, backing.length ? `${backing.join(' and ')} sing${backing.length === 1 ? 's' : ''} soft backing harmonies, not the lead words.` : '', listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing; their lips stay closed.` : ''].filter(Boolean).join(' ');
 }
