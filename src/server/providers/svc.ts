@@ -54,6 +54,16 @@ export async function convertVoice(i: SvcInput, outDir: string): Promise<SvcResu
   if (i.raw) fd.set('raw', '1');
   const t0 = Date.now();
   let res: Response;
+  try {
+    // the models are loaded by a call of their own first: Node's fetch waits at most 300 s for response headers, and a
+    // cold load plus a long conversion inside one request could exceed that
+    const w = await fetch(`${base()}/warm`, { method: 'POST', signal: AbortSignal.timeout(10 * 60_000) });
+    if (!w.ok) throw new StudioError(w.status === 503 ? 'NOT_CONFIGURED' : 'PROVIDER', `The singing voice converter could not load its models (${w.status}): ${(await w.text().catch(() => '')).slice(0, 300)}`, { status: w.status, failureClass: w.status === 503 ? 'NOT_CONFIGURED' : 'PROVIDER' });
+  } catch (e) {
+    if (e instanceof StudioError) throw e;
+    const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
+    throw new StudioError('UNAVAILABLE', `The singing voice converter (svc-seedvc) is not reachable: ${(e as Error).message}${cause ? ` (${cause.code ?? cause.message})` : ''}. Start it with the profile svc.`, { failureClass: 'INFRASTRUCTURE', cause: cause?.code ?? cause?.message });
+  }
   try { res = await fetch(`${base()}/convert`, { method: 'POST', body: fd, signal: AbortSignal.timeout(20 * 60_000) }); } catch (e) {
     const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
     throw new StudioError('UNAVAILABLE', `The singing voice converter (svc-seedvc) is not reachable: ${(e as Error).message}${cause ? ` (${cause.code ?? cause.message})` : ''}. Start it with the profile svc.`, { failureClass: 'INFRASTRUCTURE', cause: cause?.code ?? cause?.message });

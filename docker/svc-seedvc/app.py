@@ -50,7 +50,7 @@ LICENSE = "GPL-3.0 (Seed-VC code + weights; isolated worker) · whisper-small Ap
 ENGINE_VERSION = f"seed-vc@{COMMIT[:7]} seed-uvit-whisper-base f0 44k; torch {_pkg_version('torch')}; transformers {_pkg_version('transformers')}; torchcrepe {_pkg_version('torchcrepe')}"
 
 app = FastAPI(title="vewbox-svc-seedvc")
-_lock = threading.Lock()
+_lock = threading.RLock()  # re-entrant: convert() holds it and models() takes it again inside (a plain Lock deadlocked here)
 _models: dict[str, Any] | None = None
 
 
@@ -160,8 +160,16 @@ def crossfade(chunk1: np.ndarray, chunk2: np.ndarray, overlap: int) -> np.ndarra
     return chunk2
 
 
-def convert(source_path: str, ref_path: str, *, diffusion_steps: int, length_adjust: float, cfg_rate: float, f0_condition: bool, auto_f0_adjust: bool, semitone_shift: int, fp16: bool, seed: int) -> tuple[np.ndarray, int, dict[str, Any]]:
-    """inference.py main(), as a function: returns (wave, sr, f0 report)."""
+def convert(source_path: str, ref_path: str, **kw: Any) -> tuple[np.ndarray, int, dict[str, Any]]:
+    """inference.py main(), as a function: returns (wave, sr, f0 report). Under no_grad like upstream's @torch.no_grad()
+    (torchcrepe hands back inference tensors; any autograd bookkeeping on them raises)."""
+    import torch  # type: ignore
+
+    with torch.no_grad():
+        return _convert(source_path, ref_path, **kw)
+
+
+def _convert(source_path: str, ref_path: str, *, diffusion_steps: int, length_adjust: float, cfg_rate: float, f0_condition: bool, auto_f0_adjust: bool, semitone_shift: int, fp16: bool, seed: int) -> tuple[np.ndarray, int, dict[str, Any]]:
     import librosa  # type: ignore
     import torch  # type: ignore
     import torchaudio  # type: ignore
@@ -268,6 +276,18 @@ def convert(source_path: str, ref_path: str, *, diffusion_steps: int, length_adj
 def health():
     missing = missing_weights()
     return {"ok": True, "engine": ENGINE, "model": "Seed-VC v1 seed-uvit-whisper-base f0 44k (DiT 200M + BigVGAN v2 44 kHz)", "engine_version": ENGINE_VERSION, "code": f"Plachtaa/seed-vc@{COMMIT}", "weights": {"dit": str(DIT), "bigvgan": str(BIGVGAN_DIR), "campplus": str(CAMPPLUS), "whisper": str(WHISPER_DIR)}, "license": LICENSE, "commercial_use": True, "copyleft": "GPL-3.0 — isolated worker; modifications in docker/svc-seedvc", "pitch": "torchcrepe full (MIT), not RMVPE", "loaded": _models is not None, "weights_present": not missing, "missing": missing, "sample_rate": 44100, "gpu": gpu_mem(), "peak_vram_mb": torch_peak_mb()}
+
+
+@app.post("/warm")
+def warm():
+    """Load every model now (the first conversion otherwise pays the load inside the request; a client with a headers
+    timeout calls this first)."""
+    missing = missing_weights()
+    if missing:
+        raise HTTPException(status_code=503, detail=f"Seed-VC weights are not in the store (manifest group svc-seed-vc): {', '.join(missing)}")
+    t0 = time.time()
+    models()
+    return {"ok": True, "loaded": True, "ms": int((time.time() - t0) * 1000), "gpu": gpu_mem(), "peak_vram_mb": torch_peak_mb()}
 
 
 @app.post("/unload")
