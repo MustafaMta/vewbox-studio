@@ -199,6 +199,15 @@ loss in the trainer. Evidence: `D:\vewbox-data\training\iraqi\eval\stage-a-smoke
 `checkpoints\stage-a-smoke\train-log.jsonl`. Decision: ONE controlled second smoke with enough signal to be measurable
 (more steps, a higher but still conservative lr, the loss required to fall), everything else unchanged.
 
+**Smoke #2 (`stage-a-smoke2`, 1,500 steps ≈ 1 epoch of 12.6 h, batch 8, peak lr 1e-5, warm-up 100, 40 s cap, replay 0.2,
+grad checkpointing; 13 min) — `AUTO_REVIEW: FAIL` on Character A.** The loss fell (6.78 → 6.08; text 2.2 → 1.77, speech
+4.55 → 4.0–4.3; no divergence), but the five lines from the English seed did not improve at any checkpoint: Iraqi CER
+0.151 / 0.185 / 0.152 (base 0.139), phoneme gate 0/2 throughout («باچر» → «بأشر», «چاي» → «كاي»), ECAPA 0.64 / 0.62 / 0.61
+(base 0.63), English CER 0 and 0.83–0.85 (intact). Two causes are still indistinguishable: the dialect was not learned,
+or it was and the evaluation's cross-language reference (Character A's ENGLISH seed with the `[ar]` tag, the exact case
+the research warns about) masks it. Next, in order: a held-out validation evaluation (each utterance with its own
+speaker's Arabic reference, base vs checkpoints) and the five lines from an Arabic reference — then the recipe, not before.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as

@@ -47,7 +47,9 @@ async function main() {
     const heard = isQaUnavailable(q) ? undefined : q.text;
     const m = heard !== undefined ? heardMetrics(it.text, heard, lang) : undefined;
     const emb = (await embedVoice(file)).embedding;
-    const ref = embRef[lang === 'AR' ? 'ar' : 'en'];
+    // a per-line reference (eval_validation: each utterance from its own speaker's clip) wins over the run's reference
+    const own = (it as unknown as { reference_host?: string }).reference_host;
+    const ref = own ? (embRef[own] ??= (await embedVoice(own)).embedding) : embRef[lang === 'AR' ? 'ar' : 'en'];
     let phonology: unknown;
     if (lang === 'AR' && dialectWords(it.text).length) {
       try { const ph = await dialectPhonemes(file, it.text); phonology = isQaUnavailable(ph) ? { verdict: 'NOT_MEASURED' } : (() => { const j = judgeLine(ph.words); return { verdict: j.verdict, flags: j.words.filter((w) => w.verdict !== 'PASS').map((w) => `${w.text}: ${w.detail}`) }; })(); } catch (e) { phonology = { verdict: 'NOT_MEASURED', why: (e as Error).message.slice(0, 120) }; }
