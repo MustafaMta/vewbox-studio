@@ -432,7 +432,15 @@ weak; the mouth visibly moves on the words in both), finer skin and hair texture
 is the one carried for shot 1; the tier verdict stands (BF16 = 1.2× the time, the same staging, finer detail, equal or
 better identity). Shot 1's plan now records the push-in it shows; its take is selected and rated GOOD by the engineering QA.
 PRODUCE runs the remaining seven shots at BF16 (frames, then takes); every take is inspected by eye and by its QA record
-before it is chosen; then ASSEMBLE, the cut gate, EXPORT. The director plan
+before it is chosen; then ASSEMBLE, the cut gate, EXPORT.
+**Frames of the remaining shots inspected:** 1.2 PASS (to camera, foggy rather than pink dusk — accepted), 2.1 FAIL (she was
+drenched: the planner's continuity condition "wet hair strands clinging to neck" from the mist beat; condition removed, the
+take draws its frame anew), 3.1 PASS, 4.1 PASS (night, blue light). **Pilot takes (the first of each scene, BF16):** 4.1
+`take-e29b0f0044d66491593e` PASS — continuous, no cut, Layla singing to the lens at night, face matching the canonical image
+(SFace), the push-in as planned; carried and rated GOOD (the machine's lip offset of 13 frames recorded). 3.1
+`take-dd6d89b56b7d15b95151` FAIL — "wind whipping her hair across her face" turned her away from the camera and the engine
+cut at 3.0 s to a different wide figure (identity 0.43); the action is revised (the wind lifts her hair at the sides, her
+face stays to the lens, she keeps singing; facing TOWARD) and the take re-made. 2.1 in progress. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
