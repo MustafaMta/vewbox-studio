@@ -7,7 +7,7 @@ import type { JobType } from '@/domain/jobs';
  *  never staffed (no tools, skills, model or activity). `registry.ts` persists this file on boot (and deletes what is
  *  no longer here), so the pages, the API and the history read one organisation. Nothing here is decorative. */
 
-export const ORG_VERSION = 20;
+export const ORG_VERSION = 21;
 
 export type DepartmentId = 'EXECUTIVE' | 'STORY' | 'CASTING' | 'WORLD' | 'PREPRODUCTION' | 'VIDEO' | 'SOUND' | 'POST' | 'QA';
 
@@ -113,7 +113,7 @@ export const PIPELINE: StageDef[] = [
   { id: 'SCRIPT', name: 'Script', department: 'STORY', dependsOn: ['STORY'], jobTypes: ['WRITE_SCRIPT'], handsTo: 'PREPRODUCTION' },
   { id: 'STORYBOARD', name: 'Storyboard', department: 'PREPRODUCTION', dependsOn: ['SCRIPT', 'CAST_WORLD'], jobTypes: ['SHOT_FRAMES'], handsTo: 'PREPRODUCTION' },
   { id: 'SHOT_PLAN', name: 'Shot plan', department: 'PREPRODUCTION', dependsOn: ['SCRIPT'], jobTypes: ['PLAN_SHOTS'], handsTo: 'SOUND' },
-  { id: 'AUDIO_PREP', name: 'Audio preparation', department: 'SOUND', dependsOn: ['SHOT_PLAN', 'CAST_WORLD'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG', 'DIALOGUE_AUDIO', 'AMBIENCE'], handsTo: 'VIDEO' },
+  { id: 'AUDIO_PREP', name: 'Audio preparation', department: 'SOUND', dependsOn: ['SHOT_PLAN', 'CAST_WORLD'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG', 'SING_CONVERT', 'DIALOGUE_AUDIO', 'AMBIENCE'], handsTo: 'VIDEO' },
   // PRODUCE is the Production Coordinator's orchestration across stages, not a stage job
   { id: 'VIDEO', name: 'Video generation', department: 'VIDEO', dependsOn: ['SHOT_PLAN', 'STORYBOARD', 'AUDIO_PREP'], jobTypes: ['GENERATE_TAKE', 'CORRECT_LIPSYNC'], handsTo: 'QA' },
   { id: 'QA', name: 'Quality assurance', department: 'QA', dependsOn: ['VIDEO'], jobTypes: [], handsTo: 'POST' },
@@ -138,6 +138,7 @@ export const TOOLS: ToolDef[] = [
   { id: 'speech.design_voice', name: 'Design a voice', description: 'VoxCPM2 (tts-design :8022): up to three synthetic candidate voices from a text description only (no audio in, Rule V-DESIGN), each a 48 kHz original and a 24 kHz reference with sha256, loudness, true peak, clipping and an ECAPA embedding.', version: '1.0.0', inputSchema: 'DesignVoiceInput', outputSchema: 'DesignVoiceOutput', permissions: ['gpu'], timeoutMs: 900_000, resource: 'TTS', vramMb: 7000, errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED', 'INVALID'] },
   { id: 'speech.embed_voice', name: 'Speaker embedding', description: 'ECAPA-TDNN (SpeechBrain, CPU, in tts-design): a 192-d speaker vector of a recording, for seed-to-line similarity. VoxCeleb-trained: a relative measure, never an identity or dialect proof.', version: '1.0.0', inputSchema: 'FileInput', outputSchema: 'EmbedVoiceOutput', permissions: ['cpu'], timeoutMs: 120_000, resource: 'CPU', errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED', 'INVALID'] },
   { id: 'audio.separate_stems', name: 'Separate stems', description: 'Demucs htdemucs: vocals and accompaniment.', version: '1.0.0', inputSchema: 'StemsInput', outputSchema: 'StemsOutput', permissions: ['gpu'], timeoutMs: 1_200_000, resource: 'ASR', vramMb: 4000, errors: ['PROVIDER', 'UNAVAILABLE'] },
+  { id: 'audio.convert_voice', name: 'Convert a vocal to a singer identity', description: 'Seed-VC v1 (docker/svc-seedvc, GPL-3.0 isolated worker): a lead vocal in a character’s timbre from the identity’s own clip, F0-conditioned (docs/research/SINGING-IDENTITY-2026-10.md).', version: '1.0.0', inputSchema: 'SvcInput', outputSchema: 'SvcResult', permissions: ['gpu'], timeoutMs: 1_200_000, resource: 'TTS', vramMb: 6000, errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED', 'INVALID'] },
   { id: 'audio.generate_effect', name: 'Make a sound effect', description: 'MOSS-SoundEffect v2.0 (1.3B DiT, the sfx-moss service): one ambience bed or effect from a description, 48 kHz, up to 30 s, peak-limited to −1 dBTP.', version: '1.0.0', inputSchema: 'SoundEffectInput', outputSchema: 'SoundEffectOutput', permissions: ['gpu'], timeoutMs: 900_000, resource: 'SFX', vramMb: 17500, errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED', 'INVALID'] },
   { id: 'music.generate', name: 'Compose a song', description: 'ACE-Step 1.5 XL-SFT with the 5Hz LM 4B in ComfyUI: ONE song from a caption, lyrics, tempo, key and the named singers’ vocal.', version: '2.0.0', inputSchema: 'MusicInput', outputSchema: 'MusicOutput', permissions: ['gpu', 'minimax'], timeoutMs: 1_800_000, resource: 'GPU_IMAGE', vramMb: 14000, errors: ['PROVIDER', 'UNAVAILABLE', 'NOT_CONFIGURED'] },
   { id: 'media.probe', name: 'Probe a file', description: 'ffprobe (streams, durations, frame rate, size) or a full ffmpeg decode pass.', version: '1.1.0', inputSchema: 'FileInput', outputSchema: 'ProbeOutput', permissions: ['fs'], timeoutMs: 60_000, resource: 'CPU', errors: ['INVALID'] },
@@ -359,8 +360,8 @@ export const AGENTS: AgentDef[] = [
   { id: 'music-director', name: 'Music Director', department: 'SOUND', role: 'Songs',
     description: 'Executes WRITE_SONG (the planner writes the song: concept, structure, lyrics, tempo, key and who sings each section — only characters cast as singers) and GENERATE_SONG (ONE recording with ACE-Step 1.5 XL-SFT + the 5Hz LM 4B, the named singers’ vocal; stems; the written lines placed on the sung vocal; loudness and dead air measured, a true peak above −1 dBTP trimmed in the open) and CHECK_SONG (the same checks on the existing recording, never composing again); records the AUDIO_PREP handoff.',
     systemInstructions: S(`Write one original singable song for the named singers only; then record it once with ACE-Step 1.5 XL-SFT; stems; align the written lines to the sung vocal; measure, never hide.`),
-    model: 'Qwen3.8-27B-NVFP4 (vLLM) for the song plan; ACE-Step 1.5 XL-SFT + 5Hz LM 4B (ComfyUI) + Demucs + faster-whisper', skills: ['singing-performance'], tools: ['story.structured_answer', 'music.generate', 'audio.separate_stems', 'speech.transcribe', 'lyrics.align'], inputSchema: 'JOB_PAYLOADS.WRITE_SONG / GENERATE_SONG / CHECK_SONG', outputSchema: 'song plan / song asset + stems', limits: { timeoutMs: 1_800_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '2.0.0',
-    qualityRequirements: ['every sung section names a singer who sings', 'stems present', 'lyrics placed on the vocal', 'loudness −20…−8 LUFS, true peak ≤ 0 dBTP'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG'], steps: [] },
+    model: 'Qwen3.8-27B-NVFP4 (vLLM) for the song plan; ACE-Step 1.5 XL-SFT + 5Hz LM 4B (ComfyUI) + Demucs + faster-whisper; Seed-VC v1 (svc-seedvc) for the singer’s own voice', skills: ['singing-performance'], tools: ['story.structured_answer', 'music.generate', 'audio.separate_stems', 'audio.convert_voice', 'speech.embed_voice', 'speech.transcribe', 'lyrics.align'], inputSchema: 'JOB_PAYLOADS.WRITE_SONG / GENERATE_SONG / CHECK_SONG / SING_CONVERT', outputSchema: 'song plan / song asset + stems / the sung mix', limits: { timeoutMs: 1_800_000, maxAttempts: 2, resource: 'GPU_IMAGE' }, version: '2.1.0',
+    qualityRequirements: ['every sung section names a singer who sings', 'stems present', 'lyrics placed on the vocal', 'loudness −20…−8 LUFS, true peak ≤ 0 dBTP', 'the sung vocal measured against the singer’s fingerprint (ECAPA) and its pitch range recorded'], jobTypes: ['WRITE_SONG', 'GENERATE_SONG', 'CHECK_SONG', 'SING_CONVERT'], steps: [] },
   { id: 'sound-designer', name: 'Sound Designer', department: 'SOUND', role: 'The places’ ambience',
     description: 'Executes AMBIENCE: one ambience bed per place with MOSS-SoundEffect v2, described from the place and the time and weather its scenes play in (never speech, never music); measures its loudness and true peak, keeps it in the library and on the place, and the World Bible carries it to every production there. One request, one recording: no best-of.',
     systemInstructions: S(`Describe what the place sounds like at that time and in that weather — the room, the air, the distant life — never voices, never music; record it once; measure it; a silent or clipped bed is refused, never kept.`),
@@ -427,6 +428,7 @@ export const AGENTS: AgentDef[] = [
       { id: 'take-speech-check', name: 'Speech check of a take', where: W('handlers/take.ts') },
       { id: 'lip-sync-check', name: 'Mouths against the authoritative audio (lag, speaker, extra singers)', where: W('handlers/take.ts') },
       { id: 'song-check', name: 'Song check', where: W('handlers/music.ts') },
+      { id: 'singer-identity', name: 'The sung vocal against the singer’s fingerprint, melody and words (SING_CONVERT)', where: W('handlers/sing.ts') },
       { id: 'voice-proof-check', name: 'Proof-line check of a voice', where: W('handlers/voice.ts') },
     ] },
   { id: 'visual-quality-inspector', name: 'Visual Quality Inspector', department: 'QA', role: 'Measured picture checks',

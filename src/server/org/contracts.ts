@@ -221,6 +221,11 @@ export const DesignVoiceOutput = z.looseObject({
 export const EmbedVoiceOutput = z.looseObject({ embedding: z.array(z.number()).length(192), model: z.string().min(1), version: z.string(), durationSeconds: z.number().positive() });
 export const StemsInput = z.object({ file, outDir: file });
 export const StemsOutput = z.looseObject({ files: z.record(z.string(), z.string()), ms: z.number(), model: z.string() });
+/** audio.convert_voice (src/server/providers/svc.ts): a lead vocal in a singer identity's timbre (Seed-VC, F0-conditioned,
+ *  at most ±3 semitones). The handler logs asset ids in place of the files. */
+export const SvcInput = z.object({ sourceWav: z.string(), referenceWav: z.string(), diffusionSteps: z.number().int().min(1).max(100).optional(), lengthAdjust: z.number().min(0.5).max(2).optional(), cfgRate: z.number().min(0).max(1).optional(), f0Condition: z.boolean().optional(), autoF0Adjust: z.boolean().optional(), semitoneShift: z.number().int().min(-3).max(3).optional(), fp16: z.boolean().optional(), seed: z.number().int().optional(), raw: z.boolean().optional() });
+const f0Stats = z.object({ median_hz: z.number().nullable(), p5_hz: z.number().nullable(), p95_hz: z.number().nullable(), semitones: z.number().nullable() }).partial();
+export const SvcResult = z.looseObject({ file: z.string(), ms: z.number(), sampleRate: z.number(), durationSeconds: z.number(), engine: z.string(), model: z.string(), engineVersion: z.string(), settings: z.record(z.string(), z.unknown()), f0: z.object({ reference: f0Stats.optional(), source: f0Stats.optional(), applied: f0Stats.optional() }).partial(), truePeakDbtp: z.number().optional(), peakVramMb: z.number().optional() });
 
 // ----------------------------------------------------------------------------------------------------- music
 
@@ -285,7 +290,7 @@ export interface ToolContract {
 /** The named schemas, so a ToolDef's `inputSchema`/`outputSchema` names a real schema (a test checks it). */
 export const SCHEMAS: Record<string, z.ZodType> = {
   StructuredAnswerInput, StructuredAnswerOutput, ComfyGraphInput, ComfyRunOutput, VideoGenerateInput, VideoGenerateOutput, LipsyncCorrectInput, LipsyncCorrectOutput, SynthesizeInput, SynthesizeOutput,
-  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, QwenTranscribeInput, QwenTranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, MusicInput, MusicOutput, SoundEffectInput, SoundEffectOutput, FileInput, ProbeOutput,
+  CloneVoiceInput, CloneVoiceOutput, TranscribeInput, TranscribeOutput, QwenTranscribeInput, QwenTranscribeOutput, DesignVoiceInput, DesignVoiceOutput, EmbedVoiceOutput, StemsInput, StemsOutput, SvcInput, SvcResult, MusicInput, MusicOutput, SoundEffectInput, SoundEffectOutput, FileInput, ProbeOutput,
   QaTakeInput, QaTakeOutput, AssembleInput, AssembleOutput, ValidateExportInput, ValidateExportOutput, AlignLagInput, AlignLagOutput, LyricsAlignInput, LyricsAlignOutput,
   EnqueueInput, EnqueueOutput,
   ResearchPlanInput, ResearchPlanOutput, ResearchQueryInput, ResearchQueryOutput, ResearchStoreInput, ResearchRunOutput,
@@ -305,6 +310,7 @@ export const CONTRACTS: Record<string, ToolContract> = {
   'speech.design_voice': { input: DesignVoiceInput, output: DesignVoiceOutput },
   'speech.embed_voice': { input: FileInput, output: EmbedVoiceOutput },
   'audio.separate_stems': { input: StemsInput, output: StemsOutput },
+  'audio.convert_voice': { input: SvcInput, output: SvcResult },
   'music.generate': { input: MusicInput, output: MusicOutput },
   'audio.generate_effect': { input: SoundEffectInput, output: SoundEffectOutput },
   'media.probe': { input: FileInput, output: ProbeOutput },

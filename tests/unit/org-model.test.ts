@@ -101,7 +101,7 @@ function handlerTable(): Record<string, string> {
 
 const PENDING_FILES = ['src/worker/handlers/character.ts', 'src/worker/handlers/voice.ts', 'src/worker/handlers/images.ts'];
 
-describe('the studio organisation (ORG_VERSION 20)', () => {
+describe('the studio organisation (ORG_VERSION 21)', () => {
   it('holds together: every reference resolves, every agent has an execution path, directors are real', () => {
     // 12: English only — the Arabic names, roles, responsibilities and step names of the interface removed (EN-1)
     // 13: the Location Bible — World Continuity 1.1.0 gains the establish-here step (a place established by its first
@@ -112,7 +112,7 @@ describe('the studio organisation (ORG_VERSION 20)', () => {
     // 19: the Sound Designer (SOUND): AMBIENCE with audio.generate_effect, MOSS-SoundEffect v2 (Phase 5 sound design)
     // 20: the Audio Synchronization Inspector may call Qwen3-ASR (the primary transcriber) — the voice proof was heard
     //     by Whisper alone (Phase 1, 2026-10-09)
-    expect(ORG_VERSION).toBe(20);
+    expect(ORG_VERSION).toBe(21);
     expect(checkOrganisation()).toEqual([]);
     expect(DEPARTMENTS.map((d) => d.id)).toEqual(['EXECUTIVE', 'STORY', 'CASTING', 'WORLD', 'PREPRODUCTION', 'VIDEO', 'SOUND', 'POST', 'QA']);
     for (const a of AGENTS) expect(a.jobTypes.length + (a.payloadRoutes?.length ?? 0) + a.steps.length, `${a.id} has no execution path`).toBeGreaterThan(0);

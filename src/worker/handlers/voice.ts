@@ -4,7 +4,7 @@ import type { Handler, HandlerContext } from './index';
 import { step } from './step';
 import { StudioError, consentRequired, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
-import type { Asset, Character, Production, VoiceConsent, VoiceDesignRecord, VoiceIdentity, VoiceOrigin, VoiceSample } from '@/domain/types';
+import type { Asset, Character, Production, VoiceConsent, VoiceDesignRecord, VoiceIdentity, VoiceOrigin, VoiceReferenceClip, VoiceSample } from '@/domain/types';
 import type { Dialect, Language } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
@@ -123,7 +123,7 @@ export interface Reference {
   /** a design seed: its record, candidate and the sha256 the file was checked against */
   design?: { designId: string; candidate: number; sha256: string; gateOk: boolean };
   /** set when the reference is a clip of the identity's canonical reference pack chosen for the line's language */
-  packClip?: { role: 'NEUTRAL' | 'EXPRESSIVE' | 'ENGLISH' | 'IRAQI'; source: 'DESIGN_SEED' | 'CONSENTED_RECORDING' | 'STUDIO_RENDER' };
+  packClip?: { role: VoiceReferenceClip['role']; source: VoiceReferenceClip['source'] };
 }
 
 /** THE PACK RULE (master directive §18; docs/research/iraqi-voice-production.md §5: a cross-language reference masks

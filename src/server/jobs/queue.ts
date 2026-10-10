@@ -36,7 +36,7 @@ export function canonicalJson(v: unknown): string {
   return JSON.stringify(v);
 }
 
-const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, CORRECT_LIPSYNC: 2, GENERATE_SONG: 2, WRITE_SONG: 2, CHECK_SONG: 2, AMBIENCE: 2, AUTO_IDEA: 1, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1, VOICE_DESIGN: 2 };
+const DEFAULT_ATTEMPTS: Partial<Record<JobType, number>> = { GENERATE_TAKE: 3, CORRECT_LIPSYNC: 2, GENERATE_SONG: 2, WRITE_SONG: 2, CHECK_SONG: 2, SING_CONVERT: 2, AMBIENCE: 2, AUTO_IDEA: 1, DEVELOP_STORY: 3, WRITE_SCRIPT: 3, PLAN_SHOTS: 3, EXPORT: 2, ASSEMBLE: 2, PRODUCE: 1, EPISODE_CONTINUITY: 2, DESIGN_CHARACTER: 3, CREATE_CHARACTER: 1, VOICE_DESIGN: 2 };
 
 /** WORKER LANES — which concurrency pool runs a job. Most follow the resource they use (JOB_RESOURCE). Orchestrators
  *  spend their life waiting for their children: they get a lane of their own (review finding 10), so a waiting chain

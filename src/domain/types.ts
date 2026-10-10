@@ -349,6 +349,10 @@ export interface Song {
   requestId?: string;
   stems?: { vocals?: string; instrumental?: string };
   jobId?: string;
+  /** THE SINGER'S OWN VOICE (SING_CONVERT): the song's lead vocal converted to the named singer's timbre and remixed; the
+   *  song's `assetId` becomes the sung mix, the engine's recording stays as `fromAssetId`. Measured, never assumed:
+   *  ECAPA cosine of the converted vocal to the singer's speaker fingerprint and the pitch statistics. */
+  singing?: { singerId: string; assetId: string; vocalAssetId: string; fromAssetId: string; engine: string; engineVersion: string; reference: { assetId: string; role: string }; similarityToFingerprint?: number; f0?: Record<string, unknown>; settings: Record<string, unknown>; at: string; jobId?: string };
   /** The producer's listening verdicts, newest last. Each names the recording it judged, so a later recording is never
    *  taken as accepted. Machine checks are evidence; this is the acceptance. */
   listening?: SongListeningRecord[];
@@ -692,7 +696,9 @@ export interface VoiceIdentity {
 
 /** One clip of the canonical reference pack: what it is for, where it comes from, what it says. */
 export interface VoiceReferenceClip {
-  role: 'NEUTRAL' | 'EXPRESSIVE' | 'ENGLISH' | 'IRAQI';
+  /** SINGING: the identity's sung reference (docs/research/SINGING-IDENTITY-2026-10.md §3 — a spoken seed under-specifies
+   *  singing timbre; the first conversion that holds the identity is kept once and every later song conditions on it) */
+  role: 'NEUTRAL' | 'EXPRESSIVE' | 'ENGLISH' | 'IRAQI' | 'SINGING';
   assetId: string;
   sha256?: string;
   text?: string;
