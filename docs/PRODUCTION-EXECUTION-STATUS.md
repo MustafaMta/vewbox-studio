@@ -368,7 +368,10 @@ Fix (commit 8ef2cf1): camera zones stay in the location record for the shot plan
 out of the identity line; a stored line still carrying them is cut where it enters a prompt). **Third attempt: PASS by
 inspection** — one unoccupied pier between stone walls, rusted bollards, a weathered bench, the open guitar case and pinned
 maps, the same geometry at dusk (master) and at night, a clean bollard view; no people, no panels (40–59 s each at full
-quality). Shot 1's frame is drawn again from the clean plate before the take comparison. The director plan
+quality). Shot 1's frame, drawn again against the clean plate (the production's World Bible pin advanced from revision 2
+to 3 — the old plates removed, the new ones added, nothing filmed yet so the re-pin was safe): **PASS** — one wide shot,
+Layla from behind (chin-length hair, charcoal coat, indigo jeans, black boots) on the pier at dusk, bollards, the open guitar
+case and the pinned map, the harbour and sunset ahead (95 s at full quality). The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
