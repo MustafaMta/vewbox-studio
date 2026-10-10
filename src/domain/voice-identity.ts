@@ -1,4 +1,4 @@
-import type { Asset, Character, DialectStatus, Settings, SpokenLanguage, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceListeningRecord, VoiceSample } from './types';
+import type { Asset, Character, DialectStatus, Settings, SpokenLanguage, StudioState, VoiceDesignCandidate, VoiceDesignMeasure, VoiceDesignRecord, VoiceIdentity, VoiceLanguageProfile, VoiceListeningRecord, VoiceReferenceClip, VoiceSample } from './types';
 import { StudioError } from './errors';
 import type { Dialect, Language } from './vocabulary';
 import { isCloneSource, voiceLock } from './rules';
@@ -264,6 +264,15 @@ export function languageProfileNotes(origin: VoiceIdentity['origin'], l: SpokenL
   if (origin === 'DESIGNED' && l.dialect === 'IRAQI_BAGHDADI') out.push('designed synthetic seed speaking Iraqi: validation only — an Iraqi production voice waits for a consented Baghdadi recording');
   out.push('same person across languages not yet judged by a listener');
   return out;
+}
+
+/** The reference clip a line in `language` should condition on (the master directive §18, the research §5: the
+ *  reference must match the language tag — a cross-language reference masks the dialect): the pack's clip of that
+ *  language (IRAQI for Iraqi Arabic, ENGLISH for English), else none — the caller falls back to the primary reference. */
+export function referenceClipFor(identity: Pick<VoiceIdentity, 'canonicalReferencePack'>, language: Language, dialect?: Dialect): VoiceReferenceClip | undefined {
+  const pack = identity.canonicalReferencePack ?? [];
+  if (language === 'AR') return pack.find((c) => c.role === 'IRAQI' && c.language === 'AR' && (!dialect || !c.dialect || c.dialect === dialect)) ?? pack.find((c) => c.language === 'AR');
+  return pack.find((c) => c.role === 'ENGLISH' && c.language === 'EN');
 }
 
 /** A listener's record for one of the identity's languages: an Arabic profile is LISTENER_APPROVED only when both the

@@ -94,6 +94,12 @@ async function pack() {
   const files: Record<string, string> = {};
   const metrics: Record<string, unknown> = { identity: { revision: id.revision, origin: id.origin, designId: id.designId, seedSha256: id.seedSha256, profiles: id.languageProfiles, referencePack: id.canonicalReferencePack } };
   if (ref) { await fs.copyFile(assetFile(ref), path.join(dir, '0-canonical-reference.wav')); files.reference = '0-canonical-reference.wav'; }
+  // the pack rule: a line's language conditions on its clip of the canonical reference pack (same performer); each clip travels with the package
+  for (const clip of id.canonicalReferencePack ?? []) {
+    const a = byId(clip.assetId); if (!a || a.id === ref?.id) continue;
+    const name = `0-reference-${clip.role.toLowerCase()}.wav`;
+    await fs.copyFile(assetFile(a), path.join(dir, name)); files[`reference-${clip.role.toLowerCase()}`] = name;
+  }
   const want: Array<[string, string, string]> = [['1-iraqi-natural', PACK.natural, 'AR'], ['2-iraqi-hard', PACK.hard, 'AR'], ['3-iraqi-emotional', PACK.emotional, 'AR'], ['4-iraqi-long', long.text, 'AR'], ['5-english-identity', PACK.english, 'EN']];
   for (const [name, text, lang] of want) {
     const s = [...c.voice.samples].reverse().find((x) => x.source === 'GENERATED' && x.text === text && x.language === lang && byId(x.assetId));

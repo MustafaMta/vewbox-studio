@@ -5,7 +5,7 @@ import { step } from './step';
 import { StudioError, consentRequired, missingReference } from '@/domain/errors';
 import { nid } from '@/domain/ids';
 import type { Asset, Character, Production, VoiceConsent, VoiceDesignRecord, VoiceIdentity, VoiceOrigin, VoiceSample } from '@/domain/types';
-import type { Language } from '@/domain/vocabulary';
+import type { Dialect, Language } from '@/domain/vocabulary';
 import type { JobPayloadParsed } from '@/domain/jobs';
 import { commands, command, readState } from '@/server/studio/engine';
 import { castOf } from '@/studio/selectors';
@@ -26,7 +26,7 @@ import { recordMetric } from '@/server/jobs/queue';
 import { recordHandoff, recordQaReport } from '@/server/org/runs';
 import { designChoiceProblem } from '@/server/org/preflight';
 import { guardVoiceBuild, isCloneSource } from '@/domain/rules';
-import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, languageLabel, languageProfileNotes, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, speakingAs, spokenLanguages, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
+import { automaticVoicePlan, designedSeedProblem, initialDialectStatus, isConsentedUpload, isIraqi, languageLabel, languageProfileNotes, lineRecordingCurrent, pickReference, rankDesignCandidates, rankingFor, referenceClipFor, speakingAs, spokenLanguages, tagDesignId, usableRecordingAsset, voiceLabels, type ReferenceOptions, type ReferencePick } from '@/domain/voice-identity';
 import type { VoiceIdentityInput } from '@/domain/actions';
 import { assetFile, heardMetrics, measureVoiceLine, speakerEmbedding, speedForPace } from './voice-measure';
 import { designAndMeasure, designSummary } from './voice-design';
@@ -122,6 +122,29 @@ export interface Reference {
   consent?: VoiceConsent;
   /** a design seed: its record, candidate and the sha256 the file was checked against */
   design?: { designId: string; candidate: number; sha256: string; gateOk: boolean };
+  /** set when the reference is a clip of the identity's canonical reference pack chosen for the line's language */
+  packClip?: { role: 'NEUTRAL' | 'EXPRESSIVE' | 'ENGLISH' | 'IRAQI'; source: 'DESIGN_SEED' | 'CONSENTED_RECORDING' | 'STUDIO_RENDER' };
+}
+
+/** THE PACK RULE (master directive §18; docs/research/iraqi-voice-production.md §5: a cross-language reference masks
+ *  the dialect — the smoke-2 separation, 2026-10-10): a line in a language the identity's canonical reference pack
+ *  has a clip of (IRAQI for Iraqi Arabic, ENGLISH for English) is spoken from THAT clip — the same performer by
+ *  construction (its design seed, a consented recording, or a render this identity made and the studio kept after the
+ *  fingerprint check) — and otherwise from the primary reference. A pack clip whose file is missing or no longer
+ *  hashes to the clip's sha256 is refused, never silently replaced by another voice. */
+export async function packReference(c: Character, assets: Asset[], language: Language, dialect: Dialect | undefined, primary: Reference): Promise<Reference> {
+  const identity = c.voice.identity;
+  if (!identity) return primary;
+  const clip = referenceClipFor(identity, language, language === 'AR' ? dialect : undefined);
+  if (!clip || clip.assetId === primary.asset.id) return primary;
+  const a = assets.find((x) => x.id === clip.assetId);
+  if (!a || a.kind !== 'AUDIO' || a.unavailable) throw missingReference(`${c.name}'s ${clip.role.toLowerCase()} reference clip (${clip.assetId}) is not on disk; the line was not spoken from another voice.`, { characterId: c.id, assetId: clip.assetId });
+  const file = assetFile(a);
+  if (clip.sha256) {
+    const sha = await sha256File(file).catch(() => '');
+    if (sha !== clip.sha256) throw missingReference(`${c.name}'s ${clip.role.toLowerCase()} reference clip has changed on disk (sha256 mismatch); the line was not spoken from it.`, { characterId: c.id, assetId: clip.assetId });
+  }
+  return { file, asset: a, text: clip.text, via: 'IDENTITY', origin: primary.origin, consent: primary.consent, design: primary.design, packClip: { role: clip.role, source: clip.source } };
 }
 
 /** RULE V-DESIGN AT THE CLONE BOUNDARY — a design seed is spoken from only when the file as found hashes to its design
@@ -565,12 +588,15 @@ export const voicePreview: Handler = async (ctx) => {
   const speaking = speakingAs(found, { language, dialect, engine }, { evalEngines: Object.keys(EVAL_VOICE_ENGINES) });
   const c = speaking.character;
   const dir = await tmpDir('voice');
-  const ref = await referenceWav(found, state.assets, dir);
-  if (!ref) {
+  const primary = await referenceWav(found, state.assets, dir);
+  if (!primary) {
     const waiting = unconsentedUploads(c, state.assets);
     if (waiting.length) throw consentRequired(`${c.name}'s recording “${waiting[0].label}” has no consent statement; confirm it before the voice speaks from it.`, { characterId, sampleId: waiting[0].id });
     throw missingReference(`${c.name} has no voice to speak with yet: build the voice (from a consented recording, or a studio-designed voice) first.`, { characterId });
   }
+  // the pack rule: the line's language picks its clip of the canonical reference pack (same performer), else the primary
+  const ref = await packReference(found, state.assets, c.language, c.dialect, primary);
+  if (ref.packClip) await ctx.event('info', `${c.name}'s ${ref.packClip.role.toLowerCase()} reference clip (${ref.packClip.source.toLowerCase().replace('_', ' ')}) conditions this ${languageLabel({ language: c.language, dialect: c.dialect })} line`, { characterId, assetId: ref.asset.id, role: ref.packClip.role });
   await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}${speaking.profile ? ` (${languageLabel(speaking.profile)}, ${speaking.engine ?? speaking.profile.engine})` : ''}` });
   const line = await speakLine(ctx, c, text, ref, dir, { emotion, engine: isLocalTtsEngine(speaking.engine) || isEvalTtsEngine(speaking.engine) ? speaking.engine : undefined });
   const check = await verifyLine(ctx, line.file, text, line.language);
@@ -580,7 +606,7 @@ export const voicePreview: Handler = async (ctx) => {
   const role = speaking.role;
   const sampleDialect = line.language === 'AR' ? c.dialect : undefined;
   await commands([
-    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview', ...(role === 'COMPARISON' ? ['comparison'] : [])], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, referenceSha256: ref.design?.sha256, origin: ref.origin, designId: ref.design?.designId, language: line.language, dialect: sampleDialect, role, voiceRevision: found.voice.identity?.revision, params: found.voice.identity?.params, check, measured } })] },
+    { name: 'addAsset', args: [assetFromStored(id, stored, { label: `${c.name} — “${text.slice(0, 40)}”`, tags: ['voice', 'preview', ...(role === 'COMPARISON' ? ['comparison'] : [])], origin: 'GENERATED', jobId: ctx.job.id, provenance: { engine: line.engine, model: line.model, text, reference: ref.asset.id, referenceSha256: ref.design?.sha256, referenceClip: ref.packClip?.role, origin: ref.origin, designId: ref.design?.designId, language: line.language, dialect: sampleDialect, role, voiceRevision: found.voice.identity?.revision, params: found.voice.identity?.params, check, measured } })] },
     { name: 'addVoiceSample', args: [c.id, { label: text.slice(0, 48), assetId: id, source: 'GENERATED', text, language: line.language, ...(sampleDialect ? { dialect: sampleDialect } : {}), engine: line.engine, role, durationSeconds: stored.probe?.durationSeconds, jobId: ctx.job.id }, false] },
   ], 'worker');
   await fsp.rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -604,7 +630,11 @@ export const dialogueAudio: Handler = async (ctx) => {
   for (const { sh, d } of lines) {
     const c = cast.find((x) => x.id === d.characterId);
     if (!c) continue;
-    if (!refs.has(c.id)) refs.set(c.id, await referenceWav(c, state.assets, dir));
+    if (!refs.has(c.id)) {
+      const primary = await referenceWav(c, state.assets, dir);
+      // the pack rule: the production's language picks the clip of the character's reference pack (same performer)
+      refs.set(c.id, primary ? await packReference(c, state.assets, p.language, p.language === 'AR' ? c.dialect : undefined, primary) : null);
+    }
     const ref = refs.get(c.id);
     if (!ref) { await ctx.event('warn', `${c.name} has no uploaded voice recording; line skipped`, { shotId: sh.id, lineId: d.id }); continue; }
     const text = p.language === 'AR' ? (d.textAr || d.text) : d.text;
