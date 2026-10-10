@@ -430,7 +430,9 @@ same plan and seed, 21.0 min): the same continuous take** — no cut, no repeate
 (the seed governs the staging), identity drift 0.16 against int8's 0.20, machine singing-correlation 0.09 against 0.15 (both
 weak; the mouth visibly moves on the words in both), finer skin and hair texture at BF16 on the same frames. The BF16 take
 is the one carried for shot 1; the tier verdict stands (BF16 = 1.2× the time, the same staging, finer detail, equal or
-better identity). The director plan
+better identity). Shot 1's plan now records the push-in it shows; its take is selected and rated GOOD by the engineering QA.
+PRODUCE runs the remaining seven shots at BF16 (frames, then takes); every take is inspected by eye and by its QA record
+before it is chosen; then ASSEMBLE, the cut gate, EXPORT. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
