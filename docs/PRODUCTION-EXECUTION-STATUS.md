@@ -359,8 +359,16 @@ nobody in the cast, despite the negative prompt "people, person"; the first shot
 (Layla correct in the left panel, the stranger on the right). Root cause: the text-to-image path always ran the Qwen-Image
 Lightning 8-step LoRA at cfg 1 — where a negative prompt has no effect — and the frame path the Edit-2511 4-step LoRA, against
 the large-model policy (no turbo defaults). Fix (commit after 9c4c5a2): every production picture runs the full model by default
-(30 steps, cfg 4 for text-to-image; 24 steps, cfg 4 for edits); the Lightning path remains only for an explicit draft. The
-plates and the frame are drawn again under the fix and inspected before any take. The director plan
+(30 steps, cfg 4 for text-to-image; 24 steps, cfg 4 for edits); the Lightning path remains only for an explicit draft.
+**Second attempt (full quality, negative effective): still a collage** — a different stranger's portrait and a guitar-case
+panel beside a correct pier. The deeper cause, read off the prompt: the story engine's location record carries camera zones
+("Wide shot … looking back at Layla; Medium shot … Layla's profile; Close-up zone near the bollard for intimate facial
+details"), and the identity line pasted them into every picture prompt, so the model drew the portraits it was asked for.
+Fix (commit 8ef2cf1): camera zones stay in the location record for the shot planner and never enter a picture prompt (left
+out of the identity line; a stored line still carrying them is cut where it enters a prompt). **Third attempt: PASS by
+inspection** — one unoccupied pier between stone walls, rusted bollards, a weathered bench, the open guitar case and pinned
+maps, the same geometry at dusk (master) and at night, a clean bollard view; no people, no panels (40–59 s each at full
+quality). Shot 1's frame is drawn again from the clean plate before the take comparison. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
