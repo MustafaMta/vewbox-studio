@@ -601,7 +601,11 @@ export const generateTake: Handler = async (ctx) => {
     const onScreenLines = new Set(sh.dialogue.filter((d) => !isOffscreenLine(sh, d)).map((d) => d.id));
     const speaking = p.kind !== 'MUSIC_VIDEO' && onScreenLines.size > 0;
     const singing = p.kind === 'MUSIC_VIDEO' && soundtrack?.kind === 'SONG' && Boolean(soundtrackFile);
-    if (speaking || singing) {
+    // a singer the shot shows from behind has no mouth to follow the song (shot 1 of "Harbour Lights", 2026-10-10: the
+    // back of Layla's head "failed" singing-sync at activity 0.02) — not measured, like identity-similarity-away below
+    const performersAway = singing && sh.characterIds.length > 0 && sh.characterIds.every((id) => facingAway(sh).includes(id));
+    if (performersAway) driftChecks.push({ name: 'singing-sync', ok: true, detail: 'not measured: every performer in the shot faces away from the camera' });
+    if ((speaking || singing) && !performersAway) {
       try {
         const against: 'RECORDED' | 'SONG' | 'TAKE_AUDIO' = singing ? 'SONG' : soundtrackFile ? 'RECORDED' : 'TAKE_AUDIO';
         // word windows of the recorded lines, on the clip's clock (the soundtrack guide sits at the first new frame)
