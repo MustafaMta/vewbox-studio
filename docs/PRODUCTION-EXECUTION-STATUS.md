@@ -175,7 +175,19 @@ VAE 58 %; the resume that had started at 21:50Z was stopped) → others. Researc
 | 3 | **Iraqi phoneme/text frontend** (`src/server/providers/iraqi-g2p.ts`) | Original script untouched (`engineText`); internal pronunciation (lexicon-first: the brief's 75 words with IPA; clitics and the article with sun-letter assimilation; letter rules: چ→tʃ گ→ɡ پ→p ڤ→v, ق→ɡ by default / q in the learned list / k in وقت-type words, ج→dʒ, ض/ظ→ðˤ); `dialectWords` names what the phoneme gate must confirm; permanent regression tests for باچر نحچي گلتلك گدام and the coverage vocabulary. Model input stays graphemes in pronounced Iraqi spelling (the research's decision); the phoneme inventory is the annotation/QA standard. |
 | 4 | **CharacterVoiceIdentity** | One identity per character: `canonicalReferencePack` (same-performer clips: neutral seed, expressive, English, Iraqi), `speakerFingerprint`, `languageProfiles` (English / Iraqi; singing later), status, lock; Voice Studio shows one identity. Done. |
 
-Next: the small controlled adaptation experiment (prove pronunciation and prosody improve, identity stable, English intact, same performer across languages) before any long run; then the full Vewbox-IQ adaptation and Character A's five-line pack.
+**Autonomous mode (the producer, 2026-10-10): no user approvals between phases; gates are `AUTO_REVIEW_PENDING` →
+PASS/FAIL recorded `AUTO_APPROVED_BY_ENGINEERING_QA` (never the producer's approval). Known limit stated with every
+audio gate: the engineering QA cannot listen — audio verdicts rest on Qwen3-ASR, the phoneme gate, ECAPA, pitch/prosody
+statistics and transcripts; images and frames are inspected directly.**
+
+**Dataset (measured):** train 12.6 h / validation 0.73 h / test 0.6 h (Omnilingual Iraqi 1,891 utterances, 12.87 h,
+11 speakers, SNR 55 dB, 413 transcripts respelled into pronounced Iraqi spelling; Kharrufa 450, 1.08 h, 1 speaker;
+MSA replay 1,687, 3.32 h). Reports: `D:\vewbox-data\training\iraqi\reports\*.md`.
+
+**Chatterbox V3 base (no adapter), the same five lines, Character A's seed, seed 7, through the pipeline** —
+`D:\vewbox-data\training\iraqi\eval\base\scores.json`: Iraqi CER 0.16 / 0.167 / 0.122 / 0.105 (mean 0.139), ECAPA to
+the seed 0.51–0.69 (mean 0.63), phoneme gate 0 of 2 («گلتلك» heard «أل تلك», «باچر» «بأر», «چاي» «صاي»); English CER 0,
+ECAPA 0.82. The smoke gate must beat these on real audio: Iraqi CER and the چ/گ gate better, similarity not below, English unchanged.
 
 ## Model inventory — the source of truth (2026-10-09)
 
