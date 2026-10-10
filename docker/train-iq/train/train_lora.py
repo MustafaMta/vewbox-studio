@@ -260,6 +260,8 @@ def main() -> None:
     ap.add_argument("--lora-alpha", type=int, default=64)
     ap.add_argument("--lora-dropout", type=float, default=0.05)
     ap.add_argument("--text-emb-rows", default="arabic", choices=["arabic", "arabic+lang", "none"], help="which text_emb rows may move")
+    ap.add_argument("--emb-lr", type=float, default=None, help="peak learning rate of the text_emb rows (default: --lr); smoke 4 (2026-10-10): the untrained چ گ پ ڤ rows need more than the LoRA's rate")
+    ap.add_argument("--init-rows", default="", help="phoneme-representation init, 'گ=g,پ=p,ڤ=v,چ=c+h': each listed row of the trainable text_emb copy starts as the MEAN of the named base rows (graphemes the base already pronounces that way)")
     ap.add_argument("--text-loss-weight", type=float, default=1.0)
     ap.add_argument("--prompt-source", default="speaker", choices=["speaker", "self"])
     ap.add_argument("--max-speech-tokens", type=int, default=520, help="skip utterances longer than this (25 tokens/s: 520 ≈ 20.8 s)")
@@ -332,15 +334,33 @@ def main() -> None:
         if emb_param is None:
             die(f"PEFT did not expose {TEXT_EMB_COPY}: the modules_to_save wrapper changed; inspect t3.named_parameters()")
         emb_param.register_hook(lambda g: g * row_mask_t)
+        # PHONEME-REPRESENTATION INIT (smoke 4): a row the base never trained (چ گ پ ڤ came out as [k]/[s], [l]/[b] in every
+        # earlier run) starts from the graphemes the base already pronounces with that sound; only trainable rows may be set
+        init_report: dict[str, Any] = {}
+        if args.init_rows.strip():
+            with torch.no_grad():
+                for spec in [s.strip() for s in args.init_rows.split(",") if s.strip()]:
+                    target, _, sources = spec.partition("=")
+                    target = target.strip()
+                    src_tokens = [s.strip() for s in sources.split("+") if s.strip()]
+                    if target not in vocab or any(s not in vocab for s in src_tokens):
+                        die(f"--init-rows: unknown token in {spec!r} (vocab has {[t for t in [target, *src_tokens] if t in vocab]})")
+                    tid = vocab[target]
+                    if not mask[tid]:
+                        die(f"--init-rows: {target!r} (row {tid}) is not a trainable row")
+                    rows = torch.stack([base_sd["text_emb.weight"][vocab[s]].to(emb_param.device, emb_param.dtype) for s in src_tokens])
+                    emb_param.data[tid] = rows.mean(dim=0)
+                    init_report[target] = {"row": tid, "from": src_tokens, "ids": [vocab[s] for s in src_tokens]}
+            log(f"[train] text_emb init: {json.dumps(init_report, ensure_ascii=False)}")
         frozen_rows_snapshot = emb_param.detach().clone()
-        log(f"[train] text_emb: {int(sum(mask))} of {n_rows} rows trainable (Arabic block{' + [ar]' if args.text_emb_rows == 'arabic+lang' else ''}); the rest masked and restored each step")
+        log(f"[train] text_emb: {int(sum(mask))} of {n_rows} rows trainable (Arabic block{' + [ar]' if args.text_emb_rows == 'arabic+lang' else ''}); the rest masked and restored each step; embedding lr {args.emb_lr if args.emb_lr is not None else args.lr}")
     frozen_info = assert_frozen_set(t3, train_rows)
 
     # optimiser: decoupled weight decay would move the frozen rows of the embedding copy — that group gets 0
     lora_params = [p for n, p in t3.named_parameters() if p.requires_grad and n != TEXT_EMB_COPY]
     groups = [{"params": lora_params, "weight_decay": args.weight_decay}]
     if emb_param is not None:
-        groups.append({"params": [emb_param], "weight_decay": 0.0})
+        groups.append({"params": [emb_param], "weight_decay": 0.0, "lr_scale": (args.emb_lr / args.lr) if (args.emb_lr is not None and args.lr > 0) else 1.0})
     opt = torch.optim.AdamW(groups, lr=args.lr, betas=(args.beta1, args.beta2), weight_decay=args.weight_decay)
 
     # provenance
@@ -350,7 +370,7 @@ def main() -> None:
     datasets += [{"tokens": str(s.folder), "manifests": [{"path": m, "sha256": h} for m, h in s.manifests], "utterances": len(s.rows), "hours": round(s.seconds / 3600, 3), "role": "replay"} for s in replay_sets]
     base_prov = {"repo": "ResembleAI/chatterbox", "revision": iq_model.BASE_REVISION, "t3_file": iq_model.T3_FILE, "t3_sha256": None if args.no_base_hash else sha256_file(base_dir / iq_model.T3_FILE), "code": f"resemble-ai/chatterbox@{iq_model.CODE_COMMIT}"}
     config = {k: v for k, v in vars(args).items()}
-    provenance_base = {"name": args.name, "stage": "A", "base": base_prov, "adapter": {"type": "peft-lora", "r": args.lora_r, "alpha": args.lora_alpha, "dropout": args.lora_dropout, "targets": LORA_TARGET_RE, "modules_to_save": ["text_emb"] if train_rows else [], "text_emb_rows": args.text_emb_rows},
+    provenance_base = {"name": args.name, "stage": "A", "base": base_prov, "adapter": {"type": "peft-lora", "r": args.lora_r, "alpha": args.lora_alpha, "dropout": args.lora_dropout, "targets": LORA_TARGET_RE, "modules_to_save": ["text_emb"] if train_rows else [], "text_emb_rows": args.text_emb_rows, "emb_lr": args.emb_lr, "init_rows": init_report if train_rows else {}},
                        "datasets": datasets, "replay_ratio": replay_ratio, "config": config, "seed": args.seed, "vewbox_commit": args.commit or git_commit_hint(), "frozen": frozen_info,
                        "versions": {"torch": torch.__version__, "peft": __import__("peft").__version__, "transformers": __import__("transformers").__version__}}
     (out_dir / "config.json").write_text(json.dumps(provenance_base, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -418,7 +438,7 @@ def main() -> None:
         while step < args.steps and stopped is None:
             lr = lr_at(step, args)
             for g in opt.param_groups:
-                g["lr"] = lr
+                g["lr"] = lr * float(g.get("lr_scale", 1.0))
             opt.zero_grad(set_to_none=True)
             acc = {"loss": 0.0, "loss_text": 0.0, "loss_speech": 0.0}
             n_replay = 0
