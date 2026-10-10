@@ -1,0 +1,184 @@
+{
+  "identity": {
+    "revision": 1,
+    "origin": "DESIGNED",
+    "designId": "vd-ce8f84df14",
+    "seedSha256": "ea72f1c1c3a8f330f4dc4fbeea3655f41506b0ba1e1d2586273ffc03e9a660e5",
+    "profiles": [
+      {
+        "engine": "moss",
+        "status": "PRIMARY",
+        "language": "EN"
+      },
+      {
+        "notes": [
+          "Iraqi dialect not yet verified by a native listener",
+          "designed synthetic seed speaking Iraqi: validation only — an Iraqi production voice waits for a consented Baghdadi recording",
+          "same person across languages not yet judged by a listener"
+        ],
+        "engine": "habibi",
+        "status": "REVIEW",
+        "dialect": "IRAQI_BAGHDADI",
+        "language": "AR",
+        "comparisonEngines": [
+          "moss"
+        ]
+      }
+    ],
+    "referencePack": [
+      {
+        "role": "NEUTRAL",
+        "text": "The harbour lights came on one by one as the evening ferry pulled away from the quay. Nobody said a word. Will you still be here when it comes back?",
+        "sha256": "ea72f1c1c3a8f330f4dc4fbeea3655f41506b0ba1e1d2586273ffc03e9a660e5",
+        "source": "DESIGN_SEED",
+        "addedAt": "2026-10-10T02:20:55.209Z",
+        "assetId": "gen-dea88651da",
+        "language": "EN",
+        "similarity": 1
+      },
+      {
+        "role": "IRAQI",
+        "text": "آني من بغداد، وكل يوم الصبح أشرب چاي وأحچي ويا أهلي شوية، وبعدين أطلع للشغل گبل ما يزدحم الشارع.",
+        "sha256": "43aee0cb71e2d4751f63b0465f6d10715c36bfe5c66fe4e889c09f9849423025",
+        "source": "STUDIO_RENDER",
+        "addedAt": "2026-10-10T02:31:54.115Z",
+        "assetId": "gen-2b6c184e65",
+        "dialect": "IRAQI_BAGHDADI",
+        "language": "AR",
+        "similarity": 0.587
+      }
+    ]
+  },
+  "1-iraqi-natural": {
+    "engine": "vewbox-iq",
+    "model": "Vewbox-IQ stage-a on Chatterbox MTL V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.12,
+      "wer": 0.4,
+      "heard": "شلونك؟ صار لهواية ما شايفك؟",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.60 < 0.85 (line)",
+        "the recognisers disagree — Qwen3-ASR heard «شلونك؟ صار لهواية ما شايفك؟», Whisper heard «شلونك؟ صارلي هواية ما شايفك.»: a listener decides"
+      ],
+      "coverage": 0.6,
+      "heardReference": "شلونك؟ صارلي هواية ما شايفك.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -17.61,
+      "clipped": 0,
+      "truePeakDbtp": -1,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.7776
+    },
+    "durationSeconds": 3.32
+  },
+  "2-iraqi-hard": {
+    "engine": "vewbox-iq",
+    "model": "Vewbox-IQ stage-a on Chatterbox MTL V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.23333333333333334,
+      "wer": 0.8333333333333334,
+      "heard": "قلت الكبائر نكعد نحكي ونشرف كاي.",
+      "status": "FAIL",
+      "reasons": [
+        "coverage 0.17 < 0.85 (line)",
+        "CER 0.23 > 0.15"
+      ],
+      "coverage": 0.16666666666666666,
+      "heardReference": "گلتلك اباچر نقعد نهچي ونشرف كاي.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.57,
+      "clipped": 0,
+      "truePeakDbtp": -1,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.8028
+    },
+    "durationSeconds": 3.84
+  },
+  "3-iraqi-emotional": {
+    "engine": "vewbox-iq",
+    "model": "Vewbox-IQ stage-a on Chatterbox MTL V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.17073170731707318,
+      "wer": 0.9,
+      "heard": "يمعوض لا تشي الهم، أنا يمكن وكل شي رح يصيف زين.",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.50 < 0.85 (line)",
+        "CER 0.17 > 0.15",
+        "the recognisers disagree — Qwen3-ASR heard «يمعوض لا تشي الهم، أنا يمكن وكل شي رح يصيف زين.», Whisper heard «يم عود لا تشيل هم، أني يمكى، وكل شي راح يصير زين.»: a listener decides"
+      ],
+      "coverage": 0.5,
+      "heardReference": "يم عود لا تشيل هم، أني يمكى، وكل شي راح يصير زين.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -21.88,
+      "clipped": 0,
+      "truePeakDbtp": -1,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.8633
+    },
+    "durationSeconds": 4.32
+  },
+  "4-iraqi-long": {
+    "engine": "vewbox-iq",
+    "model": "Vewbox-IQ stage-a on Chatterbox MTL V3 (t3 v3 + s3gen)",
+    "check": {
+      "ok": false,
+      "asr": "qwen3-asr",
+      "cer": 0.09302325581395349,
+      "wer": 0.5,
+      "heard": "ياك شلون جاتي عندنا باتشر هسه كل شيء ماض زين بس ماك وقت قلت لأمي إنه لازم تجيبين الشاي.",
+      "status": "REVIEW",
+      "reasons": [
+        "coverage 0.67 < 0.85 (line)"
+      ],
+      "coverage": 0.6666666666666666,
+      "heardReference": "ياك! شلونك؟ جيتي عندنا باچر؟ هسه كلشي ماض زين، بس ماكو وقت. گلتلي أمي إنه لازم تجيبين الشاي.",
+      "detectedLanguage": "Arabic"
+    },
+    "measured": {
+      "lufs": -20.6,
+      "clipped": 0,
+      "truePeakDbtp": -1,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.8661
+    },
+    "durationSeconds": 10
+  },
+  "5-english-identity": {
+    "engine": "moss",
+    "model": "OpenMOSS-Team/MOSS-TTS-v1.5",
+    "check": {
+      "ok": true,
+      "asr": "qwen3-asr",
+      "cer": 0,
+      "wer": 0,
+      "heard": "I told you we'd make it. Sit down and let me explain.",
+      "status": "PASS",
+      "reasons": [],
+      "coverage": 1,
+      "heardReference": "I told you we'd make it. Sit down and let me explain.",
+      "detectedLanguage": "English"
+    },
+    "measured": {
+      "lufs": -22.26,
+      "clipped": 0,
+      "truePeakDbtp": -6.16,
+      "similarityModel": "speechbrain/spkrec-ecapa-voxceleb (speechbrain 1.1.1; model speechbrain/spkrec-ecapa-voxceleb@0f99f2d sha256:0575cb64845e)",
+      "seedToLineSimilarity": 0.8347
+    },
+    "durationSeconds": 3.68
+  }
+}

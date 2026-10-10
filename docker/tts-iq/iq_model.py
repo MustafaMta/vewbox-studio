@@ -170,6 +170,38 @@ def model_label(base: dict[str, Any], adapter: dict[str, Any] | None) -> str:
     return f"Vewbox-IQ {name} on Chatterbox MTL V3 (t3 v3 + {s3})"
 
 
+def prepare_dual_conditionals(model: Any, identity_wav: str, prompt_wav: str, exaggeration: float = 0.5) -> dict[str, Any]:
+    """TWO REFERENCES, ONE VOICE (the pack rule, 2026-10-10): the library's prepare_conditionals takes everything from one
+    file — the voice-encoder speaker embedding, S3Gen's acoustic reference AND the T3 speech-prompt tokens. A character's
+    Iraqi lines need Arabic prompt tokens (a cross-language prompt masks the dialect) but the speaker must stay the
+    identity's own: so the speaker embedding and the S3Gen reference come from `identity_wav` (the primary reference, the
+    design seed) and only the T3 prompt tokens from `prompt_wav` (the pack's Iraqi clip of the same identity). The result
+    is left in model.conds for generate(text, audio_prompt_path=None). Mirrors ChatterboxMultilingualTTS.prepare_conditionals
+    at the pinned commit, which is why this module checks that function's shape first."""
+    import librosa  # type: ignore
+    import torch  # type: ignore
+    from chatterbox.mtl_tts import Conditionals, S3GEN_SR, S3_SR  # type: ignore
+    from chatterbox.models.t3.modules.cond_enc import T3Cond  # type: ignore
+
+    src = inspect.getsource(type(model).prepare_conditionals)
+    for needle in ("embed_ref(", "cond_prompt_speech_tokens", "embeds_from_wavs("):
+        if needle not in src:
+            raise RuntimeError(f"prepare_conditionals at this chatterbox commit no longer has {needle!r}: the dual reference cannot be built safely")
+    ident_24k, _ = librosa.load(identity_wav, sr=S3GEN_SR)
+    ident_16k = librosa.resample(ident_24k, orig_sr=S3GEN_SR, target_sr=S3_SR)
+    prompt_24k, _ = librosa.load(prompt_wav, sr=S3GEN_SR)
+    prompt_16k = librosa.resample(prompt_24k, orig_sr=S3GEN_SR, target_sr=S3_SR)
+    s3gen_ref_dict = model.s3gen.embed_ref(ident_24k[: model.DEC_COND_LEN], S3GEN_SR, device=model.device)
+    t3_cond_prompt_tokens = None
+    if plen := model.t3.hp.speech_cond_prompt_len:
+        t3_cond_prompt_tokens, _ = model.s3gen.tokenizer.forward([prompt_16k[: model.ENC_COND_LEN]], max_len=plen)
+        t3_cond_prompt_tokens = torch.atleast_2d(t3_cond_prompt_tokens).to(model.device)
+    ve_embed = torch.from_numpy(model.ve.embeds_from_wavs([ident_16k], sample_rate=S3_SR)).mean(axis=0, keepdim=True).to(model.device)
+    t3_cond = T3Cond(speaker_emb=ve_embed, cond_prompt_speech_tokens=t3_cond_prompt_tokens, emotion_adv=exaggeration * torch.ones(1, 1, 1)).to(device=model.device)
+    model.conds = Conditionals(t3_cond, s3gen_ref_dict)
+    return {"identity_seconds": round(len(ident_24k) / S3GEN_SR, 2), "prompt_seconds": round(len(prompt_24k) / S3GEN_SR, 2), "prompt_tokens": int(t3_cond_prompt_tokens.shape[-1]) if t3_cond_prompt_tokens is not None else 0}
+
+
 def seed_everything(seed: int) -> None:
     """T3 samples tokens and S3Gen's flow starts from noise: seed every generator before a generation."""
     import random

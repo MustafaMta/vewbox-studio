@@ -52,6 +52,15 @@ const exists = (f: string) => fs.stat(f).then(() => true, () => false);
  *  `<file>|<vocalised transcript>|<characters>`, one speaker ("hayder"). `generated_metadata.txt` lists the synthetic
  *  phoneme-drill sentences (تَڤَّڤَچَ…) made to cover ڤ چ گ: they are kept for coverage but flagged `phoneme-drill`, so the
  *  report shows how much of the hour is natural speech (the directive §10). */
+/** A PHONEME DRILL, not speech (found 2026-10-10 when the native Kharrufa validation lines transcribed as nonsense): the
+ *  corpus's `generated_metadata.txt` lists 159 drill sentences, but 427 of the 450 Iraqi rows are drills — pseudo-words
+ *  built on the added letters with the Kurdish vowels ۆ ێ and ڵ («تَڤَّڤَچَ وَتَڤِّڤَچِ … وَرۆچٌ وَرێچٍ»), which no Baghdadi
+ *  sentence contains. Any transcript with ۆ ێ ڵ, or on the generated list, is a drill; the pipeline rejects drills
+ *  (training on them taught nonsense and their validation lines faked a "collapse" of the base model). */
+export function isPhonemeDrill(text: string, generated: ReadonlySet<string> = new Set()): boolean {
+  return generated.has(text) || /[ۆێڵ]/u.test(text);
+}
+
 function kharrufa(subdir: string): SourceAdapter['utterances'] {
   return async function* (rawDir: string) {
     // both sources read the one expanded zip under raw/iraqi-dialect-tts-corpus (the MSA source has no raw folder of its own)
@@ -63,7 +72,7 @@ function kharrufa(subdir: string): SourceAdapter['utterances'] {
       if (!line.trim()) continue;
       const [file, transcript] = line.split('|');
       const text = (transcript ?? '').replace(/^﻿/, '').trim();
-      yield { audio: path.join(base, 'audio_files', file.trim()), transcript: text, speaker: 'hayder', flags: drills.has(text) ? ['phoneme-drill'] : [] };
+      yield { audio: path.join(base, 'audio_files', file.trim()), transcript: text, speaker: 'hayder', flags: isPhonemeDrill(text, drills) ? ['phoneme-drill'] : [] };
     }
   };
 }
@@ -71,7 +80,8 @@ function kharrufa(subdir: string): SourceAdapter['utterances'] {
 export function sourceAdapter(id: string): SourceAdapter {
   // every source is a licensed dataset until a consented studio recording exists; the licence record itself is
   // checked by the pipeline before anything is read
-  if (id === 'iraqi-dialect-tts-corpus') return { id, consent: 'LICENSED_DATASET', utterances: kharrufa('ar-IQ_hayder') };
+  // the corpus's own speaker id (its file prefix), not an interface locale (tests/unit/english-copy.test.ts guards those)
+  if (id === 'iraqi-dialect-tts-corpus') return { id, consent: 'LICENSED_DATASET', utterances: kharrufa(`ar-IQ_hayder`) };
   if (id === 'iraqi-dialect-tts-corpus-msa') return { id, consent: 'LICENSED_DATASET', utterances: kharrufa('ar_hayder') };
   return { id, consent: 'LICENSED_DATASET', utterances: genericFolder };
 }

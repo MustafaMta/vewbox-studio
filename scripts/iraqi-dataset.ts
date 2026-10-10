@@ -90,6 +90,8 @@ async function prepare(source: string) {
     if (!rejectedWhy && !m.speech) rejectedWhy = 'no speech found';
     if (m.music) flags.push('music-suspected');
     if (!u.transcript.trim()) rejectedWhy = rejectedWhy ?? 'no transcript';
+    // a phoneme drill (iraqi-sources.ts isPhonemeDrill) is not speech: never trained on, never a validation line (2026-10-10)
+    if (!rejectedWhy && flags.includes('phoneme-drill')) rejectedWhy = 'phoneme drill (synthetic coverage pseudo-words, not speech)';
     // the engine-facing training transcript: normalised, then in PRONOUNCED Iraqi spelling (گ چ پ ڤ where the lexicon
     // knows the word is sounded that way) — one spelling per sound across sources; the original transcript stays on the record
     const spelled = pronouncedSpelling(normaliseIraqi(u.transcript));

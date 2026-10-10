@@ -24,6 +24,10 @@ export type SynthesisEngine = LocalTtsEngine | EvalTtsEngine;
 export interface SynthesizeParams { seed?: number; speed?: number; nfeStep?: number; cfgStrength?: number; swaySamplingCoef?: number; emotionAlpha?: number }
 export interface SynthesizeInput extends SynthesizeParams {
   text: string; language: Language; dialect?: Dialect; referenceWav: string; referenceText?: string; emotion?: string;
+  /** THE PACK RULE'S DUAL REFERENCE (vewbox-iq only; docker/tts-iq iq_model.prepare_dual_conditionals): `referenceWav`
+   *  stays the identity (speaker embedding + acoustic reference) and this clip — the pack's same-performer clip in the
+   *  line's language — supplies the speech-prompt tokens alone. Engines without the capability ignore it. */
+  promptReferenceWav?: string;
   /** A production engine or `auto` (routed by `pickEngine`); an EVALUATION engine id is honoured only here, verbatim —
    *  the caller names it on purpose (a listening preview), the router stays blind to it. */
   engine?: TtsEngine | EvalTtsEngine;
@@ -206,6 +210,7 @@ export async function synthesize(i: SynthesizeInput, outDir: string): Promise<Sy
   const fd = new FormData();
   for (const [k, v] of Object.entries(synthesisFields(i, engine))) fd.set(k, v);
   fd.set('reference', new Blob([await fsp.readFile(i.referenceWav)]), path.basename(i.referenceWav));
+  if (i.promptReferenceWav && engine === 'vewbox-iq') fd.set('prompt_reference', new Blob([await fsp.readFile(i.promptReferenceWav)]), path.basename(i.promptReferenceWav));
   const t0 = Date.now();
   const { res, body: buf } = await post(`${tts(engine)}/synthesize`, fd, 10 * 60_000);
   const file = path.join(outDir, `line-${Date.now().toString(36)}.wav`);

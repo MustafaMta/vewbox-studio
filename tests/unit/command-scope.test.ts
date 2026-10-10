@@ -88,6 +88,7 @@ function corpus(): Command[] {
     c('setSpokenLanguages', 'nour', [{ language: 'EN' }, { language: 'AR', dialect: 'IRAQI_BAGHDADI' }]),
     c('addVoiceLanguageProfiles', 'nour', [{ language: 'AR', dialect: 'IRAQI_BAGHDADI', engine: 'habibi', comparisonEngines: ['moss'], status: 'REVIEW' }]),
     c('addVoiceReferenceClip', 'nour', { role: 'EXPRESSIVE', assetId: 'up-ref', language: 'EN', source: 'CONSENTED_RECORDING' }),
+    c('setSpeakerFingerprint', 'nour', { model: 'speechbrain/spkrec-ecapa-voxceleb', vector: Array.from({ length: 16 }, (_, i) => (i + 1) / 16), measuredAt: '2026-10-10T00:00:00.000Z' }),
     c('selectVoiceSample', 'um-hassan', undefined), c('removeVoiceSample', 'um-hassan', 'v-warm'),
     c('setCanonicalImage', 'nour', { assetId: 'img-1', jobId: 'job-c1', seed: 1, check: { ok: true } }), c('approveCanonicalImage', 'nour', 1),
     c('setCanonicalImage', 'um-hassan', { assetId: 'img-1' }), // another character's canonical image: INVALID

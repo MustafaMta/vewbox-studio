@@ -217,6 +217,67 @@ held-out validation set (per-speaker Arabic references); stop rules unchanged (v
 English CER 0 kept); (2) Character A's reference pack gains an IRAQI same-performer clip (a Vewbox-IQ render from her
 own seed, kept as STUDIO_RENDER after the fingerprint check) so Iraqi lines condition on an Arabic clip of the same identity.
 
+**Stage A (`stage-a`, 6,000 steps ≈ 4 epochs, batch 8, peak lr 1e-5, warm-up 200, 40 s cap, MSA replay 0.2, LoRA r32/α64 on 30
+layers + Arabic text_emb rows, 25.1 M trainable; 51 min; commit c49a3ae) — `AUTO_REVIEW: PASS (modest)`, winner step-002000.**
+Loss 6.08 (step 1,000) → 5.42 (6,000), no divergence. Every checkpoint scored two ways, seed 7, one generation per line
+(`D:\vewbox-data\training\iraqi\eval\stage-a-step-00N000-arabic-ref\scores.json`, `…\validation-stage-a-step-00N000\scores.json`):
+
+| checkpoint | pack from an Arabic reference: Iraqi CER / ECAPA / چ‑گ gate | English CER / ECAPA | held-out validation (6 utterances, 3 speakers, own-speaker references): mean CER / median / ECAPA / gate |
+| --- | --- | --- | --- |
+| base | 0.128 / 0.79 / 0 of 2 | 0 / 0.85 | 0.572 (one collapse, CER 2.78) / 0.085 / 0.752 / 0 of 5 |
+| smoke2‑1500 | 0.103 / 0.83 / 1 of 2 | — | 0.200 / 0.126 / 0.746 / 1 of 5 |
+| 1000 | 0.148 / 0.83 / 0 of 2 | 0 / 0.85 | 0.463 / 0.178 / 0.770 / 1 of 5 |
+| **2000** | **0.112 / 0.81 / 1 of 2** | **0 / 0.84** | **0.137 / 0.098 / 0.776 / 1 of 5** |
+| 3000 | 0.155 / 0.82 / 1 of 2 | 0 / 0.79 | 0.177 / 0.114 / 0.764 / 1 of 5 |
+| 4000 | 0.130 / 0.83 / 1 of 2 | 0 / 0.79 | 0.177 / 0.148 / 0.778 / 1 of 5 |
+| 5000 | 0.094 / 0.81 / 1 of 2 | 0 / 0.82 | 0.224 / 0.191 / 0.770 / 1 of 5 |
+| 6000 | 0.105 / 0.84 / 0 of 2 | 0 / 0.80 | 0.171 / 0.125 / 0.775 / 1 of 5 |
+
+Step 2000 is the only checkpoint better than the base on every stop rule (pack CER and gate, validation CER and gate,
+validation ECAPA above base − 0.03, English CER 0). What the numbers also say, plainly: the gain is modest and noisy (single
+generations; the validation median on the non-collapsed speakers is 0.085 → 0.098), the base's collapse on the Kharrufa
+speaker is what the mean CER mostly measures, «چاي» is still heard «كاي» at every checkpoint, and later checkpoints trade
+validation CER for pack CER (over-fitting the small set). The ceiling is the data (≈ 1 h studio Iraqi + ASR-grade
+Omnilingual), not the recipe. Served: `IQ_ADAPTER_DIR=/training/checkpoints/stage-a/step-002000` (in `.env`, read by compose).
+
+**English renderer (one small comparison, the same line and seed through the pipeline):** MOSS CER 0 / ECAPA to the seed
+0.835 / 195 Hz; Chatterbox V3 CER 0 / 0.80–0.85 / 238 Hz (the seed is 234 Hz). A tie on the machine; MOSS keeps English
+(the pinned, proven production engine); Vewbox‑IQ is the Iraqi renderer. One winner per role.
+
+**Character A, attempt 1 (Iraqi through Vewbox‑IQ step‑2000 from her new IRAQI pack clip, English through MOSS) —
+`AUTO_REVIEW: FAIL` (identity).** The pack rule is in the code (`packReference`: a line's language picks its clip of the
+canonical reference pack, sha256‑checked, else the primary; `reference: PRIMARY` renders a clip from the seed alone). Her
+IRAQI clip (`gen-2b6c184e65`, 10 s, CER 0.076, REVIEW only for چ) measured 0.587 to her fingerprint. Through it the four
+Iraqi lines: CER 0.12 / 0.233 / 0.171 / 0.093 (mean 0.154 vs attempt 0's 0.141 from the seed), چ‑گ gate 1 of 2 (the long line
+passes, «باچر» heard «باتشر» — the چ sound), but ECAPA to the seed 0.55 / 0.44 / 0.57 / 0.55 (attempt 0: 0.56–0.60) and the
+hard line still at coverage 0.17. Root cause: the two-hop chain (seed → rendered Arabic clip at 0.587 → lines) compounds the
+identity loss; four candidate clips (one generation each, all kept) all land at 0.50–0.59, the model's cross-language
+speaker ceiling. Package: `docs/evidence/character-a-voice/attempt-1/` (+ `0-reference-iraqi.wav`, `lines.json`, `scores.json`).
+The dual reference was built (`iq_model.prepare_dual_conditionals`: speaker embedding + S3Gen reference from the seed, T3
+prompt tokens alone from the Arabic clip) and measured on the same four lines, step‑2000, seed 7, ECAPA to the seed:
+**seed‑only CER 0.126 / 0.60 / gate 1 of 2; clip‑only 0.134 / 0.50 / 1 of 2; dual 0.147 / 0.58 / 1 of 2**
+(`eval\a-cond-{seed-only,clip-only,dual}\scores.json`). A rendered Arabic clip of this identity brings no dialect and costs
+identity, so: a STUDIO_RENDER clip conditions lines only at ECAPA ≥ 0.70 to the fingerprint (`STUDIO_RENDER_CLIP_FLOOR`);
+below it the clip stays in the pack as evidence and the line speaks from the seed. Character A's Iraqi lines condition on
+her seed. The dual path stays available in the service for a clip that clears the floor (a consented recording, or a
+render of a stronger model).
+
+**THE MEASUREMENT WAS CONTAMINATED — Stage A's gate is revised to `AUTO_REVIEW: FAIL`.** Scoring the NATIVE Kharrufa
+validation recordings (the real speaker, not renders: `eval\native-kharrufa\scores.json`) gave CER 0.53 and transcripts like
+«تَفْوَّجَلَ وَتَفْوَّجَلِي…» — because the texts ARE that: 427 of the 450 rows of the corpus's Iraqi subset are synthetic phoneme
+drills («تَڤَّڤَچَ وَتَڤِّڤَچِ … وَرۆچٌ وَرێچٍ», pseudo-words on ڤ چ گ پ with the Kurdish vowels ۆ ێ and ڵ), only 159 of which the
+corpus lists in `generated_metadata.txt` (the adapter flagged those alone, and the flag did not reject). The "collapse of
+the base on the Kharrufa speaker" was the base refusing nonsense; the "1 of 5" validation gates were drill lines; ≈ 0.9 h
+of nonsense was in the training set, and the natural Iraqi studio speech is ≈ 8 minutes (66 sentences), not 1 h. On the
+natural held-out lines alone (4 Omnilingual utterances): base CER 0.067 / ECAPA 0.79 / gate 0 of 3 → step‑2000 0.082 /
+0.79 / 0 of 3, every checkpoint 0.08–0.16 — no checkpoint beats the base on natural speech. The only positive signal is the
+Arabic-reference pack (four natural Baghdadi lines: 0.128 → 0.112, gate 0 → 1 of 2), within single-generation noise.
+Fix: drills are rejected by the pipeline (`isPhonemeDrill`: the generated list OR any ۆ ێ ڵ), the corpus is re-prepared and
+re-split, the tokens rebuilt, ONE controlled retrain of the same recipe on clean data, evaluated on a larger natural
+validation set (≥ 20 lines) and the Arabic-reference pack. Expectation stated in advance: with ≈ 8 min of natural studio
+Iraqi plus ASR-grade Omnilingual (413 of 1,891 transcripts in Baghdadi spelling), the dialect gain will be modest at best;
+the professional fix remains the studio's own consented Baghdadi recording (≥ 3 speakers, ≥ 10 h) — a producer item.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as

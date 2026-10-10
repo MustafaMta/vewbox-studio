@@ -1,0 +1,36 @@
+{
+  "lines": [
+    {
+      "id": "1-iraqi-natural",
+      "language": "ar",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "file": "1-iraqi-natural.wav"
+    },
+    {
+      "id": "2-iraqi-hard",
+      "language": "ar",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "file": "2-iraqi-hard.wav"
+    },
+    {
+      "id": "3-iraqi-emotional",
+      "language": "ar",
+      "text": "يمعود لا تشيل هم، آني يمك وكلشي راح يصير زين.",
+      "file": "3-iraqi-emotional.wav"
+    },
+    {
+      "id": "4-iraqi-long",
+      "language": "ar",
+      "text": "ياك، شلونك؟ جيتي عندنا باچر؟ هسه كلشي ماضٍ زين، بس ماكو وقت، گلتلي أمي إنو لازم تجيبين الشاي.",
+      "file": "4-iraqi-long.wav"
+    },
+    {
+      "id": "5-english-identity",
+      "language": "en",
+      "text": "I told you we'd make it. Sit down and let me explain.",
+      "file": "5-english-identity.wav"
+    }
+  ],
+  "package": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-1",
+  "attempt": 1
+}

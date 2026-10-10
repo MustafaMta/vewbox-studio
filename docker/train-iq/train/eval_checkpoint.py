@@ -33,6 +33,7 @@ def main() -> None:
     ap.add_argument("--checkpoint", required=True, help="a Vewbox-IQ checkpoint folder (adapter/ + t3_merged.safetensors) or `none` for the base")
     ap.add_argument("--reference", required=True, help="the reference wav (Arabic line of the actor; ≤ 10 s used by S3Gen, 6 s by T3)")
     ap.add_argument("--english-reference", default=None)
+    ap.add_argument("--prompt-reference", default=None, help="the pack rule's dual reference for the Arabic lines: --reference stays the identity (speaker embedding + S3Gen), this clip supplies the T3 prompt tokens alone (iq_model.prepare_dual_conditionals)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--long-line", default=None)
     ap.add_argument("--long-line-file", default=None, help="docs/evidence/character-a-voice/long-line.json copied beside the data")
@@ -72,7 +73,10 @@ def main() -> None:
             torch.cuda.reset_peak_memory_stats()
         iq_model.seed_everything(args.seed)
         t0 = time.time()
-        wav = model.generate(l["text"], language_id=l["language"], audio_prompt_path=ref, exaggeration=args.exaggeration, cfg_weight=args.cfg_weight,
+        dual = l["language"] == "ar" and bool(args.prompt_reference)
+        if dual:
+            iq_model.prepare_dual_conditionals(model, ref, args.prompt_reference, args.exaggeration)
+        wav = model.generate(l["text"], language_id=l["language"], audio_prompt_path=None if dual else ref, exaggeration=args.exaggeration, cfg_weight=args.cfg_weight,
                              temperature=args.temperature, repetition_penalty=1.2, min_p=0.05, top_p=1.0)
         ms = int((time.time() - t0) * 1000)
         samples = np.asarray(wav.detach().float().cpu().numpy(), dtype=np.float32).reshape(-1)
@@ -84,7 +88,7 @@ def main() -> None:
             o.write(samples)
         dur = samples.shape[0] / sr
         peak = int(torch.cuda.max_memory_reserved() / 1048576) if torch.cuda.is_available() else None
-        rec = {"id": l["id"], "language": l["language"], "text": l["text"], "file": f.name, "reference": ref, "seconds": round(dur, 3), "ms": ms, "rtf": round(ms / 1000 / max(dur, 1e-3), 3),
+        rec = {"id": l["id"], "language": l["language"], "text": l["text"], "file": f.name, "reference": ref, **({"prompt_reference": args.prompt_reference} if dual else {}), "seconds": round(dur, 3), "ms": ms, "rtf": round(ms / 1000 / max(dur, 1e-3), 3),
                "peak_abs": float(np.max(np.abs(samples))) if samples.size else 0.0, "peak_vram_mb": peak}
         results.append(rec)
         log(f"[eval] {l['id']}: {dur:.2f} s in {ms} ms (RTF {rec['rtf']}) peak {rec['peak_abs']:.3f}")

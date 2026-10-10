@@ -266,11 +266,19 @@ export function languageProfileNotes(origin: VoiceIdentity['origin'], l: SpokenL
   return out;
 }
 
+/** The ECAPA cosine to the speaker fingerprint a STUDIO_RENDER clip needs before lines condition on it (measured 2026-10-10:
+ *  Character A's seed → her own renders land at 0.50–0.59 cross-language; a clip below this is evidence, not a reference). */
+export const STUDIO_RENDER_CLIP_FLOOR = 0.7;
+
 /** The reference clip a line in `language` should condition on (the master directive §18, the research §5: the
  *  reference must match the language tag — a cross-language reference masks the dialect): the pack's clip of that
  *  language (IRAQI for Iraqi Arabic, ENGLISH for English), else none — the caller falls back to the primary reference. */
 export function referenceClipFor(identity: Pick<VoiceIdentity, 'canonicalReferencePack'>, language: Language, dialect?: Dialect): VoiceReferenceClip | undefined {
-  const pack = identity.canonicalReferencePack ?? [];
+  // a studio render conditions lines only when it is demonstrably the same voice (ECAPA to the fingerprint ≥ the floor);
+  // a seed or a consented recording is the performer by construction. Below the floor a render stays in the pack as
+  // evidence and the line falls back to the primary reference (Character A, 2026-10-10: her rendered Iraqi clip at 0.587
+  // cost identity — lines at 0.44–0.57 to the seed against 0.53–0.70 from the seed — and gained no dialect)
+  const pack = (identity.canonicalReferencePack ?? []).filter((c) => c.source !== 'STUDIO_RENDER' || (c.similarity ?? 0) >= STUDIO_RENDER_CLIP_FLOOR);
   // several clips of one role: the one closest to the speaker fingerprint (its recorded similarity), the latest on a tie
   const best = (xs: VoiceReferenceClip[]) => [...xs].sort((a, b) => (b.similarity ?? -1) - (a.similarity ?? -1) || b.addedAt.localeCompare(a.addedAt))[0];
   if (language === 'AR') return best(pack.filter((c) => c.role === 'IRAQI' && c.language === 'AR' && (!dialect || !c.dialect || c.dialect === dialect))) ?? best(pack.filter((c) => c.language === 'AR'));

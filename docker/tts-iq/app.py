@@ -151,6 +151,9 @@ async def synthesize(
     reference: UploadFile = File(...), reference_text: str = Form(""), seed: str = Form(""), speed: str = Form(""),
     exaggeration: str = Form(""), cfg_weight: str = Form(""), temperature: str = Form(""), repetition_penalty: str = Form(""), min_p: str = Form(""), top_p: str = Form(""),
     raw: str = Form(""),
+    # the pack rule (iq_model.prepare_dual_conditionals): `reference` stays the identity (speaker embedding + S3Gen reference);
+    # `prompt_reference`, when sent, supplies the T3 speech-prompt tokens alone (an Arabic clip of the same identity)
+    prompt_reference: UploadFile | None = File(None),
 ):
     missing = missing_weights()
     if missing:
@@ -184,8 +187,18 @@ async def synthesize(
     with tempfile.NamedTemporaryFile(suffix=os.path.splitext(reference.filename or "ref.wav")[1] or ".wav", delete=False) as f:
         f.write(data)
         ref_path = f.name
+    prompt_path: str | None = None
+    if prompt_reference is not None:
+        pdata = await prompt_reference.read()
+        if len(pdata) >= 1000:
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(prompt_reference.filename or "prompt.wav")[1] or ".wav", delete=False) as f:
+                f.write(pdata)
+                prompt_path = f.name
+    dual: dict[str, Any] | None = None
     try:
         ref_info = check_reference(ref_path)
+        if prompt_path:
+            check_reference(prompt_path)
         m = model()
         t0 = time.time()
         with _lock:
@@ -195,7 +208,9 @@ async def synthesize(
                 if torch.cuda.is_available() and torch.cuda.is_initialized():
                     torch.cuda.reset_peak_memory_stats()  # this request's peak (the loaded weights included)
                 iq_model.seed_everything(params["seed"])
-                out = m.generate(text, language_id=lang, audio_prompt_path=ref_path, exaggeration=params["exaggeration"], cfg_weight=params["cfg_weight"],
+                if prompt_path:
+                    dual = iq_model.prepare_dual_conditionals(m, ref_path, prompt_path, params["exaggeration"])
+                out = m.generate(text, language_id=lang, audio_prompt_path=None if prompt_path else ref_path, exaggeration=params["exaggeration"], cfg_weight=params["cfg_weight"],
                                  temperature=params["temperature"], repetition_penalty=params["repetition_penalty"], min_p=params["min_p"], top_p=params["top_p"])
                 wav = np.asarray(out.detach().float().cpu().numpy(), dtype=np.float32).reshape(-1)
                 sr = int(m.sr)
@@ -220,16 +235,20 @@ async def synthesize(
             out_file.comment = f"synthetic speech; engine={ENGINE}; model={label}; seed={params['seed']}; not a voice reference; perth watermark; {iq_model.LICENSE}"
             out_file.write(wav)
         dur = wav.shape[0] / sr
-        print(f"[iq] {lang} {len(text)} chars seed {params['seed']} -> {dur:.2f}s in {ms} ms (RTF {ms / 1000 / max(dur, 1e-3):.2f}); peak in {lim['input_true_peak_db']:.1f} dBTP; ref {ref_info['seconds']:.1f}s; exaggeration {params['exaggeration']} cfg {params['cfg_weight']}{'; speed ignored' if speed_v != 1.0 else ''}; vram peak {torch_peak_mb()} MB", flush=True)
+        prompt_note = f"; prompt tokens from a {dual['prompt_seconds']} s clip" if dual else ""
+        print(f"[iq] {lang} {len(text)} chars seed {params['seed']} -> {dur:.2f}s in {ms} ms (RTF {ms / 1000 / max(dur, 1e-3):.2f}); peak in {lim['input_true_peak_db']:.1f} dBTP; ref {ref_info['seconds']:.1f}s{prompt_note}; exaggeration {params['exaggeration']} cfg {params['cfg_weight']}{'; speed ignored' if speed_v != 1.0 else ''}; vram peak {torch_peak_mb()} MB", flush=True)
         return Response(content=buf.getvalue(), media_type="audio/wav", headers={
             "x-sample-rate": str(sr), "x-duration": f"{dur:.3f}", "x-engine": ENGINE, "x-model": label, "x-ms": str(ms),
+            **({"x-prompt-reference": json.dumps(dual)} if dual else {}),
             "x-engine-version": ENGINE_VERSION, "x-seed": str(params["seed"]), "x-params": json.dumps(params),
             "x-true-peak": f"{lim['output_true_peak_db']:.2f}", "x-gain-reduction": f"{lim['gain_reduction_db']:.2f}", "x-input-true-peak": f"{lim['input_true_peak_db']:.2f}",
             "x-peak-vram-mb": str(torch_peak_mb() or ""), "x-license": "mit-chatterbox-mtl-v3-vewbox-iq", "x-raw": "1" if is_raw else "0", "x-watermark": "perth-implicit",
             **({"x-speed-ignored": f"{speed_v:g}"} if speed_v != 1.0 else {}),
         })
     finally:
-        try:
-            os.unlink(ref_path)
-        except OSError:
-            pass
+        for p in (ref_path, prompt_path):
+            if p:
+                try:
+                    os.unlink(p)
+                except OSError:
+                    pass
