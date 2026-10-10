@@ -416,7 +416,16 @@ close-ups), but the engine still leaves the wide after 1.1 s for a face close-up
 drifts from her canonical face (SFace median 0.42 < 0.5).** The rule the five attempts establish: over a sung vocal H3 goes
 to the mouth at a readable scale — a WIDE singing shot is re-staged into a close-up of its own making. Director's decision:
 a singing shot is framed MEDIUM or closer; shot 1 becomes a waist-up medium of Layla singing to the lens (frame redrawn,
-attempt 6). A wide of the singer belongs to an instrumental passage. The director plan
+attempt 6). A wide of the singer belongs to an instrumental passage. **Attempt 6 (`take-73d4434fa2c25c0c49ab`, medium,
+singing to the lens, int8, 17.4 min): the first continuous take** — no cut, no repeated frame, Layla singing on camera for
+the whole ten seconds with the mouth on the words (the machine's correlation stays weak, r 0.15, with the mouth moving
+outside the lines too — review, not fail), identity held (SFace above the floor in all but one frame; a 0.20 drift from the
+first frame where she turns to profile). The one deviation from the plan: the camera does not stay locked off — it pushes in
+from the medium to a close-up and turns towards her profile. Across six attempts that is the engine's nature on a ten-second
+singing shot; it is recorded as a planning rule (a singing shot of 8–10 s is planned as a slow push-in, not a lock-off)
+rather than rerun again. The tier decision: BF16 proved on the attempt-2 pair (1.2× the int8 time, finer skin and hair
+detail, identical staging), so the production tier is BF16 (`MINIMAX_H3_WEIGHTS=bf16`); shot 1 is made once more at BF16 on
+this plan and seed for the direct comparison that chooses the carried take. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
