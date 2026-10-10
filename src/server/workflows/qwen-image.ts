@@ -6,23 +6,28 @@ import { MODELS, seed32, snap, type Graph } from './index';
  *  uploaded to ComfyUI's input folder first and referenced by filename. Every literal value here is checked against the
  *  running ComfyUI's node schemas by scripts/check-comfy-nodes.mjs through the registry's workflow templates. */
 
-export interface T2IInput { prompt: string; negative?: string; width: number; height: number; seed?: number; steps?: number; cfg?: number; filenamePrefix?: string }
+export interface T2IInput { prompt: string; negative?: string; width: number; height: number; seed?: number; steps?: number; cfg?: number; filenamePrefix?: string; /** no Lightning LoRA: 30 steps, cfg 4 — the negative prompt takes effect (the large-model policy: production pictures never run the turbo path; a location plate drawn with the 8-step LoRA at cfg 1 ignored "people, person" and came out as a collage with two portraits, 2026-10-10) */ quality?: boolean }
+
+/** Quality text-to-image: the full model, 30 steps, cfg 4 (the model card's true_cfg_scale), as the canonical image runs. */
+const T2I_QUALITY = { steps: 30, cfg: 4.0 } as const;
 
 export function qwenTextToImage(i: T2IInput): Graph {
   const w = snap(i.width, 16); const h = snap(i.height, 16);
-  return {
+  const g: Graph = {
     '1': { class_type: 'UNETLoader', inputs: { unet_name: MODELS.qwenDit, weight_dtype: 'default' }, _meta: { title: 'Qwen-Image-2512' } },
     '2': { class_type: 'CLIPLoader', inputs: { clip_name: MODELS.qwenClip, type: 'qwen_image', device: 'default' } },
     '3': { class_type: 'VAELoader', inputs: { vae_name: MODELS.qwenVae } },
-    '4': { class_type: 'LoraLoaderModelOnly', inputs: { model: ['1', 0], lora_name: MODELS.qwenLightning, strength_model: 1.0 } },
-    '5': { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['4', 0], shift: 3.1 } },
-    '6': { class_type: 'CLIPTextEncode', inputs: { clip: ['2', 0], text: i.prompt } },
-    '7': { class_type: 'CLIPTextEncode', inputs: { clip: ['2', 0], text: i.negative ?? '' } },
-    '8': { class_type: 'EmptySD3LatentImage', inputs: { width: w, height: h, batch_size: 1 } },
-    '9': { class_type: 'KSampler', inputs: { model: ['5', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['8', 0], seed: seed32(i.seed), steps: i.steps ?? 8, cfg: i.cfg ?? 1.0, sampler_name: 'euler', scheduler: 'simple', denoise: 1.0 } },
-    '10': { class_type: 'VAEDecode', inputs: { samples: ['9', 0], vae: ['3', 0] } },
-    '11': { class_type: 'SaveImage', inputs: { images: ['10', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/t2i' } },
   };
+  let model: [string, number] = ['1', 0];
+  if (!i.quality) { g['4'] = { class_type: 'LoraLoaderModelOnly', inputs: { model, lora_name: MODELS.qwenLightning, strength_model: 1.0 } }; model = ['4', 0]; }
+  g['5'] = { class_type: 'ModelSamplingAuraFlow', inputs: { model, shift: 3.1 } };
+  g['6'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['2', 0], text: i.prompt } };
+  g['7'] = { class_type: 'CLIPTextEncode', inputs: { clip: ['2', 0], text: i.negative ?? '' } };
+  g['8'] = { class_type: 'EmptySD3LatentImage', inputs: { width: w, height: h, batch_size: 1 } };
+  g['9'] = { class_type: 'KSampler', inputs: { model: ['5', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['8', 0], seed: seed32(i.seed), steps: i.steps ?? (i.quality ? T2I_QUALITY.steps : 8), cfg: i.cfg ?? (i.quality ? T2I_QUALITY.cfg : 1.0), sampler_name: 'euler', scheduler: 'simple', denoise: 1.0 } };
+  g['10'] = { class_type: 'VAEDecode', inputs: { samples: ['9', 0], vae: ['3', 0] } };
+  g['11'] = { class_type: 'SaveImage', inputs: { images: ['10', 0], filename_prefix: i.filenamePrefix ?? 'vewbox/t2i' } };
+  return g;
 }
 
 /** Quality mode: no Lightning LoRA, 24 steps, cfg 4.0 (the model card's true_cfg_scale; in ComfyUI the negative is

@@ -120,15 +120,19 @@ async function draw(ctx: HandlerContext, opts: { key: string; prompt: string; ne
   const refs = kept.map((x) => x.a);
   // the seed is the job's for this step: every attempt builds the same graph, so its prompt key finds the prompt
   const seed = opts.seed ?? stableSeed(ctx.job.id, `image:${opts.key}`);
+  // THE LARGE-MODEL POLICY (2026-10-09): every production picture runs the full model — no Lightning LoRA unless a caller
+  // asks for a draft explicitly (quality: false). At cfg 1 the turbo path ignores the negative prompt: the first location
+  // plate (2026-10-10) came out as a collage with two portraits despite "people, person".
+  const quality = opts.quality ?? true;
   const graph = refs.length
-    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed, quality: opts.quality, crops: kept.some((x) => x.crop) ? kept.map((x) => x.crop) : undefined })
-    : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed });
+    ? qwenEdit({ prompt: opts.prompt, negative: opts.negative, references: await Promise.all(refs.map((a) => comfy.uploadInput(assetFile(a)))), width: opts.width, height: opts.height, seed, quality, crops: kept.some((x) => x.crop) ? kept.map((x) => x.crop) : undefined })
+    : qwenTextToImage({ prompt: opts.prompt, negative: opts.negative, width: opts.width, height: opts.height, seed, quality });
   const t0 = Date.now();
   const run = await runGraph(ctx, graph, { key: opts.key, label: opts.label, tool: refs.length ? 'image.edit_with_references' : 'image.generate' });
   const out = comfy.firstOutput(run.outputs, 'images');
   if (!out) throw new StudioError('PROVIDER', 'ComfyUI returned no image.');
   const model = refs.length ? 'Qwen-Image-Edit-2511' : 'Qwen-Image-2512';
-  const loras = refs.length ? (opts.quality ? [] : [MODELS.qwenEditLightning]) : [MODELS.qwenLightning];
+  const loras = quality ? [] : refs.length ? [MODELS.qwenEditLightning] : [MODELS.qwenLightning];
   const d = await adoptOutput(ctx, out, run, { key: opts.key, label: opts.label, tags: opts.tags, prompt: opts.prompt, negative: opts.negative, references: refs.map((r) => r.id), seed, model, loras, provenance: opts.provenance, ms: Date.now() - t0 });
   await recordMetric('image.generation_ms', d.ms, 'ms', { model, refs: refs.length }, ctx.job.id);
   return d;

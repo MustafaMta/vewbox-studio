@@ -350,6 +350,16 @@ assets). Gate `SONG_A_ENGLISH = AUTO_REVIEW: PASS with limits` (sung by the iden
 cannot judge the singing by ear). The SINGING-reference bootstrap waits for a conversion at ≥ 0.60 — likely a song written
 in her speaking range (an alto caption) rather than a shift; noted for the next song.
 
+**The English music video (`mv-1437496511`, in progress):** DEVELOP_STORY (48 s; 4 scenes, one new place “Old Pier Quay”,
+no new characters), WRITE_SCRIPT (4 scenes written), PLAN_SHOTS (8 shots of 8–10 s = 75 s; the singing assignment SOLO on all
+four sections, copied onto the shots), LOCATION_PLATES (master, a view towards a bollard, night — inspected: a weathered
+concrete pier, rusted bollards, stone wall, harbour at dusk and at night, the same geometry in each; PASS). The director plan
+reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
+gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
+`AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
+comparison on shot 1 (the same shot, seed and frames at int8 and at BF16; frames inspected, timings and QA recorded), then
+PRODUCE at the chosen tier, ASSEMBLE, the cut gate, EXPORT.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as
