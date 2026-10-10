@@ -410,7 +410,13 @@ in the guide audio H3 supplies the singer's face, whatever the prompt says about
 decision follows the brief ("singer visibly singing"): shot 1 is revised to Layla facing the camera at the centre of the
 pier, harbour and dusk behind her, singing the opening lines (continuity screenDirection TOWARD; the frame redrawn, the
 take re-made). A back-turned opening is not something this engine will hold over vocals — recorded as an engine rule for the
-shot planner. The director plan
+shot planner. **Attempt 5 (facing the camera, singing; frame redrawn and inspected: PASS — Layla full-figure at the centre of
+the pier, guitar in hand, harbour and sunset behind): she now sings on camera (the mouth moves to the words in the
+close-ups), but the engine still leaves the wide after 1.1 s for a face close-up and returns at 8.2 s, and that close-up
+drifts from her canonical face (SFace median 0.42 < 0.5).** The rule the five attempts establish: over a sung vocal H3 goes
+to the mouth at a readable scale — a WIDE singing shot is re-staged into a close-up of its own making. Director's decision:
+a singing shot is framed MEDIUM or closer; shot 1 becomes a waist-up medium of Layla singing to the lens (frame redrawn,
+attempt 6). A wide of the singer belongs to an instrumental passage. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
