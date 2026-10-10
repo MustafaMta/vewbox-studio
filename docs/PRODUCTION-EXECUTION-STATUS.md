@@ -52,6 +52,19 @@ Gate: چ/گ and Iraqi-word pronunciation better, ASR accuracy not worse on natur
 kept; labels TECHNICAL_* only. If it fails, the next diagnosed cause is tried (selected layers / text_emb-only, learning
 rate, phoneme representation) — one smoke at a time, no long training until a smoke proves useful.
 
+**Smoke 3 result — `TECHNICAL_FAIL` on the gate (PERCEPTUAL_NATURALNESS = UNVERIFIED).** Loss 6.9 → 5.4 over 1,500 steps
+(12 min). Arabic-reference pack (seed 7, the same four Iraqi lines and English line): base 0.128 / 0.79 / gate 0 of 2 →
+step 500 0.155 / 0.795 / 0; 1,000 0.113 / 0.774 / 0; **1,500 0.087 / 0.798 / 0** (the best pack CER of every run; the natural
+line heard exactly; English 0 / 0.845 kept). Natural held-out validation (8 utterances, standard-orthography text):
+base 0.065 / 0.787 / 0 of 7 → 0.078 / 0.084 / 0.103 — rising with steps (the model learns the Baghdadi spelling and reads
+standard spelling a little worse; a measurement mismatch to note, not the gate's target). **The چ/گ gate did not move in any
+run: چ comes out as [k] / [s] / [ʃ]-like ("چاي" → "كاي", "باچر" → "بأشر"), گ as [l] / [b] ("گلتلك" → "قلت لك", "گلتلي" →
+"بلتلي").** Diagnosis: the grapheme rows for چ گ پ ڤ start untrained in the base and move at the shared 1e-5 for 1,500 steps
+— too little to acquire a sound the base never produced for them; the LoRA cannot invent a phone the embedding does not
+carry. Next controlled smoke (4): **phoneme representation + learning rate** — initialise those rows from graphemes the
+base already pronounces that way (گ from Latin `g`, پ from `p`, ڤ from `v`, چ from the mean of `c` and `h`) and train the
+embedding rows at their own, higher rate; everything else as smoke 3.
+
 The record of 2026-10-09/10 below stays as engineering history.
 
 # CLEAN PRODUCTION VALIDATION RESTART — 2026-10-09
