@@ -385,8 +385,12 @@ the `<Subject 2>` environment definition still carried the camera zones ("Medium
 near the bollard for intimate facial details") — the H3 prompt path reads the stored identity line directly, which the
 plate fix had not covered — and H3 re-stages from staging words (the 2026-10-08 lesson). Fix: the stored identity line
 loses its camera zones at the one function every consumer reads (`locationIdentity`), so plates, frames, shot packs and
-the H3 `<Subject>` definition all stop carrying them. The int8 take is re-made after the fix (same seed) and compared with
-the BF16 run of the same prompt. The director plan
+the H3 `<Subject>` definition all stop carrying them. **The BF16 run of the same prompt and seed
+(`take-043a94a941b1db404950`): 20.8 min against 17.3 at int8 (1.2×, far under the research's 2–3× estimate — ComfyUI's dynamic
+VRAM streams the 40 GB DiT from pinned RAM; host RAM 58.5 GiB, card 18 GB), the same montage staging (the prompt was the same
+flawed one: cuts at 0.92 / 5.00 / 6.04 / 7.50 / 8.21 s), the same closed mouth; the face close-ups show finer skin and hair
+detail than int8's.** Both takes are re-made after the prompt fix (same seed) for the staging verdict; the tier comparison
+proper is read off those. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
