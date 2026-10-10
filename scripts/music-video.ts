@@ -53,7 +53,9 @@ async function song() {
   const out: Record<string, unknown> = {};
   for (const s of steps) {
     const type = s === 'write' ? 'WRITE_SONG' : s === 'record' ? 'GENERATE_SONG' : 'SING_CONVERT';
-    const payload = s === 'write' ? { productionId, singerIds: p.castIds } : { productionId };
+    // --shift N (sing only): the one melodic freedom, at most ±3 semitones (the research §4)
+    const shift = Number(arg('shift', '0'));
+    const payload = s === 'write' ? { productionId, singerIds: p.castIds } : s === 'sing' && shift ? { productionId, semitoneShift: shift } : { productionId };
     const r = await enqueue({ type, payload, idempotencyKey: `music-video:${productionId}:${s}:${attempt}`, maxAttempts: 1 });
     console.error(`[mv] ${type} job ${r.job.id} (${r.created ? 'created' : 'existing'})`);
     const row = await waitJob(r.job.id, s === 'record' ? 90 : 60);

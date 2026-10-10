@@ -24,6 +24,13 @@ export const MODELS = {
   h3Ref2va: 'minimax_h3_ref2va_pruned_int8_convrot.safetensors',
   h3Clip: 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
   h3VideoVae: 'minimax_h3_video_vae_int8_convrot.safetensors',
+  // THE BF16 TIER (the large-model policy, 2026-10-09; docs/research/MINIMAX-H3-FULL-QUALITY-2026-10.md §7: pruned BF16 streams
+  // from pinned RAM through ComfyUI's dynamic VRAM, ≈ 6–11 min per 5 s clip against 350 s at int8): manifest group
+  // video-minimax-h3-bf16, verified 2026-10-10. Chosen per request (MINIMAX_H3_WEIGHTS); int8 stays the default until the
+  // first-attempt comparison proves the tier on this card.
+  h3Fl2vaBf16: 'minimax_h3_fl2va_pruned_bf16.safetensors',
+  h3Ref2vaBf16: 'minimax_h3_ref2va_pruned_bf16.safetensors',
+  h3VideoVaeFp16: 'minimax_h3_video_vae_fp16.safetensors',
   h3AudioVae: 'minimax_h3_audio_vae_fp32.safetensors',
   h3TurboFl2v8: 'minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors',
   h3TurboRef2v4: 'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors',

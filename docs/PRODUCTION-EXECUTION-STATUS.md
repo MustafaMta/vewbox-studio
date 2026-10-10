@@ -316,6 +316,36 @@ threshold exists for these synthetic seeds — relative evidence only). Iraqi: t
 passes nowhere, cross-language ECAPA sits at 0.47–0.60 — the same data-gap verdict as A. Recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA: A/B/C ENGLISH PASS, IRAQI FAIL (data gap)`. The sequence continues with the singer identity.
 
+## 2026-10-10 — The singer identity (the autonomous directive: the same performer sings)
+
+**Research** ([docs/research/SINGING-IDENTITY-2026-10.md](research/SINGING-IDENTITY-2026-10.md)): the identity stays a speech
+identity and sings through singing-voice conversion of an ACE-Step lead vocal. **Seed-VC v1 `seed-uvit-whisper-base`**
+(Plachtaa/seed-vc, GPL-3.0 code and weights — commercial use allowed, copyleft, so an isolated worker; zero-shot from 1–30 s;
+the only open SVC with a 44.1 kHz singing checkpoint) chosen; RVC second; Vevo/YuE2/F5 derivatives excluded (non-commercial
+weights); SoulX-Singer (Apache-2.0, zh/en/yue) tracked. The RMVPE pitch weights upstream fetches from lj1995/VoiceConversionWebUI
+were NOT taken (that package's notice: research use only); pitch comes from torchcrepe (MIT). Residual risk recorded: the Seed-VC
+checkpoint's training data is undisclosed.
+
+**Built:** manifest group `svc-seed-vc` (Seed-VC DiT + config, whisper-small, BigVGAN v2 44 kHz, CAM++; 2.15 GB, VERIFIED through
+the tick after H3), `docker/svc-seedvc` (profile `svc`, port 8028: `/convert`, `/warm`, `/unload`, `/health`; a port of
+inference.py by path, under no_grad, re-entrant lock — the first run deadlocked on a plain lock and hung the idle container's
+CUDA-free unload), `src/server/providers/svc.ts`, the lease unloader, job **SING_CONVERT** (the song's Demucs vocal → the named
+singer's timbre from the identity's SINGING reference or its seed, F0-conditioned, no auto pitch, at most ±3 st; remixed at the
+original vocal's loudness; the sung mix becomes the song's recording, the engine's recording stays; ECAPA to the fingerprint,
+pitch statistics and the lyrics re-placed on the sung vocal recorded; the SINGING reference bootstrapped once at ≥ 0.60), org
+tool `audio.convert_voice`, step `singer-identity` (ORG_VERSION 21). Measured: models load in 12 s, 12 s of speech converts in
+4.4 s (RTF 0.36), 75 s of singing in 50 s, peak 3.4 GB VRAM.
+
+**Character A's song (`mv-1437496511`, English, 75 s):** Qwen3.8 wrote it once (“a poignant acoustic ballad… the fading lights
+of a harbour at dusk”, 4 sections, 16 lines, solo female mezzo-soprano, fingerpicked guitar, oud, strings); ACE-Step 1.5 XL-SFT
+recorded it once (38 s; level, length and dead-air checks pass; 9 of 16 lines placed on the vocal). SING_CONVERT (40 steps, seed 7,
+no shift): 11 of 16 lines placed on the sung vocal; F0 of the lead median 347 Hz / p95 479 Hz (span 10.4 st) against her seed's
+232 Hz / 292 Hz — the song sits ≈ 7–9 semitones above her speaking range. **Identity, calibrated against impostors:** ECAPA to
+Layla's fingerprint — the raw ACE vocal **0.00**, the converted vocal **0.50**, the sung mix 0.43; the converted vocal against
+Tariq 0.10 and Karim −0.04. The conversion moves the vocal decisively to her identity (0.00 → 0.50 with impostors at ≈ 0.1), but
+below the 0.60 bootstrap floor, so no SINGING reference was kept yet. Next controlled request: the same song with the allowed
+−3 st shift, compared on the same numbers.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as

@@ -65,6 +65,10 @@ const Schema = z.object({
   /** The song engine is ACE-Step 1.5 only. Variant: auto and xl-sft = XL-SFT + the 5Hz LM 4B (the production song
    *  generator; refused with the missing files named when not installed); xl-turbo = a quick draft, only when chosen. */
   MUSIC_ACE_VARIANT: z.enum(['auto', 'xl-sft', 'xl-turbo']).default('auto'),
+  /** The MiniMax H3 weights tier (src/server/workflows/minimax-h3.ts h3WeightFiles): int8 = the proven pruned int8 files;
+   *  bf16 = the pruned BF16 DiTs + fp16 video VAE (manifest group video-minimax-h3-bf16), the large-model policy's target,
+   *  streamed from pinned RAM by ComfyUI's dynamic VRAM. Refused with the missing files named when they are not installed. */
+  MINIMAX_H3_WEIGHTS: z.enum(['int8', 'bf16']).default('int8'),
   VIDEO_BACKEND: z.enum(['auto', 'api', 'local']).default('auto'),
   /** Where the public web origin is, for callbacks and absolute media URLs handed to providers. */
   PUBLIC_BASE_URL: z.string().optional().default(''),

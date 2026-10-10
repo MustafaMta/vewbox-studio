@@ -151,7 +151,9 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const audio = req.referenceAudio?.length ? await Promise.all(req.referenceAudio.map((a) => comfy.uploadInput(a.file))) : undefined;
   const guides = req.guides?.length ? await Promise.all(req.guides.map(async (gd) => ({ frameIdx: gd.frameIdx, image: gd.imageFile ? await comfy.uploadInput(gd.imageFile) : undefined, imageIsVideo: gd.imageIsVideo, audio: gd.audioFile ? await comfy.uploadInput(gd.audioFile) : undefined, audioFromVideo: gd.audioFromVideo }))) : undefined;
   const tier = videoTier(MINIMAX_H3_LOCAL, req.quality);
-  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, quality: tier.tier, filenamePrefix: 'vewbox/h3' });
+  // the weights tier (MINIMAX_H3_WEIGHTS: int8 proven, bf16 the policy's target): the readiness check below refuses a
+  // tier whose files ComfyUI does not have, with the files named
+  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, quality: tier.tier, weights: env().MINIMAX_H3_WEIGHTS, filenamePrefix: 'vewbox/h3' });
   const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
   // FIRST-ATTEMPT RELIABILITY (src/server/production/readiness.ts): the node classes and model files THIS graph names
   // are present, and the library has room for the take — before the engine is asked (not when adopting a run)

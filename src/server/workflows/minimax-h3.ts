@@ -78,6 +78,15 @@ export interface H3Input {
   referenceImages?: string[]; referenceAudio?: string[];
   guides?: H3Guide[];
   filenamePrefix?: string;
+  /** which weights of the 33B DiT (and the matching video VAE) the graph loads: int8 (pruned int8 + int8 VAE, the proven
+   *  default) or bf16 (pruned BF16 + fp16 VAE, the large-model policy's target tier; streamed from RAM) */
+  weights?: H3Weights;
+}
+
+export type H3Weights = 'int8' | 'bf16';
+/** The DiT and video-VAE files of a weights tier (pure, tested). */
+export function h3WeightFiles(weights: H3Weights = 'int8'): { fl2va: string; ref2va: string; videoVae: string } {
+  return weights === 'bf16' ? { fl2va: MODELS.h3Fl2vaBf16, ref2va: MODELS.h3Ref2vaBf16, videoVae: MODELS.h3VideoVaeFp16 } : { fl2va: MODELS.h3Fl2va, ref2va: MODELS.h3Ref2va, videoVae: MODELS.h3VideoVae };
 }
 
 /** The engine's DEFAULT continuation guide length (22 frames ≈ 0.92 s: motion, speech rhythm and room tone; the
@@ -98,10 +107,11 @@ export function minimaxH3Video(i: H3Input): Graph {
   const cap = 768 * 1344;
   if (w * h > cap) { const s = Math.sqrt(cap / (w * h)); w = snap(w * s, 32); h = snap(h * s, 32); }
   const length = h3FrameCount(i.seconds);
+  const files = h3WeightFiles(i.weights);
   const g: Graph = {
-    '1': { class_type: 'UNETLoader', inputs: { unet_name: useRef ? MODELS.h3Ref2va : MODELS.h3Fl2va, weight_dtype: 'default' }, _meta: { title: 'MiniMax H3' } },
+    '1': { class_type: 'UNETLoader', inputs: { unet_name: useRef ? files.ref2va : files.fl2va, weight_dtype: 'default' }, _meta: { title: `MiniMax H3 (${i.weights ?? 'int8'})` } },
     '2': { class_type: 'CLIPLoader', inputs: { clip_name: MODELS.h3Clip, type: 'minimax', device: 'default' } },
-    '3': { class_type: 'VAELoader', inputs: { vae_name: MODELS.h3VideoVae } },
+    '3': { class_type: 'VAELoader', inputs: { vae_name: files.videoVae } },
     '4': { class_type: 'VAELoader', inputs: { vae_name: MODELS.h3AudioVae } },
   };
   let model: [string, number] = ['1', 0];
