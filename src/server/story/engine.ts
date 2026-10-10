@@ -662,6 +662,10 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
     // over a sung vocal into a close-up of its own making: "Harbour Lights" shot 1, five attempts, 2026-10-10)
     const framing = closeFramingFor(sh.framing, { people: characterIds.filter((id) => id !== pov).length, dialogue: dialogue.length > 0 || (Boolean(ctx.musicVideo) && characterIds.length > 0) });
     if (framing !== sh.framing) notes.push(`framing ${sh.framing} → ${framing} (${ctx.musicVideo && dialogue.length === 0 ? 'a singer is framed medium or closer' : 'a speaking face is framed close'})`);
+    // a long singing shot is planned as the slow push-in the engine makes of it anyway (a ten-second "locked off" medium
+    // of the singer came back pushing in to a close-up, 2026-10-10): the plan says what the take will show
+    let cameraMove = sh.cameraMove;
+    if (ctx.musicVideo && characterIds.length > 0 && durationSeconds >= 8 && cameraMove === 'STATIC') { cameraMove = 'PUSH_IN'; notes.push('camera STATIC → PUSH_IN (a long singing shot is a slow push-in)'); }
     const staging: ShotStaging | undefined = scrubbedBeats.length || pace || pov || extras.length || sh.actions?.length ? { ...(scrubbedBeats.length ? { beats: scrubbedBeats } : {}), ...(pace ? { pace } : {}), ...(pov ? { pov } : {}), ...(extras.length ? { extras } : {}), ...(sh.actions?.length ? { actions: sh.actions } : {}) } : undefined;
     const continuity: Omit<ContinuityState, 'version'> = {
       // THE SHOT LIST'S DISCIPLINE (schemas.ts ContinuitySchema): side of frame, start and end pose, travel, condition
@@ -672,12 +676,12 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
       }),
       props: cont.props.map((pr) => ({ name: pr.name, ownerCharacterId: pr.ownerCharacterName ? byName(pr.ownerCharacterName)?.id : undefined, state: pr.state, position: pr.position })),
       environment: { locationId: scene.locationId, timeOfDay: cont.environment.timeOfDay ?? scene.timeOfDay, weather: cont.environment.weather, lighting: cont.environment.lighting, state: cont.environment.state },
-      camera: { framing, move: sh.cameraMove, lensIntent: cont.camera.lensIntent, angle: cont.camera.angle, ...(cont.camera.crossesLine ? { crossesLine: true } : {}) },
+      camera: { framing, move: cameraMove, lensIntent: cont.camera.lensIntent, angle: cont.camera.angle, ...(cont.camera.crossesLine ? { crossesLine: true } : {}) },
       relationToPrevious: BOUNDARY_RELATION[boundary], notes: cont.notes,
       ...(cont.constraints?.length ? { constraints: cont.constraints } : {}),
     };
     // the editorial join follows the boundary (src/domain/editorial.ts): the model's dissolve or fade is not kept
-    return { purpose: sh.purpose, action, framing, cameraMove: sh.cameraMove, durationSeconds, characterIds, dialogue, transition: editorialTransition({ boundary, continuity: { ...continuity, version: 0 } }), continuity, prompt, boundary, ...(staging ? { staging } : {}), ...(notes.length ? { notes } : {}) };
+    return { purpose: sh.purpose, action, framing, cameraMove, durationSeconds, characterIds, dialogue, transition: editorialTransition({ boundary, continuity: { ...continuity, version: 0 } }), continuity, prompt, boundary, ...(staging ? { staging } : {}), ...(notes.length ? { notes } : {}) };
   });
   if (shots.length === 0) throw new StudioError('PROVIDER', 'The story engine returned no shots.');
   // lines the model forgot: spread in script order over the shots, each line going to the next shot (from where the
