@@ -27,17 +27,29 @@ export const PACK = {
   emotional: 'يمعود لا تشيل هم، آني يمك وكلشي راح يصير زين.',
   english: "I told you we'd make it. Sit down and let me explain.",
 } as const;
-const LONG_FILE = path.resolve('docs/evidence/character-a-voice/long-line.json');
 const arg = (name: string, fallback?: string) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : fallback; };
+/** --character A|B|C (default A): the same decisive pack for each Phase 1 character (the autonomous directive: B and C on
+ *  the same basis as A). Evidence: docs/evidence/character-<a|b|c>-voice/; idempotency keys carry the letter (A keeps its
+ *  original `character-a-pack:` keys). */
+const KEY = (arg('character', 'A') ?? 'A').toUpperCase();
+if (!['A', 'B', 'C'].includes(KEY)) throw new Error('--character must be A, B or C');
+const EVIDENCE_DIR = path.resolve('docs/evidence', `character-${KEY.toLowerCase()}-voice`);
+const LONG_FILE = path.join(EVIDENCE_DIR, 'long-line.json');
+const PACK_KEY = `character-${KEY.toLowerCase()}-pack`;
+/** The English side of the pack (the directive: EN neutral / emotional / long beside IQ natural / hard / emotional / long). */
+export const PACK_EN = {
+  emotional: "You don't have to say anything. I know. I knew the moment you walked in.",
+  long: 'Listen to me. We have been through worse than this, and we are still standing. So we rest tonight, we eat something warm, and tomorrow morning we go back and finish what we started.',
+} as const;
 
 async function characterA() {
   const { db } = await import('@/server/db/client');
   const { readState } = await import('@/server/studio/engine');
-  const r = (await db().execute(sql`select result->>'characterId' as id from jobs where (idempotency_key = 'phase1:create:A' or idempotency_key like 'phase1:create:A:%') and result->>'characterId' is not null order by created_at desc limit 1`)) as unknown as { rows?: Array<{ id: string }> };
+  const r = (await db().execute(sql`select result->>'characterId' as id from jobs where (idempotency_key = ${`phase1:create:${KEY}`} or idempotency_key like ${`phase1:create:${KEY}:%`}) and result->>'characterId' is not null order by created_at desc limit 1`)) as unknown as { rows?: Array<{ id: string }> };
   const id = (r.rows ?? (r as unknown as Array<{ id: string }>))[0]?.id;
   const { state } = await readState();
   const c = id ? state.characters.find((x) => x.id === id) : undefined;
-  if (!c) throw new Error('character A does not exist');
+  if (!c) throw new Error(`character ${KEY} does not exist`);
   return { c, state };
 }
 
@@ -51,7 +63,8 @@ async function writeLong() {
   // one گ word; no Levantine/Egyptian markers (the first draft had «كمان» and «باجرك») — never the model's audio
   const LEVANTINE = /(?<![\p{L}])(كمان|كتير|هيدا|هيك|شو|بدي|مش|إيه|ازاي|دلوقتي|عايز|ليه)(?![\p{L}])/u;
   const schema = z.object({ line: z.string().min(40).max(260).refine((t) => /چ/.test(t), 'the line must contain a word spoken with چ (باچر، چان، چاي، هيچ…)').refine((t) => /گ/.test(t), 'the line must contain a word spoken with گ (گلت، گاعد، گدام، شگد…)').refine((t) => !LEVANTINE.test(t), 'not Baghdadi: remove the Levantine/Egyptian word'), gloss: z.string().min(10).max(400) });
-  const prompt = `Write ONE natural Baghdadi (Muslim Baghdadi, gilit) conversational line for ${c.name}, a Baghdad-born stage actor and singer in her early thirties, said to a close friend over tea — warm, everyday, nothing poetic or formal. It must take 10–15 seconds to say aloud (about 25–40 words), be written the way Baghdadis write their dialect (چ گ where they are spoken: باچر، گلت، شلونك، هسه، كلشي، ماكو…), with natural pauses marked by commas, and contain at least one چ word and one گ word. No Modern Standard Arabic grammar or vocabulary. Return JSON { "line": "...", "gloss": "an English gloss" }.`;
+  const persona = KEY === 'A' ? 'a Baghdad-born stage actor and singer in her early thirties' : 'a Baghdad-born stage actor and singer in his early thirties';
+  const prompt = `Write ONE natural Baghdadi (Muslim Baghdadi, gilit) conversational line for ${c.name}, ${persona}, said to a close friend over tea — warm, everyday, nothing poetic or formal. It must take 10–15 seconds to say aloud (about 25–40 words), be written the way Baghdadis write their dialect (چ گ where they are spoken: باچر، گلت، شلونك، هسه، كلشي، ماكو…), with natural pauses marked by commas, and contain at least one چ word and one گ word. No Modern Standard Arabic grammar or vocabulary. Return JSON { "line": "...", "gloss": "an English gloss" }.`;
   const { data, result } = await json(schema, [{ role: 'user', content: prompt }], { maxTokens: 600, temperature: 0.8 });
   await fs.mkdir(path.dirname(LONG_FILE), { recursive: true });
   await fs.writeFile(LONG_FILE, JSON.stringify({ text: data.line, gloss: data.gloss, model: result.model, writtenAt: new Date().toISOString(), note: 'written once by Qwen3.8; the same line for every attempt and renderer' }, null, 2), 'utf8');
@@ -71,13 +84,16 @@ async function speak() {
     { id: 'emotional', text: PACK.emotional, ...IRAQI, engine, emotion: 'reassuring, warm, close' },
     { id: 'long', text: long.text, ...IRAQI, engine },
     { id: 'english', text: PACK.english, language: 'EN' as const, ...(englishEngine ? { engine: englishEngine } : {}) },
+    { id: 'english-emotional', text: PACK_EN.emotional, language: 'EN' as const, emotion: 'tender, quiet, certain', ...(englishEngine ? { engine: englishEngine } : {}) },
+    { id: 'english-long', text: PACK_EN.long, language: 'EN' as const, ...(englishEngine ? { engine: englishEngine } : {}) },
   ];
   const out: Array<{ line: string; job: string; created: boolean }> = [];
-  // --only-iraqi: a rerun after a fix on the Iraqi side alone (the English line of the previous attempt stands and the
-  // package picks the latest sample of each line)
-  for (const l of lines.filter((x) => !process.argv.includes('--only-iraqi') || x.language === 'AR')) {
+  // --only-iraqi / --only-english: a rerun after a fix on one side alone (the other side's lines of the previous attempt
+  // stand and the package picks the latest sample of each line)
+  const only = process.argv.includes('--only-iraqi') ? 'AR' : process.argv.includes('--only-english') ? 'EN' : undefined;
+  for (const l of lines.filter((x) => !only || x.language === only)) {
     const { id, ...payload } = l;
-    const r = await enqueue({ type: 'VOICE_PREVIEW', payload: { characterId: c.id, ...payload }, idempotencyKey: `character-a-pack:${attempt}:${id}:${l.engine ?? 'production'}`, maxAttempts: 1 });
+    const r = await enqueue({ type: 'VOICE_PREVIEW', payload: { characterId: c.id, ...payload }, idempotencyKey: `${PACK_KEY}:${attempt}:${id}:${l.engine ?? 'production'}`, maxAttempts: 1 });
     out.push({ line: id, job: r.job.id, created: r.created });
   }
   console.log(JSON.stringify({ character: c.name, attempt, engine, englishEngine: englishEngine ?? '(production)', jobs: out }, null, 1));
@@ -88,7 +104,7 @@ async function pack() {
   const { c, state } = await characterA();
   const { assetFile } = await import('@/server/media');
   const long = JSON.parse(await fs.readFile(LONG_FILE, 'utf8')) as { text: string };
-  const dir = path.resolve('docs/evidence/character-a-voice', `attempt-${attempt}`);
+  const dir = path.join(EVIDENCE_DIR, `attempt-${attempt}`);
   await fs.mkdir(dir, { recursive: true });
   const byId = (id?: string) => state.assets.find((a) => a.id === id);
   const id = c.voice.identity!;
@@ -102,7 +118,7 @@ async function pack() {
     const name = `0-reference-${clip.role.toLowerCase()}.wav`;
     await fs.copyFile(assetFile(a), path.join(dir, name)); files[`reference-${clip.role.toLowerCase()}`] = name;
   }
-  const want: Array<[string, string, string]> = [['1-iraqi-natural', PACK.natural, 'AR'], ['2-iraqi-hard', PACK.hard, 'AR'], ['3-iraqi-emotional', PACK.emotional, 'AR'], ['4-iraqi-long', long.text, 'AR'], ['5-english-identity', PACK.english, 'EN']];
+  const want: Array<[string, string, string]> = [['1-iraqi-natural', PACK.natural, 'AR'], ['2-iraqi-hard', PACK.hard, 'AR'], ['3-iraqi-emotional', PACK.emotional, 'AR'], ['4-iraqi-long', long.text, 'AR'], ['5-english-identity', PACK.english, 'EN'], ['6-english-emotional', PACK_EN.emotional, 'EN'], ['7-english-long', PACK_EN.long, 'EN']];
   for (const [name, text, lang] of want) {
     const s = [...c.voice.samples].reverse().find((x) => x.source === 'GENERATED' && x.text === text && x.language === lang && byId(x.assetId));
     if (!s) { metrics[name] = { missing: true }; continue; }
@@ -115,7 +131,7 @@ async function pack() {
   // the scorer's shape (scripts/iq-eval-score.ts --metrics lines.json --reference 0-canonical-reference.wav): ECAPA to
   // the identity's seed (the fingerprint), CER/coverage and the phoneme gate on the packaged files themselves
   await fs.writeFile(path.join(dir, 'lines.json'), JSON.stringify({ lines: want.filter(([name]) => files[name]).map(([name, text, lang]) => ({ id: name, language: lang.toLowerCase(), text, file: files[name] })), package: dir, attempt }, null, 2), 'utf8');
-  const readme = `# Character A — ${c.name} — voice listening package, attempt ${attempt}\n\nListen first; the metrics are in metrics.json, apart.\n\n0. canonical reference — the voice's own reference (what every renderer conditions on)\n1. Iraqi, natural — «${PACK.natural}»\n2. Iraqi, hard — «${PACK.hard}»\n3. Iraqi, emotional — «${PACK.emotional}»\n4. Iraqi, longer dialogue — «${long.text}»\n5. English identity — “${PACK.english}”\n\nEach output is the ONE result of one request (no candidates, no seed search). Gate: CHARACTER_A_VOICE = WAITING_FOR_USER_ACCEPTANCE — human enough? Iraqi enough? the same person? professional enough?\n`;
+  const readme = `# Character ${KEY} — ${c.name} — voice listening package, attempt ${attempt}\n\nListen first; the metrics are in metrics.json, apart.\n\n0. canonical reference — the voice's own reference (what every renderer conditions on)\n1. Iraqi, natural — «${PACK.natural}»\n2. Iraqi, hard — «${PACK.hard}»\n3. Iraqi, emotional — «${PACK.emotional}»\n4. Iraqi, longer dialogue — «${long.text}»\n5. English identity — “${PACK.english}”\n6. English, emotional — “${PACK_EN.emotional}”\n7. English, longer — “${PACK_EN.long}”\n\nEach output is the ONE result of one request (no candidates, no seed search). Gate: CHARACTER_${KEY}_VOICE — human enough? Iraqi enough? the same person? professional enough? (The engineering QA records CER / coverage / ECAPA / the چ‑گ gate; it cannot listen.)\n`;
   await fs.writeFile(path.join(dir, 'README.md'), readme, 'utf8');
   await fs.writeFile(path.join(dir, 'metrics.json'), JSON.stringify(metrics, null, 2), 'utf8');
   console.log(JSON.stringify({ dir, files }, null, 1));

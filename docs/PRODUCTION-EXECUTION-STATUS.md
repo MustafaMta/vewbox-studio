@@ -278,6 +278,28 @@ validation set (≥ 20 lines) and the Arabic-reference pack. Expectation stated 
 Iraqi plus ASR-grade Omnilingual (413 of 1,891 transcripts in Baghdadi spelling), the dialect gain will be modest at best;
 the professional fix remains the studio's own consented Baghdadi recording (≥ 3 speakers, ≥ 10 h) — a producer item.
 
+**The clean rerun (`stage-a-clean`: train 1,776 utterances / 11.76 h without drills, validation 84 natural utterances, same
+recipe, 47 min; commit 2fb074f) — `AUTO_REVIEW: FAIL`. Vewbox‑IQ's adaptation is NOT promoted.** Natural held-out validation
+(8 utterances, 3 speakers, own-speaker references; `eval\validation-clean-*\scores.json`): base CER 0.065 / ECAPA 0.787 /
+چ‑گ gate 0 of 7 → steps 1000–6000: CER 0.092 / 0.078 / 0.104 / 0.074 / 0.078 / 0.093, ECAPA 0.79–0.81, gate 0 of 7 at every
+step. Arabic-reference pack: base 0.128 / 0.79 / 0 of 2 → 0.150 / 0.100 / 0.124 / 0.131 / 0.170 / 0.143, gate 0–1 of 2 (the long
+line only), English identity through the same model 0.85 → 0.74–0.77 (the adaptation erodes the English side). No checkpoint
+beats the base on natural speech; the pack differences are single-generation noise. Why the data cannot teach the dialect:
+after the drills, the licensed natural Baghdadi colloquial speech with dialect spelling is ≈ 8 minutes (66 Kharrufa sentences);
+the Omnilingual Iraqi hours (1,712 train utterances) are prompted answers by Iraqi speakers in a largely MSA-leaning
+register and standard orthography — گ appears in 102 utterances, چ in 300, ق in 1,477 — so a broad ق→گ respelling would
+mislabel formal [q] speech, and the lexicon respelling (375 utterances) covers too little. Stage B (partial fine-tune) on the
+same data would only over-fit; not run. Served now: Chatterbox Multilingual V3 **base** (no adapter) as the Iraqi comparison
+renderer `vewbox-iq` — the one simple, measured choice; the training stack (pipeline, tokens, trainer, evaluation) stays
+ready for the consented Baghdadi recording, which is the only route to a professional Iraqi voice from here.
+
+**Character A — the record for the gate CHARACTER_A_VOICE (engineering QA, cannot listen):** English (MOSS) `PASS` — CER 0,
+coverage 1, ECAPA to the seed 0.835, 195 Hz (seed 234 Hz). Iraqi (Vewbox‑IQ base from her seed; attempt 0 is the base record
+and a rerun is bit-identical by seed) `FAIL` — natural 0.08 / hard 0.233 (coverage 0.33) / emotional 0.122 / long 0.128, چ‑گ
+gate 0 of 2, ECAPA 0.56–0.60 (cross-language). Verdict recorded `AUTO_APPROVED_BY_ENGINEERING_QA: ENGLISH PASS, IRAQI FAIL (data
+gap)`; Habibi and FireRed stay defeated; nothing Iraqi is presented as accepted. Next in the sequence (the autonomous directive):
+B and C on the same basis, then the singer identity.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as

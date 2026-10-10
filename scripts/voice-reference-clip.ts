@@ -51,7 +51,8 @@ async function main() {
   const role = language === 'AR' ? 'IRAQI' : 'ENGLISH';
   const dialect = language === 'AR' ? (c.dialect ?? 'IRAQI_BAGHDADI') : undefined;
   const existing = c.voice.identity.canonicalReferencePack?.filter((k) => k.role === role) ?? [];
-  if (existing.length && !flag('replace')) { console.log(JSON.stringify({ already: existing, hint: '--replace renders new candidates; the pack keeps every clip and the speaking path takes the closest to the fingerprint' }, null, 1)); return; }
+  const fingerprintOnly = flag('fingerprint-only'); // repair alone: the fingerprint and the NEUTRAL seed clip, no render
+  if (existing.length && !flag('replace') && !fingerprintOnly) { console.log(JSON.stringify({ already: existing, hint: '--replace renders new candidates; the pack keeps every clip and the speaking path takes the closest to the fingerprint' }, null, 1)); return; }
   let fingerprint = c.voice.identity.speakerFingerprint?.vector;
   if (!fingerprint) {
     // an identity pinned before the fingerprint existed (Phase 1, 2026-10-09): measured now from its own primary
@@ -64,6 +65,7 @@ async function main() {
     if (!c.voice.identity.canonicalReferencePack?.length) await command('addVoiceReferenceClip', [c.id, { role: 'NEUTRAL', assetId: seed.id, sha256: seed.sha256, text: c.voice.identity.referenceText, language: c.voice.identity.language, ...(c.voice.identity.language === 'AR' && c.voice.identity.dialect ? { dialect: c.voice.identity.dialect } : {}), source: 'DESIGN_SEED', similarity: 1 }], 'worker');
     console.error(`[clip] fingerprint measured from the primary reference ${seed.id} and stored; the seed is the pack's NEUTRAL clip`);
   }
+  if (fingerprintOnly) { console.log(JSON.stringify({ character: c.name, fingerprint: { dims: fingerprint.length }, pack: (await readState()).state.characters.find((x) => x.id === c.id)?.voice.identity?.canonicalReferencePack?.map((k) => `${k.role}:${k.assetId}:${k.source}`) }, null, 1)); return; }
   // one job per candidate text (the queue runs them in turn), then every result is waited for
   const jobs: Array<{ index: number; text: string; id: string }> = [];
   for (const [index, text] of texts.entries()) {
