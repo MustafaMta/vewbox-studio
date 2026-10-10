@@ -38,6 +38,8 @@ export interface VideoRequest {
   model?: string; resolution?: string;
   /** the local engine's quality tier (capability `tiers`): `final` unless `draft` is asked for explicitly; the hosted API has one tier */
   quality?: VideoQualityTier;
+  /** the local engine's weights tier (int8 | bf16); default MINIMAX_H3_WEIGHTS */
+  weights?: 'int8' | 'bf16';
   /** Called with provider status while waiting. */
   onStatus?: (s: { status: string; queue?: number; detail?: string }) => Promise<void> | void;
   shouldStop?: () => Promise<boolean> | boolean;
@@ -153,7 +155,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const tier = videoTier(MINIMAX_H3_LOCAL, req.quality);
   // the weights tier (MINIMAX_H3_WEIGHTS: int8 proven, bf16 the policy's target): the readiness check below refuses a
   // tier whose files ComfyUI does not have, with the files named
-  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, quality: tier.tier, weights: env().MINIMAX_H3_WEIGHTS, filenamePrefix: 'vewbox/h3' });
+  const graph = minimaxH3Video({ prompt: req.prompt, width: req.width, height: req.height, seconds: Math.min(15, Math.max(1, req.seconds)), seed: req.seed, firstFrame: first, lastFrame: last, referenceImages: refs, referenceAudio: audio, guides, quality: tier.tier, weights: req.weights ?? env().MINIMAX_H3_WEIGHTS, filenamePrefix: 'vewbox/h3' });
   const graphKind = h3GraphKind({ referenceImages: refs, referenceAudio: audio });
   // FIRST-ATTEMPT RELIABILITY (src/server/production/readiness.ts): the node classes and model files THIS graph names
   // are present, and the library has room for the take — before the engine is asked (not when adopting a run)

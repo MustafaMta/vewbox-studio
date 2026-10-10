@@ -65,7 +65,7 @@ export function takeQuality(requested: 'draft' | 'final' | undefined, backend: '
 }
 
 export const generateTake: Handler = async (ctx) => {
-  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean; quality?: 'draft' | 'final' };
+  const payload = ctx.job.payload as { productionId: string; shotId: string; model?: string; resolution?: string; durationSeconds?: number; prompt?: string; seed?: number; select?: boolean; quality?: 'draft' | 'final'; weights?: 'int8' | 'bf16' };
   let { state: studio } = await readState();
   // AN EARLIER ATTEMPT ALREADY COMMITTED THIS TAKE (it crashed after its commit, before the job was completed): the
   // take is returned, never generated a second time (audit C2, step 6)
@@ -446,6 +446,7 @@ export const generateTake: Handler = async (ctx) => {
     lowering,
     seed, model: payload.model, resolution: payload.resolution,
     quality: takeQuality(payload.quality, backend).quality,
+    ...(backend === 'local' && payload.weights ? { weights: payload.weights } : {}),
     resumeTaskId: ctx.job.providerTaskId ?? undefined,
   };
   const result = await run(() => ctx.tool('video.minimax_generate', () => generateVideo({
