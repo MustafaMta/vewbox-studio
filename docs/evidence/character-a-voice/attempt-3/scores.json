@@ -4,7 +4,7 @@
     "ar": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3\\0-canonical-reference.wav",
     "en": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3\\0-canonical-reference.wav"
   },
-  "scoredAt": "2026-10-10T05:09:32.247Z",
+  "scoredAt": "2026-10-10T05:13:39.564Z",
   "rows": [
     {
       "id": "1-iraqi-natural",
@@ -53,16 +53,16 @@
       "id": "3-iraqi-emotional",
       "language": "AR",
       "text": "يمعود لا تشيل هم، آني يمك وكلشي راح يصير زين.",
-      "heard": "يمعوض لا تشي الهم، أنا يمكن وكل شي رح يصيف زين.",
-      "cer": 0.171,
+      "heard": "يا معود لا تشيرهم، أني يمكن وكل شيء راح يصير زين.",
+      "cer": 0.122,
       "coverage": 0.5,
-      "similarity": 0.568,
+      "similarity": 0.6,
       "pitch": {
-        "median_hz": 218.6,
-        "p10_hz": 178.6,
+        "median_hz": 252.6,
+        "p10_hz": 194.8,
         "p90_hz": 499.4,
-        "range_semitones": 17.8,
-        "voiced_ratio": 0.613,
+        "range_semitones": 16.3,
+        "voiced_ratio": 0.841,
         "breaks": 0
       }
     },
@@ -70,21 +70,24 @@
       "id": "4-iraqi-long",
       "language": "AR",
       "text": "ياك، شلونك؟ جيتي عندنا باچر؟ هسه كلشي ماضٍ زين، بس ماكو وقت، گلتلي أمي إنو لازم تجيبين الشاي.",
-      "heard": "ياك شلون جاتي عندنا باتشر هسه كل شيء ماض زين بس ماك وقت قلت لأمي إنه لازم تجيبين الشاي.",
-      "cer": 0.093,
+      "heard": "ياك، شلونك؟ جايتي عندنا باق. هسه هو كل شيء ما ذنزين، بس ماكو وقت. لتلي أمي إنه لازم تجيبين الشاي.",
+      "cer": 0.128,
       "coverage": 0.667,
-      "similarity": 0.546,
+      "similarity": 0.594,
       "pitch": {
-        "median_hz": 231.6,
-        "p10_hz": 182.8,
+        "median_hz": 235.7,
+        "p10_hz": 202.8,
         "p90_hz": 499.4,
-        "range_semitones": 17.4,
-        "voiced_ratio": 0.696,
+        "range_semitones": 15.6,
+        "voiced_ratio": 0.765,
         "breaks": 0
       },
       "phonology": {
-        "verdict": "PASS",
-        "flags": []
+        "verdict": "FAIL",
+        "flags": [
+          "باچر؟: چ /tʃ/ not heard (heard: b aː i f)",
+          "گلتلي: گ /ɡ/ not heard (heard: l a t l i)"
+        ]
       }
     },
     {

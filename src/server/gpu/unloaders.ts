@@ -4,6 +4,7 @@ import { unloadAsr, unloadTts } from '../providers/speech';
 import { unloadDesign } from '../providers/voice-design';
 import { unloadLipsync } from '../providers/lipsync';
 import { unloadSfx } from '../providers/sfx';
+import { unloadSvc } from '../providers/svc';
 import type { GpuFamily } from './lease';
 
 /** THE ENGINES ON THE CARD AND HOW EACH LETS GO OF IT (docs/BACKEND-AUDIT-2026-10.md H7, step 8). When the GPU passes
@@ -25,6 +26,8 @@ export function engines(): Engine[] {
     { name: 'comfyui', serves: ['IMAGE', 'VIDEO', 'MUSIC'], unload: async () => { const w = await comfy.waitIdle(Number(process.env.GPU_COMFY_DRAIN_MS ?? 20 * 60_000)); if (w.promptIds.length) await (await import('../jobs/queue')).recordMetric('gpu.comfy_drain_ms', w.waitedMs, 'ms', { idle: w.idle, prompts: w.promptIds.length }).catch(() => undefined); await comfy.free(); } },
     { name: 'tts', serves: ['TTS'], unload: unloadTts },
     { name: 'tts-design', serves: ['TTS'], unload: unloadDesign },
+    // the singing voice converter (docker/svc-seedvc, profile svc): a voice engine for the lease; silent when not running
+    { name: 'svc-seedvc', serves: ['TTS'], unload: unloadSvc },
     { name: 'asr', serves: ['ASR'], unload: unloadAsr },
     // the planner on vLLM: sleep level 2 (weights and cache out of VRAM; woken by the next LLM call)
     { name: 'vllm', serves: ['LLM'], unload: async () => { await (await import('../providers/vllm')).sleepVllm(); } },

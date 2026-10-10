@@ -96,6 +96,9 @@ try {
   # 4. the H3 tier
   if (-not (Test-Path var/state/h3-resume-ok)) { exit 0 }
   if ($h3 -notmatch 'VERIFIED\s+3/ 3') { Fetch 'video-minimax-h3-bf16'; $after = (Inventory | Where-Object { $_ -match '^video-minimax-h3-bf16' }) -join ''; Say "after: $after"; if ($after -match 'VERIFIED\s+3/ 3') { Say 'H3 BF16 VERIFIED' }; exit 0 }
+  # 4b. THE SINGING IDENTITY WEIGHTS (the autonomous directive, after the H3 tier): Seed-VC + whisper-small + BigVGAN + CAM++
+  $svc = (Inventory2 'svc-seed-vc')
+  if ($svc -notmatch 'VERIFIED\s+8/ 8') { Fetch 'svc-seed-vc'; $after = Inventory2 'svc-seed-vc'; Say "after: $after"; if ($after -match 'VERIFIED\s+8/ 8') { Say 'SEED-VC VERIFIED' }; exit 0 }
   # 5. nothing left
   if (-not (Test-Path var/state/firered-tick-done)) { Say 'DONE: weights, image, service and the H3 BF16 tier are all in place'; 'done' | Out-File var/state/firered-tick-done }
 } finally { Remove-Item $lock -Force -ErrorAction SilentlyContinue }

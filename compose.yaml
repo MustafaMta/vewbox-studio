@@ -357,6 +357,26 @@ services:
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8027/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
     stop_grace_period: 30s
 
+  # SINGING VOICE CONVERSION — Seed-VC v1 seed-uvit-whisper-base (Plachtaa/seed-vc, GPL-3.0; docker/svc-seedvc;
+  # docs/research/SINGING-IDENTITY-2026-10.md): a character's singer identity. An ISOLATED GPL worker: only HTTP between it
+  # and the studio (POST /convert: source vocal + the identity's reference clip → the vocal in that timbre, F0-conditioned).
+  # Weights: group svc-seed-vc (Seed-VC DiT, whisper-small, BigVGAN v2 44 kHz, CAM++), read-only; pitch by torchcrepe (MIT).
+  # GPU family TTS (the lease unloads it with the voice engines); lazy load; /unload drops the models. Profile `svc` only.
+  svc-seedvc:
+    logging: *logging
+    build: { context: ., dockerfile: docker/svc-seedvc/Dockerfile, secrets: [extra_ca] }
+    image: vewbox/svc-seedvc:${CODE_VERSION:-dev}
+    profiles: ["svc"]
+    restart: unless-stopped
+    dns: *dns
+    environment: { NVIDIA_VISIBLE_DEVICES: all }
+    # the service app from the repo (a fix takes effect on restart)
+    volumes: [ "models:/models:ro", "./docker/tts/app.py:/opt/seed-vc/vewbox_tts_shared.py:ro", "./docker/svc-seedvc/app.py:/opt/seed-vc/vewbox_svc_app.py:ro" ]
+    ports: [ "127.0.0.1:${SVC_SEEDVC_PORT:-8028}:8028" ]
+    deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8028/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
+    stop_grace_period: 30s
+
   # VEWBOX-IQ TRAINER (docker/train-iq, built on the tts-iq image: build tts-iq first). One-off runs under the GPU lease
   # (scripts/gpu-hold.ts TTS), the trainer package mounted from the repo, the store read-only, the dataset tree read-write:
   #   docker compose --profile train run --rm train-iq /opt/train/extract_omnilingual.py
