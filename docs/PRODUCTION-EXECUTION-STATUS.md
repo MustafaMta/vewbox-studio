@@ -371,7 +371,12 @@ maps, the same geometry at dusk (master) and at night, a clean bollard view; no 
 quality). Shot 1's frame, drawn again against the clean plate (the production's World Bible pin advanced from revision 2
 to 3 — the old plates removed, the new ones added, nothing filmed yet so the re-pin was safe): **PASS** — one wide shot,
 Layla from behind (chin-length hair, charcoal coat, indigo jeans, black boots) on the pier at dusk, bollards, the open guitar
-case and the pinned map, the harbour and sunset ahead (95 s at full quality). The director plan
+case and the pinned map, the harbour and sunset ahead (95 s at full quality). The first take's preflight then refused on
+`canonical-approved-before-first-use` (the first take locks the look): Layla's canonical image (`gen-2293bffbe1ffde3ab7c8`,
+inspected directly — full body, neutral pose, chin-length dark brown hair parted left, charcoal oversized wool coat over a
+rust-orange turtleneck, indigo jeans, black ankle boots, the collarbone mole; it matches her identity line) was recorded
+APPROVED with the reason `AUTO_APPROVED_BY_ENGINEERING_QA`. B's and C's canonical images are approved the same way only
+after their own inspection, when their productions need it. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
