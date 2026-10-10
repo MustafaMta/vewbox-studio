@@ -935,6 +935,18 @@ export function addVoiceReferenceClip(s: S, id: string, clip: Omit<VoiceReferenc
   return writeCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, canonicalReferencePack: [...(identity.canonicalReferencePack ?? []), next] } } });
 }
 
+/** THE SPEAKER FINGERPRINT of a pinned identity (ECAPA vector of its own primary reference), measured by the worker
+ *  (the build writes it; an identity pinned before the fingerprint existed — Phase 1 characters, 2026-10-09 — gets it
+ *  here from the same reference). Set once; the identity, its reference and its revision are unchanged. */
+export function setSpeakerFingerprint(s: S, id: string, fingerprint: NonNullable<VoiceIdentity['speakerFingerprint']>): S {
+  const c = mustFind(s.characters, id, 'Character');
+  const identity = c.voice.identity;
+  if (!identity) throw new StudioError('INVALID', `${c.name} has no voice yet; build it first.`, { characterId: id });
+  if (identity.speakerFingerprint) throw new StudioError('CONFLICT', `${c.name}'s voice already has its speaker fingerprint; a new one comes with a new build.`, { characterId: id });
+  if (!fingerprint.vector.length || fingerprint.vector.some((v) => !Number.isFinite(v))) throw new StudioError('INVALID', 'A speaker fingerprint is a vector of finite numbers.', { characterId: id });
+  return writeCharacter(s, id, { voice: { ...c.voice, identity: { ...identity, speakerFingerprint: fingerprint } } });
+}
+
 /** A language the character speaks that its pinned voice has no profile for (added — or lost on read, Phase 1
  *  character A, 2026-10-09 — after the build): the SAME identity, with the same reference, parameters and revision,
  *  gains that language's profile, REVIEW until a listener judges it. Nothing is spoken or regenerated: a profile says

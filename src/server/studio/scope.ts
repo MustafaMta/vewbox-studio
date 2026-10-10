@@ -129,7 +129,7 @@ export const COMMAND_SCOPES: Record<CommandName, Classifier> = {
   updateVoiceSample: character(), removeVoiceSample: character(), selectVoiceSample: character(),
   setVoiceIdentity: character({ settings: true, allAssets: true }),
   addVoiceDesign: character({ settings: true, allAssets: true }), updateVoiceDesign: character({ allAssets: true }),
-  recordVoiceListening: character(), confirmVoiceConsent: character(), setSpokenLanguages: character(), addVoiceLanguageProfiles: character(), addVoiceReferenceClip: character({ assets: (a) => [str((a[1] as { assetId?: unknown } | undefined)?.assetId)] }), approveCanonicalImage: character(),
+  recordVoiceListening: character(), confirmVoiceConsent: character(), setSpokenLanguages: character(), addVoiceLanguageProfiles: character(), addVoiceReferenceClip: character({ assets: (a) => [str((a[1] as { assetId?: unknown } | undefined)?.assetId)] }), setSpeakerFingerprint: character(), approveCanonicalImage: character(),
   // a canonical image is unique across characters and moves asset tiers
   setCanonicalImage: character({ allCharacters: true, allAssets: true }),
   deleteCharacter: full,

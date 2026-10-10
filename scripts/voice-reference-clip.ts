@@ -35,8 +35,18 @@ async function main() {
   const role = language === 'AR' ? 'IRAQI' : 'ENGLISH';
   const dialect = language === 'AR' ? (c.dialect ?? 'IRAQI_BAGHDADI') : undefined;
   if (c.voice.identity.canonicalReferencePack?.some((k) => k.role === role)) { console.log(JSON.stringify({ already: c.voice.identity.canonicalReferencePack.find((k) => k.role === role) }, null, 1)); return; }
-  const fingerprint = c.voice.identity.speakerFingerprint?.vector;
-  if (!fingerprint) throw new Error('the identity has no speaker fingerprint; build the voice again');
+  let fingerprint = c.voice.identity.speakerFingerprint?.vector;
+  if (!fingerprint) {
+    // an identity pinned before the fingerprint existed (Phase 1, 2026-10-09): measured now from its own primary
+    // reference (the design seed) and stored once; the seed also becomes the pack's NEUTRAL clip (DESIGN_SEED)
+    const seed = state.assets.find((x) => x.id === c.voice.identity!.referenceAssetId);
+    if (!seed) throw new Error('the identity has neither a speaker fingerprint nor a reference asset on record');
+    const e = await embedVoice(assetFile(seed));
+    fingerprint = e.embedding.map((v) => Number(v.toFixed(5)));
+    await command('setSpeakerFingerprint', [c.id, { model: e.model ?? 'ecapa', vector: fingerprint, measuredAt: new Date().toISOString() }], 'worker');
+    if (!c.voice.identity.canonicalReferencePack?.length) await command('addVoiceReferenceClip', [c.id, { role: 'NEUTRAL', assetId: seed.id, sha256: seed.sha256, text: c.voice.identity.referenceText, language: c.voice.identity.language, ...(c.voice.identity.language === 'AR' && c.voice.identity.dialect ? { dialect: c.voice.identity.dialect } : {}), source: 'DESIGN_SEED', similarity: 1 }], 'worker');
+    console.error(`[clip] fingerprint measured from the primary reference ${seed.id} and stored; the seed is the pack's NEUTRAL clip`);
+  }
   const key = `reference-clip:${c.id}:${role}:${engine}:${attempt}`;
   const r = await enqueue({ type: 'VOICE_PREVIEW', payload: { characterId: c.id, text, language, ...(dialect ? { dialect } : {}), engine }, idempotencyKey: key, maxAttempts: 1 });
   console.error(`[clip] job ${r.job.id} (${r.created ? 'created' : 'existing'}): ${role} clip of ${c.name} through ${engine}`);
@@ -45,17 +55,20 @@ async function main() {
   for (let i = 0; i < 360; i++) {
     const q = (await db().execute(sql`select status, result, error from jobs where id = ${r.job.id}`)) as unknown as { rows?: Array<typeof row> };
     row = (q.rows ?? (q as unknown as Array<typeof row>))[0];
-    if (row && ['DONE', 'FAILED', 'CANCELLED'].includes(row.status)) break;
+    if (row && ['COMPLETED', 'AWAITING_REVIEW', 'FAILED', 'CANCELLED'].includes(row.status)) break;
     await new Promise((res) => setTimeout(res, 10_000));
   }
-  if (!row || row.status !== 'DONE') throw new Error(`job ${r.job.id} ended ${row?.status ?? 'unknown'}: ${JSON.stringify(row?.error ?? null)}`);
-  const result = row.result as { assetId: string; check: { ok: boolean; cer: number; coverage: number; heard: string } | null; measured?: { seedToLineSimilarity?: number } };
+  // AWAITING_REVIEW: spoken but the line gate did not pass (or the line could not be heard) — judged below as not heard
+  if (!row || !['COMPLETED', 'AWAITING_REVIEW'].includes(row.status)) throw new Error(`job ${r.job.id} ended ${row?.status ?? 'unknown'}: ${JSON.stringify(row?.error ?? null)}`);
+  const result = row.result as { assetId: string; check: { ok: boolean; status?: 'PASS' | 'REVIEW' | 'FAIL'; cer: number; coverage: number; heard: string; reasons?: string[] } | null; measured?: { seedToLineSimilarity?: number } };
   const fresh = (await readState()).state;
   const a = fresh.assets.find((x) => x.id === result.assetId);
   if (!a) throw new Error(`asset ${result.assetId} not found`);
   const emb = (await embedVoice(assetFile(a))).embedding;
   const similarity = Math.round(cosine(fingerprint, emb) * 1000) / 1000;
-  const heard = result.check?.ok === true;
+  // heard back: the line gate's PASS, or its REVIEW (within the CER/coverage gates, with a point the ASR cannot confirm —
+  // چ heard as ك — which only a listener decides); a FAIL or an unheard line never becomes a reference
+  const heard = result.check?.ok === true || (result.check?.status === 'REVIEW' && result.check.cer <= 0.15 && result.check.coverage >= 0.7);
   const evidence = { character: c.name, role, engine, text, assetId: a.id, sha256: a.sha256, durationSeconds: a.durationSeconds, check: result.check, similarityToFingerprint: similarity, floor, heardBack: heard };
   if (!heard || similarity < floor) { console.log(JSON.stringify({ refused: !heard ? 'the clip was not heard back within the line gate' : `similarity ${similarity} is below the floor ${floor}`, ...evidence }, null, 1)); process.exitCode = 3; return; }
   await command('addVoiceReferenceClip', [c.id, { role, assetId: a.id, sha256: a.sha256, text, language, ...(dialect ? { dialect } : {}), source: 'STUDIO_RENDER', similarity }], 'worker');
