@@ -55,7 +55,8 @@ export async function convertVoice(i: SvcInput, outDir: string): Promise<SvcResu
   const t0 = Date.now();
   let res: Response;
   try { res = await fetch(`${base()}/convert`, { method: 'POST', body: fd, signal: AbortSignal.timeout(20 * 60_000) }); } catch (e) {
-    throw new StudioError('UNAVAILABLE', `The singing voice converter (svc-seedvc) is not reachable: ${(e as Error).message}. Start it with the profile svc.`, { failureClass: 'INFRASTRUCTURE' });
+    const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
+    throw new StudioError('UNAVAILABLE', `The singing voice converter (svc-seedvc) is not reachable: ${(e as Error).message}${cause ? ` (${cause.code ?? cause.message})` : ''}. Start it with the profile svc.`, { failureClass: 'INFRASTRUCTURE', cause: cause?.code ?? cause?.message });
   }
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

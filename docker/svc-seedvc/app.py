@@ -274,7 +274,11 @@ def health():
 def unload():
     global _models
     with _lock:
+        was_loaded = _models is not None
         _models = None
+    if not was_loaded:
+        # nothing on the card: never initialise CUDA just to empty an empty cache (the lease calls this on every family switch)
+        return {"ok": True, "gpu": gpu_mem(), "was_loaded": False}
     import gc
 
     gc.collect()
@@ -291,7 +295,7 @@ def unload():
 
 
 @app.post("/convert")
-async def convert_endpoint(
+def convert_endpoint(  # a plain def: the minutes of conversion run in the threadpool and /health stays answerable
     source: UploadFile = File(...), reference: UploadFile = File(...),
     diffusion_steps: str = Form(""), length_adjust: str = Form(""), inference_cfg_rate: str = Form(""), f0_condition: str = Form("1"), auto_f0_adjust: str = Form("0"), semi_tone_shift: str = Form(""), fp16: str = Form("1"), seed: str = Form(""), raw: str = Form(""),
 ):
@@ -310,7 +314,8 @@ async def convert_endpoint(
     }
     paths: list[str] = []
     for up, name in ((source, "source"), (reference, "reference")):
-        data = await up.read()
+        up.file.seek(0)
+        data = up.file.read()
         if len(data) < 1000:
             raise HTTPException(status_code=400, detail=f"{name} audio is empty")
         with tempfile.NamedTemporaryFile(suffix=os.path.splitext(up.filename or f"{name}.wav")[1] or ".wav", delete=False) as f:
