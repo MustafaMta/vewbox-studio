@@ -350,7 +350,8 @@ services:
     environment: { NVIDIA_VISIBLE_DEVICES: all, IQ_S3GEN: "${IQ_S3GEN:-s3gen.pt}", IQ_ADAPTER_DIR: "${IQ_ADAPTER_DIR:-}", IQ_ADAPTER_FORM: "${IQ_ADAPTER_FORM:-merged}" }
     # the service app and the shared loader from the repo (a fix takes effect on restart); the dataset tree read-only for
     # the checkpoints (IQ_ADAPTER_DIR=/training/checkpoints/<name>/step-NNNNNN)
-    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training:ro", "./docker/tts/app.py:/opt/iq/vewbox_tts_shared.py:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro", "./docker/tts-iq/app.py:/opt/iq/vewbox_iq_app.py:ro" ]
+    # /home/iq persists the tokenizer's pkuseg download (35 MB the library fetches at import; once, not per container)
+    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}/cache/home-iq:/home/iq", "./docker/tts/app.py:/opt/iq/vewbox_tts_shared.py:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro", "./docker/tts-iq/app.py:/opt/iq/vewbox_iq_app.py:ro" ]
     ports: [ "127.0.0.1:${TTS_IQ_PORT:-8027}:8027" ]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }
     healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8027/health"], interval: 30s, timeout: 10s, start_period: 120s, retries: 10 }
@@ -369,7 +370,7 @@ services:
     profiles: ["train"]
     dns: *dns
     environment: { NVIDIA_VISIBLE_DEVICES: all, VEWBOX_TRAINING_ROOT: /training, VEWBOX_TRAINING_ROOT_HOST: "${VEWBOX_TRAINING_ROOT_HOST:-D:\\vewbox-data\\training\\iraqi}", VEWBOX_COMMIT: "${CODE_VERSION:-dev}", HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1", TQDM_DISABLE: "1" }
-    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training", "./docker/train-iq/train:/opt/train:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro" ]
+    volumes: [ "models:/models:ro", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}:/training", "${VEWBOX_TRAINING_DIR:-D:/vewbox-data/training/iraqi}/cache/home-iq:/home/iq", "./docker/train-iq/train:/opt/train:ro", "./docker/tts-iq/iq_model.py:/opt/iq/iq_model.py:ro" ]
     working_dir: /opt/train
     entrypoint: ["python"]
     deploy: { resources: { reservations: { devices: [ { driver: nvidia, count: all, capabilities: [gpu] } ] } } }

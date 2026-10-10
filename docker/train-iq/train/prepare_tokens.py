@@ -38,7 +38,7 @@ def main() -> None:
     ap.add_argument("--base-dir", default=None, help="the Chatterbox MTL V3 folder (default MODEL_ROOT/voice/chatterbox-mtl-v3)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--limit", type=int, default=0)
-    ap.add_argument("--max-seconds", type=float, default=20.0, help="skip longer utterances (the pipeline already caps at 20 s)")
+    ap.add_argument("--max-seconds", type=float, default=40.0, help="skip longer utterances (the pipeline caps at 40 s = Chatterbox's 1000 speech tokens; a 20 s default skipped 1,503 of 2,117 on 2026-10-10)")
     ap.add_argument("--no-punc-norm", action="store_true", help="do not apply the library's punc_norm before tokenising")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
