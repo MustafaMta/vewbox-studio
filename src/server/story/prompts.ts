@@ -8,6 +8,7 @@ import { hasHealedScar, healedMark } from '@/domain/scars';
 import { sceneStateLine, type SceneState } from '@/domain/scene-state';
 import { contextLines, poseWithoutSpeech, type ProductionContext } from '@/domain/production-context';
 import { shotPerformers } from '@/domain/music-performance';
+import { facingAway } from '@/domain/blocking';
 import { cutTime, markTime, scrubSpeech } from './beats';
 
 /** PROMPT COMPOSITION — the one place that turns studio records into the text a model sees. Characters are always
@@ -99,13 +100,18 @@ export function singingTags(p: Production, sh: Shot, cast: Character[], speaker:
   // THE PERFORMANCE PLAN (src/domain/music-performance.ts): the lead singers of the window carry the words, backing
   // singers harmonise softly without the lead's words, everyone else on screen keeps their lips closed
   const plan = shotPerformers(p.song, w, sh.characterIds);
-  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id) && !plan.backing.includes(id));
+  // A SINGER SEEN FROM BEHIND is never asked to sing on camera: H3 answers a sung `<d>` line on a back-turned performer by
+  // cutting to their face (shot 1 of "Harbour Lights", 2026-10-10: a locked-off wide from behind became a montage of
+  // close-ups). The song is heard; the performer stays as framed and does not turn.
+  const away = new Set(facingAway(sh));
+  const onScreen = perf.singerIds.filter((id) => sh.characterIds.includes(id) && !plan.backing.includes(id) && !away.has(id));
+  const fromBehind = perf.singerIds.filter((id) => sh.characterIds.includes(id) && away.has(id)).map(who).filter(Boolean);
   const lines = sungLinesFor(p.song, w, p.language).filter((l) => onScreen.includes(l.singerId) && l.role !== 'BACKING');
   const sung = lines.map((l) => `${who(l.singerId)} sings <d>[${lang}] ${clean(p.language === 'AR' ? l.textAr || l.text : l.text)}</d>`).join(' ');
-  const backing = plan.backing.map(who).filter(Boolean);
+  const backing = plan.backing.filter((id) => !away.has(id)).map(who).filter(Boolean);
   const listeners = (perf.listenerIds ?? []).filter((id) => sh.characterIds.includes(id)).map(who).filter(Boolean);
   const silent = sh.characterIds.filter((id) => !perf.singerIds.includes(id) && !plan.backing.includes(id) && !(perf.listenerIds ?? []).includes(id)).map(who).filter(Boolean);
-  const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : 'The song continues off camera: nobody on screen sings or mouths words.';
+  const performing = onScreen.length ? (sung || `${onScreen.map(who).join(' and ')} performing the song, singing in sync with the music.`) : fromBehind.length ? `The song plays over the shot. ${fromBehind.join(' and ')} ${fromBehind.length === 1 ? 'is' : 'are'} seen from behind the whole time and never turn${fromBehind.length === 1 ? 's' : ''} to the camera; the singing is heard, not seen.` : 'The song continues off camera: nobody on screen sings or mouths words.';
   return [performing, backing.length ? `${backing.join(' and ')} sing${backing.length === 1 ? 's' : ''} soft backing harmonies, not the lead words.` : '', listeners.length ? `${listeners.join(' and ')} listen, lips closed.` : '', silent.length ? `${silent.join(' and ')} do not sing; their lips stay closed.` : ''].filter(Boolean).join(' ');
 }
 

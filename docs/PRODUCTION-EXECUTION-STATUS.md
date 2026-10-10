@@ -389,8 +389,15 @@ the H3 `<Subject>` definition all stop carrying them. **The BF16 run of the same
 (`take-043a94a941b1db404950`): 20.8 min against 17.3 at int8 (1.2×, far under the research's 2–3× estimate — ComfyUI's dynamic
 VRAM streams the 40 GB DiT from pinned RAM; host RAM 58.5 GiB, card 18 GB), the same montage staging (the prompt was the same
 flawed one: cuts at 0.92 / 5.00 / 6.04 / 7.50 / 8.21 s), the same closed mouth; the face close-ups show finer skin and hair
-detail than int8's.** Both takes are re-made after the prompt fix (same seed) for the staging verdict; the tier comparison
-proper is read off those. The director plan
+detail than int8's.** Both takes re-made after the prompt fix (same seed): **int8 attempt 3 (`take-5b19cb14446da44cd2d2`,
+17.3 min, prompt zone-free) — the same montage.** So the camera zones were one cause, not the cause. Read off the plan
+itself: the wide locked-off action named details below its scale — "her fingers rest on the guitar neck" (the engine cut to
+a guitar insert), "slick black rocks just inches from her boots" at the [0:05] beat (the cut at exactly 5.00 s to boots on
+rocks), "her gaze fixed… lonely expression" plus a sung `<d>` line on a performer facing away (the cut to her face). H3
+re-stages from words it cannot show in the framing it was given (the 2026-10-08 lesson again). Two fixes: (1) a singer seen
+from behind is never asked to sing on camera — the prompt says the song plays, they are seen from behind the whole time and
+never turn (`singingTags`); (2) a director's revision of shot 1 (recorded on the shot): whole-figure action at the wide
+scale, "she does not turn", no hands, boots or gaze details. Attempt 4 at both tiers follows. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
