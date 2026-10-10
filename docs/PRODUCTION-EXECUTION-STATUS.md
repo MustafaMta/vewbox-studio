@@ -189,6 +189,16 @@ MSA replay 1,687, 3.32 h). Reports: `D:\vewbox-data\training\iraqi\reports\*.md`
 the seed 0.51–0.69 (mean 0.63), phoneme gate 0 of 2 («گلتلك» heard «أل تلك», «باچر» «بأر», «چاي» «صاي»); English CER 0,
 ECAPA 0.82. The smoke gate must beat these on real audio: Iraqi CER and the چ/گ gate better, similarity not below, English unchanged.
 
+**Smoke #1 (`stage-a-smoke`, 200 steps, peak lr 3e-6, batch 4, 0.5 h main + 0.5 h MSA replay at 0.2, LoRA r32/α64 on 30
+layers + Arabic text_emb rows, 25.1 M trainable of 561 M; commit a6d6975) — `AUTO_REVIEW: FAIL`.** Same five lines,
+reference and seed: Iraqi CER 0.136 vs base 0.139, phoneme gate 0/2 vs 0/2, the hard line worse (0.30 vs 0.167), ECAPA
+0.644 vs 0.627, English CER 0 / 0.84 (intact). Root cause: no learning — the loss stayed flat at ≈ 7.2 for all 200 steps;
+a peak lr of 3e-6 over 800 samples (the Praxy figure belongs to 8,000 steps × batch 16) cannot move the model. Before
+that: upstream `T3.loss` crashed on step 1 (untransposed, unshifted cross-entropy) — replaced by a shifted next-token
+loss in the trainer. Evidence: `D:\vewbox-data\training\iraqi\eval\stage-a-smoke-step-000200\scores.json`,
+`checkpoints\stage-a-smoke\train-log.jsonl`. Decision: ONE controlled second smoke with enough signal to be measurable
+(more steps, a higher but still conservative lr, the loss required to fall), everything else unchanged.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as
