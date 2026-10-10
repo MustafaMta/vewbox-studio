@@ -1,3 +1,47 @@
+# HARD CREATIVE RESET — 2026-10-10 (the producer's order; supersedes the sequence below from this point)
+
+**Human verdict on the music video and the voices: NOT ACCEPTED.** The producer's review found two foundational
+failures: the character's face and appearance drift between shots (individually attractive shots, not one performer), and
+the voice identity drifts and still sounds artificial — the Iraqi voice, and recognisably synthesized English too. No
+metric (ECAPA, SFace, ASR, QA, similarity, frame checks, successful jobs) overrides that verdict; they are supporting
+evidence only.
+
+Done on the order:
+1. every creative job stopped (three H3 takes cancelled mid-run, PRODUCE and its children ended; no automatic restart);
+2. the diagnostic record of the one result the producer found closer to acceptable — ComfyUI run
+   `9cd01433-cf15-5362-be5d-5220391797d7` = job-4476c800df, shot 1 attempt 5 — written **before** deletion:
+   [docs/evidence/diagnostics/JOB-9cd01433-DIAGNOSTIC.md](evidence/diagnostics/JOB-9cd01433-DIAGNOSTIC.md) (engine,
+   references, prompt, opening frame, continuity, seed, camera, identity numbers, voice source and audio conditioning,
+   what differed from the worse attempts; the prompt text and two small images beside it). Not canonical, not accepted;
+3. the generated creative state deleted (`scripts/clean-production-reset.ts --apply`, manifest
+   [docs/archive/CLEAN-RESET-2026-10-10-manifest.json](archive/CLEAN-RESET-2026-10-10-manifest.json)): 1 production,
+   3 characters, 1 location, 8 shots, 13 takes, 1 song and its stems, every voice line, 262 library files (190 MB), all
+   jobs, events, approvals, QA reports, World Bible revisions — the Recycle Bin holds the folders until emptied; the
+   media copies under docs/evidence removed (56 files), the JSON/Markdown records and the diagnostics kept;
+4. verified clean: 0 productions, shows, seasons, episodes, shorts, music videos, characters, locations, scenes, shots,
+   takes, assets, jobs; library 0 files; the web app healthy on an empty studio.
+
+Preserved: source and git history, D:\models (incl. the verified H3 BF16 tier, Chatterbox V3, Seed-VC), manifests and
+download state, the Iraqi datasets and token caches, the Vewbox-IQ pipeline/trainer/evaluation, the phoneme frontend,
+tests, licences, settings, the lessons learned in this file and in the research notes.
+
+**Labels from here on (the order's §9/§41):** audio gates record `TECHNICAL_PASS` / `TECHNICAL_FAIL` for what is measured
+(transcript accuracy, pronunciation targets, speaker consistency, clipping, silence, pitch anomalies, phoneme presence)
+and `PERCEPTUAL_NATURALNESS = UNVERIFIED` / `PERCEPTUAL_REVIEW_NOT_AVAILABLE` for how a voice sounds — never an approval of
+naturalness from metrics. The earlier "ENGLISH PASS" entries for A/B/C below are to be read as TECHNICAL_PASS with
+PERCEPTUAL_NATURALNESS = UNVERIFIED, and the producer's verdict on those voices is FAIL (artificial).
+
+**New development order (do not skip a layer):** 1 voice technology itself → 2 one persistent character identity →
+3 Realistic / Anime / Cartoon validation → 4 singer identity → 5 standalone English song → 6 standalone Iraqi song →
+7 one image-to-video shot → 8 two-shot identity continuity → 9 small coherent scene → 10 English music video → 11 Iraqi
+music video → 12 Short → 13 Show / Season / Episode. **No H3 generation** during the identity phases; H3 BF16 stays
+downloaded and unused. Voice is the first blocker: continue Chatterbox V3 → Vewbox-IQ (corpus, splits, tokens, baseline,
+ONE controlled smoke after each diagnosed fix; full training only after a smoke proves useful). Then ONE character (A,
+Realistic, Actor + Singer, English + Iraqi, one canonical image, one voice identity with English/Iraqi/singing profiles
+in one `canonicalReferencePack`), its small voice pack measured; only then B (Anime) and C (Cartoon).
+
+The record of 2026-10-09/10 below stays as engineering history.
+
 # CLEAN PRODUCTION VALIDATION RESTART — 2026-10-09
 
 The producer rejected the previous generated creative data and restarted product validation from the foundation:
