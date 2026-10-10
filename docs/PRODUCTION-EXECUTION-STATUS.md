@@ -65,6 +65,22 @@ carry. Next controlled smoke (4): **phoneme representation + learning rate** —
 base already pronounces that way (گ from Latin `g`, پ from `p`, ڤ from `v`, چ from the mean of `c` and `h`) and train the
 embedding rows at their own, higher rate; everything else as smoke 3.
 
+**Smoke 4 result (`stage-a-smoke4b`: rows گ←g, پ←p, ڤ←v, چ←mean(c,h); embedding rows at 1e-4, LoRA at 1e-5; Baghdadi
+subset, no replay; 1,500 steps, 12 min) — `TECHNICAL_PASS (partial)`, the first useful smoke; PERCEPTUAL_NATURALNESS =
+UNVERIFIED.** Arabic-reference pack: base 0.128 / 0.79 / 0 of 2 → step 500 0.186 / 0.769; **step 1,000 0.078 / 0.803** (the
+best CER of every run: the hard line 0.067, "قلت لك باكر نقعد نحتشي ونشرب كاي"); step 1,500 0.095 / 0.806; English 0 / 0.83–0.85
+kept. Natural held-out validation: 0.077 / 0.072 / 0.078 against the base's 0.065 (within noise — the drift of smoke 3 is
+gone). **At the word level the sounds moved for the first time:** at step 1,000 گ is heard as [ɡ] in «گلتلك» and «گلتلي»
+and چ as [tʃ] in «نحچي» (no flags on those words); what still fails is word-initial / pre-vowel چ — «چاي» → «كاي»,
+«باچر» → «باكر» (heard [k]) — so every judged line still carries one failing word and the line gate reads 0 of 2 / 0 of 7.
+Prosody and pause statistics are recorded beside the CERs (pitch median / range in semitones / voiced ratio / breaks per
+line, `scores.json`); they are reported, not claimed as naturalness. Decision (the order's §12): the smoke proved useful on
+every measurable property except the one open phone, so the **full Vewbox-IQ Stage A runs on this recipe** —
+`stage-a-iq`, 4,000 steps, a checkpoint every 500, each scored on the pack and the natural validation; the best checkpoint
+by the gate is chosen afterwards, with its provenance (base revision, manifest hashes, config, seed, logs, checkpoint
+hashes) in the checkpoint folder. The open چ cases are the next diagnosed item if the longer run does not close them
+(the init source for چ: mean(c, h) is a weak proxy for [tʃ]; `ch` is not a single grapheme in this vocabulary).
+
 The record of 2026-10-09/10 below stays as engineering history.
 
 # CLEAN PRODUCTION VALIDATION RESTART — 2026-10-09
