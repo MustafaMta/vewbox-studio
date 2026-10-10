@@ -152,7 +152,9 @@ export const JOB_PAYLOADS = {
   /** One line in the character's voice. language/dialect: one of the languages the character speaks (its voice's
    *  language profile decides the engine); engine: that profile's production engine or one of its comparison engines,
    *  spoken once from the same reference. */
-  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), dialect: dialect.optional(), engine: z.string().max(40).optional(), emotion: z.string().optional() }),
+  /** `reference`: PACK (default) — the line's language picks its clip of the canonical reference pack; PRIMARY — the
+   *  identity's primary reference whatever the language (how a pack clip itself is rendered: never from another clip) */
+  VOICE_PREVIEW: z.object({ characterId: id, text: z.string().min(1).max(600), language: language.optional(), dialect: dialect.optional(), engine: z.string().max(40).optional(), emotion: z.string().optional(), reference: z.enum(['PACK', 'PRIMARY']).optional() }),
   /** `lineIds`: only these lines (targeted regeneration, step 14) — recorded again even when their recording is current */
   DIALOGUE_AUDIO: z.object({ productionId: id, shotIds: z.array(id).optional(), lineIds: z.array(id).max(200).optional(), force: z.boolean().optional() }),
   WRITE_SONG: z.object({ productionId: id, brief: z.string().trim().max(2000).optional(), singerIds: z.array(id).max(4).optional() }),

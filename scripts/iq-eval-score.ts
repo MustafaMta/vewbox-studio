@@ -19,7 +19,8 @@ interface Item { id: string; language: 'ar' | 'en' | 'AR' | 'EN'; text: string; 
 
 async function main() {
   const dir = path.resolve(process.argv[2] ?? '');
-  const meta = JSON.parse(await fs.readFile(path.join(dir, 'metrics.json'), 'utf8')) as { lines?: Item[]; checkpoint?: string; [k: string]: unknown };
+  // --metrics <file>: another lines file in the same shape (a listening package's lines.json) instead of metrics.json
+  const meta = JSON.parse(await fs.readFile(path.join(dir, arg('metrics', 'metrics.json')!), 'utf8')) as { lines?: Item[]; checkpoint?: string; [k: string]: unknown };
   const items = (meta.lines ?? []) as Item[];
   if (!items.length) throw new Error(`${dir}/metrics.json lists no items`);
   const refAr = arg('reference'); const refEn = arg('english-reference') ?? refAr;

@@ -271,8 +271,10 @@ export function languageProfileNotes(origin: VoiceIdentity['origin'], l: SpokenL
  *  language (IRAQI for Iraqi Arabic, ENGLISH for English), else none — the caller falls back to the primary reference. */
 export function referenceClipFor(identity: Pick<VoiceIdentity, 'canonicalReferencePack'>, language: Language, dialect?: Dialect): VoiceReferenceClip | undefined {
   const pack = identity.canonicalReferencePack ?? [];
-  if (language === 'AR') return pack.find((c) => c.role === 'IRAQI' && c.language === 'AR' && (!dialect || !c.dialect || c.dialect === dialect)) ?? pack.find((c) => c.language === 'AR');
-  return pack.find((c) => c.role === 'ENGLISH' && c.language === 'EN');
+  // several clips of one role: the one closest to the speaker fingerprint (its recorded similarity), the latest on a tie
+  const best = (xs: VoiceReferenceClip[]) => [...xs].sort((a, b) => (b.similarity ?? -1) - (a.similarity ?? -1) || b.addedAt.localeCompare(a.addedAt))[0];
+  if (language === 'AR') return best(pack.filter((c) => c.role === 'IRAQI' && c.language === 'AR' && (!dialect || !c.dialect || c.dialect === dialect))) ?? best(pack.filter((c) => c.language === 'AR'));
+  return best(pack.filter((c) => c.role === 'ENGLISH' && c.language === 'EN'));
 }
 
 /** A listener's record for one of the identity's languages: an Arabic profile is LISTENER_APPROVED only when both the

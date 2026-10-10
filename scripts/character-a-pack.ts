@@ -73,7 +73,9 @@ async function speak() {
     { id: 'english', text: PACK.english, language: 'EN' as const, ...(englishEngine ? { engine: englishEngine } : {}) },
   ];
   const out: Array<{ line: string; job: string; created: boolean }> = [];
-  for (const l of lines) {
+  // --only-iraqi: a rerun after a fix on the Iraqi side alone (the English line of the previous attempt stands and the
+  // package picks the latest sample of each line)
+  for (const l of lines.filter((x) => !process.argv.includes('--only-iraqi') || x.language === 'AR')) {
     const { id, ...payload } = l;
     const r = await enqueue({ type: 'VOICE_PREVIEW', payload: { characterId: c.id, ...payload }, idempotencyKey: `character-a-pack:${attempt}:${id}:${l.engine ?? 'production'}`, maxAttempts: 1 });
     out.push({ line: id, job: r.job.id, created: r.created });
@@ -110,6 +112,9 @@ async function pack() {
     const p = (a.provenance ?? {}) as Record<string, unknown>;
     metrics[name] = { engine: s.engine ?? p.engine, model: p.model, check: p.check, measured: p.measured, durationSeconds: s.durationSeconds };
   }
+  // the scorer's shape (scripts/iq-eval-score.ts --metrics lines.json --reference 0-canonical-reference.wav): ECAPA to
+  // the identity's seed (the fingerprint), CER/coverage and the phoneme gate on the packaged files themselves
+  await fs.writeFile(path.join(dir, 'lines.json'), JSON.stringify({ lines: want.filter(([name]) => files[name]).map(([name, text, lang]) => ({ id: name, language: lang.toLowerCase(), text, file: files[name] })), package: dir, attempt }, null, 2), 'utf8');
   const readme = `# Character A — ${c.name} — voice listening package, attempt ${attempt}\n\nListen first; the metrics are in metrics.json, apart.\n\n0. canonical reference — the voice's own reference (what every renderer conditions on)\n1. Iraqi, natural — «${PACK.natural}»\n2. Iraqi, hard — «${PACK.hard}»\n3. Iraqi, emotional — «${PACK.emotional}»\n4. Iraqi, longer dialogue — «${long.text}»\n5. English identity — “${PACK.english}”\n\nEach output is the ONE result of one request (no candidates, no seed search). Gate: CHARACTER_A_VOICE = WAITING_FOR_USER_ACCEPTANCE — human enough? Iraqi enough? the same person? professional enough?\n`;
   await fs.writeFile(path.join(dir, 'README.md'), readme, 'utf8');
   await fs.writeFile(path.join(dir, 'metrics.json'), JSON.stringify(metrics, null, 2), 'utf8');

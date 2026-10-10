@@ -579,7 +579,7 @@ export const voiceBuild: Handler = async (ctx) => {
 // ---------------------------------------------------------------------------------------------- VOICE_PREVIEW
 
 export const voicePreview: Handler = async (ctx) => {
-  const { characterId, text, emotion, language, dialect, engine } = ctx.job.payload as JobPayloadParsed<'VOICE_PREVIEW'>;
+  const { characterId, text, emotion, language, dialect, engine, reference } = ctx.job.payload as JobPayloadParsed<'VOICE_PREVIEW'>;
   const { state } = await readState();
   const found = state.characters.find((x) => x.id === characterId);
   if (!found) throw new StudioError('NOT_FOUND', 'Character not found');
@@ -594,8 +594,9 @@ export const voicePreview: Handler = async (ctx) => {
     if (waiting.length) throw consentRequired(`${c.name}'s recording “${waiting[0].label}” has no consent statement; confirm it before the voice speaks from it.`, { characterId, sampleId: waiting[0].id });
     throw missingReference(`${c.name} has no voice to speak with yet: build the voice (from a consented recording, or a studio-designed voice) first.`, { characterId });
   }
-  // the pack rule: the line's language picks its clip of the canonical reference pack (same performer), else the primary
-  const ref = await packReference(found, state.assets, c.language, c.dialect, primary);
+  // the pack rule: the line's language picks its clip of the canonical reference pack (same performer), else the primary;
+  // reference: 'PRIMARY' renders from the primary alone (a pack clip is never rendered from another pack clip)
+  const ref = reference === 'PRIMARY' ? primary : await packReference(found, state.assets, c.language, c.dialect, primary);
   if (ref.packClip) await ctx.event('info', `${c.name}'s ${ref.packClip.role.toLowerCase()} reference clip (${ref.packClip.source.toLowerCase().replace('_', ' ')}) conditions this ${languageLabel({ language: c.language, dialect: c.dialect })} line`, { characterId, assetId: ref.asset.id, role: ref.packClip.role });
   await ctx.progress('GENERATING', { phase: 'speaking', message: `Speaking as ${c.name}${speaking.profile ? ` (${languageLabel(speaking.profile)}, ${speaking.engine ?? speaking.profile.engine})` : ''}` });
   const line = await speakLine(ctx, c, text, ref, dir, { emotion, engine: isLocalTtsEngine(speaking.engine) || isEvalTtsEngine(speaking.engine) ? speaking.engine : undefined });
