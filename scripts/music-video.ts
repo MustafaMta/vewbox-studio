@@ -81,7 +81,7 @@ async function pipeline() {
   if (stepArg === 'develop') jobs.push({ type: 'DEVELOP_STORY', payload: { productionId }, key: `mv-film:${productionId}:develop:${attempt}`, minutes: 40 });
   else if (stepArg === 'script') jobs.push({ type: 'WRITE_SCRIPT', payload: { productionId }, key: `mv-film:${productionId}:script:${attempt}`, minutes: 40 });
   else if (stepArg === 'plan') jobs.push({ type: 'PLAN_SHOTS', payload: { productionId }, key: `mv-film:${productionId}:plan:${attempt}`, minutes: 60 });
-  else if (stepArg === 'plates') for (const lid of p.locationIds) jobs.push({ type: 'LOCATION_PLATES', payload: { locationId: lid }, key: `mv-film:${productionId}:plates:${lid}:${attempt}`, minutes: 60 });
+  else if (stepArg === 'plates') for (const lid of p.locationIds) jobs.push({ type: 'LOCATION_PLATES', payload: { locationId: lid, ...(process.argv.includes('--force') ? { force: true } : {}) }, key: `mv-film:${productionId}:plates:${lid}:${attempt}`, minutes: 60 });
   else if (stepArg === 'produce') jobs.push({ type: 'PRODUCE', payload: { productionId, ...(arg('shot-ids') ? { shotIds: arg('shot-ids')!.split(',') } : {}), ...(process.argv.includes('--frames-only') ? { framesOnly: true } : {}) }, key: `mv-film:${productionId}:produce:${attempt}`, minutes: 600 });
   else if (stepArg === 'export') jobs.push({ type: 'EXPORT', payload: { productionId, format: 'mp4-h264', resolution: '1080', subtitles: p.language === 'AR' ? 'both' : 'en', credits: true }, key: `mv-film:${productionId}:export:${attempt}`, minutes: 60 });
   else throw new Error(`unknown step ${stepArg}`);
