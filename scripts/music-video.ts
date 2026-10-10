@@ -65,6 +65,35 @@ async function song() {
   }
 }
 
+/** The film side, one job at a time, each waited for and printed: develop (story, cast, places, scenes) → script (beats,
+ *  lines) → plan (shots + the singing assignment) → plates (LOCATION_PLATES for every place of the production) → produce
+ *  (frames → takes → the cut) → export. */
+async function pipeline() {
+  const productionId = arg('production-id'); if (!productionId) throw new Error('--production-id is required');
+  const stepArg = arg('step'); if (!stepArg) throw new Error('--step develop|script|plan|plates|produce|export is required');
+  const attempt = Number(arg('attempt', '1'));
+  const { readState } = await import('@/server/studio/engine');
+  const { enqueue } = await import('@/server/jobs/queue');
+  const { state } = await readState();
+  const p = state.productions.find((x) => x.id === productionId);
+  if (!p) throw new Error('production not found');
+  const jobs: Array<{ type: string; payload: Record<string, unknown>; key: string; minutes: number }> = [];
+  if (stepArg === 'develop') jobs.push({ type: 'DEVELOP_STORY', payload: { productionId }, key: `mv-film:${productionId}:develop:${attempt}`, minutes: 40 });
+  else if (stepArg === 'script') jobs.push({ type: 'WRITE_SCRIPT', payload: { productionId }, key: `mv-film:${productionId}:script:${attempt}`, minutes: 40 });
+  else if (stepArg === 'plan') jobs.push({ type: 'PLAN_SHOTS', payload: { productionId }, key: `mv-film:${productionId}:plan:${attempt}`, minutes: 60 });
+  else if (stepArg === 'plates') for (const lid of p.locationIds) jobs.push({ type: 'LOCATION_PLATES', payload: { locationId: lid }, key: `mv-film:${productionId}:plates:${lid}:${attempt}`, minutes: 60 });
+  else if (stepArg === 'produce') jobs.push({ type: 'PRODUCE', payload: { productionId, ...(arg('shot-ids') ? { shotIds: arg('shot-ids')!.split(',') } : {}), ...(process.argv.includes('--frames-only') ? { framesOnly: true } : {}) }, key: `mv-film:${productionId}:produce:${attempt}`, minutes: 600 });
+  else if (stepArg === 'export') jobs.push({ type: 'EXPORT', payload: { productionId }, key: `mv-film:${productionId}:export:${attempt}`, minutes: 60 });
+  else throw new Error(`unknown step ${stepArg}`);
+  for (const j of jobs) {
+    const r = await enqueue({ type: j.type as never, payload: j.payload as never, idempotencyKey: j.key, maxAttempts: 1 });
+    console.error(`[mv] ${j.type} job ${r.job.id} (${r.created ? 'created' : 'existing'})`);
+    const row = await waitJob(r.job.id, j.minutes);
+    console.log(JSON.stringify({ step: stepArg, type: j.type, job: r.job.id, status: row.status, result: row.result, error: row.error ?? undefined }, null, 1));
+    if (!['COMPLETED', 'AWAITING_REVIEW'].includes(row.status)) { process.exitCode = 3; break; }
+  }
+}
+
 async function status() {
   const productionId = arg('production-id'); if (!productionId) throw new Error('--production-id is required');
   const { readState } = await import('@/server/studio/engine');
@@ -75,5 +104,5 @@ async function status() {
 }
 
 const cmd = process.argv[2];
-(cmd === 'create' ? create() : cmd === 'song' ? song() : cmd === 'status' ? status() : Promise.reject(new Error('usage: music-video.ts create | song | status')))
+(cmd === 'create' ? create() : cmd === 'song' ? song() : cmd === 'pipeline' ? pipeline() : cmd === 'status' ? status() : Promise.reject(new Error('usage: music-video.ts create | song | pipeline --step develop|script|plan|plates|produce|export | status')))
   .then(() => process.exit(process.exitCode ?? 0), (e) => { console.error(e.message ?? e); process.exit(1); });

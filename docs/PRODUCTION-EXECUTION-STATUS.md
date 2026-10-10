@@ -343,8 +343,12 @@ no shift): 11 of 16 lines placed on the sung vocal; F0 of the lead median 347 Hz
 232 Hz / 292 Hz — the song sits ≈ 7–9 semitones above her speaking range. **Identity, calibrated against impostors:** ECAPA to
 Layla's fingerprint — the raw ACE vocal **0.00**, the converted vocal **0.50**, the sung mix 0.43; the converted vocal against
 Tariq 0.10 and Karim −0.04. The conversion moves the vocal decisively to her identity (0.00 → 0.50 with impostors at ≈ 0.1), but
-below the 0.60 bootstrap floor, so no SINGING reference was kept yet. Next controlled request: the same song with the allowed
-−3 st shift, compared on the same numbers.
+below the 0.60 bootstrap floor, so no SINGING reference was kept yet. The one allowed variation, −3 st (attempt 3): 0.506,
+melody median 291 Hz / p95 395 Hz, 11 of 16 lines — no identity gain for a changed key, so **attempt 2 (no shift) is the
+song's recording** (`gen-5ce8e1bec57386f52c0c`; the ACE recording `gen-e8119a3f0bec1aeaa672` and both converted vocals stay as
+assets). Gate `SONG_A_ENGLISH = AUTO_REVIEW: PASS with limits` (sung by the identity relative to impostors; the engineering QA
+cannot judge the singing by ear). The SINGING-reference bootstrap waits for a conversion at ≥ 0.60 — likely a song written
+in her speaking range (an alto caption) rather than a shift; noted for the next song.
 
 ## Model inventory — the source of truth (2026-10-09)
 
