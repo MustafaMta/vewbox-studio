@@ -297,8 +297,24 @@ ready for the consented Baghdadi recording, which is the only route to a profess
 coverage 1, ECAPA to the seed 0.835, 195 Hz (seed 234 Hz). Iraqi (Vewbox‑IQ base from her seed; attempt 0 is the base record
 and a rerun is bit-identical by seed) `FAIL` — natural 0.08 / hard 0.233 (coverage 0.33) / emotional 0.122 / long 0.128, چ‑گ
 gate 0 of 2, ECAPA 0.56–0.60 (cross-language). Verdict recorded `AUTO_APPROVED_BY_ENGINEERING_QA: ENGLISH PASS, IRAQI FAIL (data
-gap)`; Habibi and FireRed stay defeated; nothing Iraqi is presented as accepted. Next in the sequence (the autonomous directive):
-B and C on the same basis, then the singer identity.
+gap)`; Habibi and FireRed stay defeated; nothing Iraqi is presented as accepted.
+
+**Characters B and C on the same basis (one generation per line; Iraqi: Vewbox‑IQ base from the seed; English: MOSS;
+packages `docs/evidence/character-{b,c}-voice/attempt-1/` with `lines.json` + `scores.json`; A's full seven-line package is
+`attempt-3`):** the long Baghdadi line of each was written once by Qwen3.8 (B: «يا ربي، شلونك؟ هسه باچر ماكو وقت، بس گلتلك اني
+حبيتك، كلشي تمام.» — grammatical but semantically thin, kept as written; C: «يا حبيبي، شلونك؟ گلت لك ماكو وقت، بس هيچ مشكلة،
+نجلس شوية ونشرب چاي.»).
+
+| character (seed pitch) | English: CER / ECAPA to the seed (identity, emotional, long) | Iraqi: CER natural / hard / emotional / long · چ‑گ gate · ECAPA | gate |
+| --- | --- | --- | --- |
+| A Layla (234 Hz) | 0 / 0.835 · 0 / 0.846 · 0 / 0.917 | 0.08 / 0.233 / 0.122 / 0.128 · 0 of 2 · 0.56–0.60 | EN PASS · IQ FAIL |
+| B Tariq (199 Hz) | 0 / 0.667 · 0 / 0.661 · 0 / 0.784 | 0.04 / 0.133 / 0.098 / 0.07 · 0 of 2 · 0.47–0.57 | EN PASS (identity weaker: MOSS speaks him at 234–247 Hz) · IQ FAIL |
+| C Karim (119 Hz) | 0 / 0.637 · 0 / 0.783 · 0 / 0.782 | 0.16 / 0.50 / 0.146 / 0.19 · 0 of 2 · 0.50–0.55 | EN PASS · IQ FAIL (the hard line half lost) |
+
+English: every line heard back exactly (CER 0, coverage 1); identity continuity by ECAPA 0.64–0.92 (no calibrated absolute
+threshold exists for these synthetic seeds — relative evidence only). Iraqi: the hard چ‑گ line fails for all three, the gate
+passes nowhere, cross-language ECAPA sits at 0.47–0.60 — the same data-gap verdict as A. Recorded
+`AUTO_APPROVED_BY_ENGINEERING_QA: A/B/C ENGLISH PASS, IRAQI FAIL (data gap)`. The sequence continues with the singer identity.
 
 ## Model inventory — the source of truth (2026-10-09)
 

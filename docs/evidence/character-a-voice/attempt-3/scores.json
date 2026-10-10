@@ -1,0 +1,142 @@
+{
+  "dir": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3",
+  "reference": {
+    "ar": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3\\0-canonical-reference.wav",
+    "en": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3\\0-canonical-reference.wav"
+  },
+  "scoredAt": "2026-10-10T05:09:32.247Z",
+  "rows": [
+    {
+      "id": "1-iraqi-natural",
+      "language": "AR",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "heard": "شلونك صار لي هواية ما شيفك؟",
+      "cer": 0.08,
+      "coverage": 0.8,
+      "similarity": 0.594,
+      "pitch": {
+        "median_hz": 260.8,
+        "p10_hz": 185.4,
+        "p90_hz": 499.4,
+        "range_semitones": 17.15,
+        "voiced_ratio": 0.775,
+        "breaks": 0
+      }
+    },
+    {
+      "id": "2-iraqi-hard",
+      "language": "AR",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "heard": "لثل كبائر نكعد نحى ونشرب ساي.",
+      "cer": 0.233,
+      "coverage": 0.333,
+      "similarity": 0.556,
+      "pitch": {
+        "median_hz": 246.8,
+        "p10_hz": 206.6,
+        "p90_hz": 499.4,
+        "range_semitones": 15.28,
+        "voiced_ratio": 0.823,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "FAIL",
+        "flags": [
+          "گلتلك: گ /ɡ/ not heard (heard: l i t a l k a v)",
+          "باچر: چ /tʃ/ not heard (heard: v ɛ e r n)",
+          "نحچي: چ /tʃ/ not heard (heard: n a q iː)",
+          "چاي.: چ /tʃ/ not heard (heard: s ɑ5 j)"
+        ]
+      }
+    },
+    {
+      "id": "3-iraqi-emotional",
+      "language": "AR",
+      "text": "يمعود لا تشيل هم، آني يمك وكلشي راح يصير زين.",
+      "heard": "يمعوض لا تشي الهم، أنا يمكن وكل شي رح يصيف زين.",
+      "cer": 0.171,
+      "coverage": 0.5,
+      "similarity": 0.568,
+      "pitch": {
+        "median_hz": 218.6,
+        "p10_hz": 178.6,
+        "p90_hz": 499.4,
+        "range_semitones": 17.8,
+        "voiced_ratio": 0.613,
+        "breaks": 0
+      }
+    },
+    {
+      "id": "4-iraqi-long",
+      "language": "AR",
+      "text": "ياك، شلونك؟ جيتي عندنا باچر؟ هسه كلشي ماضٍ زين، بس ماكو وقت، گلتلي أمي إنو لازم تجيبين الشاي.",
+      "heard": "ياك شلون جاتي عندنا باتشر هسه كل شيء ماض زين بس ماك وقت قلت لأمي إنه لازم تجيبين الشاي.",
+      "cer": 0.093,
+      "coverage": 0.667,
+      "similarity": 0.546,
+      "pitch": {
+        "median_hz": 231.6,
+        "p10_hz": 182.8,
+        "p90_hz": 499.4,
+        "range_semitones": 17.4,
+        "voiced_ratio": 0.696,
+        "breaks": 0
+      },
+      "phonology": {
+        "verdict": "PASS",
+        "flags": []
+      }
+    },
+    {
+      "id": "5-english-identity",
+      "language": "EN",
+      "text": "I told you we'd make it. Sit down and let me explain.",
+      "heard": "I told you we'd make it. Sit down and let me explain.",
+      "cer": 0,
+      "coverage": 1,
+      "similarity": 0.835,
+      "pitch": {
+        "median_hz": 194.8,
+        "p10_hz": 179.6,
+        "p90_hz": 248,
+        "range_semitones": 5.58,
+        "voiced_ratio": 0.597,
+        "breaks": 0
+      }
+    },
+    {
+      "id": "6-english-emotional",
+      "language": "EN",
+      "text": "You don't have to say anything. I know. I knew the moment you walked in.",
+      "heard": "You don't have to say anything. I know. I knew the moment you walked in.",
+      "cer": 0,
+      "coverage": 1,
+      "similarity": 0.846,
+      "pitch": {
+        "median_hz": 227.7,
+        "p10_hz": 200.3,
+        "p90_hz": 277.1,
+        "range_semitones": 5.62,
+        "voiced_ratio": 0.705,
+        "breaks": 0
+      }
+    },
+    {
+      "id": "7-english-long",
+      "language": "EN",
+      "text": "Listen to me. We have been through worse than this, and we are still standing. So we rest tonight, we eat something warm, and tomorrow morning we go back and finish what we started.",
+      "heard": "Listen to me. We have been through worse than this, and we are still standing. So we rest tonight. We eat something warm, and tomorrow morning we go back and finish what we started.",
+      "cer": 0,
+      "coverage": 1,
+      "similarity": 0.917,
+      "pitch": {
+        "median_hz": 237,
+        "p10_hz": 211.2,
+        "p90_hz": 263.2,
+        "range_semitones": 3.81,
+        "voiced_ratio": 0.692,
+        "breaks": 0
+      }
+    }
+  ]
+}

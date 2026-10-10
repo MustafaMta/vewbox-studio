@@ -1,0 +1,48 @@
+{
+  "lines": [
+    {
+      "id": "1-iraqi-natural",
+      "language": "ar",
+      "text": "شلونك؟ صارلي هواية ما شايفك.",
+      "file": "1-iraqi-natural.wav"
+    },
+    {
+      "id": "2-iraqi-hard",
+      "language": "ar",
+      "text": "گلتلك باچر نكعد نحچي ونشرب چاي.",
+      "file": "2-iraqi-hard.wav"
+    },
+    {
+      "id": "3-iraqi-emotional",
+      "language": "ar",
+      "text": "يمعود لا تشيل هم، آني يمك وكلشي راح يصير زين.",
+      "file": "3-iraqi-emotional.wav"
+    },
+    {
+      "id": "4-iraqi-long",
+      "language": "ar",
+      "text": "ياك، شلونك؟ جيتي عندنا باچر؟ هسه كلشي ماضٍ زين، بس ماكو وقت، گلتلي أمي إنو لازم تجيبين الشاي.",
+      "file": "4-iraqi-long.wav"
+    },
+    {
+      "id": "5-english-identity",
+      "language": "en",
+      "text": "I told you we'd make it. Sit down and let me explain.",
+      "file": "5-english-identity.wav"
+    },
+    {
+      "id": "6-english-emotional",
+      "language": "en",
+      "text": "You don't have to say anything. I know. I knew the moment you walked in.",
+      "file": "6-english-emotional.wav"
+    },
+    {
+      "id": "7-english-long",
+      "language": "en",
+      "text": "Listen to me. We have been through worse than this, and we are still standing. So we rest tonight, we eat something warm, and tomorrow morning we go back and finish what we started.",
+      "file": "7-english-long.wav"
+    }
+  ],
+  "package": "D:\\vewbox\\docs\\evidence\\character-a-voice\\attempt-3",
+  "attempt": 3
+}
