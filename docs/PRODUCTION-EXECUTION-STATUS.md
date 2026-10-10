@@ -40,6 +40,18 @@ ONE controlled smoke after each diagnosed fix; full training only after a smoke 
 Realistic, Actor + Singer, English + Iraqi, one canonical image, one voice identity with English/Iraqi/singing profiles
 in one `canonicalReferencePack`), its small voice pack measured; only then B (Anime) and C (Cartoon).
 
+**Phase 1 continues — smoke 3 (`stage-a-smoke3`), the one controlled experiment after the diagnosed fix.** Diagnosis of the
+clean Stage A failure (§11 of the order): the training text was dominated by Omnilingual prompted answers in an MSA-leaning
+register and standard orthography (گ in 102 of 1,712 utterances), so the model saw almost no Baghdadi spelling in natural
+sentences, and the MSA replay reinforced the formal register. Fix under test: **data balance** — train on the
+Baghdadi-spelled subset only (`train-baghdadi/manifest.jsonl`: the Kharrufa natural sentences, the lexicon-respelled rows and
+every row already carrying چ/گ — 445 utterances, 2.82 h, 12 speakers, the largest 64) with **no MSA replay**, the same LoRA
+recipe (r32/α64, lr 1e-5, batch 8), 1,500 steps, checkpoints every 500, each scored on the Arabic-reference pack and the
+natural held-out validation against the measured base (pack 0.128 / 0.79 / 0 of 2; validation 0.065 / 0.787 / 0 of 7).
+Gate: چ/گ and Iraqi-word pronunciation better, ASR accuracy not worse on natural speech, speaker similarity and English
+kept; labels TECHNICAL_* only. If it fails, the next diagnosed cause is tried (selected layers / text_emb-only, learning
+rate, phoneme representation) — one smoke at a time, no long training until a smoke proves useful.
+
 The record of 2026-10-09/10 below stays as engineering history.
 
 # CLEAN PRODUCTION VALIDATION RESTART — 2026-10-09
