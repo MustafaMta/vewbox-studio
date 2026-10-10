@@ -397,7 +397,12 @@ rocks), "her gaze fixed… lonely expression" plus a sung `<d>` line on a perfor
 re-stages from words it cannot show in the framing it was given (the 2026-10-08 lesson again). Two fixes: (1) a singer seen
 from behind is never asked to sing on camera — the prompt says the song plays, they are seen from behind the whole time and
 never turn (`singingTags`); (2) a director's revision of shot 1 (recorded on the shot): whole-figure action at the wide
-scale, "she does not turn", no hands, boots or gaze details. Attempt 4 at both tiers follows. The director plan
+scale, "she does not turn", no hands, boots or gaze details. The same reading applied to the other seven shots found two
+more mixed-scale actions and they were revised the same way: the INSERT of the strumming hand (scene 2, shot 2) lost "her
+breath visible in the cold air" (a face detail in a hands-only frame); the CLOSE-UP of the dropped gaze (scene 3, shot 2)
+lost "her right hand slowly lowers, fingers uncurving" (a hand detail in a face frame) and says "face to camera… stays in
+the same framing". Attempt 4 of shot 1 at int8 follows; BF16 attempt 3 (the same flawed prompt as int8 attempt 3) was
+cancelled as redundant — the attempt-2 pair already compares the tiers on one prompt and seed. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
