@@ -382,6 +382,24 @@ def main() -> None:
             items.append({"text": z["text"], "speech": z["speech"], "ve": z["ve"], "prompt": prompt})
         return items, n_replay
 
+    def t3_losses(model, cond, b):
+        """The text and speech cross-entropies as NEXT-TOKEN prediction (the decoder generates token t+1 from the hidden
+        state at t). Upstream `T3.loss` (chatterbox@65b18437) is not usable for training: it hands [B, T, V] logits to
+        cross_entropy as if the classes were on dim 1 (RuntimeError on the first step, 2026-10-10) and compares position
+        t with token t, unshifted. Logits in float32 for the loss; padding beyond each sequence's length is ignored."""
+        import torch.nn.functional as F  # noqa: PLC0415
+
+        out = model.forward(t3_cond=cond, text_tokens=b["text"], text_token_lens=b["text_lens"], speech_tokens=b["speech"], speech_token_lens=b["speech_lens"], training=True)
+
+        def shifted(logits, tokens, lens):
+            x = logits[:, :-1].float().transpose(1, 2)  # (B, V, T-1): position t predicts token t+1
+            y = tokens[:, 1:].clone()
+            pos = torch.arange(y.size(1), device=y.device)[None]
+            y[pos >= (lens[:, None] - 1)] = -100  # beyond the sequence (the last real token has no successor)
+            return F.cross_entropy(x, y, ignore_index=-100)
+
+        return shifted(out.text_logits, b["text"], b["text_lens"]), shifted(out.speech_logits, b["speech"], b["speech_lens"])
+
     def checkpoint(step: int, losses: dict[str, float]) -> Path:
         ck = out_dir / f"step-{step:06d}"
         ck.mkdir(parents=True, exist_ok=True)
@@ -410,7 +428,7 @@ def main() -> None:
                 b = collate(items, t3.hp, device)
                 cond = T3Cond(speaker_emb=b["ve"], cond_prompt_speech_tokens=b["prompt"], emotion_adv=torch.full((len(items), 1, 1), 0.5, device=device))
                 with torch.autocast("cuda", dtype=torch.bfloat16, enabled=bool(args.bf16)):
-                    lt, ls = t3.loss(t3_cond=cond, text_tokens=b["text"], text_token_lens=b["text_lens"], speech_tokens=b["speech"], speech_token_lens=b["speech_lens"])
+                    lt, ls = t3_losses(t3, cond, b)
                     loss = args.text_loss_weight * lt + ls
                 (loss / accum).backward()
                 acc["loss"] += float(loss.detach()) / accum
