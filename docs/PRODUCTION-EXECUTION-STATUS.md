@@ -376,7 +376,17 @@ case and the pinned map, the harbour and sunset ahead (95 s at full quality). Th
 inspected directly — full body, neutral pose, chin-length dark brown hair parted left, charcoal oversized wool coat over a
 rust-orange turtleneck, indigo jeans, black ankle boots, the collarbone mole; it matches her identity line) was recorded
 APPROVED with the reason `AUTO_APPROVED_BY_ENGINEERING_QA`. B's and C's canonical images are approved the same way only
-after their own inspection, when their productions need it. The director plan
+after their own inspection, when their productions need it.
+**Shot 1 at int8 (`take-2722cd78541affa80164`, 10.1 s, 243 frames, 17.3 min, Ref2VA 20 steps): FAIL by inspection** — the
+planned locked-off wide shot holds under a second, then the engine cuts into a montage (her face in close-up, the guitar in
+close-up, her boots on the rocks: cuts at 0.79 / 5.00 / 7.38 s, 18.6 % repeated frames), and her mouth stays closed while the
+song plays (singing-sync FAIL); the identity in the close-ups does read as Layla. Root cause, read off the take's own prompt:
+the `<Subject 2>` environment definition still carried the camera zones ("Medium shot from the side … profile; Close-up zone
+near the bollard for intimate facial details") — the H3 prompt path reads the stored identity line directly, which the
+plate fix had not covered — and H3 re-stages from staging words (the 2026-10-08 lesson). Fix: the stored identity line
+loses its camera zones at the one function every consumer reads (`locationIdentity`), so plates, frames, shot packs and
+the H3 `<Subject>` definition all stop carrying them. The int8 take is re-made after the fix (same seed) and compared with
+the BF16 run of the same prompt. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt

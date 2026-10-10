@@ -61,7 +61,10 @@ export function locationIdentityLine(l: Parameters<typeof identityFacts>[0]): st
  *  (a row without one is version 1). Pure: the same place gives the same answer. */
 export function locationIdentity(l: Pick<Location, 'kind' | 'description' | 'landmarks' | 'props' | 'layout' | 'identity' | 'updatedAt'>, at?: string): LocationIdentity {
   const hash = identityHashOf(l);
-  if (l.identity && l.identity.hash === hash) return l.identity;
+  // a stored identity is returned as stored — except that a line written before 2026-10-10 still carries its camera
+  // zones, which every consumer (plates, frames, the H3 take prompt's <Subject> definition, the shot pack) would paste
+  // into a prompt: they are cut here, once, for all of them (the hash and version are untouched)
+  if (l.identity && l.identity.hash === hash) return l.identity.line.includes('camera zones:') ? { ...l.identity, line: withoutCameraZones(l.identity.line) } : l.identity;
   return { version: (l.identity?.version ?? 0) + 1, hash, line: locationIdentityLine(l), updatedAt: at ?? l.updatedAt };
 }
 
