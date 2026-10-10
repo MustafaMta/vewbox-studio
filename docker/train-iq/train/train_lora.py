@@ -339,10 +339,14 @@ def main() -> None:
         init_report: dict[str, Any] = {}
         if args.init_rows.strip():
             with torch.no_grad():
+                # a token may be written as a code point (U+06AF): Arabic letters do not survive every shell on the way in
+                def tok(s: str) -> str:
+                    s = s.strip()
+                    return chr(int(s[2:], 16)) if re.fullmatch(r"U\+[0-9A-Fa-f]{4,6}", s) else s
                 for spec in [s.strip() for s in args.init_rows.split(",") if s.strip()]:
                     target, _, sources = spec.partition("=")
-                    target = target.strip()
-                    src_tokens = [s.strip() for s in sources.split("+") if s.strip()]
+                    target = tok(target)
+                    src_tokens = [tok(s) for s in sources.split("+") if s.strip()]
                     if target not in vocab or any(s not in vocab for s in src_tokens):
                         die(f"--init-rows: unknown token in {spec!r} (vocab has {[t for t in [target, *src_tokens] if t in vocab]})")
                     tid = vocab[target]
