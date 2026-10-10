@@ -208,6 +208,15 @@ or it was and the evaluation's cross-language reference (Character A's ENGLISH s
 the research warns about) masks it. Next, in order: a held-out validation evaluation (each utterance with its own
 speaker's Arabic reference, base vs checkpoints) and the five lines from an Arabic reference — then the recipe, not before.
 
+**The separation (the four Iraqi lines from an ARABIC reference — a Kharrufa clip, seed 7, base vs smoke2-1500):** base
+CER 0.128 / similarity 0.79 / phoneme gate 0 of 2 → adapted **CER 0.103 / 0.83 / 1 of 2** (the hard line 0.20 → 0.133,
+«گلتلك» heard «قلت لك» — the right word; the long line passes the gate; «چاي» still «كاي»). The dialect IS being learned,
+modestly; Character A's English seed masks it (cross-language reference). Decisions: (1) full Stage A — 6,000 steps,
+peak lr 1e-5, batch 8, 40 s cap, replay 0.2, checkpoints every 1,000 each scored on the Arabic-reference pack AND the
+held-out validation set (per-speaker Arabic references); stop rules unchanged (validation SIM not below base − 0.03,
+English CER 0 kept); (2) Character A's reference pack gains an IRAQI same-performer clip (a Vewbox-IQ render from her
+own seed, kept as STUDIO_RENDER after the fingerprint check) so Iraqi lines condition on an Arabic clip of the same identity.
+
 ## Model inventory — the source of truth (2026-10-09)
 
 Every "downloaded" claim comes from `scripts/model-inventory.ps1` (`docker/models/inventory.py`): a file counts as
