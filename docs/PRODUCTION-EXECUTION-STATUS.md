@@ -440,7 +440,11 @@ take draws its frame anew), 3.1 PASS, 4.1 PASS (night, blue light). **Pilot take
 (SFace), the push-in as planned; carried and rated GOOD (the machine's lip offset of 13 frames recorded). 3.1
 `take-dd6d89b56b7d15b95151` FAIL — "wind whipping her hair across her face" turned her away from the camera and the engine
 cut at 3.0 s to a different wide figure (identity 0.43); the action is revised (the wind lifts her hair at the sides, her
-face stays to the lens, she keeps singing; facing TOWARD) and the take re-made. 2.1 in progress. The director plan
+face stays to the lens, she keeps singing; facing TOWARD) and the take re-made. 2.1 `take-01bd8ee8e4443cd77699` FAIL for the
+brief — continuous and on-identity (dry hair now), the push-in as planned, but her mouth stays closed through a sung chorus
+(activity 0.02): "lifts her chin, locks her gaze on the horizon without blinking" read as a silent stare. Revised to say the
+singing outright ("sings it straight to the camera, her mouth shaping every word") and re-made. Lesson for the planner
+prompt: in a sung passage the action names the singing. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
