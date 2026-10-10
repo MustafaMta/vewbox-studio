@@ -46,7 +46,9 @@ export function locationIdentityLine(l: Parameters<typeof identityFacts>[0]): st
     f.fixedFeatures.length && `fixed features: ${f.fixedFeatures.join('; ')}`,
     f.props.length && `permanent props: ${f.props.join(', ')}`,
     f.entrances.length && `entrances: ${f.entrances.join('; ')}`,
-    f.zones.length && `camera zones: ${f.zones.join('; ')}`,
+    // the camera zones stay in the facts (the hash, the Location Bible, the shot planner) but NOT in the line: the line is
+    // pasted into every picture prompt, and a zone written as "close-up near the bollard for Layla's profile" made the
+    // plate a collage of portraits (Old Pier Quay, 2026-10-10) — a plate is an unoccupied place
     // the light design (per time of day it is the scene state's, not the identity line's)
     f.light?.key && `key light: ${f.light.key.replace(/\.$/, '')}`,
     f.light?.practicals.length && `practical lights: ${f.light.practicals.join(', ')}`,
@@ -80,4 +82,8 @@ export function advanceIdentity<T extends Location>(before: Pick<Location, 'kind
 }
 
 /** The kind and the identity line as one description (what `describeLocation` in the prompts says of a place). */
-export const describeIdentity = (l: Parameters<typeof locationIdentity>[0]): string => { const i = locationIdentity(l); return `${l.kind === 'INTERIOR' ? 'interior' : 'exterior'}${i.line ? `: ${i.line}` : ''} (place identity v${i.version})`; };
+/** A stored identity line written before 2026-10-10 still carries its camera zones (the hash did not move, so the line
+ *  was not rebuilt): they are cut here, where the line enters a picture prompt. */
+export const withoutCameraZones = (line: string): string => line.replace(/;\s*camera zones:[^;]*(;[^;:]*)*?(?=;\s*(key light|practical lights|colour palette):|$)/, '').replace(/\s+/g, ' ').trim();
+
+export const describeIdentity = (l: Parameters<typeof locationIdentity>[0]): string => { const i = locationIdentity(l); const line = i.line ? withoutCameraZones(i.line) : ''; return `${l.kind === 'INTERIOR' ? 'interior' : 'exterior'}${line ? `: ${line}` : ''} (place identity v${i.version})`; };

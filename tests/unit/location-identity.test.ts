@@ -27,7 +27,8 @@ describe('the identity of a place (src/domain/location.ts)', () => {
     const l = state.locations.find((x) => x.id === 'loc-pharmacy')!;
     expect(locationIdentityLine(l)).toBe('a small pharmacy with a white counter and wooden shelves; fixed features: a green cross sign; permanent props: a cash register');
     const laid: Location = { ...l, layout: { architecture: 'one long room under a pressed-tin ceiling', materials: ['white tile', 'oak'], entrances: ['glass door to the street, front left'], cameraZones: ['the counter', 'the shelves at the back'], spatial: 'the counter runs along the right wall' } };
-    expect(locationIdentityLine(laid)).toBe('a small pharmacy with a white counter and wooden shelves; architecture: one long room under a pressed-tin ceiling; layout: the counter runs along the right wall; materials: white tile, oak; fixed features: a green cross sign; permanent props: a cash register; entrances: glass door to the street, front left; camera zones: the counter; the shelves at the back');
+    // the camera zones are facts (hashed, planned against) but never part of the line a picture prompt carries
+    expect(locationIdentityLine(laid)).toBe('a small pharmacy with a white counter and wooden shelves; architecture: one long room under a pressed-tin ceiling; layout: the counter runs along the right wall; materials: white tile, oak; fixed features: a green cross sign; permanent props: a cash register; entrances: glass door to the street, front left');
     expect(describeIdentity(laid)).toMatch(/^interior: a small pharmacy .* \(place identity v1\)$/);
     expect(locationIdentityLine(laid)).not.toContain('Corner Pharmacy');
   });
