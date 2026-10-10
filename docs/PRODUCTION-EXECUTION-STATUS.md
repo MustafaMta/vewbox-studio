@@ -402,7 +402,15 @@ more mixed-scale actions and they were revised the same way: the INSERT of the s
 breath visible in the cold air" (a face detail in a hands-only frame); the CLOSE-UP of the dropped gaze (scene 3, shot 2)
 lost "her right hand slowly lowers, fingers uncurving" (a hand detail in a face frame) and says "face to camera… stays in
 the same framing". Attempt 4 of shot 1 at int8 follows; BF16 attempt 3 (the same flawed prompt as int8 attempt 3) was
-cancelled as redundant — the attempt-2 pair already compares the tiers on one prompt and seed. The director plan
+cancelled as redundant — the attempt-2 pair already compares the tiers on one prompt and seed. **Shot 1 int8 attempt 4
+(`take-ade6b9169cb3996f3c0c`, whole-figure action, "seen from behind the whole time and never turns", no sung tag, 17.3
+min): still a face.** Fewer cuts (0.67 / 6.17 / 8.54 s; repeated frames 10 % → 3 %), the wide from behind at the head and the
+tail, but ≈ 8 s of a sunlit face close-up in between. Four variants over two tiers say the same thing: over a sung vocal
+in the guide audio H3 supplies the singer's face, whatever the prompt says about a back-turned figure. The director's
+decision follows the brief ("singer visibly singing"): shot 1 is revised to Layla facing the camera at the centre of the
+pier, harbour and dusk behind her, singing the opening lines (continuity screenDirection TOWARD; the frame redrawn, the
+take re-made). A back-turned opening is not something this engine will hold over vocals — recorded as an engine rule for the
+shot planner. The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
