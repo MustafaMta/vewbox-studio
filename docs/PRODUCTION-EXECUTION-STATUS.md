@@ -425,7 +425,12 @@ from the medium to a close-up and turns towards her profile. Across six attempts
 singing shot; it is recorded as a planning rule (a singing shot of 8–10 s is planned as a slow push-in, not a lock-off)
 rather than rerun again. The tier decision: BF16 proved on the attempt-2 pair (1.2× the int8 time, finer skin and hair
 detail, identical staging), so the production tier is BF16 (`MINIMAX_H3_WEIGHTS=bf16`); shot 1 is made once more at BF16 on
-this plan and seed for the direct comparison that chooses the carried take. The director plan
+this plan and seed for the direct comparison that chooses the carried take. **Attempt 7 (`take-ecf0ea2cd8ce344fd005`, BF16,
+same plan and seed, 21.0 min): the same continuous take** — no cut, no repeated frame, the same push-in and turn to profile
+(the seed governs the staging), identity drift 0.16 against int8's 0.20, machine singing-correlation 0.09 against 0.15 (both
+weak; the mouth visibly moves on the words in both), finer skin and hair texture at BF16 on the same frames. The BF16 take
+is the one carried for shot 1; the tier verdict stands (BF16 = 1.2× the time, the same staging, finer detail, equal or
+better identity). The director plan
 reviewed against the brief (one performer, one place dusk → night, intimate, no spectacle; the shot actions carry guitar and
 gaze, the prompt layer's singing tags make her visibly sing) and the story gate recorded
 `AUTO_APPROVED_BY_ENGINEERING_QA` (appr-d608f5836e, bound to the story's hash). Next: the H3 weights-tier first-attempt
