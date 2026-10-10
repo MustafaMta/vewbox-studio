@@ -582,6 +582,7 @@ function shotPlanMessages(p: Production, scene: Scene, run: BeatRun, budget: num
   const count = shotCountFor(budget, run.beats.length, maxShot);
   const user = `Plan the shots for Scene ${scene.number} "${scene.title}" of "${p.title}"${part}. Aspect ${p.aspect}. ${whole ? 'The scene' : 'This part'} should run about ${budget} seconds in ${count.min}–${count.max} shots of 3–${maxShot} seconds (each shot becomes one video generation of that length; a dialogue line needs about 0.4 s per word plus a beat).
 EVERY SHOT SHOWS SOMETHING NEW — an action, a reveal, a reaction to what just happened, a new angle that tells us something. Never repeat or paraphrase an earlier shot ("he prepares", "he readies himself", "he is ready to act" are one moment, not three). When the beats hold little action for the running time, let the shots that carry real action run longer and hold on them; never invent a filler shot.
+${p.kind === 'MUSIC_VIDEO' ? 'MUSIC VIDEO: in every shot of a sung passage the singer is seen singing on camera — framed MEDIUM or closer, facing the camera or in profile, never from behind (the video engine will not hold a wide or a back view over a sung vocal: it cuts to the face by itself). A wide of the place or of the singer belongs to an instrumental passage only. The action of a shot names only what its framing shows: no hands, feet or small props in a wide; no faces or breath in an insert of the hands.' : ''}
 Location: ${loc ? compact(locationSummary(loc)) : '(none set — describe a plausible place consistent with the story and keep it identical across shots)'}
 Time of day: ${scene.timeOfDay}. Purpose: ${scene.purpose ?? ''}. Emotional objective: ${scene.emotionalObjective ?? ''}. Entry state: ${run.from === 0 ? scene.entryState ?? previous.sceneExit ?? '' : '(mid-scene: as the previous shot ends)'}. Exit state: ${next ? '(mid-scene: the scene goes on after these beats)' : scene.exitState ?? ''}.
 Characters present (exact names; include their look so prompts can describe them): ${compact(present.map(castSummary))}
@@ -657,9 +658,10 @@ export function shapeShotPlan(data: ShotPlanOut, ctx: { cast: Character[]; scene
     const prompt = scrub(sh.prompt?.trim() ?? '');
     const scrubbedBeats = beats.map((b) => ({ ...b, action: scrub(b.action) }));
     if (silent && (action !== sh.action || prompt !== (sh.prompt?.trim() ?? '') || scrubbedBeats.some((b, k) => b.action !== beats[k].action))) notes.push('speech words scrubbed from a silent shot');
-    // A SPEAKING FACE IS FRAMED CLOSE
-    const framing = closeFramingFor(sh.framing, { people: characterIds.filter((id) => id !== pov).length, dialogue: dialogue.length > 0 });
-    if (framing !== sh.framing) notes.push(`framing ${sh.framing} → ${framing} (a speaking face is framed close)`);
+    // A SPEAKING FACE IS FRAMED CLOSE — and in a music video a performer's shot is a singing face (H3 re-stages a wide
+    // over a sung vocal into a close-up of its own making: "Harbour Lights" shot 1, five attempts, 2026-10-10)
+    const framing = closeFramingFor(sh.framing, { people: characterIds.filter((id) => id !== pov).length, dialogue: dialogue.length > 0 || (Boolean(ctx.musicVideo) && characterIds.length > 0) });
+    if (framing !== sh.framing) notes.push(`framing ${sh.framing} → ${framing} (${ctx.musicVideo && dialogue.length === 0 ? 'a singer is framed medium or closer' : 'a speaking face is framed close'})`);
     const staging: ShotStaging | undefined = scrubbedBeats.length || pace || pov || extras.length || sh.actions?.length ? { ...(scrubbedBeats.length ? { beats: scrubbedBeats } : {}), ...(pace ? { pace } : {}), ...(pov ? { pov } : {}), ...(extras.length ? { extras } : {}), ...(sh.actions?.length ? { actions: sh.actions } : {}) } : undefined;
     const continuity: Omit<ContinuityState, 'version'> = {
       // THE SHOT LIST'S DISCIPLINE (schemas.ts ContinuitySchema): side of frame, start and end pose, travel, condition
